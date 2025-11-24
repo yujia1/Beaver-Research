@@ -130,6 +130,17 @@ const pieOptions = {
       legend: {
           position: 'right',
           labels: { color: 'white' }
+      },
+      tooltip: {
+          callbacks: {
+              label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.chart._metasets[context.datasetIndex].total;
+                  const percentage = Math.round((value / total) * 100) + '%';
+                  return `${label}: ${value} (${percentage})`;
+              }
+          }
       }
   }
 };

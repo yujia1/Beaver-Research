@@ -1,6 +1,6 @@
 <template>
   <div class="report-view">
-    <h2>AI Reports</h2>
+    <h2>Reports</h2>
     <div class="upload-section">
       <h3>Upload Document (PDF/HTML)</h3>
       <input type="file" @change="handleFileUpload" :disabled="loading" />

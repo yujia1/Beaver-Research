@@ -132,15 +132,35 @@ async def get_grid_status(timeframe: str = "realtime"):
                 })
 
         elif timeframe in ["monthly", "yearly", "5y"]:
-             # Historical load data is heavy to fetch on the fly.
-             # We will mock these longer timeframes for now but labeled as "Historical Proxy"
-             # or we could use yfinance for a utility company stock as a proxy? No, that's price.
-             # Let's mock these for now as fetching 5 years of 5-min data is not feasible in a synchronous API call.
-             pass 
+             # Use FRED data as proxy for long-term trends
+             # IPG2211N: Industrial Production: Electric Power Generation, Transmission, and Distribution
+             import pandas_datareader.data as web
+             
+             end_date = datetime.datetime.now()
+             if timeframe == "monthly":
+                 start_date = end_date - datetime.timedelta(days=365)
+             else: # yearly, 5y
+                 start_date = end_date - datetime.timedelta(days=365*5)
+                 
+             try:
+                 fred_data = web.DataReader('IPG2211N', 'fred', start_date, end_date)
+                 
+                 # Scale index (approx 100) to NYISO MW scale (approx 30000) -> factor 300
+                 scale_factor = 300
+                 
+                 for date, row in fred_data.iterrows():
+                     val = row['IPG2211N']
+                     if pd.notna(val):
+                         demand_data.append({
+                             "time": date.strftime("%Y-%m-%d"),
+                             "demand": round(val * scale_factor, 2)
+                         })
+             except Exception as e:
+                 print(f"Error fetching FRED data: {e}")
+                 # Fallback to mock will happen if demand_data is empty
 
         # If demand_data is empty (e.g. timeframe not supported by real fetch or fetch failed), fall back to mock logic
         if not demand_data:
-             # ... (Keep existing mock logic for fallbacks) ...
              return await get_mock_grid_status(timeframe)
 
         return {
