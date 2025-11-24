@@ -1,45 +1,28 @@
-# Financial Research Agent
+# Financial Dashboard Data Sources
 
-This project allows you to generate financial reports and interact with them through voice chat.
+This dashboard aggregates data from various real-time and historical sources.
 
-## Prerequisites
+## 1. Macro Economics
+-   **Source**: Yahoo Finance (`yfinance`)
+-   **Indicators**:
+    -   10Y Treasury Yield (`^TNX`)
+    -   VIX (`^VIX`)
+    -   S&P 500 (`^GSPC`)
+-   **FRED API Key**: `d88880486954fc460aea0154b0ff827a` (now available for real data).
 
-Ensure you have Python 10+ installed. It is recommended to create and activate a virtual environment before proceeding.
+## 2. Micro Economics
+-   **Source**: Yahoo Finance (`yfinance`)
+-   **Data**: Real-time stock prices, volume, market cap, sector, and industry data for searched tickers.
 
-Then unsure to set up you python environement:
+## 3. Energy Dashboard
+-   **Grid Status**: `gridstatus` Python Library
+    -   **Source**: NYISO (New York Independent System Operator)
+    -   **Data**: Real-time Fuel Mix, Real-time Load/Demand.
+-   **Energy Prices**: Yahoo Finance (`yfinance`)
+    -   **Crude Oil**: `CL=F`
+    -   **Natural Gas**: `NG=F`
+    -   **Data**: Historical prices (Days, Weekly, Monthly, Yearly, 5 Years).
 
-   `python -m venv .venv`<br>
-   `source .venv/bin/activate`
-
-## Installation
-
-1. **Install requirements:**
-   To install the necessary dependencies, use the following command:
-
-   ```bash
-   pip install -r requirements.txt
-
-2. **Install dependencies:**
-Install dependencies: After installing the requirements, run the following command to synchronize the project dependencies:
-
-   ```bash
-   make sync
-
-3. **Install OpenAI agents:**
-To install the openai-agents package, run:
-    ```bash
-    pip install openai-agents
-
-4- **Generate the financial report:**
-Set your OpenAI key first:
-   
-      $env:OPENAI_API_KEY="your_api_key_here"
-Then use the following command:
-
-    python -m financial_research_agent.main
-
-5- **Chat with voice to interact with the report:**
-To interact with the financial report via voice, run:
-
-    python -m financial_research_agent.mainvoice
-
+## 4. AI Reports
+-   **Source**: OpenAI API (`gpt-4o`)
+-   **Data**: Generates reports based on uploaded documents (PDF/HTML) and context.

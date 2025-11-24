@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+openai
+python-multipart
+pandas
+psycopg2-binary
+sqlalchemy
+pandas_datareader
+yfinance
+beautifulsoup4
+pdfplumber
+requests
+gridstatus
+python-dotenv
