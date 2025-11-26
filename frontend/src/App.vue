@@ -9,21 +9,6 @@ const menuItems = [
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>' 
   },
   { 
-    path: '/macro', 
-    name: 'Macro', 
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>' 
-  },
-  { 
-    path: '/micro', 
-    name: 'Micro', 
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' 
-  },
-  { 
-    path: '/bond', 
-    name: 'Bond', 
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>' 
-  },
-  { 
     path: '/productivity', 
     name: 'Productivity', 
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>' 
@@ -39,14 +24,9 @@ const menuItems = [
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>' 
   },
   { 
-    path: '/energy', 
-    name: 'Energy', 
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>' 
-  },
-  { 
-    path: '/report', 
-    name: 'Report', 
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' 
+    path: '/timeline', 
+    name: 'Timeline', 
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' 
   }
 ]
 </script>
@@ -82,6 +62,7 @@ const menuItems = [
   display: flex;
   min-height: 100vh;
   width: 100%;
+  background-color: #ffffff;
 }
 
 .sidebar {
@@ -89,9 +70,10 @@ const menuItems = [
   top: 0;
   height: 100vh;
   width: 60px; /* Minimized width */
-  background-color: #1a1a1a;
+  background-color: #ffffff;
   padding: 1rem 0;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #cccccc;
   z-index: 1000;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
@@ -112,7 +94,7 @@ nav {
   display: flex;
   align-items: center;
   padding: 0.8rem 0; /* Vertical padding only, horizontal handled by children */
-  color: #fff;
+  color: #000000;
   text-decoration: none;
   font-size: 1rem;
   font-weight: 500;
@@ -123,14 +105,16 @@ nav {
 }
 
 .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-left-color: #42b983;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-left-color: #3498db;
+  color: #000000;
 }
 
 .nav-item.router-link-exact-active {
-  color: #42b983;
-  background-color: rgba(66, 185, 131, 0.1);
-  border-left-color: #42b983;
+  color: #000000;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-left-color: #3498db;
+  font-weight: 600;
 }
 
 .icon-wrapper {
@@ -145,6 +129,8 @@ nav {
 :deep(.icon-wrapper svg) {
   width: 24px;
   height: 24px;
+  stroke: currentColor;
+  color: inherit;
 }
 
 .link-text {
@@ -165,6 +151,7 @@ nav {
   min-width: 0; /* Prevent flex item from overflowing */
   min-height: 100vh;
   padding-left: 2rem;
+  background-color: #ffffff;
   /* No margin-left needed because of flex layout */
 }
 </style>

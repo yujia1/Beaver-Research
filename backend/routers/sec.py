@@ -29,3 +29,4 @@ async def get_cik(ticker: str):
     return {"ticker": ticker.upper(), "cik": cik}
 
 
+

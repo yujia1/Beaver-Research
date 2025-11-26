@@ -250,6 +250,66 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
         "series_id": cfg["series_id"]
     }
 
+@router.get("/stock/{ticker}/history")
+async def get_stock_history(ticker: str, period: str = "2y"):
+    """
+    Fetch historical stock price data from Yahoo Finance.
+    Period options: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max
+    """
+    try:
+        stock = yf.Ticker(ticker)
+        
+        # Map period to interval
+        interval_map = {
+            "1d": "1m",
+            "5d": "5m",
+            "1mo": "1d",
+            "3mo": "1d",
+            "6mo": "1d",
+            "1y": "1d",
+            "2y": "1d",
+            "5y": "1wk",
+            "10y": "1mo",
+            "ytd": "1d",
+            "max": "1mo"
+        }
+        
+        interval = interval_map.get(period, "1d")
+        
+        hist = stock.history(period=period, interval=interval)
+        
+        if hist.empty:
+            raise HTTPException(status_code=404, detail="No data found for ticker")
+        
+        # Convert to list of {date, price} objects
+        history = []
+        for date, row in hist.iterrows():
+            history.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "price": float(row['Close'])
+            })
+        
+        # Get current price info
+        info = stock.info
+        current_price = float(hist['Close'].iloc[-1])
+        
+        # Calculate price change from first date in history
+        first_price = float(hist['Close'].iloc[0])
+        price_change = current_price - first_price
+        price_change_percent = (price_change / first_price) * 100 if first_price > 0 else 0
+        
+        return {
+            "ticker": ticker,
+            "company_name": info.get("longName", ticker),
+            "history": history,
+            "current_price": current_price,
+            "price_change": price_change,
+            "price_change_percent": price_change_percent,
+            "reference_date": hist.index[0].strftime("%b %Y")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching stock data: {str(e)}")
+
 @router.get("/micro/{ticker}", response_model=MicroData)
 async def get_micro_data(ticker: str):
     """

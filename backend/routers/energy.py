@@ -138,8 +138,12 @@ async def get_grid_status(timeframe: str = "realtime"):
              
              end_date = datetime.datetime.now()
              if timeframe == "monthly":
-                 start_date = end_date - datetime.timedelta(days=365)
-             else: # yearly, 5y
+                 start_date = end_date - datetime.timedelta(days=365) # Fetch 1 year for monthly view context? Or 1 month?
+                 # Actually for "monthly" view usually means "Last Month" or "Monthly granularity"?
+                 # Based on mock logic, "Monthly" view showed 12 months. So 1 year is correct.
+             elif timeframe == "yearly":
+                 start_date = end_date - datetime.timedelta(days=365) # 1 year
+             else: # 5y
                  start_date = end_date - datetime.timedelta(days=365*5)
                  
              try:
@@ -176,15 +180,35 @@ async def get_grid_status(timeframe: str = "realtime"):
         return await get_mock_grid_status(timeframe)
 
 async def get_mock_grid_status(timeframe):
-    # ... (Existing mock logic moved here) ...
     today = datetime.datetime.now()
     demand_data = []
+    
     if timeframe == "realtime":
         for i in range(24):
-            time = (today - datetime.timedelta(hours=24-i)).strftime("%H:00")
+            time_str = (today - datetime.timedelta(hours=24-i)).strftime("%H:00")
             demand = 30000 + random.randint(-1000, 1000)
-            demand_data.append({"time": time, "demand": demand})
-    # ... (simplified for brevity, assume previous mock logic) ...
+            demand_data.append({"time": time_str, "demand": demand})
+            
+    elif timeframe == "days":
+        for i in range(30):
+            date_str = (today - datetime.timedelta(days=30-i)).strftime("%m-%d")
+            demand = 30000 + random.randint(-2000, 2000)
+            demand_data.append({"time": date_str, "demand": demand})
+            
+    elif timeframe == "monthly":
+        for i in range(12):
+            date_str = (today - datetime.timedelta(days=365-i*30)).strftime("%Y-%m")
+            demand = 30000 + random.randint(-3000, 3000)
+            demand_data.append({"time": date_str, "demand": demand})
+            
+    elif timeframe in ["yearly", "5y"]:
+        years = 5 if timeframe == "5y" else 1
+        points = 12 * years
+        for i in range(points):
+            date_str = (today - datetime.timedelta(days=365*years - i*30)).strftime("%Y-%m")
+            demand = 30000 + random.randint(-4000, 4000)
+            demand_data.append({"time": date_str, "demand": demand})
+
     return {
         "capacity": 55000,
         "current_demand": 30000,

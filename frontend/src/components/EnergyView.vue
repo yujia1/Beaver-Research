@@ -149,11 +149,11 @@ const lineOptions = {
   responsive: true,
   maintainAspectRatio: false,
   scales: {
-      y: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
-      x: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+      y: { ticks: { color: '#666666' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+      x: { ticks: { color: '#666666' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } }
   },
   plugins: {
-      legend: { labels: { color: 'white' } }
+      legend: { labels: { color: '#000000' } }
   }
 };
 
@@ -220,7 +220,7 @@ const priceChartOptions = computed(() => ({
           display: true,
           position: 'left',
           ticks: { color: '#e74c3c' }, 
-          grid: { color: '#444' },
+          grid: { color: 'rgba(0, 0, 0, 0.1)' },
           title: { display: true, text: 'Oil ($)', color: '#e74c3c' }
       },
       y1: {
@@ -231,10 +231,10 @@ const priceChartOptions = computed(() => ({
           grid: { drawOnChartArea: false }, // only want the grid lines for one axis to show up
           title: { display: true, text: 'Gas ($)', color: '#f1c40f' }
       },
-      x: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+      x: { ticks: { color: '#666666' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } }
   },
   plugins: {
-      legend: { labels: { color: 'white' } }
+      legend: { labels: { color: '#000000' } }
   }
 }));
 
@@ -333,6 +333,8 @@ onMounted(() => {
   padding: 20px 20px 20px 0;
   width: 100%;
   box-sizing: border-box;
+  background: #ffffff;
+  min-height: 100vh;
 }
 
 .page-header {
@@ -344,6 +346,8 @@ onMounted(() => {
 
 .page-header h2 {
   margin: 0;
+  color: #000000;
+  font-weight: 600;
 }
 
 .update-btn {
@@ -410,10 +414,18 @@ onMounted(() => {
 }
 
 .card {
-  background: #2c3e50;
-  color: white;
+  background: #ffffff;
+  color: #000000;
   padding: 20px;
   border-radius: 8px;
+  border: 1px solid #cccccc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+  color: #000000;
+  font-weight: 600;
+  margin: 0 0 15px 0;
 }
 
 .full-width {
@@ -433,6 +445,11 @@ onMounted(() => {
 }
 .metrics p {
     margin: 5px 0;
+    color: #000000;
+}
+
+.metrics strong {
+    color: #000000;
 }
 .timeframe-selector {
     display: flex;
@@ -441,19 +458,22 @@ onMounted(() => {
     justify-content: center;
 }
 .timeframe-selector button {
-    background: #34495e;
-    border: none;
-    color: white;
+    background: #f8f9fa;
+    border: 1px solid #cccccc;
+    color: #000000;
     padding: 5px 10px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.8em;
+    transition: all 0.2s;
 }
 .timeframe-selector button.active {
-    background: #42b983;
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
 }
 .timeframe-selector button:hover {
-    background: #3e5871;
+    background: #e9ecef;
 }
 .error {
     color: red;

@@ -346,10 +346,11 @@ const chartOptions = {
     tooltip: { 
       mode: 'index', 
       intersect: false,
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      titleColor: '#fff',
-      bodyColor: '#fff',
-      borderColor: '#42b983',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      titleColor: '#000000',
+      bodyColor: '#000000',
+      borderColor: '#cccccc',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
       borderWidth: 1,
       padding: 12
     }
@@ -358,25 +359,25 @@ const chartOptions = {
     x: { 
       display: true,
       ticks: { 
-        color: '#95a5a6', 
+        color: '#666666', 
         font: { size: 10 },
         maxRotation: 45,
         minRotation: 45
       },
       grid: { 
         display: true,
-        color: 'rgba(255, 255, 255, 0.05)'
+        color: 'rgba(0, 0, 0, 0.1)'
       }
     },
     y: { 
       display: true,
       ticks: { 
-        color: '#95a5a6', 
+        color: '#666666', 
         font: { size: 10 }
       },
       grid: { 
         display: true,
-        color: 'rgba(255, 255, 255, 0.05)'
+        color: 'rgba(0, 0, 0, 0.1)'
       }
     }
   },
@@ -497,12 +498,16 @@ onMounted(() => {
   padding: 30px 30px 30px 0;
   max-width: 1800px;
   margin: 0 auto;
+  background: #ffffff;
+  min-height: 100vh;
 }
 
 .bond-view h2 {
   margin: 0 0 24px 0;
   font-size: 2em;
   text-align: center;
+  color: #000000;
+  font-weight: 600;
 }
 
 .page-header {
@@ -514,6 +519,8 @@ onMounted(() => {
 
 .page-header h2 {
   margin: 0;
+  color: #000000;
+  font-weight: 600;
 }
 
 .update-btn {
@@ -545,7 +552,7 @@ onMounted(() => {
   margin-bottom: 30px;
   justify-content: center;
   flex-wrap: nowrap;
-  border-bottom: 2px solid #34495e;
+  border-bottom: 2px solid #cccccc;
   padding-bottom: 12px;
   overflow-x: auto;
 }
@@ -553,7 +560,7 @@ onMounted(() => {
 .category-tabs button {
   background: transparent;
   border: none;
-  color: #95a5a6;
+  color: #666666;
   padding: 12px 20px;
   border-radius: 6px 6px 0 0;
   cursor: pointer;
@@ -564,14 +571,15 @@ onMounted(() => {
 }
 
 .category-tabs button.active {
-  color: #42b983;
-  border-bottom-color: #42b983;
-  background: rgba(66, 185, 131, 0.1);
+  color: #000000;
+  border-bottom-color: #3498db;
+  background: rgba(52, 152, 219, 0.1);
+  font-weight: 600;
 }
 
 .category-tabs button:hover {
-  color: #ecf0f1;
-  background: rgba(255, 255, 255, 0.05);
+  color: #000000;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .category-section {
@@ -580,7 +588,7 @@ onMounted(() => {
 
 .category-title {
   font-size: 1.5em;
-  color: #ecf0f1;
+  color: #000000;
   margin-bottom: 24px;
   text-align: center;
   font-weight: 600;
@@ -605,29 +613,29 @@ onMounted(() => {
 }
 
 .bond-card {
-  border: 1px solid #34495e;
+  border: 1px solid #cccccc;
   padding: 20px;
   border-radius: 12px;
   text-align: center;
-  background: #2c3e50;
-  color: white;
+  background: #ffffff;
+  color: #000000;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
 }
 
 .bond-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .bond-card h4 {
   margin: 0 0 12px 0;
   font-size: 1.1em;
   font-weight: 600;
-  color: #ecf0f1;
+  color: #000000;
 }
 
 .card-content {
@@ -645,7 +653,7 @@ onMounted(() => {
 
 .date {
   font-size: 0.85em;
-  color: #95a5a6;
+  color: #666666;
   margin: 4px 0;
 }
 
@@ -653,7 +661,7 @@ onMounted(() => {
   font-size: 0.9em;
   font-style: italic;
   margin: 8px 0 16px 0;
-  color: #bdc3c7;
+  color: #666666;
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -668,9 +676,9 @@ onMounted(() => {
 }
 
 .card-timeframe-selector button {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: #bdc3c7;
+    background: #f8f9fa;
+    border: 1px solid #cccccc;
+    color: #000000;
     padding: 4px 8px;
     border-radius: 4px;
     cursor: pointer;
@@ -679,12 +687,13 @@ onMounted(() => {
 }
 
 .card-timeframe-selector button.active {
-    background: #42b983;
+    background: #3498db;
     color: white;
+    border-color: #3498db;
 }
 
 .card-timeframe-selector button:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.2);
+    background: #e9ecef;
 }
 
 .chart-container {
@@ -705,7 +714,7 @@ onMounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(44, 62, 80, 0.7);
+    background: rgba(255, 255, 255, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -715,7 +724,7 @@ onMounted(() => {
 .spinner-small {
     width: 24px;
     height: 24px;
-    border: 2px solid rgba(255,255,255,0.3);
+    border: 2px solid rgba(0, 0, 0, 0.1);
     border-top-color: #42b983;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -727,13 +736,17 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #ecf0f1;
+  color: #000000;
+}
+
+.loading-state p {
+  color: #666666;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #34495e;
+  border: 4px solid #cccccc;
   border-top-color: #42b983;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -765,7 +778,8 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #7f8c8d;
+    color: #666666;
     font-style: italic;
 }
 </style>
+

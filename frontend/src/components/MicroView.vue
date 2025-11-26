@@ -776,6 +776,24 @@ watch([data, activeTab, financialPeriod], async ([newData, newTab, newPeriod]) =
     }
 });
 
+const saveReport = async (title, content, type) => {
+    if (!data.value) return;
+    try {
+        await fetch('http://localhost:8000/api/reports/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                content: content,
+                report_type: type,
+                ticker: data.value.ticker
+            })
+        });
+    } catch (e) {
+        console.error("Failed to save report", e);
+    }
+};
+
 const generateAllAnalyses = async () => {
     if (!data.value) return;
     analyzing.value = true;
@@ -796,6 +814,38 @@ const generateAllAnalyses = async () => {
         // Generate Capital Structure
         analysisProgress.value = 'Generating Capital Structure Analysis...';
         await generateCapitalAnalysis();
+        
+        // Save combined report
+        analysisProgress.value = 'Saving complete deep dive report...';
+        const combinedReport = `# Deep Dive Analysis: ${data.value.company_name} (${data.value.ticker})
+
+## Company Overview & Industry Analysis
+
+${analysisReport.value || 'Not generated'}
+
+---
+
+## Notes & Disclosures
+
+${notesReport.value || 'Not generated'}
+
+---
+
+## Operating Drivers
+
+${driversReport.value || 'Not generated'}
+
+---
+
+## Capital Structure & Financing
+
+${capitalReport.value || 'Not generated'}`;
+
+        await saveReport(
+            `Deep Dive: ${data.value.company_name} (${data.value.ticker})`,
+            combinedReport,
+            'deep_dive'
+        );
         
         analysisProgress.value = 'Complete!';
     } catch (e) {
@@ -822,6 +872,7 @@ const generateAnalysis = async () => {
         if (!response.ok) throw new Error('Failed to generate analysis');
         const result = await response.json();
         analysisReport.value = result.report;
+        await saveReport(`Company Overview: ${data.value.company_name}`, result.report, 'company_overview');
     } catch (e) {
         console.error(e);
         throw e;
@@ -844,6 +895,7 @@ const generateNotesAnalysis = async () => {
         if (!response.ok) throw new Error('Failed to generate analysis');
         const result = await response.json();
         notesReport.value = result.report;
+        await saveReport(`Notes & Disclosures: ${data.value.company_name}`, result.report, 'notes_disclosures');
     } catch (e) {
         console.error(e);
         if (!analyzing.value) alert("Failed to generate notes analysis");
@@ -869,6 +921,7 @@ const generateDriversAnalysis = async () => {
         if (!response.ok) throw new Error('Failed to generate analysis');
         const result = await response.json();
         driversReport.value = result.report;
+        await saveReport(`Operating Drivers: ${data.value.company_name}`, result.report, 'operating_drivers');
     } catch (e) {
         console.error(e);
         if (!analyzing.value) alert("Failed to generate drivers analysis");
@@ -894,6 +947,7 @@ const generateCapitalAnalysis = async () => {
         if (!response.ok) throw new Error('Failed to generate analysis');
         const result = await response.json();
         capitalReport.value = result.report;
+        await saveReport(`Capital Structure: ${data.value.company_name}`, result.report, 'capital_structure');
     } catch (e) {
         console.error(e);
         if (!analyzing.value) alert("Failed to generate capital analysis");

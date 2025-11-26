@@ -2,6 +2,18 @@
 
 ## Quick Start
 
+### TL;DR - Run Everything
+
+**Backend Terminal:**
+```bash
+source .venv/bin/activate && pip install -r backend/requirements.txt && cd backend && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Frontend Terminal:**
+```bash
+cd frontend && npm install && npm run dev
+```
+
 ### 1. Backend Setup
 
 ```bash
@@ -61,5 +73,6 @@ Create a `.env` file in the project root with the following variables:
 - The backend will start even without `OPENAI_API_KEY`, but AI features will be disabled
 - Without `FRED_API_KEY`, macro data will use fallback/mock data
 - The frontend automatically connects to the backend on port 8000
+
 
 
