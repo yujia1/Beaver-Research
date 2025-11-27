@@ -6,7 +6,7 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from routers import internal, external, agent, energy, sec, bond, reports
+from routers import internal, external, agent, energy, sec, bond, reports, auth, events
 from database import engine
 import models
 
@@ -28,8 +28,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(events.router, prefix="/api/events", tags=["Events"])
 app.include_router(internal.router, prefix="/api/internal", tags=["Internal Data"])
 app.include_router(external.router, prefix="/api/external", tags=["External Data"])
 app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])

@@ -97,58 +97,72 @@ async def analyze_company(request: CompanyAnalysisRequest):
         except ValueError as e:
             raise HTTPException(status_code=503, detail=str(e))
         
+        # Get current date for context
+        current_date = datetime.now()
+        current_year = current_date.year
+        current_month = current_date.month
+        current_quarter = (current_month - 1) // 3 + 1
+        
         prompt = f"""
         Perform a comprehensive Micro Economic Deep Dive analysis for {request.company_name} ({request.ticker}) in the {request.sector} sector.
         
-        IMPORTANT: Be SPECIFIC and ACTIONABLE. Avoid generic statements. Focus on concrete risks, opportunities, and catalysts unique to this company.
+        CRITICAL REQUIREMENTS:
+        1. **USE LATEST SEC FILINGS**: You MUST base your analysis on the most recent 10-Q (quarterly) and 10-K (annual) filings available from SEC EDGAR. Do NOT use outdated information or historical data from previous years unless explicitly comparing to current period.
+        2. **CURRENT DATE CONTEXT**: Today's date is {current_date.strftime('%B %d, %Y')} (Year: {current_year}, Quarter: Q{current_quarter}). All timelines, milestones, and dates in your analysis must reflect this current date. Do NOT reference past years (e.g., 2023-2024) as if they are current or future targets.
+        3. **DATE ACCURACY**: When listing milestones, targets, or timelines, ensure they are forward-looking from {current_year}. If a company mentioned targets for 2023-2024 in old filings, note that these are historical and update with current expectations from the latest filings.
+        4. **Be SPECIFIC and ACTIONABLE**: Avoid generic statements. Focus on concrete risks, opportunities, and catalysts unique to this company based on the latest available information.
         
         Structure the response in Markdown with the following sections:
 
         ## 1. Industry Research & Competitive Position
-        - Current state of the {request.sector} industry and key trends
-        - {request.company_name}'s competitive positioning and market share
+        - Current state of the {request.sector} industry and key trends (as of {current_year})
+        - {request.company_name}'s competitive positioning and market share (based on latest 10-Q/10-K)
         - Key competitors and differentiation factors
         - Industry tailwinds and headwinds
 
         ## 2. Business Model & Revenue Streams
         - Brief company history and evolution
-        - Core business model (how they make money)
-        - Revenue breakdown by segment/product/geography (if applicable)
-        - Major customers and suppliers (if publicly known)
-        - Customer concentration risks
+        - Core business model (how they make money) - use latest financial data from most recent 10-Q/10-K
+        - Revenue breakdown by segment/product/geography (if applicable) - from latest filings
+        - Major customers and suppliers (if publicly known) - from latest 10-K
+        - Customer concentration risks - from latest 10-K
 
         ## 3. Key Investment Thesis
         **Bull Case (Upside Scenarios)**:
         - Identify 3-5 SPECIFIC catalysts that could drive significant upside
-        - For each catalyst: describe the opportunity, probability, timeline, and potential impact
-        - Example: "If NRC licensing milestones are achieved by Q2 2026, could unlock $XXX revenue potential"
+        - For each catalyst: describe the opportunity, probability, timeline (must be future dates from {current_year}), and potential impact
+        - Base catalysts on information from the latest 10-Q/10-K filings
+        - Example: "If NRC licensing milestones are achieved by Q2 {current_year + 1}, could unlock $XXX revenue potential" (NOT 2023-2024)
         
         **Bear Case (Downside Risks)**:
         - Identify 3-5 SPECIFIC risks that could significantly impair value
         - For each risk: describe the threat, probability, timeline, and potential impact
-        - Include regulatory, operational, financial, and market risks
+        - Include regulatory, operational, financial, and market risks from latest 10-Q/10-K
         
         **Base Case**:
-        - Most likely scenario given current information
+        - Most likely scenario given current information from latest filings
         - Key assumptions and what to monitor
 
         ## 4. Critical Milestones to Monitor
         - List 5-7 specific events/metrics to track (e.g., regulatory approvals, product launches, financial metrics)
-        - For each milestone: why it matters and expected timeline
+        - For each milestone: why it matters and expected timeline (MUST be future dates from {current_year}, not past years)
+        - Base milestones on the latest 10-Q/10-K filings and management guidance
+        - IMPORTANT: If old filings mentioned 2023-2024 targets, note these are historical and provide current expectations
 
         ## 5. Valuation Context
-        - Current valuation metrics vs. peers (if applicable)
+        - Current valuation metrics vs. peers (if applicable) - use latest financial data
         - What the market is pricing in
         - Key valuation drivers
 
         Keep the analysis professional, data-driven, and actionable (approx. 800-1000 words).
         Focus on what makes THIS company unique, not generic industry commentary.
+        REMEMBER: Always reference the most recent 10-Q and 10-K filings, and ensure all dates and timelines are current and forward-looking from {current_year}.
         """
 
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a senior equity research analyst at a top-tier investment bank. Provide specific, actionable analysis with concrete examples. Avoid generic statements. Focus on unique company-specific risks and opportunities."},
+                {"role": "system", "content": f"You are a senior equity research analyst at a top-tier investment bank. Today's date is {current_date.strftime('%B %d, %Y')}. You MUST base your analysis on the most recent 10-Q and 10-K SEC filings available. Do NOT use outdated information. All timelines and milestones must be forward-looking from {current_year}. If you see references to past years (e.g., 2023-2024 targets), note they are historical and provide current expectations. Provide specific, actionable analysis with concrete examples. Avoid generic statements. Focus on unique company-specific risks and opportunities based on the latest available data."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,

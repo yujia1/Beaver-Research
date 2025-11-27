@@ -1,0 +1,311 @@
+<template>
+  <div class="signup-view">
+    <div class="signup-container">
+      <div class="signup-card">
+        <h1>Sign Up</h1>
+        <p class="subtitle">Create a new account</p>
+        
+        <form @submit.prevent="handleSignup" class="signup-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              v-model="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              :disabled="loading"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              required
+              placeholder="Choose a username"
+              :disabled="loading"
+              minlength="3"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              required
+              placeholder="Create a password (6-12 characters)"
+              :disabled="loading"
+              minlength="6"
+              maxlength="12"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input
+              id="confirmPassword"
+              v-model="confirmPassword"
+              type="password"
+              required
+              placeholder="Confirm your password"
+              :disabled="loading"
+            />
+          </div>
+          
+          <div v-if="error" class="error-message">{{ error }}</div>
+          <div v-if="success" class="success-message">{{ success }}</div>
+          
+          <button type="submit" class="submit-btn" :disabled="loading || password !== confirmPassword || password.length < 6 || password.length > 12">
+            {{ loading ? 'Creating account...' : 'Sign Up' }}
+          </button>
+          
+          <div v-if="password && password.length < 6" class="password-mismatch">
+            Password must be at least 6 characters
+          </div>
+          <div v-if="password && password.length > 12" class="password-mismatch">
+            Password must be no more than 12 characters
+          </div>
+          <div v-if="password && confirmPassword && password !== confirmPassword" class="password-mismatch">
+            Passwords do not match
+          </div>
+        </form>
+        
+        <div class="login-link">
+          <p>Already have an account? <router-link to="/login">Login</router-link></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const email = ref('')
+const username = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const loading = ref(false)
+const error = ref(null)
+const success = ref(null)
+
+const handleSignup = async () => {
+  if (password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match'
+    return
+  }
+  
+  loading.value = true
+  error.value = null
+  success.value = null
+  
+  try {
+    // Create AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+    
+    const response = await fetch('http://localhost:8000/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email.value,
+        username: username.value,
+        password: password.value
+      }),
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      let errorMessage = 'Signup failed'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.detail || errorMessage
+      } catch (e) {
+        errorMessage = `Server error: ${response.status} ${response.statusText}`
+      }
+      throw new Error(errorMessage)
+    }
+    
+    const data = await response.json()
+    success.value = 'Account created successfully! Redirecting to login...'
+    
+    // Redirect to login after 2 seconds
+    setTimeout(() => {
+      router.push('/login')
+    }, 2000)
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      error.value = 'Request timed out. Please check if the backend server is running on http://localhost:8000'
+    } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      error.value = 'Cannot connect to server. Please ensure the backend is running on http://localhost:8000'
+    } else {
+      error.value = err.message || 'An error occurred during signup'
+    }
+    console.error('Signup error:', err)
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.signup-view {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  padding: 20px;
+}
+
+.signup-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.signup-card {
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #cccccc;
+}
+
+.signup-card h1 {
+  margin: 0 0 10px 0;
+  color: #000000;
+  font-weight: 600;
+  font-size: 2em;
+  text-align: center;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666666;
+  margin: 0 0 30px 0;
+  font-size: 0.95em;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #000000;
+  font-weight: 500;
+  font-size: 0.9em;
+}
+
+.form-group input {
+  padding: 12px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  font-size: 1em;
+  background: #ffffff;
+  color: #000000;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.form-group input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.form-group input::placeholder {
+  color: #999999;
+}
+
+.error-message {
+  background: #fff0f0;
+  color: #e74c3c;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e74c3c;
+  font-size: 0.9em;
+}
+
+.success-message {
+  background: #e8f5e9;
+  color: #42b983;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #42b983;
+  font-size: 0.9em;
+}
+
+.password-mismatch {
+  color: #e74c3c;
+  font-size: 0.85em;
+  margin-top: -10px;
+}
+
+.submit-btn {
+  padding: 12px 24px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 10px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.submit-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.login-link {
+  margin-top: 20px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.login-link p {
+  margin: 0;
+  color: #666666;
+  font-size: 0.9em;
+}
+
+.login-link a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+</style>
+

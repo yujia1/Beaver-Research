@@ -5,11 +5,19 @@
         <h1>Stock Price Timeline</h1>
         <p class="subtitle">Track stock price movements and key events over time</p>
       </div>
-      <div class="price-info">
-        <div class="current-price">${{ currentPrice.toFixed(2) }}</div>
+      <div class="price-info" v-if="selectedStock">
+        <div class="current-price-wrapper">
+          <span v-if="todayChangePercent !== 0" class="today-change" :class="todayChangePercent >= 0 ? 'positive' : 'negative'">
+            {{ todayChangePercent >= 0 ? '+' : '' }}{{ todayChangePercent.toFixed(2) }}%
+          </span>
+          <span class="current-price">${{ currentPrice.toFixed(2) }}</span>
+        </div>
         <div class="price-change" :class="priceChange >= 0 ? 'positive' : 'negative'">
           {{ priceChange >= 0 ? '+' : '' }}{{ priceChange.toFixed(2) }} ({{ priceChangePercent >= 0 ? '+' : '' }}{{ priceChangePercent.toFixed(2) }}%) since {{ referenceDate }}
         </div>
+      </div>
+      <div v-else class="price-info">
+        <div class="current-price" style="color: #999999;">No Stock Selected</div>
       </div>
     </div>
 
@@ -31,7 +39,7 @@
     <!-- Chart Section -->
     <div class="chart-card">
       <div class="chart-header">
-        <h2>{{ selectedStock }} - {{ timelineYear }} Price Timeline</h2>
+        <h2>{{ selectedStock || 'No Stock Selected' }} - {{ timelineYear }} Price Timeline</h2>
         <div class="timeframe-selector">
           <button 
             v-for="period in timePeriods" 
@@ -44,7 +52,7 @@
         </div>
       </div>
       <div class="chart-container">
-        <Line :key="`chart-${events.length}-${eventFilters.positive}-${eventFilters.negative}-${eventFilters.neutral}-${categoryFilters.macro}-${categoryFilters.micro}-${categoryFilters.market}-${categoryFilters.industry}-${categoryFilters.product}-${forecastFilters.actual}-${selectedTimePeriod}`" :data="chartData" :options="chartOptions" />
+        <Line :key="`chart-${events.length}-${selectedCreatorId}-${eventFilters.positive}-${eventFilters.negative}-${eventFilters.neutral}-${categoryFilters.macro}-${categoryFilters.micro}-${categoryFilters.market}-${categoryFilters.industry}-${categoryFilters.product}-${forecastFilters.actual}-${selectedTimePeriod}`" :data="chartData" :options="chartOptions" />
       </div>
     </div>
 
@@ -52,7 +60,27 @@
     <div class="events-card">
       <div class="events-header">
         <h2>Key Logs</h2>
-        <button v-if="activeTab === 'events'" class="add-event-btn" @click="showAddEventForm = true">Add Event</button>
+        <div class="events-header-controls">
+          <!-- Creator Selector -->
+          <div v-if="activeTab === 'events'" class="creator-selector">
+            <label for="creator-select">View Events By:</label>
+            <select 
+              id="creator-select" 
+              v-model="selectedCreatorId" 
+              @change="onCreatorChange"
+              class="creator-select"
+            >
+              <option 
+                v-for="creator in creators" 
+                :key="creator.id" 
+                :value="creator.id"
+              >
+                {{ creator.username }} ({{ creator.role }})
+              </option>
+            </select>
+          </div>
+          <button v-if="activeTab === 'events' && isCreator" class="add-event-btn" @click="showAddEventForm = true">Add Event</button>
+        </div>
       </div>
 
       <!-- Tab Selector -->
@@ -70,6 +98,20 @@
           @click="activeTab = 'company'"
         >
           Company Basic
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: activeTab === 'productivity' }"
+          @click="activeTab = 'productivity'"
+        >
+          Productivity
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: activeTab === 'policy' }"
+          @click="activeTab = 'policy'"
+        >
+          Policy
         </button>
         <button 
           class="tab-btn" 
@@ -211,7 +253,17 @@
                 {{ event.title }}
                 <span v-if="event.isForecast" class="forecast-badge">Forecast</span>
               </h3>
-              <span class="event-category-badge" :class="event.category">{{ getCategoryLabel(event.category) }}</span>
+              <div class="event-header-right">
+                <span class="event-category-badge" :class="event.category">{{ getCategoryLabel(event.category) }}</span>
+                <button 
+                  v-if="isCreator && user && event.user_id === user.id" 
+                  @click="deleteEvent(event.id)"
+                  class="delete-event-btn"
+                  title="Delete event"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
             <p class="event-date">{{ formatDate(event.date) }}</p>
             <p class="event-description">{{ event.description }}</p>
@@ -796,52 +848,243 @@
         </div>
       </div>
 
-      <!-- Report Tab Content -->
-      <div v-if="activeTab === 'report'" class="tab-content report-tab-content">
-        <div class="report-container">
-          <!-- Main Report Area -->
-          <div class="main-report-area">
-            <div class="upload-section" v-if="!report">
-              <h3>Upload Document (PDF/HTML)</h3>
-              <input type="file" @change="handleFileUpload" :disabled="loadingReport" />
-            </div>
-            
-            <div v-if="loadingReport" class="loading">
-              <p>{{ reportStatusMessage }}</p>
-            </div>
-            
-            <div v-else-if="reportError" class="error">{{ reportError }}</div>
-            
-            <!-- Generated Report (Immediate) -->
-            <div class="report-content" v-if="report">
-              <h3>Generated Report</h3>
-              <div class="report-body" v-html="formattedReport"></div>
-            </div>
-          </div>
-
-          <!-- Sidebar for Saved Reports (Right Side) -->
-          <div class="reports-sidebar">
-            <h3>Saved Reports</h3>
-            <div v-if="loadingReports" class="loading-small">Loading...</div>
-            <div v-else-if="savedReports.length === 0" class="no-reports">No saved reports</div>
-            <ul v-else class="report-list">
-              <li v-for="savedReport in savedReports" :key="savedReport.id" @click="selectReport(savedReport)" :class="{ active: selectedReportId === savedReport.id }">
-                <span class="report-ticker">{{ savedReport.ticker || savedReport.title }}</span>
-              </li>
-            </ul>
+      <!-- Productivity Tab Content -->
+      <div v-if="activeTab === 'productivity'" class="tab-content productivity-tab-content">
+        <div class="content-section">
+          <div class="info-card">
+            <h3>📊 Productivity Metrics</h3>
+            <p>This section will display productivity-related economic indicators and metrics.</p>
+            <p class="coming-soon">Coming soon: Labor productivity, GDP per capita, manufacturing productivity, and more.</p>
           </div>
         </div>
+      </div>
 
-        <!-- Modal for Viewing Reports -->
-        <div v-if="showReportModal" class="modal-overlay" @click="closeReportModal">
-          <div class="modal-content" @click.stop>
-            <div class="modal-header">
-              <h3>{{ selectedReportTitle }}</h3>
-              <button @click="closeReportModal" class="close-btn">Close</button>
+      <!-- Policy Tab Content -->
+      <div v-if="activeTab === 'policy'" class="tab-content policy-tab-content">
+        <div class="content-section">
+          <div class="info-card">
+            <h3>📜 Policy & Regulation</h3>
+            <p>This section will display policy and regulatory information affecting financial markets.</p>
+            <p class="coming-soon">Coming soon: Federal Reserve policy decisions, regulatory changes, SEC filings, and more.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Tab Content - Interactive Report with Linked Cards -->
+      <div v-if="activeTab === 'report'" class="tab-content report-tab-content">
+        <div class="report-container">
+          <!-- Report Header -->
+          <div class="report-header">
+            <h2>Report - {{ selectedStock || 'No Stock Selected' }}</h2>
+            <div class="report-actions">
+              <div v-if="isSelectingText && selectedText && reportSection === 'editor'" class="selection-actions">
+                <button @click="createLinkedCard" class="btn-link-card">
+                  📎 Link Selected Text
+                </button>
+                <button @click="isSelectingText = false; selectedText = ''" class="btn-cancel">
+                  Cancel
+                </button>
+              </div>
             </div>
-            <div class="modal-body">
-              <div v-if="loadingModal" class="loading">Loading report...</div>
-              <div v-else class="report-body" v-html="formattedModalReport"></div>
+          </div>
+          
+          <!-- Report Section Tabs -->
+          <div class="report-section-tabs">
+            <button 
+              :class="{ active: reportSection === 'editor' }"
+              @click="reportSection = 'editor'"
+              class="section-tab-btn"
+            >
+              Editor
+            </button>
+            <button 
+              :class="{ active: reportSection === 'upload' }"
+              @click="reportSection = 'upload'"
+              class="section-tab-btn"
+            >
+              Upload
+            </button>
+            <button 
+              :class="{ active: reportSection === 'history' }"
+              @click="reportSection = 'history'"
+              class="section-tab-btn"
+            >
+              History
+            </button>
+          </div>
+          
+          <div v-if="!selectedStock" class="empty-deck">
+            <p>Please select a stock ticker to create and manage reports.</p>
+          </div>
+
+          <!-- Editor Section -->
+          <div v-if="selectedStock && reportSection === 'editor'" class="report-main-layout">
+            <!-- Main Report Editor Area -->
+            <div class="report-editor-area">
+              <div class="report-editor-header">
+                <h3>Report Content</h3>
+                <p class="editor-hint">Select any sentence and click "Link Selected Text" to create a linked card</p>
+              </div>
+              
+              <div class="report-editor-wrapper">
+                <div 
+                  ref="reportEditor"
+                  class="report-editor"
+                  @mouseup="handleTextSelection"
+                  @scroll="updateConnectorLines"
+                  contenteditable="true"
+                  dir="ltr"
+                  @input="updateReportContent"
+                  v-html="reportContent"
+                ></div>
+                <!-- SVG overlay for connector lines -->
+                <svg 
+                  v-if="linkedCards.length > 0"
+                  class="connector-lines"
+                  ref="connectorSvg"
+                >
+                  <line
+                    v-for="card in linkedCards"
+                    :key="card.id"
+                    :x1="0"
+                    :y1="0"
+                    :x2="0"
+                    :y2="0"
+                    :class="{ active: selectedSentenceId === card.id }"
+                    class="connector-line"
+                    :data-card-id="card.id"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Linked Cards Sidebar -->
+            <div class="linked-cards-sidebar">
+              <h3>Linked Cards ({{ linkedCards.length }})</h3>
+              
+              <div v-if="linkedCards.length === 0" class="no-cards">
+                <p>No linked cards yet. Select text in the report to create one.</p>
+              </div>
+              
+              <div v-else class="cards-list">
+                <div
+                  v-for="card in linkedCards"
+                  :key="card.id"
+                  @click="selectCard(card.id)"
+                  :class="{ active: selectedSentenceId === card.id }"
+                  class="linked-card-item"
+                  :data-card-id="card.id"
+                >
+                  <div class="card-header">
+                    <div class="card-sentence-preview">
+                      "{{ getCardPreview(card.sentenceText, 40) }}"
+                    </div>
+                    <button 
+                      @click.stop="deleteCard(card.id)"
+                      class="btn-delete-small"
+                      title="Delete card"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div class="card-content-editor">
+                    <textarea
+                      v-model="card.content"
+                      @input="saveReportData"
+                      @click.stop
+                      placeholder="Add your insight or note here..."
+                      class="card-textarea-small"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Section -->
+          <div v-if="selectedStock && reportSection === 'upload'" class="report-upload-section">
+            <div class="upload-header">
+              <h3>Upload Document</h3>
+              <p class="upload-hint">Upload PDF, Word (.docx), or Text files to extract and beautify content</p>
+            </div>
+            
+            <div class="upload-area">
+              <input
+                type="file"
+                ref="fileInput"
+                @change="handleFileUpload"
+                accept=".pdf,.doc,.docx,.txt,.text"
+                class="file-input"
+                id="file-upload-input"
+              />
+              <label for="file-upload-input" class="file-upload-label">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">
+                  <strong>Click to upload</strong> or drag and drop
+                  <br>
+                  <span class="upload-formats">PDF, Word (.docx), or Text files</span>
+                </div>
+              </label>
+              
+              <div v-if="uploading" class="upload-progress">
+                <p>{{ uploadStatus }}</p>
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+                </div>
+              </div>
+              
+              <div v-if="uploadError" class="upload-error">
+                <p>{{ uploadError }}</p>
+              </div>
+              
+              <div v-if="uploadSuccess" class="upload-success">
+                <p>✓ File uploaded and saved to history successfully!</p>
+                <p class="upload-filename">{{ uploadedFileName }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- History Section -->
+          <div v-if="selectedStock && reportSection === 'history'" class="report-history-section">
+            <div class="history-header">
+              <h3>Report History</h3>
+              <button @click="loadReportHistory" class="btn-refresh">Refresh</button>
+            </div>
+            
+            <div v-if="loadingHistory" class="loading-state">
+              <p>Loading report history...</p>
+            </div>
+            
+            <div v-else-if="reportHistory.length === 0" class="empty-history">
+              <p>No saved reports found for {{ selectedStock }}.</p>
+              <p class="hint-text">Reports are automatically saved as you edit in the Editor section.</p>
+            </div>
+            
+            <div v-else class="history-list">
+              <div
+                v-for="(report, index) in reportHistory"
+                :key="index"
+                class="history-item"
+                @click="loadReportFromHistory(report)"
+              >
+                <div class="history-item-header">
+                  <div class="history-item-info">
+                    <h4>{{ report.title || `Report ${index + 1}` }}</h4>
+                    <p class="history-date">{{ formatHistoryDate(report.savedAt) }}</p>
+                  </div>
+                  <div class="history-item-actions" @click.stop>
+                    <button @click="loadReportFromHistory(report)" class="btn-load-report">
+                      Load
+                    </button>
+                    <button @click="deleteReportFromHistory(index)" class="btn-delete-history">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div class="history-item-preview">
+                  <p>{{ getReportPreview(report.content || report.markdownContent) }}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -961,18 +1204,19 @@ ChartJS.register(
 )
 
 // Stock data
-const selectedStock = ref('TSLA')
-const stockSearchInput = ref('TSLA')
+const selectedStock = ref('')
+const stockSearchInput = ref('')
 const timelineYear = ref('2024')
-const referenceDate = ref('Jan 2024')
-const currentPrice = ref(352.56)
-const priceChange = ref(104.14)
-const priceChangePercent = ref(41.92)
+const referenceDate = ref('')
+const currentPrice = ref(0)
+const priceChange = ref(0)
+const priceChangePercent = ref(0)
+const todayChangePercent = ref(0) // Today's percentage change
 const loadingStock = ref(false)
 const stockError = ref(null)
 
 // Time period selector
-const selectedTimePeriod = ref('max')
+const selectedTimePeriod = ref('daily')
 const timePeriods = [
   { label: 'Daily', value: 'daily' },
   { label: 'Weekly', value: 'weekly' },
@@ -981,127 +1225,36 @@ const timePeriods = [
   { label: 'Max', value: 'max' }
 ]
 
-// Events
-const events = ref([
-  {
-    id: 1,
-    date: '2024-01-31',
-    title: 'Q4 2023 Earnings Miss',
-    description: 'Tesla reported lower-than-expected Q4 earnings, causing stock decline.',
-    type: 'negative',
-    category: 'market',
-    isForecast: false
-  },
-  {
-    id: 2,
-    date: '2024-03-31',
-    title: 'Price Cuts Announced',
-    description: 'Tesla announced price cuts across multiple vehicle models globally.',
-    type: 'negative',
-    category: 'product',
-    isForecast: false
-  },
-  {
-    id: 3,
-    date: '2024-06-30',
-    title: 'Robotaxi Announcement',
-    description: 'Elon Musk announced plans for Tesla Robotaxi unveiling, boosting investor confidence.',
-    type: 'positive',
-    category: 'product',
-    isForecast: false
-  },
-  {
-    id: 4,
-    date: '2024-08-31',
-    title: 'Record Deliveries',
-    description: 'Tesla reported record quarterly deliveries beating analyst expectations.',
-    type: 'positive',
-    category: 'market',
-    isForecast: false
-  },
-  {
-    id: 5,
-    date: '2024-10-31',
-    title: 'Cybertruck Production Ramp',
-    description: 'Tesla announced significant Cybertruck production increases.',
-    type: 'positive',
-    category: 'product',
-    isForecast: false
-  },
-  // Forecast Events
-  {
-    id: 6,
-    date: '2025-01-15',
-    title: 'Q4 2024 Earnings Report',
-    description: 'Scheduled Q4 2024 earnings release. Analysts expect strong performance driven by record deliveries.',
-    type: 'positive',
-    category: 'market',
-    isForecast: true
-  },
-  {
-    id: 7,
-    date: '2025-02-20',
-    title: 'Model Y Refresh Launch',
-    description: 'Expected announcement of refreshed Model Y with new features and improved range.',
-    type: 'positive',
-    category: 'product',
-    isForecast: true
-  },
-  {
-    id: 8,
-    date: '2025-03-15',
-    title: 'FED Interest Rate Decision',
-    description: 'Federal Reserve meeting to decide on interest rates. Potential impact on auto financing and consumer spending.',
-    type: 'neutral',
-    category: 'macro',
-    isForecast: true
-  },
-  {
-    id: 9,
-    date: '2025-04-10',
-    title: 'Q1 2025 Earnings Report',
-    description: 'Scheduled Q1 2025 earnings release. Market will be watching for delivery guidance and margin improvements.',
-    type: 'positive',
-    category: 'market',
-    isForecast: true
-  },
-  {
-    id: 10,
-    date: '2025-05-05',
-    title: 'New Gigafactory Announcement',
-    description: 'Expected announcement of new Gigafactory location to expand production capacity.',
-    type: 'positive',
-    category: 'industry',
-    isForecast: true
-  },
-  {
-    id: 11,
-    date: '2025-06-20',
-    title: 'FSD Beta Regulatory Review',
-    description: 'Regulatory review of Full Self-Driving Beta program. Potential approval or restrictions.',
-    type: 'neutral',
-    category: 'macro',
-    isForecast: true
-  },
-  {
-    id: 12,
-    date: '2025-07-15',
-    title: 'Competitor EV Launch',
-    description: 'Major competitor expected to launch new electric vehicle model, potentially impacting market share.',
-    type: 'negative',
-    category: 'industry',
-    isForecast: true
-  },
-  {
-    id: 13,
-    date: '2025-12-25',
-    title: 'Holiday Season Sales Report',
-    description: 'Expected release of Q4 holiday season sales performance and delivery numbers.',
-    type: 'positive',
-    category: 'market',
-    isForecast: true
+// User info and role check
+const user = ref(null)
+const isCreator = computed(() => {
+  if (!user.value) {
+    console.log('isCreator: user.value is null')
+    return false
   }
-])
+  const role = user.value.role
+  const isCreatorRole = role === 'creator' || role === 'admin'
+  console.log('isCreator check:', { username: user.value.username, role, isCreatorRole })
+  return isCreatorRole
+})
+
+// Creator selector
+const creators = ref([])
+const selectedCreatorId = ref(null)
+const loadingCreators = ref(false)
+
+// Events - now loaded from API
+const events = ref([])
+const loadingEvents = ref(false)
+
+// Filtered events based on selected creator (for chart display)
+const filteredEventsForChart = computed(() => {
+  // Always filter by selected creator's user_id
+  if (selectedCreatorId.value === null) {
+    return [] // No creator selected, show no events
+  }
+  return events.value.filter(event => event.user_id === selectedCreatorId.value)
+})
 
 const showAddEventForm = ref(false)
 const highlightedEventId = ref(null)
@@ -1129,18 +1282,47 @@ const analyzingCapital = ref(false)
 const capitalReport = ref(null)
 const analysisProgress = ref('')
 
-// Report Tab State (from ReportView)
-const report = ref('')
-const loadingReport = ref(false)
-const reportError = ref(null)
-const reportStatusMessage = ref('')
-const savedReports = ref([])
-const loadingReports = ref(false)
-const selectedReportId = ref(null)
-const selectedReportTitle = ref('')
-const showReportModal = ref(false)
-const modalReportContent = ref('')
-const loadingModal = ref(false)
+// Report and Linked Cards State
+const reportContent = ref('')
+const linkedCards = ref([]) // Array of { id, sentenceId, content, sentenceText, position }
+const selectedSentenceId = ref(null)
+const nextCardId = ref(1)
+const isSelectingText = ref(false)
+const selectedText = ref('')
+const selectedRange = ref(null)
+const reportEditor = ref(null)
+const connectorSvg = ref(null)
+const reportSection = ref('editor') // 'editor', 'upload', or 'history'
+const reportHistory = ref([]) // Array of saved report versions
+
+// File upload state
+const fileInput = ref(null)
+const uploading = ref(false)
+const uploadStatus = ref('')
+const uploadProgress = ref(0)
+const uploadError = ref(null)
+const uploadSuccess = ref(false)
+const uploadedFileName = ref('')
+
+// Computed properties
+const currentCard = computed({
+  get: () => {
+    if (linkedCards.value.length === 0) {
+      return { id: null, content: '', sentenceId: null }
+    }
+    const card = linkedCards.value.find(c => c.id === selectedSentenceId.value)
+    return card || { id: null, content: '', sentenceId: null }
+  },
+  set: (value) => {
+    if (selectedSentenceId.value) {
+      const card = linkedCards.value.find(c => c.id === selectedSentenceId.value)
+      if (card) {
+        card.content = value.content
+        saveReportData()
+      }
+    }
+  }
+})
 
 // Chart refs for Micro Economics
 const revenueProfitChart = ref(null)
@@ -1169,11 +1351,11 @@ const releasesSortOrder = ref('desc')
 // Holders view
 const holdersView = ref('all')
 
-// Event filters - default: positive and negative selected, neutral deselected
+// Event filters - default: neutral selected, positive and negative deselected
 const eventFilters = ref({
-  positive: true,
-  negative: true,
-  neutral: false
+  positive: false,
+  negative: false,
+  neutral: true
 })
 
 // Category filters
@@ -1378,7 +1560,8 @@ const chartData = computed(() => {
       return data
     }
     
-    events.value.forEach(event => {
+    // Use filtered events (by selected creator) for chart
+    filteredEventsForChart.value.forEach(event => {
       // Only show actual events on chart, skip forecast events
       if (event.isForecast) {
         return
@@ -1514,7 +1697,8 @@ const chartOptions = computed(() => {
   
   // Create a mapping of event data points (only for filtered actual events, forecast events excluded)
   const eventMap = new Map()
-  events.value.forEach(event => {
+  // Use filtered events (by selected creator) for chart
+  filteredEventsForChart.value.forEach(event => {
     // Skip forecast events - they don't appear on chart
     if (event.isForecast) {
       return
@@ -1708,9 +1892,9 @@ const filteredEvents = computed(() => {
 
 const clearFilters = () => {
   eventFilters.value = {
-    positive: true,
-    negative: true,
-    neutral: false
+    positive: false,
+    negative: false,
+    neutral: true
   }
   categoryFilters.value = {
     macro: true,
@@ -1788,6 +1972,9 @@ const loadStockData = async () => {
     referenceDate.value = data.reference_date
     timelineYear.value = new Date().getFullYear().toString()
     
+    // Get today's percentage change from API response
+    todayChangePercent.value = data.today_change_percent || 0
+    
   } catch (err) {
     stockError.value = err.message || 'Error loading stock data'
     console.error('Error loading stock data:', err)
@@ -1846,16 +2033,58 @@ const fetchCompanyData = async () => {
 }
 
 // Watch selectedStock to auto-fetch company data
-watch(selectedStock, () => {
-  if (activeTab.value === 'company') {
+watch(selectedStock, (newStock, oldStock) => {
+  // Clear price info when stock is cleared
+  if (!newStock) {
+    currentPrice.value = 0
+    priceChange.value = 0
+    priceChangePercent.value = 0
+    todayChangePercent.value = 0
+    referenceDate.value = ''
+    stockData.value = []
+    events.value = []
+    companyData.value = null
+    return
+  }
+  
+  // Fetch events for the new ticker
+  if (selectedStock.value) {
+    fetchEvents()
+  }
+  
+  // Always fetch company data if on company tab when stock changes
+  // This ensures Key Logs (Company Basic) always uses the same ticker as Stock Price Timeline
+  if (activeTab.value === 'company' && selectedStock.value) {
     fetchCompanyData()
+  }
+  
+  // Reload report data if on report tab
+  if (selectedStock.value && activeTab.value === 'report') {
+    loadReportData()
+    loadReportHistory()
+  }
+  
+  // Reload stock data for the new ticker
+  if (selectedStock.value) {
+    loadStockData()
   }
 })
 
 // Watch activeTab to fetch company data when switching to company tab
 watch(activeTab, (newTab) => {
-  if (newTab === 'company' && selectedStock.value && !companyData.value) {
-    fetchCompanyData()
+  // Always fetch company data when switching to company tab if we have a selected stock
+  // This ensures the data matches the current selectedStock
+  if (newTab === 'company' && selectedStock.value) {
+    // Check if we need to fetch (no data or data is for different ticker)
+    if (!companyData.value || companyData.value.ticker !== selectedStock.value.toUpperCase()) {
+      fetchCompanyData()
+    }
+  }
+  
+  // Load report data when switching to report tab
+  if (newTab === 'report' && selectedStock.value) {
+    loadReportData()
+    loadReportHistory()
   }
 })
 
@@ -1944,40 +2173,205 @@ const renderMarkdown = (text) => {
   return marked(text)
 }
 
-const addEvent = () => {
-  if (!newEvent.value.date || !newEvent.value.title || !newEvent.value.description) {
+// Fetch creators from API
+const fetchCreators = async () => {
+  loadingCreators.value = true
+  try {
+    const response = await fetch('http://localhost:8000/api/auth/creators')
+    if (response.ok) {
+      creators.value = await response.json()
+      // Set the first creator as default selection
+      if (creators.value.length > 0 && selectedCreatorId.value === null) {
+        selectedCreatorId.value = creators.value[0].id
+        // Fetch events for the default creator only if a stock is selected
+        if (selectedStock.value) {
+          fetchEvents()
+        }
+      }
+    } else {
+      console.error('Failed to fetch creators:', response.statusText)
+    }
+  } catch (err) {
+    console.error('Error fetching creators:', err)
+  } finally {
+    loadingCreators.value = false
+  }
+}
+
+// Fetch events from API
+const fetchEvents = async () => {
+  if (!selectedStock.value) return
+  
+  loadingEvents.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    // Build query string with ticker and creator_id (required)
+    let url = `http://localhost:8000/api/events/?ticker=${selectedStock.value}`
+    if (selectedCreatorId.value !== null) {
+      url += `&creator_id=${selectedCreatorId.value}`
+    } else {
+      // If no creator selected, don't fetch events
+      loadingEvents.value = false
+      events.value = []
+      return
+    }
+    
+    const response = await fetch(url, {
+      headers
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      // Convert API response to frontend format
+      events.value = data.map(event => ({
+        id: event.id,
+        user_id: event.user_id, // Store user_id for filtering
+        date: event.date.split('T')[0], // Extract date part
+        title: event.title,
+        description: event.description || '',
+        type: event.type,
+        category: event.category,
+        isForecast: event.is_forecast
+      }))
+    } else {
+      console.error('Failed to fetch events:', response.statusText)
+    }
+  } catch (err) {
+    console.error('Error fetching events:', err)
+  } finally {
+    loadingEvents.value = false
+  }
+}
+
+// Handle creator selection change
+const onCreatorChange = () => {
+  fetchEvents()
+}
+
+// Delete event function
+const deleteEvent = async (eventId) => {
+  if (!confirm('Are you sure you want to delete this event?')) {
     return
   }
   
-  const event = {
-    id: Date.now(),
-    date: newEvent.value.date,
-    title: newEvent.value.title,
-    description: newEvent.value.description,
-    type: newEvent.value.type,
-    category: newEvent.value.category,
-    isForecast: newEvent.value.isForecast || false
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    alert('Please login to delete events')
+    return
   }
   
-  events.value.push(event)
-  
-  // Regenerate stock data to reflect event impact
-  stockData.value = generateStockData()
-  
-  // Force reactivity update
-  events.value = [...events.value]
-  
-  // Reset form
-  newEvent.value = {
-    date: '',
-    title: '',
-    description: '',
-    type: 'neutral',
-    category: 'market',
-    isForecast: false
+  try {
+    const response = await fetch(`http://localhost:8000/api/events/${eventId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.ok || response.status === 204) {
+      // Remove event from local list
+      events.value = events.value.filter(event => event.id !== eventId)
+      // Force reactivity update
+      events.value = [...events.value]
+      // Update chart to reflect the deletion
+      updateChart()
+      alert('Event deleted successfully')
+    } else {
+      const errorData = await response.json().catch(() => ({ detail: 'Failed to delete event' }))
+      alert(`Failed to delete event: ${errorData.detail || 'Unknown error'}`)
+    }
+  } catch (err) {
+    console.error('Error deleting event:', err)
+    alert('Error deleting event. Please try again.')
+  }
+}
+
+const addEvent = async () => {
+  if (!newEvent.value.date || !newEvent.value.title || !newEvent.value.description) {
+    alert('Please fill in all required fields')
+    return
   }
   
-  showAddEventForm.value = false
+  // Validate ticker is selected
+  if (!selectedStock.value || !selectedStock.value.trim()) {
+    alert('Please select a stock ticker before adding an event')
+    return
+  }
+  
+  if (!isCreator.value) {
+    alert('Only creators can add events')
+    return
+  }
+  
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    alert('Please login to add events')
+    return
+  }
+  
+  try {
+    const response = await fetch('http://localhost:8000/api/events/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ticker: selectedStock.value.toUpperCase().trim(),
+        date: newEvent.value.date,
+        title: newEvent.value.title,
+        description: newEvent.value.description,
+        type: newEvent.value.type,
+        category: newEvent.value.category,
+        is_forecast: newEvent.value.isForecast || false
+      })
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      // Add new event to list with user_id from current user
+      const newEventData = {
+        id: data.id,
+        user_id: data.user_id || user.value?.id,
+        date: data.date.split('T')[0],
+        title: data.title,
+        description: data.description || '',
+        type: data.type,
+        category: data.category,
+        isForecast: data.is_forecast
+      }
+      
+      events.value.push(newEventData)
+      
+      // Force reactivity update
+      events.value = [...events.value]
+      
+      // Reset form
+      newEvent.value = {
+        date: '',
+        title: '',
+        description: '',
+        type: 'neutral',
+        category: 'market',
+        isForecast: false
+      }
+      
+      showAddEventForm.value = false
+    } else {
+      const errorData = await response.json()
+      alert(errorData.detail || 'Failed to create event')
+    }
+  } catch (err) {
+    console.error('Error creating event:', err)
+    alert('Error creating event. Please try again.')
+  }
 }
 
 const closeAddEventForm = () => {
@@ -2204,11 +2598,32 @@ ${driversReport.value || 'Not generated'}
 
 ${capitalReport.value || 'Not generated'}`
 
+    // Save to backend
     await saveReport(
       `Deep Dive: ${companyData.value.company_name} (${companyData.value.ticker})`,
       combinedReport,
       'deep_dive'
     )
+    
+    // Save to report history with ticker + date format
+    const currentDate = new Date()
+    const dateStr = currentDate.toISOString().split('T')[0] // YYYY-MM-DD format
+    const historyTitle = `${companyData.value.ticker} - ${dateStr}`
+    
+    // Convert markdown to HTML for editor display
+    const htmlContent = renderMarkdown(combinedReport)
+    
+    // Save to report history
+    saveDeepDiveToHistory(historyTitle, htmlContent, combinedReport)
+    
+    // Refresh history if on history tab
+    if (activeTab.value === 'report' && reportSection.value === 'history') {
+      loadReportHistory()
+    }
+    
+    // Ensure all sections are visible after generation
+    // Force Vue to update the DOM by using nextTick
+    await nextTick()
     
     analysisProgress.value = 'Complete!'
   } catch (e) {
@@ -2259,6 +2674,8 @@ const generateNotesAnalysis = async () => {
     const result = await response.json()
     notesReport.value = result.report
     await saveReport(`Notes & Disclosures: ${companyData.value.company_name}`, result.report, 'notes_disclosures')
+    // Force Vue reactivity update
+    await nextTick()
   } catch (e) {
     console.error(e)
     if (!analyzing.value) alert("Failed to generate notes analysis")
@@ -2285,6 +2702,8 @@ const generateDriversAnalysis = async () => {
     const result = await response.json()
     driversReport.value = result.report
     await saveReport(`Operating Drivers: ${companyData.value.company_name}`, result.report, 'operating_drivers')
+    // Force Vue reactivity update
+    await nextTick()
   } catch (e) {
     console.error(e)
     if (!analyzing.value) alert("Failed to generate drivers analysis")
@@ -2311,6 +2730,8 @@ const generateCapitalAnalysis = async () => {
     const result = await response.json()
     capitalReport.value = result.report
     await saveReport(`Capital Structure: ${companyData.value.company_name}`, result.report, 'capital_structure')
+    // Force Vue reactivity update
+    await nextTick()
   } catch (e) {
     console.error(e)
     if (!analyzing.value) alert("Failed to generate capital analysis")
@@ -2878,128 +3299,583 @@ const formatPercentChange = (value) => {
   return sign + (value * 100).toFixed(2) + '%'
 }
 
-// Report Tab Functions
-const fetchReports = async () => {
-  loadingReports.value = true
-  try {
-    const response = await fetch('http://localhost:8000/api/reports/')
-    if (response.ok) {
-      savedReports.value = await response.json()
+// Report and Linked Cards Functions
+const loadReportData = () => {
+  if (!selectedStock.value) {
+    reportContent.value = ''
+    linkedCards.value = []
+    return
+  }
+  
+  const key = `report_${selectedStock.value.toUpperCase()}`
+  const saved = localStorage.getItem(key)
+  if (saved) {
+    try {
+      const data = JSON.parse(saved)
+      reportContent.value = data.content || ''
+      linkedCards.value = data.cards || []
+      nextCardId.value = Math.max(1, ...(linkedCards.value.length > 0 ? linkedCards.value.map(c => {
+        const idNum = parseInt(c.id?.replace('sentence_', '') || '0')
+        return isNaN(idNum) ? 0 : idNum
+      }) : [0])) + 1
+      
+      // Restore linked sentences after DOM updates
+      nextTick(() => {
+        restoreLinkedSentences()
+        updateConnectorLines()
+      })
+      
+      // Load report history
+      loadReportHistory()
+    } catch (e) {
+      console.error('Failed to load report data:', e)
+      reportContent.value = ''
+      linkedCards.value = []
     }
-  } catch (e) {
-    console.error("Failed to fetch reports", e)
-  } finally {
-    loadingReports.value = false
+  } else {
+    reportContent.value = ''
+    linkedCards.value = []
   }
 }
 
-const selectReport = async (savedReportSummary) => {
-  selectedReportId.value = savedReportSummary.id
-  selectedReportTitle.value = savedReportSummary.title || savedReportSummary.ticker
-  loadingModal.value = true
-  showReportModal.value = true
+const saveReportData = () => {
+  if (!selectedStock.value) return
+  
+  const key = `report_${selectedStock.value.toUpperCase()}`
+  const data = {
+    content: reportContent.value,
+    cards: linkedCards.value
+  }
+  localStorage.setItem(key, JSON.stringify(data))
+  
+  // Auto-save to history every 30 seconds (debounced)
+  if (reportContent.value.trim()) {
+    clearTimeout(saveReportData.historyTimeout)
+    saveReportData.historyTimeout = setTimeout(() => {
+      saveReportToHistory()
+    }, 30000) // 30 seconds
+  }
+}
+
+const handleTextSelection = () => {
+  const selection = window.getSelection()
+  const selectedTextStr = selection.toString().trim()
+  
+  if (selectedTextStr.length > 0) {
+    selectedText.value = selectedTextStr
+    selectedRange.value = selection.getRangeAt(0).cloneRange()
+    isSelectingText.value = true
+  } else {
+    isSelectingText.value = false
+    selectedText.value = ''
+    selectedRange.value = null
+  }
+}
+
+const createLinkedCard = () => {
+  if (!selectedText.value || !selectedRange.value) return
+  
+  const sentenceId = `sentence_${nextCardId.value++}`
+  const range = selectedRange.value
+  
+  // Wrap the selected text in a span with the sentence ID
+  const span = document.createElement('span')
+  span.setAttribute('data-sentence-id', sentenceId)
+  span.classList.add('linked-sentence')
+  span.textContent = selectedText.value
   
   try {
-    const response = await fetch(`http://localhost:8000/api/reports/${savedReportSummary.id}`)
-    if (!response.ok) throw new Error('Failed to fetch report content')
-    const data = await response.json()
-    modalReportContent.value = data.content
+    range.deleteContents()
+    range.insertNode(span)
   } catch (e) {
-    console.error("Failed to load report", e)
-    modalReportContent.value = "Failed to load report content."
+    console.error('Error creating linked card:', e)
+    return
+  }
+  
+  // Create the linked card
+  const newCard = {
+    id: sentenceId,
+    sentenceId: sentenceId,
+    content: '',
+    sentenceText: selectedText.value,
+    position: { top: 0, left: 0 }
+  }
+  
+  linkedCards.value.push(newCard)
+  selectedSentenceId.value = sentenceId
+  selectedText.value = ''
+  selectedRange.value = null
+  isSelectingText.value = false
+  saveReportData()
+  
+  // Clear selection and update report content
+  window.getSelection().removeAllRanges()
+  updateReportContentFromDOM()
+  
+  // Update connector lines after DOM update
+  nextTick(() => {
+    updateConnectorLines()
+  })
+}
+
+const updateReportContentFromDOM = () => {
+  const editor = document.querySelector('.report-editor')
+  if (editor) {
+    reportContent.value = editor.innerHTML
+    saveReportData()
+  }
+}
+
+const selectCard = (cardId) => {
+  selectedSentenceId.value = cardId
+  // Scroll to the linked sentence and highlight it
+  const sentenceElement = document.querySelector(`[data-sentence-id="${cardId}"]`)
+  if (sentenceElement) {
+    sentenceElement.classList.add('active')
+    sentenceElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // Remove active class after animation
+    setTimeout(() => {
+      sentenceElement.classList.remove('active')
+    }, 2000)
+  }
+  updateConnectorLines()
+}
+
+const updateConnectorLines = () => {
+  // This will be called to update visual connector lines
+  // For now, we'll use CSS to show connections
+  nextTick(() => {
+    linkedCards.value.forEach(card => {
+      const sentenceElement = document.querySelector(`[data-sentence-id="${card.sentenceId}"]`)
+      const cardElement = document.querySelector(`[data-card-id="${card.id}"]`)
+      
+      if (sentenceElement && cardElement) {
+        // Store positions for potential SVG line drawing
+        const sentenceRect = sentenceElement.getBoundingClientRect()
+        const cardRect = cardElement.getBoundingClientRect()
+        card.position = {
+          top: sentenceRect.top,
+          left: sentenceRect.left,
+          cardTop: cardRect.top,
+          cardLeft: cardRect.left
+        }
+      }
+    })
+  })
+}
+
+const deleteCard = (cardId) => {
+  if (confirm('Are you sure you want to delete this linked card?')) {
+    // Remove linked class from sentence
+    const sentenceElement = document.querySelector(`[data-sentence-id="${cardId}"]`)
+    if (sentenceElement) {
+      sentenceElement.classList.remove('linked-sentence')
+      sentenceElement.removeAttribute('data-sentence-id')
+    }
+    
+    // Remove card
+    linkedCards.value = linkedCards.value.filter(c => c.id !== cardId)
+    if (selectedSentenceId.value === cardId) {
+      selectedSentenceId.value = null
+    }
+    saveReportData()
+  }
+}
+
+const updateReportContent = () => {
+  const editor = document.querySelector('.report-editor')
+  if (editor) {
+    reportContent.value = editor.innerHTML
+  }
+  saveReportData()
+}
+
+// Report History Functions
+const loadReportHistory = () => {
+  if (!selectedStock.value) {
+    reportHistory.value = []
+    return
+  }
+  
+  loadingHistory.value = true
+  try {
+    const key = `report_history_${selectedStock.value.toUpperCase()}`
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      try {
+        reportHistory.value = JSON.parse(saved)
+        // Sort by date, newest first
+        reportHistory.value.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
+      } catch (e) {
+        console.error('Failed to load report history:', e)
+        reportHistory.value = []
+      }
+    } else {
+      reportHistory.value = []
+    }
   } finally {
-    loadingModal.value = false
+    loadingHistory.value = false
   }
 }
 
-const closeReportModal = () => {
-  showReportModal.value = false
-  selectedReportId.value = null
-  selectedReportTitle.value = ''
-  modalReportContent.value = ''
+const saveReportToHistory = () => {
+  if (!selectedStock.value || !reportContent.value.trim()) return
+  
+  const key = `report_history_${selectedStock.value.toUpperCase()}`
+  const historyItem = {
+    title: `Report - ${new Date().toLocaleString()}`,
+    content: reportContent.value,
+    cards: JSON.parse(JSON.stringify(linkedCards.value)),
+    savedAt: new Date().toISOString()
+  }
+  
+  let history = []
+  const saved = localStorage.getItem(key)
+  if (saved) {
+    try {
+      history = JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse history:', e)
+    }
+  }
+  
+  // Add new history item
+  history.unshift(historyItem)
+  
+  // Keep only last 50 history items
+  if (history.length > 50) {
+    history = history.slice(0, 50)
+  }
+  
+  localStorage.setItem(key, JSON.stringify(history))
+  reportHistory.value = history
 }
-
-const formattedReport = computed(() => {
-  try {
-    return marked(report.value)
-  } catch {
-    return report.value.replace(/\n/g, '<br>')
-  }
-})
-
-const formattedModalReport = computed(() => {
-  try {
-    return marked(modalReportContent.value)
-  } catch {
-    return modalReportContent.value.replace(/\n/g, '<br>')
-  }
-})
 
 const handleFileUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
-
-  loadingReport.value = true
-  reportError.value = null
-  report.value = ''
+  
+  // Validate file type
+  const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.text']
+  const fileExt = '.' + file.name.split('.').pop().toLowerCase()
+  if (!allowedTypes.includes(fileExt)) {
+    uploadError.value = 'Please upload a PDF, Word (.docx), or Text file'
+    uploadSuccess.value = false
+    return
+  }
+  
+  uploading.value = true
+  uploadError.value = null
+  uploadSuccess.value = false
+  uploadStatus.value = 'Uploading file...'
+  uploadProgress.value = 30
   
   try {
-    reportStatusMessage.value = 'Uploading and extracting text...'
     const formData = new FormData()
     formData.append('file', file)
     
-    const uploadResponse = await fetch('http://localhost:8000/api/external/upload', {
+    uploadStatus.value = 'Processing file and extracting text...'
+    uploadProgress.value = 60
+    
+    const response = await fetch('http://localhost:8000/api/external/upload', {
       method: 'POST',
       body: formData
     })
     
-    if (!uploadResponse.ok) throw new Error('Upload failed')
-    const uploadData = await uploadResponse.json()
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }))
+      throw new Error(errorData.detail || 'Failed to upload file')
+    }
     
-    reportStatusMessage.value = 'Generating AI Report...'
-    const agentResponse = await fetch('http://localhost:8000/api/agent/generate_report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        data_context: uploadData.content_preview,
-        prompt_customization: "Analyze this financial document and provide a summary."
-      })
+    uploadStatus.value = 'Beautifying content...'
+    uploadProgress.value = 80
+    
+    const data = await response.json()
+    
+    // Convert text content to HTML (preserve line breaks)
+    const htmlContent = data.content.replace(/\n/g, '<br>')
+    
+    // Save to report history with filename + date
+    const currentDate = new Date()
+    const dateStr = currentDate.toISOString().split('T')[0]
+    const historyTitle = `${file.name} - ${dateStr}`
+    
+    saveDeepDiveToHistory(historyTitle, htmlContent, data.content)
+    
+    uploadStatus.value = 'Saving to history...'
+    uploadProgress.value = 100
+    
+    uploadedFileName.value = file.name
+    uploadSuccess.value = true
+    
+    // Refresh history if on history tab
+    if (activeTab.value === 'report' && reportSection.value === 'history') {
+      loadReportHistory()
+    }
+    
+    // Reset file input
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+    
+    // Clear success message after 3 seconds
+    setTimeout(() => {
+      uploadSuccess.value = false
+      uploadProgress.value = 0
+    }, 3000)
+    
+  } catch (err) {
+    console.error('File upload error:', err)
+    uploadError.value = err.message || 'Failed to upload and process file'
+    uploadSuccess.value = false
+  } finally {
+    uploading.value = false
+    uploadStatus.value = ''
+  }
+}
+
+const saveDeepDiveToHistory = (title, htmlContent, markdownContent) => {
+  if (!selectedStock.value) return
+  
+  const key = `report_history_${selectedStock.value.toUpperCase()}`
+  const historyItem = {
+    title: title,
+    content: htmlContent, // HTML content for editor
+    markdownContent: markdownContent, // Original markdown for reference
+    cards: [], // No linked cards for auto-generated reports
+    savedAt: new Date().toISOString(),
+    isDeepDive: true // Flag to identify deep dive reports
+  }
+  
+  let history = []
+  const saved = localStorage.getItem(key)
+  if (saved) {
+    try {
+      history = JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse history:', e)
+    }
+  }
+  
+  // Add new history item at the beginning
+  history.unshift(historyItem)
+  
+  // Keep only last 50 history items
+  if (history.length > 50) {
+    history = history.slice(0, 50)
+  }
+  
+  localStorage.setItem(key, JSON.stringify(history))
+  reportHistory.value = history
+}
+
+const loadReportFromHistory = (report) => {
+  if (confirm('Load this report? Current unsaved changes will be lost.')) {
+    // Use HTML content if available, otherwise use markdown content
+    if (report.content) {
+      reportContent.value = report.content
+    } else if (report.markdownContent) {
+      // Convert markdown to HTML if only markdown is available
+      reportContent.value = marked(report.markdownContent)
+    } else {
+      reportContent.value = ''
+    }
+    
+    linkedCards.value = JSON.parse(JSON.stringify(report.cards || []))
+    nextCardId.value = Math.max(1, ...(linkedCards.value.length > 0 ? linkedCards.value.map(c => {
+      const idNum = parseInt(c.id?.replace('sentence_', '') || '0')
+      return isNaN(idNum) ? 0 : idNum
+    }) : [0])) + 1
+    
+    // Switch to editor section
+    reportSection.value = 'editor'
+    
+    // Restore linked sentences (only if there are linked cards)
+    nextTick(() => {
+      if (linkedCards.value.length > 0) {
+        restoreLinkedSentences()
+        updateConnectorLines()
+      }
     })
     
-    if (!agentResponse.ok) throw new Error('Report generation failed')
-    const agentData = await agentResponse.json()
-    report.value = agentData.report
+    saveReportData()
+  }
+}
 
+const deleteReportFromHistory = (index) => {
+  if (confirm('Delete this report from history?')) {
+    reportHistory.value.splice(index, 1)
+    
+    const key = `report_history_${selectedStock.value.toUpperCase()}`
+    localStorage.setItem(key, JSON.stringify(reportHistory.value))
+  }
+}
+
+const formatHistoryDate = (dateString) => {
+  if (!dateString) return 'Unknown date'
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getReportPreview = (content) => {
+  if (!content) return '(Empty)'
+  // Remove HTML tags for preview
+  const text = content.replace(/<[^>]*>/g, '')
+  const preview = text.trim().substring(0, 150)
+  return preview.length < text.trim().length ? preview + '...' : preview
+}
+
+const loadingHistory = ref(false)
+
+// Restore linked sentences when loading report
+const restoreLinkedSentences = () => {
+  nextTick(() => {
+    linkedCards.value.forEach(card => {
+      const sentenceElement = document.querySelector(`[data-sentence-id="${card.sentenceId}"]`)
+      if (!sentenceElement && card.sentenceText) {
+        // Try to find and restore the sentence
+        const editor = document.querySelector('.report-editor')
+        if (editor) {
+          const text = editor.innerText || editor.textContent
+          const index = text.indexOf(card.sentenceText)
+          if (index !== -1) {
+            // This is a simplified restoration - in a real app you'd want more robust matching
+            const walker = document.createTreeWalker(
+              editor,
+              NodeFilter.SHOW_TEXT,
+              null,
+              false
+            )
+            let node
+            let currentIndex = 0
+            while (node = walker.nextNode()) {
+              const nodeText = node.textContent
+              if (currentIndex <= index && index < currentIndex + nodeText.length) {
+                const range = document.createRange()
+                const startOffset = index - currentIndex
+                const endOffset = startOffset + card.sentenceText.length
+                range.setStart(node, startOffset)
+                range.setEnd(node, Math.min(endOffset, nodeText.length))
+                
+                const span = document.createElement('span')
+                span.setAttribute('data-sentence-id', card.sentenceId)
+                span.classList.add('linked-sentence')
+                span.textContent = card.sentenceText
+                
+                try {
+                  range.deleteContents()
+                  range.insertNode(span)
+                } catch (e) {
+                  console.error('Error restoring linked sentence:', e)
+                }
+                break
+              }
+              currentIndex += nodeText.length
+            }
+          }
+        }
+      } else if (sentenceElement) {
+        sentenceElement.classList.add('linked-sentence')
+      }
+    })
+  })
+}
+
+const getCardPreview = (text, maxLength = 50) => {
+  if (!text || text.trim() === '') {
+    return '(Empty)'
+  }
+  const preview = text.trim().substring(0, maxLength)
+  return preview.length < text.trim().length ? preview + '...' : preview
+}
+
+// Fetch user info from API
+const fetchUserInfo = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    user.value = null
+    return
+  }
+  
+  try {
+    const response = await fetch('http://localhost:8000/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    if (response.ok) {
+      user.value = await response.json()
+      localStorage.setItem('user', JSON.stringify(user.value))
+    } else {
+      // Token invalid, clear storage
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('user')
+      user.value = null
+    }
   } catch (err) {
-    reportError.value = err.message
-  } finally {
-    loadingReport.value = false
+    console.error('Failed to fetch user info:', err)
+    // Fallback to localStorage
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      user.value = JSON.parse(storedUser)
+    }
   }
 }
 
 onMounted(() => {
-  // Load stock data for default ticker
-  loadStockData()
-  // Initial check for forecast events
-  checkForecastEvents()
-  // Set up periodic check (every minute)
-  forecastCheckInterval = setInterval(() => {
-    checkForecastEvents()
-  }, 60000) // Check every minute
-  
-  // Load company data for default stock
-  if (selectedStock.value) {
-    fetchCompanyData()
+  // Load user info from localStorage first (for immediate display)
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    user.value = JSON.parse(storedUser)
   }
   
-  // Fetch saved reports
-  fetchReports()
+  // Fetch fresh user info from API to ensure role is correct
+  fetchUserInfo()
+  
+  // Listen for login events to update user info
+  const handleLoginEvent = () => {
+    fetchUserInfo()
+  }
+  window.addEventListener('user-logged-in', handleLoginEvent)
+  
+  // Fetch creators list (will auto-select first creator, but won't fetch events until stock is selected)
+  fetchCreators()
+  // Initial check for forecast events (only if stock is selected)
+  if (selectedStock.value) {
+    checkForecastEvents()
+  }
+  // Set up periodic check (every minute)
+  forecastCheckInterval = setInterval(() => {
+    if (selectedStock.value) {
+      checkForecastEvents()
+    }
+  }, 60000) // Check every minute
+  
+  // Only load data if a stock is selected
+  if (selectedStock.value) {
+    loadStockData()
+    fetchCompanyData()
+    loadReportData()
+  }
 })
 
 // Watch selectedTimePeriod to reload data when period changes
 watch(selectedTimePeriod, () => {
   if (selectedStock.value) {
     loadStockData()
+  }
+})
+
+// Watch activeTab to load report data when switching to report tab
+watch(activeTab, (newTab) => {
+  if (newTab === 'report' && selectedStock.value) {
+    loadReportData()
   }
 })
 
@@ -3044,11 +3920,33 @@ onUnmounted(() => {
   text-align: right;
 }
 
+.current-price-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 5px;
+  justify-content: flex-end;
+}
+
 .current-price {
   font-size: 2em;
   font-weight: bold;
   color: #000000;
-  margin-bottom: 5px;
+}
+
+.today-change {
+  font-size: 1.2em;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.today-change.positive {
+  color: #42b983;
+}
+
+.today-change.negative {
+  color: #e74c3c;
 }
 
 .price-change {
@@ -3221,6 +4119,48 @@ onUnmounted(() => {
   gap: 15px;
 }
 
+.events-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.creator-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.creator-selector label {
+  font-size: 0.9em;
+  color: #666666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.creator-select {
+  padding: 8px 12px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.9em;
+  cursor: pointer;
+  min-width: 180px;
+  transition: all 0.2s;
+}
+
+.creator-select:hover {
+  border-color: #3498db;
+}
+
+.creator-select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
 .tab-selector {
   display: flex;
   gap: 0;
@@ -3270,75 +4210,999 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.company-basic-content p,
-.report-content p {
+.company-basic-content p {
   color: #666666;
   margin: 0;
 }
 
-/* Report Tab Specific Styles */
+.analysis-section .report-content,
+.analysis-section .report-content p,
+.analysis-section .report-content li,
+.analysis-section .report-content span,
+.analysis-section .report-content div,
+.analysis-section .report-content strong,
+.analysis-section .report-content em,
+.analysis-section .report-content a,
+.analysis-section .report-content h1,
+.analysis-section .report-content h2,
+.analysis-section .report-content h3,
+.analysis-section .report-content h4,
+.analysis-section .report-content h5,
+.analysis-section .report-content h6 {
+  color: #000000;
+}
+
+/* Black text for report content in Notes, Operating Drivers, and Capital Structure tabs */
+.micro-tab-pane .report-content,
+.micro-tab-pane .report-content p,
+.micro-tab-pane .report-content li,
+.micro-tab-pane .report-content span,
+.micro-tab-pane .report-content div,
+.micro-tab-pane .report-content strong,
+.micro-tab-pane .report-content em,
+.micro-tab-pane .report-content a,
+.micro-tab-pane .report-content h1,
+.micro-tab-pane .report-content h2,
+.micro-tab-pane .report-content h3,
+.micro-tab-pane .report-content h4,
+.micro-tab-pane .report-content h5,
+.micro-tab-pane .report-content h6 {
+  color: #000000;
+}
+
+/* Report with Linked Cards Styles */
 .report-tab-content {
-  padding: 0;
+  padding: 20px;
+  min-height: 500px;
 }
 
 .report-container {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.report-header h2 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+.report-section-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.section-tab-btn {
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  color: #666666;
+  font-size: 1em;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  top: 2px;
+}
+
+.section-tab-btn:hover {
+  color: #000000;
+  background: #f8f9fa;
+}
+
+.section-tab-btn.active {
+  color: #000000;
+  border-bottom-color: #3498db;
+  font-weight: 600;
+}
+
+.report-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 16px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border: 2px solid #3498db;
+}
+
+.btn-link-card {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #3498db;
+  color: white;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-link-card:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+.btn-cancel {
+  padding: 8px 16px;
+  border: 2px solid #cccccc;
+  border-radius: 6px;
+  background: transparent;
+  color: #666666;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #f0f0f0;
+}
+
+.report-main-layout {
   display: flex;
   gap: 20px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.report-editor-area {
   flex: 1;
-  overflow: hidden;
+  min-width: 0;
+  position: relative;
 }
 
-.main-report-area {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 10px;
+.report-editor-wrapper {
+  position: relative;
 }
 
-.reports-sidebar {
-  width: 250px;
-  background: #f8f9fa;
-  border-left: 1px solid #cccccc;
-  padding: 15px;
-  overflow-y: auto;
-  border-radius: 8px;
+.connector-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
 }
 
-.reports-sidebar h3 {
+.connector-line {
+  stroke: #3498db;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+
+.connector-line.active {
+  stroke: #2980b9;
+  stroke-width: 3;
+  opacity: 0.8;
+  stroke-dasharray: none;
+}
+
+.report-editor-header {
+  margin-bottom: 15px;
+}
+
+.report-editor-header h3 {
+  margin: 0 0 5px 0;
   color: #000000;
+  font-size: 1.2em;
   font-weight: 600;
-  margin: 0 0 15px 0;
+}
+
+.editor-hint {
+  margin: 0;
+  color: #666666;
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+.report-editor {
+  min-height: 500px;
+  padding: 20px;
+  border: 2px solid #cccccc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 1em;
+  line-height: 1.8;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  position: relative;
+  z-index: 2;
+  direction: ltr;
+  text-align: left;
+}
+
+.report-editor:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.report-editor :deep(.linked-sentence) {
+  background-color: #e3f2fd;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  display: inline;
+}
+
+.report-editor :deep(.linked-sentence:hover) {
+  background-color: #bbdefb;
+  box-shadow: 0 0 0 1px #3498db;
+}
+
+.report-editor :deep(.linked-sentence.active) {
+  background-color: #90caf9;
+  box-shadow: 0 0 0 2px #3498db;
+  animation: pulse-highlight 1s ease-in-out;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #3498db;
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.5);
+  }
+}
+
+.flashcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.flashcard-header h2 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+.flashcard-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-add-card,
+.btn-complete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-card {
+  background: #3498db;
+  color: white;
+}
+
+.btn-add-card:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+.btn-complete {
+  background: #42b983;
+  color: white;
+}
+
+.btn-complete:hover {
+  background: #35a372;
+  transform: translateY(-1px);
+}
+
+.empty-deck {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666666;
   font-size: 1.1em;
 }
 
-.report-list {
-  list-style: none;
-  padding: 0;
+.flashcard-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.card-counter {
+  font-size: 0.9em;
+  color: #666666;
+  font-weight: 500;
+}
+
+.flashcard-wrapper {
+  width: 100%;
+  max-width: 600px;
+  height: 400px;
+  perspective: 1000px;
+}
+
+.flashcard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.flashcard-side {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #cccccc;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backface-visibility: hidden;
+  transform: rotateY(0deg);
+}
+
+
+.card-label {
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+  color: #666666;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-textarea {
+  flex: 1;
+  padding: 20px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #000000;
+  font-family: inherit;
+  background: transparent;
+}
+
+.card-textarea::placeholder {
+  color: #999999;
+}
+
+.flashcard-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.nav-btn {
+  padding: 12px 24px;
+  border: 2px solid #cccccc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+  border-color: #3498db;
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-add-card {
+  padding: 10px 20px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  background: #3498db;
+  color: white;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-card:hover {
+  background: #2980b9;
+  border-color: #2980b9;
+  transform: translateY(-1px);
+}
+
+.btn-delete-card {
+  padding: 10px 20px;
+  border: 2px solid #e74c3c;
+  border-radius: 6px;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-delete-card:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* Linked Cards Sidebar Styles */
+.linked-cards-sidebar {
+  width: 350px;
+  background: #f8f9fa;
+  border-left: 1px solid #cccccc;
+  padding: 20px;
+  border-radius: 8px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.linked-cards-sidebar h3 {
+  margin: 0 0 15px 0;
+  color: #000000;
+  font-size: 1.1em;
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.no-cards {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666666;
+  font-size: 0.9em;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.linked-card-item {
+  padding: 12px;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.linked-card-item:hover {
+  border-color: #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+
+.linked-card-item.active {
+  background: #e3f2fd;
+  border-color: #3498db;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.card-sentence-preview {
+  font-size: 0.85em;
+  color: #666666;
+  font-style: italic;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.btn-delete-small {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-delete-small:hover {
+  background: #fee;
+  color: #c0392b;
+}
+
+.card-content-editor {
+  margin-top: 8px;
+}
+
+.card-textarea-small {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: #000000;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.card-textarea-small:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.card-textarea-small::placeholder {
+  color: #999999;
+}
+
+/* Report History Styles */
+.report-upload-section {
+  padding: 20px 0;
+}
+
+.upload-header {
+  margin-bottom: 30px;
+}
+
+.upload-header h3 {
+  margin: 0 0 10px 0;
+  color: #000000;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.upload-hint {
+  color: #666666;
+  font-size: 0.9em;
   margin: 0;
 }
 
-.report-list li {
-  padding: 10px;
-  border-bottom: 1px solid #e0e0e0;
+.upload-area {
+  border: 2px dashed #cccccc;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  background: #fafafa;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.upload-area:hover {
+  border-color: #3498db;
+  background: #f0f7ff;
+}
+
+.file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 0.2s;
-  border-radius: 6px;
-  margin-bottom: 5px;
-  background: #ffffff;
+  padding: 20px;
 }
 
-.report-list li:hover {
-  background: #e9ecef;
+.upload-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
 }
 
-.report-list li.active {
-  background: #e3f2fd;
-  border-left: 4px solid #3498db;
-}
-
-.report-ticker {
-  font-weight: 600;
+.upload-text {
   color: #000000;
+  font-size: 1em;
+}
+
+.upload-text strong {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.upload-formats {
+  color: #666666;
+  font-size: 0.85em;
+  margin-top: 5px;
   display: block;
+}
+
+.upload-progress {
+  margin-top: 20px;
+  padding: 15px;
+  background: #e3f2fd;
+  border-radius: 6px;
+}
+
+.upload-progress p {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #3498db;
+  transition: width 0.3s;
+  border-radius: 4px;
+}
+
+.upload-error {
+  margin-top: 20px;
+  padding: 15px;
+  background: #ffebee;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  color: #c62828;
+}
+
+.upload-success {
+  margin-top: 20px;
+  padding: 15px;
+  background: #e8f5e9;
+  border: 1px solid #42b983;
+  border-radius: 6px;
+  color: #2e7d32;
+}
+
+.upload-success p {
+  margin: 5px 0;
+}
+
+.upload-filename {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.report-history-section {
+  padding: 20px 0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.history-header h3 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.btn-refresh {
+  padding: 8px 16px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  background: transparent;
+  color: #3498db;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+  background: #3498db;
+  color: white;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666666;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666666;
+}
+
+.hint-text {
+  font-size: 0.9em;
+  color: #999999;
+  margin-top: 10px;
+}
+
+/* Upload Section Styles */
+.report-upload-section {
+  padding: 20px 0;
+}
+
+.upload-header {
+  margin-bottom: 30px;
+}
+
+.upload-header h3 {
+  margin: 0 0 10px 0;
+  color: #000000;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.upload-hint {
+  color: #666666;
+  font-size: 0.9em;
+  margin: 0;
+}
+
+.upload-area {
+  border: 2px dashed #cccccc;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  background: #fafafa;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.upload-area:hover {
+  border-color: #3498db;
+  background: #f0f7ff;
+}
+
+.file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 20px;
+}
+
+.upload-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+}
+
+.upload-text {
+  color: #000000;
+  font-size: 1em;
+}
+
+.upload-text strong {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.upload-formats {
+  color: #666666;
+  font-size: 0.85em;
+  margin-top: 5px;
+  display: block;
+}
+
+.upload-progress {
+  margin-top: 20px;
+  padding: 15px;
+  background: #e3f2fd;
+  border-radius: 6px;
+}
+
+.upload-progress p {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #3498db;
+  transition: width 0.3s;
+  border-radius: 4px;
+}
+
+.upload-error {
+  margin-top: 20px;
+  padding: 15px;
+  background: #ffebee;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  color: #c62828;
+}
+
+.upload-success {
+  margin-top: 20px;
+  padding: 15px;
+  background: #e8f5e9;
+  border: 1px solid #42b983;
+  border-radius: 6px;
+  color: #2e7d32;
+}
+
+.upload-success p {
+  margin: 5px 0;
+}
+
+.upload-filename {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.history-item {
+  padding: 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: #ffffff;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  border-color: #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+  transform: translateY(-2px);
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.history-item-info h4 {
+  margin: 0 0 5px 0;
+  color: #000000;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.history-date {
+  margin: 0;
+  color: #666666;
+  font-size: 0.85em;
+}
+
+.history-item-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-load-report {
+  padding: 8px 16px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  background: #3498db;
+  color: white;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-load-report:hover {
+  background: #2980b9;
+  border-color: #2980b9;
+}
+
+.btn-delete-history {
+  padding: 8px 16px;
+  border: 2px solid #e74c3c;
+  border-radius: 6px;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-delete-history:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.history-item-preview {
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.history-item-preview p {
+  margin: 0;
+  color: #666666;
+  font-size: 0.9em;
+  line-height: 1.6;
 }
 
 .upload-section {
@@ -3740,6 +5604,12 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+.event-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .event-category-badge {
   padding: 4px 10px;
   border-radius: 12px;
@@ -3772,6 +5642,23 @@ onUnmounted(() => {
 .event-category-badge.product {
   background-color: #fce4ec;
   color: #c2185b;
+}
+
+.delete-event-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.delete-event-btn:hover {
+  opacity: 1;
+  background: #fee;
+  transform: scale(1.1);
 }
 
 .event-item.forecast {
@@ -4751,4 +6638,49 @@ onUnmounted(() => {
   font-style: italic;
 }
 
+/* Productivity Tab Styles */
+.productivity-tab-content {
+    padding: 20px 0;
+}
+
+.policy-tab-content {
+    padding: 20px 0;
+}
+
+.content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.info-card {
+    border: 1px solid #cccccc;
+    padding: 30px;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.5em;
+    color: #000000;
+    font-weight: 600;
+}
+
+.info-card p {
+    margin: 12px 0;
+    line-height: 1.6;
+    color: #666666;
+}
+
+.coming-soon {
+    font-style: italic;
+    color: #999999;
+    margin-top: 20px;
+}
+
 </style>
+
+

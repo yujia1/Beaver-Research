@@ -172,11 +172,46 @@ async def get_macro_data(timeframe: str = "monthly"):
 
     # Add FedWatch Tool as it's not from FRED and has a different history format
     today = datetime.today().date()
+    
+    # Calculate next FOMC meeting date
+    def get_next_fomc_meeting_date():
+        """Calculate the next FOMC meeting date based on typical schedule"""
+        from datetime import date
+        today = date.today()
+        
+        # FOMC meetings typically occur 8 times per year
+        # Common months: Jan/Feb, Mar, May, Jun, Jul, Sep, Nov, Dec
+        # For 2025, known dates include: Dec 9-10, 2025
+        # This is a simplified calculation - in production, you'd want to fetch from FOMC calendar
+        
+        # Known upcoming FOMC meeting dates (2025-2026)
+        fomc_dates = [
+            date(2025, 12, 9),   # December 9-10, 2025
+            date(2026, 1, 28),   # January 28-29, 2026 (typical)
+            date(2026, 3, 18),   # March 18-19, 2026 (typical)
+            date(2026, 5, 6),    # May 6-7, 2026 (typical)
+            date(2026, 6, 17),   # June 17-18, 2026 (typical)
+            date(2026, 7, 29),   # July 29-30, 2026 (typical)
+            date(2026, 9, 16),   # September 16-17, 2026 (typical)
+            date(2026, 11, 6),   # November 6-7, 2026 (typical)
+            date(2026, 12, 15),  # December 15-16, 2026 (typical)
+        ]
+        
+        # Find next meeting date
+        for meeting_date in fomc_dates:
+            if meeting_date >= today:
+                return meeting_date.strftime('%B %d, %Y')
+        
+        # Fallback if no future date found
+        return "TBD"
+    
+    next_meeting_date = get_next_fomc_meeting_date()
+    
     results.append({
         "indicator": "FedWatch Tool",
         "value": 5.25, # Current Fed Funds Rate (Upper)
         "date": str(today),
-        "description": "Target Rate Probabilities (Next Meeting)",
+        "description": f"Target Rate Probabilities (next meeting date: {next_meeting_date})",
         "category": "Monetary",
         "chart_type": "bar",
         "series_id": "FEDWATCH",
@@ -214,11 +249,41 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
     # Handle FedWatch special case
     if series_id == "FEDWATCH":
         today = datetime.today().date()
+        
+        # Calculate next FOMC meeting date
+        def get_next_fomc_meeting_date():
+            """Calculate the next FOMC meeting date based on typical schedule"""
+            from datetime import date
+            today = date.today()
+            
+            # Known upcoming FOMC meeting dates (2025-2026)
+            fomc_dates = [
+                date(2025, 12, 9),   # December 9-10, 2025
+                date(2026, 1, 28),   # January 28-29, 2026 (typical)
+                date(2026, 3, 18),   # March 18-19, 2026 (typical)
+                date(2026, 5, 6),    # May 6-7, 2026 (typical)
+                date(2026, 6, 17),   # June 17-18, 2026 (typical)
+                date(2026, 7, 29),   # July 29-30, 2026 (typical)
+                date(2026, 9, 16),   # September 16-17, 2026 (typical)
+                date(2026, 11, 6),   # November 6-7, 2026 (typical)
+                date(2026, 12, 15),  # December 15-16, 2026 (typical)
+            ]
+            
+            # Find next meeting date
+            for meeting_date in fomc_dates:
+                if meeting_date >= today:
+                    return meeting_date.strftime('%B %d, %Y')
+            
+            # Fallback if no future date found
+            return "TBD"
+        
+        next_meeting_date = get_next_fomc_meeting_date()
+        
         return {
             "indicator": "FedWatch Tool",
             "value": 5.25,
             "date": str(today),
-            "description": "Target Rate Probabilities (Next Meeting)",
+            "description": f"Target Rate Probabilities (next meeting date: {next_meeting_date})",
             "category": "Monetary",
             "chart_type": "bar",
             "series_id": "FEDWATCH",
@@ -298,6 +363,16 @@ async def get_stock_history(ticker: str, period: str = "2y"):
         price_change = current_price - first_price
         price_change_percent = (price_change / first_price) * 100 if first_price > 0 else 0
         
+        # Calculate today's percentage change (current vs previous close)
+        today_change_percent = 0
+        if len(hist) >= 2:
+            previous_close = float(hist['Close'].iloc[-2])
+            today_change = current_price - previous_close
+            today_change_percent = (today_change / previous_close) * 100 if previous_close > 0 else 0
+        elif 'regularMarketChangePercent' in info:
+            # Use yfinance info if available
+            today_change_percent = info.get('regularMarketChangePercent', 0)
+        
         return {
             "ticker": ticker,
             "company_name": info.get("longName", ticker),
@@ -305,6 +380,7 @@ async def get_stock_history(ticker: str, period: str = "2y"):
             "current_price": current_price,
             "price_change": price_change,
             "price_change_percent": price_change_percent,
+            "today_change_percent": round(today_change_percent, 2),
             "reference_date": hist.index[0].strftime("%b %Y")
         }
     except Exception as e:

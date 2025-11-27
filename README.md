@@ -2,6 +2,22 @@
 
 This dashboard aggregates data from various real-time and historical sources.
 
+## Test User Credentials
+
+For testing purposes, the following users have been created:
+
+### Regular User
+- **Username**: `testuser`
+- **Password**: `testpass123`
+- **Role**: `user`
+- **Permissions**: Can view Market and Investment pages, but cannot add events
+
+### Creator User
+- **Username**: `creator`
+- **Password**: `creator123`
+- **Role**: `creator`
+- **Permissions**: Can view Market and Investment pages, and can add/manage their own events on the timeline
+
 ## 1. Macro Economics
 -   **Source**: Yahoo Finance (`yfinance`)
 -   **Indicators**:
@@ -26,3 +42,29 @@ This dashboard aggregates data from various real-time and historical sources.
 ## 4. AI Reports
 -   **Source**: OpenAI API (`gpt-4o`)
 -   **Data**: Generates reports based on uploaded documents (PDF/HTML) and context.
+
+## Getting Started
+
+### Backend Server
+
+To start the backend server:
+
+```bash
+cd backend
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The API will be available at `http://localhost:8000`
+API documentation (Swagger UI) is available at `http://localhost:8000/docs`
+
+### Frontend Server
+
+To start the frontend development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173` (or another port if 5173 is in use)

@@ -40,10 +40,31 @@
                 </button>
                 <button 
                     class="tab-btn" 
+                    :class="{ active: activeTab === 'fed' }"
+                    @click="activeTab = 'fed'"
+                >
+                    Fed
+                </button>
+                <button 
+                    class="tab-btn" 
                     :class="{ active: activeTab === 'energy' }"
                     @click="activeTab = 'energy'"
                 >
                     Energy
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: activeTab === 'policy' }"
+                    @click="activeTab = 'policy'"
+                >
+                    Policy
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: activeTab === 'security' }"
+                    @click="activeTab = 'security'"
+                >
+                    Security
                 </button>
             </div>
 
@@ -191,12 +212,6 @@
 
             <!-- Bond Tab Content -->
             <div v-if="activeTab === 'bond'" class="tab-content bond-tab-content">
-                <div class="bond-header">
-                    <button @click="updateBondData" :disabled="bondLoading" class="update-btn">
-                        {{ bondLoading ? 'Updating...' : 'Update Data' }}
-                    </button>
-                </div>
-
                 <div class="category-tabs">
                     <button 
                         v-for="category in bondCategories" 
@@ -436,12 +451,6 @@
 
             <!-- Economic Tab Content -->
             <div v-if="activeTab === 'economic'" class="tab-content economic-tab-content">
-                <div class="economic-header">
-                    <button @click="updateEconomicData" :disabled="economicLoading" class="update-btn">
-                        {{ economicLoading ? 'Updating...' : 'Update Data' }}
-                    </button>
-                </div>
-
                 <div v-if="economicLoading" class="loading-state">
                     <div class="loading-spinner"></div>
                     <p>Loading Macro Economic Data...</p>
@@ -450,7 +459,7 @@
                     <p class="error-message">{{ economicError }}</p>
                 </div>
                 <div v-else class="indicators">
-                    <div v-for="item in economicIndicators" :key="item.indicator" class="indicator-card">
+                    <div v-for="item in economicIndicators.filter(item => item.series_id !== 'FEDWATCH')" :key="item.indicator" class="indicator-card">
                         <div class="card-content">
                             <h3>{{ item.indicator }}</h3>
                             <p class="value">{{ item.value }}</p>
@@ -486,14 +495,359 @@
                 </div>
             </div>
 
-            <!-- Energy Tab Content -->
-            <div v-if="activeTab === 'energy'" class="tab-content energy-tab-content">
-                <div class="energy-header">
-                    <button @click="updateEnergyData" :disabled="energyLoading" class="update-btn">
-                        {{ energyLoading ? 'Updating...' : 'Update Data' }}
+            <!-- Fed Tab Content -->
+            <div v-if="activeTab === 'fed'" class="tab-content fed-tab-content">
+                <div class="category-tabs">
+                    <button 
+                        :class="{ active: activeFedCategory === 'liquidity' }"
+                        @click="activeFedCategory = 'liquidity'"
+                    >
+                        Liquidity
+                    </button>
+                    <button 
+                        :class="{ active: activeFedCategory === 'forecasting' }"
+                        @click="activeFedCategory = 'forecasting'"
+                    >
+                        Forecasting
                     </button>
                 </div>
 
+                <div v-if="fedLoading" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Loading Fed Data...</p>
+                </div>
+                <div v-else-if="fedError" class="error-state">
+                    <p class="error-message">{{ fedError }}</p>
+                </div>
+                <div v-else class="fed-data">
+                    <!-- Liquidity Section -->
+                    <div v-if="activeFedCategory === 'liquidity'" class="category-section">
+                        <!-- Balance Sheet / QT -->
+                        <div class="liquidity-subsection">
+                            <h4 class="subsection-title">Balance Sheet / QT</h4>
+                            <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicators</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>WALCL</td>
+                                        <td>Fed Total Assets</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/WALCL" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/WALCL</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>WUTGAL</td>
+                                        <td>Treasury Holdings</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/WUTGAL" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/WUTGAL</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>WSHOMCB</td>
+                                        <td>MBS Holdings</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/WSHOMCB" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/WSHOMCB</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>H41</td>
+                                        <td>H.4.1 Release</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://www.federalreserve.gov/releases/h41/" target="_blank" rel="noopener noreferrer">https://www.federalreserve.gov/releases/h41/</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Money Market Plumbing -->
+                        <div class="liquidity-subsection">
+                            <h4 class="subsection-title">Money Market Plumbing</h4>
+                            <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicators</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>RRPONTSYD</td>
+                                        <td>Reverse Repo Usage</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/RRPONTSYD" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/RRPONTSYD</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>WRESBAL</td>
+                                        <td>Reserve Balances</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/WRESBAL" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/WRESBAL</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>IORB</td>
+                                        <td>Interest on Reserve Balances</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/IORB" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/IORB</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>SOFR</td>
+                                        <td>SOFR</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/SOFR" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/SOFR</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>EFFR</td>
+                                        <td>Effective Fed Funds Rate</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/EFFR" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/EFFR</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Stress / Funding -->
+                        <div class="liquidity-subsection">
+                            <h4 class="subsection-title">Stress / Funding</h4>
+                            <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicators</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>TEDRATE</td>
+                                        <td>TED Spread</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/TEDRATE" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/TEDRATE</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>STLFSI4</td>
+                                        <td>Financial Stress Index</td>
+                                        <td>liquidity</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/STLFSI4" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/STLFSI4</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Forecasting Section -->
+                    <div v-if="activeFedCategory === 'forecasting'" class="category-section">
+                        <!-- Yield Curve (Market-Implied Rate Path) -->
+                        <div class="liquidity-subsection">
+                            <h4 class="subsection-title">Yield Curve (Market-Implied Rate Path)</h4>
+                            <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicators</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>DGS3MO</td>
+                                        <td>3-Month Treasury Yield</td>
+                                        <td>rate_path</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/DGS3MO" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/DGS3MO</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>DGS2</td>
+                                        <td>2-Year Treasury Yield</td>
+                                        <td>rate_path</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/DGS2" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/DGS2</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>DGS10</td>
+                                        <td>10-Year Treasury Yield</td>
+                                        <td>rate_path</td>
+                                        <td><a href="https://fred.stlouisfed.org/series/DGS10" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/DGS10</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Fed Policy / Forward Guidance -->
+                        <div class="liquidity-subsection">
+                            <h4 class="subsection-title">Fed Policy / Forward Guidance</h4>
+                            <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicators</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>FOMC_CALENDAR</td>
+                                        <td>FOMC Calendar</td>
+                                        <td>rate_path</td>
+                                        <td><a href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" target="_blank" rel="noopener noreferrer">https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>MONETARY_POLICY</td>
+                                        <td>Monetary Policy Overview</td>
+                                        <td>rate_path</td>
+                                        <td><a href="https://www.federalreserve.gov/monetarypolicy.htm" target="_blank" rel="noopener noreferrer">https://www.federalreserve.gov/monetarypolicy.htm</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>H15</td>
+                                        <td>H.15 Interest Rates Release</td>
+                                        <td>rate_path</td>
+                                        <td><a href="https://www.federalreserve.gov/releases/h15/" target="_blank" rel="noopener noreferrer">https://www.federalreserve.gov/releases/h15/</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- FedWatch Tool Graph -->
+                        <div class="liquidity-subsection">
+                            <h4 class="subsection-title">FedWatch Tool</h4>
+                            <div class="indicators">
+                                <div v-for="item in fedIndicators" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Bar v-if="item.chart_type === 'bar'" :data="getFedChartData(item)" :options="barChartOptions" />
+                                        <Line v-else :data="getFedChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>No history data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Policy Tab Content -->
+            <div v-if="activeTab === 'policy'" class="tab-content policy-tab-content">
+                <!-- White House Policy Sources -->
+                <div class="liquidity-subsection">
+                    <h4 class="subsection-title">White House Policy Sources</h4>
+                    <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Name</th>
+                                        <th>URL</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                        <tbody>
+                            <tr>
+                                <td>White house briefings</td>
+                                <td>White House Statements & Releases</td>
+                                <td><a href="https://www.whitehouse.gov/briefing-room/statements-releases/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/statements-releases/</a></td>
+                                <td>policy/federal/whitehouse_statements</td>
+                            </tr>
+                            <tr>
+                                <td>White house fact sheets</td>
+                                <td>White House Fact Sheets</td>
+                                <td><a href="https://www.whitehouse.gov/briefing-room/statements-releases/fact-sheets/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/statements-releases/fact-sheets/</a></td>
+                                <td>policy/federal/whitehouse_fact_sheets</td>
+                            </tr>
+                            <tr>
+                                <td>Whitehouse executive orders</td>
+                                <td>Executive Orders</td>
+                                <td><a href="https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/</a></td>
+                                <td>policy/federal/executive_orders</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Federal Register -->
+                <div class="liquidity-subsection">
+                    <h4 class="subsection-title">Federal Register</h4>
+                    <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Name</th>
+                                        <th>URL</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                        <tbody>
+                            <tr>
+                                <td>Federal register</td>
+                                <td>Federal Register – Rules, Notices, Proposals</td>
+                                <td><a href="https://www.federalregister.gov/" target="_blank" rel="noopener noreferrer">https://www.federalregister.gov/</a></td>
+                                <td>policy/federal/regulations_register</td>
+                            </tr>
+                            <tr>
+                                <td>Federal register presidential</td>
+                                <td>Presidential Documents (EOs, Memos, Orders)</td>
+                                <td><a href="https://www.federalregister.gov/presidential-documents" target="_blank" rel="noopener noreferrer">https://www.federalregister.gov/presidential-documents</a></td>
+                                <td>policy/federal/presidential_documents</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Congress Policy Sources -->
+                <div class="liquidity-subsection">
+                    <h4 class="subsection-title">Congress Policy Sources</h4>
+                    <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Name</th>
+                                        <th>URL</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                        <tbody>
+                            <tr>
+                                <td>Congress legislation</td>
+                                <td>Congress.gov – All Legislation</td>
+                                <td><a href="https://www.congress.gov/legislation" target="_blank" rel="noopener noreferrer">https://www.congress.gov/legislation</a></td>
+                                <td>policy/federal/legislation</td>
+                            </tr>
+                            <tr>
+                                <td>Congress subjects</td>
+                                <td>Congress.gov – Policy Topics</td>
+                                <td><a href="https://www.congress.gov/subjects" target="_blank" rel="noopener noreferrer">https://www.congress.gov/subjects</a></td>
+                                <td>policy/federal/legislation_topics</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Security Tab Content -->
+            <div v-if="activeTab === 'security'" class="tab-content security-tab-content">
+                <div class="security-section">
+                    <h3 class="section-title">Security</h3>
+                    <p class="placeholder-message">Security content coming soon...</p>
+                </div>
+            </div>
+
+            <!-- Energy Tab Content -->
+            <div v-if="activeTab === 'energy'" class="tab-content energy-tab-content">
                 <div v-if="energyLoading" class="loading-state">
                     <div class="loading-spinner"></div>
                     <p>Loading Energy Data...</p>
@@ -524,30 +878,45 @@
                             </div>
                         </div>
 
-                        <!-- Grid Status (Bar/Metrics) -->
-                        <div class="card grid-status">
-                            <h3>Grid Status</h3>
-                            <div class="metrics">
-                                <p><strong>Capacity:</strong> {{ gridData.capacity }} MW</p>
-                                <p><strong>Current Demand:</strong> {{ gridData.current_demand }} MW</p>
-                                <p><strong>Outages:</strong> {{ gridData.outages }}</p>
-                                <p><strong>Reliability:</strong> {{ gridData.reliability }}%</p>
-                            </div>
-                            
-                            <div class="timeframe-selector">
-                                <button 
-                                    v-for="tf in energyTimeframes" 
-                                    :key="tf.value" 
-                                    :class="{ active: selectedEnergyTimeframe === tf.value }"
-                                    @click="changeEnergyTimeframe(tf.value)"
-                                >
-                                    {{ tf.label }}
-                                </button>
-                            </div>
-
-                            <div class="chart-container-small">
-                                <Line :data="demandCurveData" :options="energyLineOptions" />
-                            </div>
+                        <!-- Energy Data Sources Table -->
+                        <div class="card">
+                            <h3>Energy Data Sources</h3>
+                            <table class="liquidity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Source ID</th>
+                                        <th>Description</th>
+                                        <th>URL</th>
+                                        <th>Data Type / Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Nuclear regulatory commission</td>
+                                        <td>NRC public document & docket search (ADAMS) — used to check case status for applications like Oklo</td>
+                                        <td><a href="https://adams-search.nrc.gov/" target="_blank" rel="noopener noreferrer">https://adams-search.nrc.gov/</a></td>
+                                        <td>Regulatory / licensing case status</td>
+                                    </tr>
+                                    <tr>
+                                        <td>EIA electricity data</td>
+                                        <td>U.S. electricity generation, consumption, retail sales, price, capacity (all sectors)</td>
+                                        <td><a href="https://www.eia.gov/electricity/data/browser/" target="_blank" rel="noopener noreferrer">https://www.eia.gov/electricity/data/browser/</a></td>
+                                        <td>Electricity generation & consumption (all sectors)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>EIA electric power monthly</td>
+                                        <td>Detailed monthly generation mix, consumption by sector, prices, fuel mix</td>
+                                        <td><a href="https://www.eia.gov/electricity/monthly/" target="_blank" rel="noopener noreferrer">https://www.eia.gov/electricity/monthly/</a></td>
+                                        <td>Generation mix, consumption, sector breakdown</td>
+                                    </tr>
+                                    <tr>
+                                        <td>U.S. electricity supply & generation</td>
+                                        <td>Aggregated U.S. electricity supply & generation metadata (private dataset)</td>
+                                        <td><a href="https://www.gridinfo.com/united-states" target="_blank" rel="noopener noreferrer">https://www.gridinfo.com/united-states</a></td>
+                                        <td>Supplementary electricity supply data</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -652,6 +1021,29 @@ const bondCategories = [
   { label: 'Funding Stress', value: 'funding_stress' }
 ];
 
+// Economic Tab State (from MacroView)
+const economicIndicators = ref([]);
+const economicLoading = ref(false);
+const economicError = ref(null);
+const economicTimeframes = [
+    { label: '1M', value: 'monthly' },
+    { label: '3M', value: 'quarterly' },
+    { label: '1Y', value: 'yearly' },
+    { label: '5Y', value: '5y' }
+];
+
+// Fed Tab State
+const fedIndicators = ref([]);
+const fedLoading = ref(false);
+const fedError = ref(null);
+const activeFedCategory = ref('forecasting');
+const fedTimeframes = [
+    { label: '1M', value: 'monthly' },
+    { label: '3M', value: 'quarterly' },
+    { label: '1Y', value: 'yearly' },
+    { label: '5Y', value: '5y' }
+];
+
 // Bond cache configuration
 const BOND_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
 const BOND_CACHE_KEY_PREFIX = 'bond_series_';
@@ -686,19 +1078,6 @@ const setBondCachedData = (seriesId, timeframe, data) => {
         console.error('Cache write error', e);
     }
 };
-
-// Economic Tab State (from MacroView)
-const economicIndicators = ref([]);
-const economicLoading = ref(false);
-const economicError = ref(null);
-
-const economicTimeframes = [
-    { label: '1M', value: 'daily' },
-    { label: '3M', value: 'weekly' },
-    { label: '1Y', value: 'monthly' },
-    { label: '5Y', value: 'yearly' },
-    { label: 'Max', value: 'max' }
-];
 
 // Economic cache configuration
 const ECONOMIC_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
@@ -861,7 +1240,18 @@ const fetchMarketData = async () => {
 
 const updateData = async () => {
     clearCacheByKey('market_movers');
-    await fetchMarketData();
+    clearCacheByKey('bond_data_monthly');
+    clearCacheByKey('macro_data_monthly');
+    clearCacheByKey('energy_generation');
+    clearCacheByKey('energy_consumption');
+    
+    await Promise.all([
+        fetchMarketData(),
+        updateBondData(),
+        updateEconomicData(),
+        updateFedData(),
+        updateEnergyData()
+    ]);
 };
 
 
@@ -1100,7 +1490,27 @@ const pieOptions = {
   plugins: {
       legend: {
           position: 'right',
-          labels: { color: '#000000' }
+          labels: { 
+            color: '#000000',
+            generateLabels: function(chart) {
+              const data = chart.data;
+              if (data.labels.length && data.datasets.length) {
+                const dataset = data.datasets[0];
+                const total = dataset.data.reduce((a, b) => a + b, 0);
+                return data.labels.map((label, i) => {
+                  const value = dataset.data[i];
+                  const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                  return {
+                    text: `${label}: ${percentage}%`,
+                    fillStyle: dataset.backgroundColor[i],
+                    hidden: false,
+                    index: i
+                  };
+                });
+              }
+              return [];
+            }
+          }
       },
       tooltip: {
           callbacks: {
@@ -1358,6 +1768,33 @@ const barChartOptions = {
   }
 };
 
+const getFedChartData = (item) => {
+    if (item.chart_type === 'bar') {
+        return {
+            labels: item.history.map(h => h.date),
+            datasets: [{
+                label: item.indicator,
+                data: item.history.map(h => h.value),
+                backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                borderColor: '#3498db',
+                borderWidth: 1
+            }]
+        };
+    } else {
+        return {
+            labels: item.history.map(h => h.date),
+            datasets: [{
+                label: item.indicator,
+                data: item.history.map(h => h.value),
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                fill: false,
+                tension: 0.4
+            }]
+        };
+    }
+};
+
 const getEconomicChartData = (item) => {
     if (item.chart_type === 'bar') {
         return {
@@ -1429,6 +1866,91 @@ const updateEconomicData = async () => {
   await fetchEconomicData();
 };
 
+const fetchFedData = async () => {
+  fedLoading.value = true;
+  fedError.value = null;
+  
+  // Check daily cache first
+  const cached = getDailyCache('fed_data_monthly');
+  if (cached) {
+    console.log('Using cached Fed data');
+    fedIndicators.value = cached;
+    fedLoading.value = false;
+    return;
+  }
+  
+  try {
+    // Fetch macro data and filter for FedWatch Tool
+    const response = await fetch(`http://localhost:8000/api/internal/macro?timeframe=monthly`);
+    if (!response.ok) throw new Error('Failed to fetch data');
+    const data = await response.json();
+    
+    // Filter only FedWatch Tool
+    const fedData = data.filter(item => item.series_id === 'FEDWATCH');
+    
+    // Initialize with default timeframe state
+    const processedData = fedData.map(item => ({
+        ...item,
+        selectedTimeframe: 'monthly',
+        loading: false
+    }));
+    
+    fedIndicators.value = processedData;
+    
+    // Cache the data
+    setDailyCache('fed_data_monthly', processedData);
+    
+  } catch (err) {
+    fedError.value = err.message;
+  } finally {
+    fedLoading.value = false;
+  }
+};
+
+const updateFedData = async () => {
+  clearCacheByKey('fed_data_monthly');
+  await fetchFedData();
+};
+
+const updateFedIndicatorTimeframe = async (item, timeframe) => {
+    if (item.selectedTimeframe === timeframe) return;
+    
+    item.selectedTimeframe = timeframe;
+    item.loading = true;
+    
+    // Check cache
+    const cached = getEconomicCachedData(item.series_id, timeframe);
+    if (cached) {
+        Object.assign(item, cached);
+        item.selectedTimeframe = timeframe;
+        item.loading = false;
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+        
+        item.history = data.history || [];
+        item.value = data.value;
+        item.date = data.date;
+        item.selectedTimeframe = timeframe;
+        
+        // Cache the data
+        setEconomicCachedData(item.series_id, timeframe, {
+            history: item.history,
+            value: item.value,
+            date: item.date,
+            selectedTimeframe: timeframe
+        });
+    } catch (err) {
+        console.error(`Error fetching ${item.indicator}:`, err);
+    } finally {
+        item.loading = false;
+    }
+};
+
 const updateIndicatorTimeframe = async (item, timeframe) => {
     if (item.selectedTimeframe === timeframe) return;
     
@@ -1474,6 +1996,9 @@ onMounted(() => {
     
     // Fetch economic data when economic tab might be accessed
     fetchEconomicData();
+    
+    // Fetch Fed data when Fed tab might be accessed
+    fetchFedData();
     
     // Fetch energy data when energy tab might be accessed
     fetchEnergyData();
@@ -1752,11 +2277,6 @@ onMounted(() => {
     padding: 0;
 }
 
-.bond-header {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 20px;
-}
 
 .category-tabs {
     display: flex;
@@ -1999,11 +2519,6 @@ onMounted(() => {
     padding: 0;
 }
 
-.economic-header {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 20px;
-}
 
 .indicators {
     display: grid;
@@ -2051,16 +2566,111 @@ onMounted(() => {
     color: #000000;
 }
 
+/* Fed Tab Styles */
+.liquidity-subsection {
+    margin-bottom: 40px;
+}
+
+.subsection-title {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 16px;
+    margin-top: 0;
+}
+
+.liquidity-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.liquidity-table thead {
+    background-color: #f5f5f5;
+}
+
+.liquidity-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #000000;
+    border-bottom: 2px solid #cccccc;
+    font-size: 0.95em;
+}
+
+.liquidity-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #000000;
+    font-size: 0.9em;
+}
+
+.liquidity-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.liquidity-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.liquidity-table a {
+    color: #3498db;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.liquidity-table a:hover {
+    text-decoration: underline;
+    color: #2980b9;
+}
+
+/* Policy Tab Styles */
+.policy-tab-content {
+    padding: 20px;
+}
+
+.policy-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #cccccc;
+}
+
+.section-title {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 20px;
+}
+
+.placeholder-message {
+    color: #666666;
+    font-size: 1em;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+/* Security Tab Styles */
+.security-tab-content {
+    padding: 20px;
+}
+
+.security-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #cccccc;
+}
+
 /* Energy Tab Styles */
 .energy-tab-content {
     padding: 0;
 }
 
-.energy-header {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 20px;
-}
 
 .energy-layout {
     display: flex;

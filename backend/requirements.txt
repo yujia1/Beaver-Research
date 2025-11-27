@@ -10,6 +10,10 @@ pandas_datareader
 yfinance
 beautifulsoup4
 pdfplumber
+python-docx
 requests
 gridstatus
 python-dotenv
+python-jose[cryptography]
+passlib[bcrypt]
+email-validator
