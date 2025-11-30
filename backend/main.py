@@ -6,7 +6,7 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from routers import internal, external, agent, energy, sec, bond, reports, auth, events
+from routers import internal, external, agent, energy, sec, bond, reports, auth, events, research
 from database import engine
 import models
 
@@ -40,6 +40,7 @@ app.include_router(energy.router, prefix="/api/energy", tags=["Energy"])
 app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
 app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+app.include_router(research.router, prefix="/api/research", tags=["Research"])
 
 @app.get("/")
 def read_root():

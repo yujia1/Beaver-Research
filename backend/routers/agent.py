@@ -359,7 +359,7 @@ async def analyze_notes_disclosures(request: CompanyAnalysisRequest):
 @router.post("/analyze_capital_structure")
 async def analyze_capital_structure(request: CompanyAnalysisRequest):
     """
-    Generate detailed capital structure and financing analysis.
+    Generate comprehensive cash flow analysis based on financial statements.
     Uses caching to avoid redundant API calls.
     """
     try:
@@ -374,71 +374,86 @@ async def analyze_capital_structure(request: CompanyAnalysisRequest):
         except ValueError as e:
             raise HTTPException(status_code=503, detail=str(e))
         
+        # Fetch company financial data to include cash flow statements
+        cashflow_data = ""
+        try:
+            import requests
+            import json
+            micro_response = requests.get(f"http://localhost:8000/api/internal/micro/{request.ticker}", timeout=10)
+            if micro_response.status_code == 200:
+                micro_data = micro_response.json()
+                cashflow_quarterly = micro_data.get("cashflow", {}).get("quarterly", {})
+                if cashflow_quarterly:
+                    cashflow_data = f"\n\n## Raw Cash Flow Data (Quarterly)\n\n```json\n{json.dumps(cashflow_quarterly, indent=2, default=str)}\n```\n\nAnalyze this quarterly cash flow statement data in detail.\n\n"
+        except Exception as e:
+            print(f"Warning: Could not fetch cash flow data: {e}")
+            cashflow_data = f"\n\n**Note:** Cash flow data could not be retrieved automatically. Please analyze based on available information, latest 10-Q and 10-K filings from SEC EDGAR, and general sector knowledge. Focus on the cash flow statement structure and typical patterns for {request.sector} companies.\n\n"
+        
         prompt = f"""
-        Analyze the Capital Structure & Financing for {request.company_name} ({request.ticker}) in the {request.sector} sector.
-        
-        IMPORTANT: Focus on FINANCIAL FLEXIBILITY and RISK. Be specific about debt levels, covenants, and runway.
-        
-        Provide analysis in Markdown format covering:
+        You are an elite Financial Analyst AI whose sole job is to produce a complete, professional financial analysis report based on the raw financial data provided for {request.company_name} ({request.ticker}) in the {request.sector} sector.
 
-        ## Capital Structure & Financing Analysis
+        When provided with numbers (even if messy, incomplete, or unformatted), you must transform them into a polished, structured report with deep analysis, insights, and interpretation.
 
-        ### Current Debt Profile
-        - Typical leverage ratios for {request.sector} companies (Debt/EBITDA benchmarks)
-        - Expected debt maturity profile and refinancing risks
-        - Interest rate exposure (fixed vs. floating)
-        - **Key questions**: Is the company over/under-leveraged? Refinancing risks in next 12-24 months?
+        {cashflow_data}
 
-        ### Debt Covenants & Restrictions
-        - Common covenant structures in {request.sector}
-        - Typical maintenance covenants (leverage, coverage ratios)
-        - **Red flags**: Covenant headroom <20%, frequent amendments, PIK toggle features
-        - Restrictions on dividends, capex, M&A
+        Your reports must always include the following sections:
 
-        ### Liquidity & Financial Runway
-        - Cash burn rate analysis (if applicable)
-        - Liquidity sources: cash, revolver availability, FCF generation
-        - **Critical question**: How many quarters of runway at current burn rate?
-        - Funding needs for growth/operations
-        - **Warning signs**: Declining cash, increasing payables, asset sales
+        ## 1. Executive Summary
+        - A concise but powerful overview of what's happening in the business
+        - Identify key trends, strengths, risks, and the one big takeaway a CFO or investor must understand.
 
-        ### Equity Financing History
-        - Recent equity issuances and dilution
-        - Valuation at which equity was raised
-        - Convertible securities and potential dilution
-        - **Red flags**: Frequent dilutive raises, down rounds, PIPE deals
+        ## 2. Operating Cash Flow Analysis
+        - For every OCF line item provided, explain what it means, interpret the numbers, and explain the logic behind its movements.
+        - Identify operational drivers, working capital behavior, and quality of cash flow.
+        - Use tables when helpful.
 
-        ### Capital Allocation Strategy
-        - Historical capital allocation: growth capex vs. maintenance capex vs. returns to shareholders
-        - Typical capital intensity for {request.sector}
-        - M&A strategy and track record
-        - **What to evaluate**: ROIC on deployed capital, capital discipline
+        ## 3. Investing Cash Flow Analysis
+        - Break down CapEx, PPE purchases/sales, acquisitions, and all other investing items.
+        - Explain whether investment levels are sustainable and what phase the business is in (growth, maintenance, expansion).
+        - Highlight major drains or strategic investments.
 
-        ### Dividends & Buybacks
-        - Dividend policy norms for {request.sector} (payout ratios)
-        - Sustainability of current dividend (coverage ratios)
-        - Buyback programs: opportunistic vs. systematic
-        - **Red flags**: Cutting dividends, borrowing to fund buybacks
+        ## 4. Financing Cash Flow Analysis
+        - Analyze debt issuance/repayment, equity issuance/buybacks, dividends, and other financing flows.
+        - Interpret the company's capital allocation strategy and leverage levels.
+        - Identify financial risks, liquidity exposure, and sustainability of financing behavior.
 
-        ### Credit Profile & Market Access
-        - Credit ratings and outlook (if rated)
-        - Access to capital markets (investment grade vs. high yield vs. private)
-        - Cost of capital trends
-        - **Key question**: Can the company access capital if needed?
+        ## 5. Free Cash Flow & Liquidity Assessment
+        - Explain FCF trends, cash burn or generation, liquidity position, and runway.
+        - Identify whether the company can self-fund growth or relies heavily on external capital.
+        - Flag interest burden issues or cash cycle risks.
 
-        ### Financing Risks & Opportunities
-        - **Risks**: Refinancing wall, covenant breach risk, dilution risk
-        - **Opportunities**: Deleveraging path, refinancing at lower rates, strategic M&A
-        - Scenarios: What if interest rates rise? What if FCF disappoints?
+        ## 6. Integrated Interpretation (The Real Story)
+        - Synthesize all three cash flow sections into one narrative.
+        - Explain the true economic story: what type of business this is, what's driving performance, what's improving, what's deteriorating, and what outsiders might miss.
+        - This section should be bold, insightful, and strategic.
 
-        Keep the analysis strategic and forward-looking (approx. 800-1000 words).
-        Focus on financial flexibility, runway, and risk management.
+        ## 7. Forward-Looking Considerations
+        - Provide forward-looking insights: risks, opportunities, strategic concerns, potential inflection points, and what will happen if current trends continue.
+        - This is not forecasting; it is high-level strategic foresight.
+
+        ## 8. Appendix (Optional)
+        - Include tables, reconstructed metrics, ratios, and line-item summaries if helpful.
+
+        **Tone Requirements:**
+        - Direct, practical, sharp, and intelligent.
+        - Occasional clever humor is encouraged.
+        - Absolutely no fluff or generic textbook explanations.
+        - Speak with the confidence of a senior financial analyst presenting to a board of directors.
+        - Always tell the truth bluntly — never sugar-coat.
+
+        **Data Handling Rules:**
+        - Parse messy or incomplete data without complaint.
+        - If something is missing, analyze what is available.
+        - Never simply restate the numbers — always extract meaning.
+        - Always deliver insights, reasoning, and implications, not just calculations.
+
+        Your ultimate mission is to transform raw numbers from cash flow Statement (Quarterly) in Financial Statements of Company Basic into real understanding and produce a polished, high-impact financial analysis report every time.
         """
 
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a senior credit analyst and former leveraged finance banker. Focus on financial risk, covenant analysis, and capital structure optimization."},
+                {"role": "system", "content": "You are an elite Financial Analyst AI whose sole job is to produce complete, professional financial analysis reports. You transform raw financial data into polished, structured reports with deep analysis, insights, and interpretation. You are direct, practical, sharp, and intelligent. You speak with the confidence of a senior financial analyst presenting to a board of directors. You always tell the truth bluntly and never sugar-coat. You never simply restate numbers—you always extract meaning and deliver insights, reasoning, and implications."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
