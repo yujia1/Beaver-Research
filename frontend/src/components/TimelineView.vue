@@ -1382,64 +1382,7 @@ const newEvent = ref({
   isForecast: false
 })
 
-// Generate mock stock price data (kept for fallback, but not used when real data is available)
-const generateStockData = () => {
-  const startDate = new Date('2023-12-01')
-  // Extend to cover forecast events (through December 2025)
-  const endDate = new Date('2025-12-31')
-  const data = []
-  const prices = []
-  
-  let stockPrice = 240
-  const basePrice = stockPrice
-  
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    // Skip weekends
-    if (d.getDay() === 0 || d.getDay() === 6) continue
-    
-    // Add some volatility
-    const change = (Math.random() - 0.5) * 5
-    stockPrice = Math.max(150, Math.min(380, stockPrice + change))
-    
-    // Apply event impacts (check if event is on this date or within 1 day)
-    const eventDate = new Date(d.toISOString().split('T')[0])
-    const event = events.value.find(e => {
-      const eDate = new Date(e.date)
-      eDate.setHours(0, 0, 0, 0)
-      const diff = Math.abs(eDate.getTime() - eventDate.getTime())
-      return diff <= 1 * 24 * 60 * 60 * 1000 // Within 1 day
-    })
-    
-    if (event) {
-      if (event.type === 'positive') {
-        stockPrice += 15 + Math.random() * 10
-      } else if (event.type === 'negative') {
-        stockPrice -= 15 + Math.random() * 10
-      }
-    }
-    
-    data.push({
-      date: new Date(d),
-      price: stockPrice
-    })
-    prices.push(stockPrice)
-  }
-  
-  // Update current price
-  if (prices.length > 0) {
-    currentPrice.value = prices[prices.length - 1]
-    const janPrice = prices.find((p, i) => {
-      const date = data[i].date
-      return date.getMonth() === 0 && date.getDate() === 1
-    }) || prices[0]
-    priceChange.value = currentPrice.value - janPrice
-    priceChangePercent.value = ((priceChange.value / janPrice) * 100)
-  }
-  
-  return data
-}
-
-const stockData = ref([]) // Will be populated with real data from API
+const stockData = ref([]) // Populated with real data from API
 
 // Filter stock data based on selected time period
 const filteredStockData = computed(() => {

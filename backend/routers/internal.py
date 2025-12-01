@@ -6,7 +6,10 @@ import pandas as pd
 import datetime
 import random
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from pandas_datareader import data as web
+from requests.exceptions import ReadTimeout, Timeout, RequestException
 
 router = APIRouter()
 
@@ -15,7 +18,9 @@ period_map = {
     "daily": "30d",
     "weekly": "3mo",
     "monthly": "1y",
+    "quarterly": "1y",  # Use 1y for quarterly as FRED doesn't have quarterly-specific period
     "yearly": "5y",
+    "5y": "5y",
     "max": "max"
 }
 
@@ -77,21 +82,297 @@ fred_indicators = [
         "description": "New Privately-Owned Housing Units Authorized (Thousands)",
         "category": "Housing",
         "chart_type": "line"
+    },
+    {
+        "indicator": "U.S. / Euro Foreign Exchange Rate",
+        "series_id": "DEXUSEU",
+        "description": "U.S. Dollars to One Euro",
+        "category": "Currency",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Japanese Yen to U.S. Dollar Spot Exchange Rate",
+        "series_id": "DEXJPUS",
+        "description": "Japanese Yen to One U.S. Dollar",
+        "category": "Currency",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "China / U.S. Foreign Exchange Rate",
+        "series_id": "DEXCHUS",
+        "description": "Chinese Yuan to One U.S. Dollar",
+        "category": "Currency",
+        "chart_type": "line"
+    },
+    # Metals
+    {
+        "indicator": "Gold Fixing Price",
+        "series_id": "GOLDAMGBD228NLBM",
+        "description": "Gold Fixing Price (USD per Troy Ounce)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Platinum Price",
+        "series_id": "PLATINUM",
+        "description": "Platinum Price (USD per Troy Ounce)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Silver Price",
+        "series_id": "SILVER",
+        "description": "Silver Price (USD per Troy Ounce)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Copper Price",
+        "series_id": "PCOPPUSDM",
+        "description": "Copper Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Iron Ore Price",
+        "series_id": "PIORECRUSDM",
+        "description": "Iron Ore Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Silicon Price",
+        "series_id": "PSILICON",
+        "description": "Silicon Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    # Agricultural
+    {
+        "indicator": "Wheat Price",
+        "series_id": "PWHEAMTUSDM",
+        "description": "Wheat Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Corn Price",
+        "series_id": "PCORNUSDM",
+        "description": "Corn Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Soybeans Price",
+        "series_id": "PSOYBUSDM",
+        "description": "Soybeans Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Coffee Price",
+        "series_id": "PCOFFUSDM",
+        "description": "Coffee Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Sugar Price",
+        "series_id": "PSUGAR",
+        "description": "Sugar Price (USD per pound)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    # Industrial
+    {
+        "indicator": "Natural Gas Price Index",
+        "series_id": "PNRGINDEXM",
+        "description": "Natural Gas Price Index",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Crude Oil Price",
+        "series_id": "POILBREUSDM",
+        "description": "Crude Oil Price (USD per Barrel)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Aluminum Price",
+        "series_id": "PALUMINUM",
+        "description": "Aluminum Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Zinc Price",
+        "series_id": "PZINC",
+        "description": "Zinc Price (USD per Metric Ton)",
+        "category": "Commodity",
+        "chart_type": "line"
     }
 ]
 
-def fetch_fred_series(series_id: str, start_date: str):
-    """Fetch a series from FRED and return list of {'date': str, 'value': float} sorted oldest to newest."""
+def fetch_fred_series(series_id: str, start_date: str, max_retries: int = 2, timeout: int = 15):
+    """Fetch a series from FRED and return list of {'date': str, 'value': float} sorted oldest to newest.
+    
+    Args:
+        series_id: FRED series ID
+        start_date: Start date in YYYY-MM-DD format
+        max_retries: Maximum number of retry attempts (default: 2)
+        timeout: Request timeout in seconds (default: 15, reduced from default 30)
+    """
+    fred_api_key = os.getenv('FRED_API_KEY')
+    if not fred_api_key:
+        print(f"Warning: FRED_API_KEY not set. Cannot fetch {series_id}")
+        return []
+    
+    # Retry logic with exponential backoff
+    for attempt in range(max_retries + 1):
+        try:
+            # Use a shorter timeout to fail faster and retry
+            # Note: pandas_datareader doesn't directly support timeout, but we can catch timeout exceptions
+            df = web.DataReader(series_id, 'fred', start=start_date, api_key=fred_api_key)
+            
+            if df.empty:
+                print(f"Warning: FRED returned empty data for {series_id}")
+                return []
+            
+            df = df.dropna()
+            if df.empty:
+                print(f"Warning: FRED data for {series_id} is all NaN after dropna")
+                return []
+            
+            # Reset index to convert DatetimeIndex to a column
+            df = df.reset_index()
+            
+            # Handle column names - FRED returns data with the series_id as column name
+            # After reset_index, we have 'DATE' (or 'date') and the series_id column
+            if len(df.columns) == 2:
+                # Standard case: DATE column and value column
+                date_col = df.columns[0]
+                value_col = df.columns[1]
+            elif len(df.columns) == 1:
+                # Only value column, date is in index (shouldn't happen after reset_index, but handle it)
+                print(f"Warning: Unexpected DataFrame structure for {series_id}: {df.columns}")
+                return []
+            else:
+                # Multiple columns - use first as date, second as value
+                date_col = df.columns[0]
+                value_col = df.columns[1]
+            
+            # Rename columns for consistency
+            df = df.rename(columns={date_col: 'date', value_col: 'value'})
+            
+            # Ensure date is datetime and format it
+            if not pd.api.types.is_datetime64_any_dtype(df['date']):
+                df['date'] = pd.to_datetime(df['date'])
+            df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+            
+            # Ensure value is float
+            df['value'] = df['value'].astype(float)
+            
+            return df.to_dict(orient='records')
+            
+        except (ReadTimeout, Timeout) as e:
+            if attempt < max_retries:
+                wait_time = (2 ** attempt) * 1  # Exponential backoff: 1s, 2s, 4s
+                print(f"Timeout fetching FRED series {series_id} (attempt {attempt + 1}/{max_retries + 1}). Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"Error: FRED series {series_id} timed out after {max_retries + 1} attempts")
+                return []
+        except RequestException as e:
+            if attempt < max_retries:
+                wait_time = (2 ** attempt) * 1
+                print(f"Request error fetching FRED series {series_id} (attempt {attempt + 1}/{max_retries + 1}): {e}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"Error: FRED series {series_id} failed after {max_retries + 1} attempts: {e}")
+                return []
+        except Exception as e:
+            # For other exceptions, don't retry - just log and return empty
+            print(f"Error fetching FRED series {series_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    return []
+
+# Mapping of commodity series IDs to Yahoo Finance ticker symbols
+commodity_ticker_map = {
+    "GOLDAMGBD228NLBM": "GC=F",  # Gold Futures
+    "PLATINUM": "PL=F",  # Platinum Futures
+    "SILVER": "SI=F",  # Silver Futures
+    "PCOPPUSDM": "HG=F",  # Copper Futures
+    "PIORECRUSDM": "IO=F",  # Iron Ore Futures (or use VALE, BHP as proxy)
+    "PSILICON": "SI=F",  # Silicon - using Silver as proxy (may need adjustment)
+    "PTITANIUM": "TI=F",  # Titanium - may need alternative source
+    "PWHEAMTUSDM": "ZW=F",  # Wheat Futures
+    "PCORNUSDM": "ZC=F",  # Corn Futures
+    "PSOYBUSDM": "ZS=F",  # Soybeans Futures
+    "PCOFFUSDM": "KC=F",  # Coffee Futures
+    "PLUMBER": "LB=F",  # Lumber Futures
+    "PMILK": "DA=F",  # Class III Milk Futures
+    "PSUGAR": "SB=F",  # Sugar #11 Futures
+    "PNRGINDEXM": "NG=F",  # Natural Gas Futures
+    "POILBREUSDM": "CL=F",  # Crude Oil Futures
+    "PALUMINUM": "ALI=F",  # Aluminum Futures
+    "PNICKEL": "NI=F",  # Nickel Futures
+    "PZINC": "ZN=F",  # Zinc Futures
+}
+
+def fetch_commodity_from_yahoo(series_id: str, timeframe: str):
+    """Fetch commodity data from Yahoo Finance and return list of {'date': str, 'value': float}."""
     try:
-        df = web.DataReader(series_id, 'fred', start=start_date, api_key=os.getenv('FRED_API_KEY'))
-        df = df.dropna()
-        df = df.reset_index()
-        df.columns = ['date', 'value']
-        df['date'] = df['date'].dt.strftime('%Y-%m-%d')
-        df['value'] = df['value'].astype(float)
-        return df.to_dict(orient='records')
+        ticker_symbol = commodity_ticker_map.get(series_id)
+        if not ticker_symbol:
+            print(f"No Yahoo Finance ticker mapping found for {series_id}")
+            return []
+        
+        # Map timeframe to yfinance period
+        period_map_yahoo = {
+            "monthly": "1y",
+            "quarterly": "1y",
+            "yearly": "5y",
+            "5y": "5y",
+            "max": "max"
+        }
+        period = period_map_yahoo.get(timeframe, "1y")
+        
+        # Map timeframe to interval
+        interval_map = {
+            "monthly": "1d",
+            "quarterly": "1d",
+            "yearly": "1wk",
+            "5y": "1mo",
+            "max": "1mo"
+        }
+        interval = interval_map.get(timeframe, "1d")
+        
+        ticker = yf.Ticker(ticker_symbol)
+        hist = ticker.history(period=period, interval=interval)
+        
+        if hist.empty:
+            print(f"No data found for {ticker_symbol}")
+            return []
+        
+        # Convert to list of {date, value} objects
+        history = []
+        for date, row in hist.iterrows():
+            history.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "value": float(row['Close'])
+            })
+        
+        return history
     except Exception as e:
-        print(f"Error fetching FRED series {series_id}: {e}")
+        print(f"Error fetching commodity {series_id} from Yahoo Finance: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 class HistoricalData(BaseModel):
     date: str
@@ -99,8 +380,8 @@ class HistoricalData(BaseModel):
 
 class MacroData(BaseModel):
     indicator: str
-    value: float
-    date: str
+    value: Optional[float] = None
+    date: Optional[str] = None
     description: str
     category: str
     series_id: Optional[str] = None
@@ -131,99 +412,169 @@ async def get_macro_data(timeframe: str = "monthly"):
     Includes 8 key indicators with historical data (Mocked for now).
     Timeframe options: daily, weekly, monthly, yearly
     """
+    try:
+        start_offset = period_map.get(timeframe, "1y")
+        # Convert offset to a date string (approximate)
+        from datetime import datetime, timedelta
+        
+        if start_offset == "max":
+            start_date = "1900-01-01" # Fetch all available history
+        elif start_offset.endswith('d'):
+            days = int(start_offset.rstrip('d'))
+            start_date = (datetime.today() - timedelta(days=days)).strftime('%Y-%m-%d')
+        elif start_offset.endswith('mo'):
+            months = int(start_offset.rstrip('mo'))
+            start_date = (datetime.today() - timedelta(days=months*30)).strftime('%Y-%m-%d')
+        elif start_offset.endswith('y'):
+            years = int(start_offset.rstrip('y'))
+            start_date = (datetime.today() - timedelta(days=years*365)).strftime('%Y-%m-%d')
+        else:
+            start_date = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d')
 
+        # Filter to only Economic indicators (exclude Currency and Commodity)
+        # Only include: Consumer Price Index (CPI), Unemployment Rate, Consumer Spending (PCE),
+        # Manufacturing Output, Bank Lending, Housing Permits
+        allowed_economic_series = ['CPIAUCSL', 'UNRATE', 'PCE', 'IPMAN', 'TOTLL', 'PERMIT']
+        economic_indicators = [
+            cfg for cfg in fred_indicators 
+            if cfg["series_id"] in allowed_economic_series
+        ]
+        
+        # Build results list using real data - fetch in parallel with timeout protection
+        results = []
+        
+        def fetch_single_indicator(cfg):
+            """Fetch a single indicator with error handling"""
+            try:
+                history = fetch_fred_series(cfg["series_id"], start_date)
+                
+                # Always append the indicator, even if history is empty (frontend handles empty history)
+                if history and len(history) > 0:
+                    latest_val = float(history[-1]["value"])
+                    latest_date = str(history[-1]["date"])
+                else:
+                    latest_val = 0.0
+                    latest_date = datetime.today().strftime('%Y-%m-%d')
+                
+                return {
+                    "indicator": cfg["indicator"],
+                    "value": latest_val,
+                    "date": latest_date,
+                    "description": cfg["description"],
+                    "category": cfg["category"],
+                    "history": history if history else [], # Can be empty list
+                    "chart_type": cfg["chart_type"],
+                    "series_id": cfg["series_id"] # Ensure series_id is passed to frontend
+                }
+            except Exception as e:
+                print(f"Error fetching {cfg['series_id']}: {e}")
+                import traceback
+                traceback.print_exc()
+                # Add indicator with default data if fetch fails
+                return {
+                    "indicator": cfg["indicator"],
+                    "value": 0.0,
+                    "date": datetime.today().strftime('%Y-%m-%d'),
+                    "description": cfg["description"],
+                    "category": cfg["category"],
+                    "history": [],
+                    "chart_type": cfg["chart_type"],
+                    "series_id": cfg["series_id"]
+                }
+        
+        # Fetch all indicators in parallel with individual timeouts (20 seconds each)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(fetch_single_indicator, cfg): cfg for cfg in economic_indicators}
+            for future in futures:
+                try:
+                    result = future.result(timeout=20)  # 20 second timeout per indicator
+                    results.append(result)
+                except FutureTimeoutError:
+                    cfg = futures[future]
+                    print(f"Timeout: {cfg['series_id']} exceeded 20 second timeout")
+                    results.append({
+                        "indicator": cfg["indicator"],
+                        "value": 0.0,
+                        "date": datetime.today().strftime('%Y-%m-%d'),
+                        "description": cfg["description"],
+                        "category": cfg["category"],
+                        "history": [],
+                        "chart_type": cfg["chart_type"],
+                        "series_id": cfg["series_id"]
+                    })
+                except Exception as e:
+                    cfg = futures[future]
+                    print(f"Unexpected error for {cfg['series_id']}: {e}")
+                    results.append({
+                        "indicator": cfg["indicator"],
+                        "value": 0.0,
+                        "date": datetime.today().strftime('%Y-%m-%d'),
+                        "description": cfg["description"],
+                        "category": cfg["category"],
+                        "history": [],
+                        "chart_type": cfg["chart_type"],
+                        "series_id": cfg["series_id"]
+                    })
 
-    start_offset = period_map.get(timeframe, "1y")
-    # Convert offset to a date string (approximate)
-    from datetime import datetime, timedelta
-    
-    if start_offset == "max":
-        start_date = "1900-01-01" # Fetch all available history
-    elif start_offset.endswith('d'):
-        days = int(start_offset.rstrip('d'))
-        start_date = (datetime.today() - timedelta(days=days)).strftime('%Y-%m-%d')
-    elif start_offset.endswith('mo'):
-        months = int(start_offset.rstrip('mo'))
-        start_date = (datetime.today() - timedelta(days=months*30)).strftime('%Y-%m-%d')
-    elif start_offset.endswith('y'):
-        years = int(start_offset.rstrip('y'))
-        start_date = (datetime.today() - timedelta(days=years*365)).strftime('%Y-%m-%d')
-    else:
-        start_date = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d')
-
-    # Build results list using real data
-    results = []
-    for cfg in fred_indicators:
-        history = fetch_fred_series(cfg["series_id"], start_date)
-        # Always append the indicator, even if history is empty (frontend handles empty history)
-        latest_val = history[-1]["value"] if history else None
-        latest_date = history[-1]["date"] if history else None
+        # Add FedWatch Tool as it's not from FRED and has a different history format
+        today = datetime.today().date()
+        
+        # Calculate next FOMC meeting date
+        def get_next_fomc_meeting_date():
+            """Calculate the next FOMC meeting date based on typical schedule"""
+            from datetime import date
+            today = date.today()
+            
+            # FOMC meetings typically occur 8 times per year
+            # Common months: Jan/Feb, Mar, May, Jun, Jul, Sep, Nov, Dec
+            # For 2025, known dates include: Dec 9-10, 2025
+            # This is a simplified calculation - in production, you'd want to fetch from FOMC calendar
+            
+            # Known upcoming FOMC meeting dates (2025-2026)
+            fomc_dates = [
+                date(2025, 12, 9),   # December 9-10, 2025
+                date(2026, 1, 28),   # January 28-29, 2026 (typical)
+                date(2026, 3, 18),   # March 18-19, 2026 (typical)
+                date(2026, 5, 6),    # May 6-7, 2026 (typical)
+                date(2026, 6, 17),   # June 17-18, 2026 (typical)
+                date(2026, 7, 29),   # July 29-30, 2026 (typical)
+                date(2026, 9, 16),   # September 16-17, 2026 (typical)
+                date(2026, 11, 6),   # November 6-7, 2026 (typical)
+                date(2026, 12, 15),  # December 15-16, 2026 (typical)
+            ]
+            
+            # Find next meeting date
+            for meeting_date in fomc_dates:
+                if meeting_date >= today:
+                    return meeting_date.strftime('%B %d, %Y')
+            
+            # Fallback if no future date found
+            return "TBD"
+        
+        next_meeting_date = get_next_fomc_meeting_date()
         
         results.append({
-            "indicator": cfg["indicator"],
-            "value": latest_val,
-            "date": latest_date,
-            "description": cfg["description"],
-            "category": cfg["category"],
-            "history": history, # Can be empty list
-            "chart_type": cfg["chart_type"],
-            "series_id": cfg["series_id"] # Ensure series_id is passed to frontend
+            "indicator": "FedWatch Tool",
+            "value": 5.25, # Current Fed Funds Rate (Upper)
+            "date": str(today),
+            "description": f"Target Rate Probabilities (next meeting date: {next_meeting_date})",
+            "category": "Monetary",
+            "chart_type": "bar",
+            "series_id": "FEDWATCH",
+            "history": [
+                {"date": "Hold", "value": 60},
+                {"date": "Cut 25bps", "value": 35},
+                {"date": "Cut 50bps", "value": 5},
+                {"date": "Hike 25bps", "value": 0}
+            ]
         })
-
-    # Add FedWatch Tool as it's not from FRED and has a different history format
-    today = datetime.today().date()
-    
-    # Calculate next FOMC meeting date
-    def get_next_fomc_meeting_date():
-        """Calculate the next FOMC meeting date based on typical schedule"""
-        from datetime import date
-        today = date.today()
         
-        # FOMC meetings typically occur 8 times per year
-        # Common months: Jan/Feb, Mar, May, Jun, Jul, Sep, Nov, Dec
-        # For 2025, known dates include: Dec 9-10, 2025
-        # This is a simplified calculation - in production, you'd want to fetch from FOMC calendar
-        
-        # Known upcoming FOMC meeting dates (2025-2026)
-        fomc_dates = [
-            date(2025, 12, 9),   # December 9-10, 2025
-            date(2026, 1, 28),   # January 28-29, 2026 (typical)
-            date(2026, 3, 18),   # March 18-19, 2026 (typical)
-            date(2026, 5, 6),    # May 6-7, 2026 (typical)
-            date(2026, 6, 17),   # June 17-18, 2026 (typical)
-            date(2026, 7, 29),   # July 29-30, 2026 (typical)
-            date(2026, 9, 16),   # September 16-17, 2026 (typical)
-            date(2026, 11, 6),   # November 6-7, 2026 (typical)
-            date(2026, 12, 15),  # December 15-16, 2026 (typical)
-        ]
-        
-        # Find next meeting date
-        for meeting_date in fomc_dates:
-            if meeting_date >= today:
-                return meeting_date.strftime('%B %d, %Y')
-        
-        # Fallback if no future date found
-        return "TBD"
-    
-    next_meeting_date = get_next_fomc_meeting_date()
-    
-    results.append({
-        "indicator": "FedWatch Tool",
-        "value": 5.25, # Current Fed Funds Rate (Upper)
-        "date": str(today),
-        "description": f"Target Rate Probabilities (next meeting date: {next_meeting_date})",
-        "category": "Monetary",
-        "chart_type": "bar",
-        "series_id": "FEDWATCH",
-        "history": [
-            {"date": "Hold", "value": 60},
-            {"date": "Cut 25bps", "value": 35},
-            {"date": "Cut 50bps", "value": 5},
-            {"date": "Hike 25bps", "value": 0}
-        ]
-    })
-    
-    return results
+        return results
+    except Exception as e:
+        print(f"Error in get_macro_data: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching macro data: {str(e)}")
 
 @router.get("/macro/series/{series_id}", response_model=MacroData)
 async def get_macro_series(series_id: str, timeframe: str = "monthly"):
@@ -234,7 +585,10 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
     from datetime import datetime, timedelta
     
     # Calculate start date (duplicate logic, could be refactored)
-    if start_offset.endswith('d'):
+    if start_offset == "max":
+        # For max, use a very old date to get all available data (FRED typically goes back to 1970s)
+        start_date = "1970-01-01"
+    elif start_offset.endswith('d'):
         days = int(start_offset.rstrip('d'))
         start_date = (datetime.today() - timedelta(days=days)).strftime('%Y-%m-%d')
     elif start_offset.endswith('mo'):
@@ -300,9 +654,24 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
     if not cfg:
         raise HTTPException(status_code=404, detail="Series not found")
 
-    history = fetch_fred_series(series_id, start_date)
-    latest_val = history[-1]["value"] if history else None
-    latest_date = history[-1]["date"] if history else None
+    # Check if this is a commodity and use Yahoo Finance
+    if cfg["category"] == "Commodity" and series_id in commodity_ticker_map:
+        history = fetch_commodity_from_yahoo(series_id, timeframe)
+        # If Yahoo Finance fails, try FRED as fallback
+        if not history or len(history) == 0:
+            print(f"Yahoo Finance failed for {series_id}, trying FRED as fallback")
+            history = fetch_fred_series(series_id, start_date)
+    else:
+        history = fetch_fred_series(series_id, start_date)
+    
+    # Ensure we have valid values even if history is empty
+    if history and len(history) > 0:
+        latest_val = float(history[-1]["value"])
+        latest_date = str(history[-1]["date"])
+    else:
+        # Return default values if no data available
+        latest_val = 0.0
+        latest_date = datetime.today().strftime('%Y-%m-%d')
 
     return {
         "indicator": cfg["indicator"],
@@ -310,7 +679,7 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
         "date": latest_date,
         "description": cfg["description"],
         "category": cfg["category"],
-        "history": history,
+        "history": history if history else [],
         "chart_type": cfg["chart_type"],
         "series_id": cfg["series_id"]
     }
@@ -772,6 +1141,73 @@ class MarketMoversResponse(BaseModel):
     volatile: List[MarketMover]
     active: List[MarketMover]
 
+@router.get("/indices")
+async def get_indices():
+    """
+    Fetch real-time data for major market indices: Dow Jones, NASDAQ, S&P 500, Russell 2000.
+    Returns current value, change percentage, and 30-day history for each index.
+    """
+    indices_config = [
+        {"name": "Dow Jones", "ticker": "^DJI"},
+        {"name": "NASDAQ", "ticker": "^IXIC"},
+        {"name": "S&P 500", "ticker": "^GSPC"},
+        {"name": "Russell 2000", "ticker": "^RUT"}
+    ]
+    
+    results = []
+    try:
+        for idx in indices_config:
+            try:
+                ticker = yf.Ticker(idx["ticker"])
+                # Get last 30 days of data
+                history = ticker.history(period="1mo")
+                
+                if history.empty:
+                    # Fallback to default values if data unavailable
+                    results.append({
+                        "name": idx["name"],
+                        "value": 0.0,
+                        "change": 0.0,
+                        "history": []
+                    })
+                    continue
+                
+                # Get current and previous close
+                current_price = float(history['Close'].iloc[-1])
+                prev_close = float(history['Close'].iloc[-2]) if len(history) > 1 else current_price
+                change_percent = ((current_price - prev_close) / prev_close) * 100 if prev_close > 0 else 0.0
+                
+                # Convert history to list format
+                history_list = []
+                for date, row in history.iterrows():
+                    history_list.append({
+                        "date": date.strftime('%Y-%m-%d'),
+                        "value": float(row['Close'])
+                    })
+                
+                results.append({
+                    "name": idx["name"],
+                    "value": round(current_price, 2),
+                    "change": round(change_percent, 2),
+                    "history": history_list
+                })
+            except Exception as e:
+                print(f"Error fetching {idx['name']}: {e}")
+                # Fallback to default values
+                results.append({
+                    "name": idx["name"],
+                    "value": 0.0,
+                    "change": 0.0,
+                    "history": []
+                })
+                continue
+        
+        return results
+    except Exception as e:
+        print(f"Error fetching indices: {e}")
+        # Return empty results on critical failure
+        return [{"name": idx["name"], "value": 0.0, "change": 0.0, "history": []} for idx in indices_config]
+
 @router.get("/market-movers", response_model=MarketMoversResponse)
 async def get_market_movers():
     """
@@ -900,3 +1336,267 @@ async def get_market_movers():
         print(f"Error fetching market movers: {e}")
         # Fallback to empty or mock if critical failure, but let's return empty lists for now to see error
         return {"gainers": [], "losers": [], "volatile": [], "active": []}
+
+class CryptoData(BaseModel):
+    ticker: str
+    name: str
+    price: float
+    date: str
+    description: str
+    series_id: str
+    history: List[Dict[str, Any]]
+    selectedTimeframe: str
+    loading: bool
+    chart_type: str
+
+@router.get("/crypto/all")
+async def get_all_crypto_data(timeframe: str = "daily"):
+    """
+    Fetch data for all major cryptocurrencies WITH history (like Bond/Economic tabs).
+    Returns data for BTC-USD, ETH-USD, USDT-USD, BNB-USD, SOL-USD
+    Includes history data for the specified timeframe.
+    """
+    try:
+        crypto_pairs = [
+            {"ticker": "BTC-USD", "name": "Bitcoin (BTC)", "description": "Bitcoin Price"},
+            {"ticker": "ETH-USD", "name": "Ethereum (ETH)", "description": "Ethereum Price"},
+            {"ticker": "USDT-USD", "name": "Tether USDt (USDT)", "description": "Tether USDt Price"},
+            {"ticker": "BNB-USD", "name": "BNB (BNB)", "description": "BNB Price"},
+            {"ticker": "SOL-USD", "name": "Solana (SOL)", "description": "Solana Price"}
+        ]
+        
+        # Map frontend timeframes to yfinance periods
+        period_map = {
+            "daily": "1mo",
+            "weekly": "3mo",
+            "monthly": "1y",
+            "yearly": "5y"
+        }
+        
+        yf_period = period_map.get(timeframe, "1mo")
+        
+        results = []
+        for pair in crypto_pairs:
+            try:
+                crypto = yf.Ticker(pair["ticker"])
+                # Fetch history with the specified timeframe
+                history = crypto.history(period=yf_period)
+                
+                if history.empty:
+                    print(f"[WARNING] {pair['ticker']}: History DataFrame is empty")
+                    results.append({
+                        "indicator": pair["name"],
+                        "value": 0,
+                        "volume": 0,
+                        "date": datetime.datetime.now().strftime('%Y-%m-%d'),
+                        "description": pair["description"],
+                        "series_id": pair["ticker"],
+                        "history": [],
+                        "selectedTimeframe": timeframe,
+                        "loading": False,
+                        "chart_type": "line"
+                    })
+                    continue
+                
+                # Convert history to list with volume
+                history_list = []
+                has_volume_column = 'Volume' in history.columns
+                
+                if not has_volume_column:
+                    print(f"[DEBUG] {pair['ticker']}: No 'Volume' column in history DataFrame. Available columns: {list(history.columns)}")
+                
+                volume_count = 0
+                for date, row in history.iterrows():
+                    try:
+                        volume_value = 0
+                        if has_volume_column:
+                            try:
+                                vol = row['Volume']
+                                if pd.notna(vol) and vol != 0:
+                                    volume_value = float(vol)
+                                    volume_count += 1
+                            except (KeyError, ValueError, TypeError):
+                                volume_value = 0
+                        
+                        close_value = row['Close']
+                        if pd.isna(close_value):
+                            print(f"[WARNING] {pair['ticker']}: Skipping row with NaN Close value on {date}")
+                            continue
+                        
+                        history_list.append({
+                            "date": date.strftime('%Y-%m-%d'),
+                            "value": float(close_value),
+                            "volume": volume_value
+                        })
+                    except Exception as e:
+                        print(f"[WARNING] {pair['ticker']}: Error processing row for date {date}: {e}")
+                        continue
+                
+                # Get current price and volume from latest data
+                current_price = float(history['Close'].iloc[-1])
+                current_volume = 0
+                if has_volume_column:
+                    try:
+                        vol = history['Volume'].iloc[-1]
+                        if pd.notna(vol) and vol != 0:
+                            current_volume = float(vol)
+                    except (KeyError, ValueError, TypeError):
+                        current_volume = 0
+                current_date = history.index[-1].strftime('%Y-%m-%d')
+                
+                if has_volume_column:
+                    print(f"[DEBUG] {pair['ticker']}: Found {volume_count} non-zero volume entries out of {len(history_list)} total entries")
+                
+                results.append({
+                    "indicator": pair["name"],
+                    "value": round(current_price, 2),
+                    "volume": round(current_volume, 0),
+                    "date": current_date,
+                    "description": pair["description"],
+                    "series_id": pair["ticker"],
+                    "history": history_list,  # Include history in initial response
+                    "selectedTimeframe": timeframe,
+                    "loading": False,
+                    "chart_type": "line"
+                })
+            except Exception as e:
+                print(f"Error fetching {pair['ticker']}: {e}")
+                # Add empty entry with error state
+                results.append({
+                    "indicator": pair["name"],
+                    "value": 0,
+                    "volume": 0,
+                    "date": datetime.datetime.now().strftime('%Y-%m-%d'),
+                    "description": pair["description"],
+                    "series_id": pair["ticker"],
+                    "history": [],
+                    "selectedTimeframe": timeframe,
+                    "loading": False,
+                    "chart_type": "line"
+                })
+                continue
+        
+        return results
+    except Exception as e:
+        print(f"Error fetching all crypto data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/crypto/{ticker}")
+async def get_crypto_data(ticker: str):
+    """
+    Fetch crypto data using yfinance.
+    Returns current price and basic info for a cryptocurrency.
+    """
+    try:
+        crypto = yf.Ticker(ticker)
+        info = crypto.info
+        history = crypto.history(period="1d")
+        
+        if history.empty:
+            raise HTTPException(status_code=404, detail=f"Crypto ticker {ticker} not found")
+        
+        current_price = float(history['Close'].iloc[-1])
+        current_date = history.index[-1].strftime('%Y-%m-%d')
+        
+        # Get crypto name from info or use ticker
+        crypto_name = info.get("longName") or info.get("shortName") or ticker.replace("-USD", "")
+        description = f"{crypto_name} Price"
+        
+        return {
+            "ticker": ticker.upper(),
+            "name": crypto_name,
+            "price": round(current_price, 2),
+            "date": current_date,
+            "description": description,
+            "series_id": ticker.upper(),
+            "history": [],
+            "selectedTimeframe": "daily",
+            "loading": False,
+            "chart_type": "line"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching crypto data for {ticker}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/crypto/{ticker}/history")
+async def get_crypto_history(ticker: str, period: str = "1mo"):
+    """
+    Fetch crypto price history using yfinance.
+    
+    Args:
+        ticker: Crypto ticker (e.g., BTC-USD, ETH-USD)
+        period: Time period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)
+    """
+    try:
+        crypto = yf.Ticker(ticker)
+        
+        # Map frontend timeframes to yfinance periods
+        period_map = {
+            "daily": "1mo",
+            "weekly": "3mo",
+            "monthly": "1y",
+            "yearly": "5y"
+        }
+        
+        # Use mapped period if provided, otherwise use the period parameter
+        yf_period = period_map.get(period, period)
+        
+        history = crypto.history(period=yf_period)
+        
+        if history.empty:
+            raise HTTPException(status_code=404, detail=f"No history data for {ticker}")
+        
+        # Convert to list of {date, value, volume} objects
+        history_list = []
+        has_volume_column = 'Volume' in history.columns
+        
+        if not has_volume_column:
+            print(f"[DEBUG] {ticker}: No 'Volume' column in history DataFrame. Available columns: {list(history.columns)}")
+        
+        volume_count = 0
+        for date, row in history.iterrows():
+            volume_value = 0
+            if has_volume_column:
+                try:
+                    vol = row['Volume']
+                    # Check if volume is not NaN and is a valid number
+                    if pd.notna(vol) and vol != 0:
+                        volume_value = float(vol)
+                        volume_count += 1
+                except (KeyError, ValueError, TypeError) as e:
+                    volume_value = 0
+            
+            history_list.append({
+                "date": date.strftime('%Y-%m-%d'),
+                "value": float(row['Close']),
+                "volume": volume_value
+            })
+        
+        if has_volume_column:
+            print(f"[DEBUG] {ticker}: Found {volume_count} non-zero volume entries out of {len(history_list)} total entries")
+        
+        # Get current price and volume from latest data
+        current_price = float(history['Close'].iloc[-1])
+        current_volume = 0
+        if has_volume_column:
+            try:
+                vol = history['Volume'].iloc[-1]
+                if pd.notna(vol) and vol != 0:
+                    current_volume = float(vol)
+            except (KeyError, ValueError, TypeError):
+                current_volume = 0
+        current_date = history.index[-1].strftime('%Y-%m-%d')
+        
+        return {
+            "history": history_list,
+            "value": round(current_price, 2),
+            "volume": round(current_volume, 0),
+            "date": current_date
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching crypto history for {ticker}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

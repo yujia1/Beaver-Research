@@ -4,7 +4,7 @@ Handles agent-based data interpretation using AI
 """
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 import openai
 import os
 from datetime import datetime, timedelta
@@ -50,6 +50,121 @@ def get_openai_client():
     if not api_key:
         raise ValueError("OPENAI_API_KEY not found in environment variables")
     return openai.OpenAI(api_key=api_key)
+
+
+def clean_json_response(content: str) -> str:
+    """
+    Clean and extract JSON from AI response.
+    Handles markdown code blocks, unclosed strings, and other common issues.
+    Uses proper brace matching to find the complete outermost JSON object.
+    """
+    if not content:
+        return ""
+    
+    original_content = content
+    content = content.strip()
+    
+    print(f"[CLEAN JSON] Starting cleanup. Original length: {len(original_content)}")
+    
+    # Remove markdown code blocks
+    if "```" in content:
+        print(f"[CLEAN JSON] Found markdown code blocks, extracting JSON...")
+        parts = content.split("```")
+        for part in parts:
+            part = part.strip()
+            if part.startswith("json"):
+                content = part[4:].strip()
+                print(f"[CLEAN JSON] Extracted from ```json block")
+                break
+            elif part.startswith("{"):
+                content = part.strip()
+                print(f"[CLEAN JSON] Extracted from code block starting with {{")
+                break
+    
+    # Find the first opening brace
+    first_brace = content.find("{")
+    if first_brace < 0:
+        print(f"[CLEAN JSON] WARNING: No opening brace found!")
+        return ""
+    
+    # Use brace matching to find the matching closing brace for the outermost object
+    brace_count = 0
+    in_string = False
+    escape_next = False
+    last_brace = -1
+    
+    for i in range(first_brace, len(content)):
+        char = content[i]
+        
+        if escape_next:
+            escape_next = False
+            continue
+        
+        if char == '\\':
+            escape_next = True
+            continue
+        
+        if char == '"' and not escape_next:
+            in_string = not in_string
+            continue
+        
+        if in_string:
+            continue
+        
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                last_brace = i
+                break
+    
+    if last_brace < 0 or brace_count != 0:
+        print(f"[CLEAN JSON] WARNING: Could not find matching closing brace! brace_count={brace_count}")
+        # Fallback to rfind
+        last_brace = content.rfind("}")
+        if last_brace <= first_brace:
+            print(f"[CLEAN JSON] ERROR: Fallback also failed!")
+            return ""
+    
+    # Extract the complete JSON object
+    content = content[first_brace:last_brace+1]
+    print(f"[CLEAN JSON] Extracted JSON object from position {first_brace} to {last_brace} (length: {len(content)})")
+    
+    # Try to fix common JSON issues
+    # Remove trailing commas before closing braces/brackets
+    import re
+    content = re.sub(r',\s*}', '}', content)
+    content = re.sub(r',\s*]', ']', content)
+    
+    # Try to fix unclosed strings
+    quote_count = content.count('"')
+    if quote_count % 2 == 1:  # Odd number means unclosed quote
+        print(f"[CLEAN JSON] WARNING: Odd number of quotes ({quote_count}), attempting to fix...")
+        # Find the last quote
+        last_quote_idx = content.rfind('"')
+        if last_quote_idx > 0:
+            # Check if it's inside a string value (not a key)
+            before_quote = content[:last_quote_idx]
+            # Simple check: if there's a colon before the quote, it's likely a value
+            if ':' in before_quote:
+                # Try to close the string and the JSON object
+                content = content[:last_quote_idx+1] + '"}'
+                print(f"[CLEAN JSON] Attempted to close unclosed string")
+    
+    # Final validation
+    cleaned = content.strip()
+    if not cleaned.startswith('{'):
+        print(f"[CLEAN JSON] WARNING: Cleaned content doesn't start with {{")
+        return ""
+    
+    if not cleaned.endswith('}'):
+        print(f"[CLEAN JSON] WARNING: Cleaned content doesn't end with }}")
+        return ""
+    
+    print(f"[CLEAN JSON] Final cleaned length: {len(cleaned)}")
+    print(f"[CLEAN JSON] Final validation: starts with {{: {cleaned.startswith('{')}, ends with }}: {cleaned.endswith('}')}")
+    return cleaned
 
 
 # Updated Agent Definitions
@@ -146,43 +261,47 @@ MARKET_AGENTS = {
 
 
 class InterpretRequest(BaseModel):
-    bubble: Dict[str, Any]
+    bubble: Dict[str, Any] = {}
     agent: str
     view_mode: str  # 'COMPANY' | 'MARKET'
     ticker: Optional[str] = None
     context: Optional[str] = ""
 
 
-class DataBubbleResponse(BaseModel):
-    bubbles: List[Dict[str, Any]]
-
-
-@router.post("/interpret")
-async def interpret_data(request: InterpretRequest):
+@router.post("/process")
+async def process_data_agent(
+    request: InterpretRequest,
+    data_agent: str = Query(..., alias="data-agent", description="The agent to use for data processing")
+):
     """
-    Interpret data by collecting fresh data based on agent type, then generating analysis.
+    Process data by collecting fresh data based on agent type, then generating analysis.
     Returns structured markdown with tables, analysis, and bullets.
     """
     try:
+        print(f"[PROCESS 1.1] process_data_agent: Starting with data_agent={data_agent}")
         client = get_openai_client()
         
-        # Step 1: Get agent configuration
+        # Step 1: Get agent configuration - use data_agent from query parameter
+        agent_id = data_agent
+        print(f"[PROCESS 1.2] process_data_agent: Using agent_id={agent_id}")
+        
         agent_config = None
         if request.view_mode == "COMPANY":
-            agent_config = COMPANY_AGENTS.get(request.agent)
+            agent_config = COMPANY_AGENTS.get(agent_id)
         else:
-            agent_config = MARKET_AGENTS.get(request.agent)
+            agent_config = MARKET_AGENTS.get(agent_id)
         
         if not agent_config:
-            raise HTTPException(status_code=400, detail=f"Unknown agent: {request.agent}")
+            raise HTTPException(status_code=400, detail=f"Unknown agent: {agent_id}")
         
         # Step 2: Determine sub-agent based on bubble type
         bubble_type = request.bubble.get("type", "")
         sub_agent_key, sub_agent_name = determine_sub_agent(agent_config, bubble_type)
         
         # Step 3: Collect fresh data based on agent type and sub-agent
+        print(f"[PROCESS 1.3] process_data_agent: Collecting data for agent={agent_id}, sub_agent={sub_agent_key}, ticker={request.ticker}")
         raw_data = await collect_data_for_agent(
-            request.agent,
+            agent_id,
             sub_agent_key,
             request.ticker
         )
@@ -190,18 +309,18 @@ async def interpret_data(request: InterpretRequest):
         if not raw_data:
             raise HTTPException(status_code=404, detail=f"No data available for {sub_agent_key}")
         
-        # Step 4: Build customized system message based on sub-agent (using collected data)
-        system_message = build_system_message(agent_config, sub_agent_key, sub_agent_name)
+        # Step 4: Build customized system message using agent-specific builder
+        system_message = build_agent_system_message(sub_agent_key, agent_config, sub_agent_name)
         
-        # Step 5: Build customized prompt based on sub-agent type (using collected data)
-        prompt = build_interpretation_prompt_with_data(
+        # Step 5: Build customized prompt using agent-specific builder
+        prompt = build_agent_interpretation_prompt(
+            sub_agent_key,
             raw_data,
             agent_config,
-            sub_agent_key,
             sub_agent_name,
             request.ticker,
             request.context,
-            request.bubble  # Include original bubble for context
+            request.bubble
         )
         
         # Step 6: Generate interpretation
@@ -223,10 +342,12 @@ async def interpret_data(request: InterpretRequest):
         
         insight = response.choices[0].message.content
         
-        return {"insight": insight, "agent": request.agent, "sub_agent": sub_agent_name, "sub_agent_key": sub_agent_key}
+        print(f"[PROCESS 1.4] process_data_agent: Successfully processed data for agent={agent_id}")
+        return {"insight": insight, "agent": agent_id, "sub_agent": sub_agent_name, "sub_agent_key": sub_agent_key}
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interpreting data: {str(e)}")
+        print(f"[ERROR] process_data_agent: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing data: {str(e)}")
 
 
 def determine_sub_agent(agent_config: Dict, bubble_type: str) -> tuple:
@@ -279,33 +400,15 @@ def determine_sub_agent(agent_config: Dict, bubble_type: str) -> tuple:
             first_key = list(sub_agents.keys())[0]
             return (first_key, sub_agents[first_key])
         return ("unknown", "Data Examiner")
-    else:
-        # Legacy list format
-        type_mapping = {
-            "income": "Income Examiner",
-            "balance": "Balance Examiner",
-            "cashflow": "Cash Flow Examiner",
-            "options": "Options Examiner",
-            "insider": "Insider Examiner",
-            "sp500": "Index Examiner",
-            "treasury": "Yield Examiner",
-            "cpi": "Inflation Examiner"
-        }
-        
-        for key, sub_agent in type_mapping.items():
-            if key in bubble_type.lower():
-                if sub_agent in sub_agents:
-                    return (sub_agent, sub_agent)
-        
-        return (sub_agents[0] if sub_agents else "Data Examiner", sub_agents[0] if sub_agents else "Data Examiner")
 
 
-def build_system_message(agent_config: Dict, sub_agent_key: str, sub_agent_name: str) -> str:
-    """Build customized system message based on sub-agent type."""
-    
-    # Customized system messages for each sub-agent type
-    if sub_agent_key == "INCOME_ANALYST_AGENT":
-        return f"""You are an {sub_agent_name} (specialized {agent_config['name']}) specializing in income statement analysis.
+# ============================================================================
+# AGENT-SPECIFIC SYSTEM MESSAGE BUILDERS
+# ============================================================================
+
+def build_income_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Income Analyst Agent."""
+    return f"""You are an {sub_agent_name} (specialized {agent_config['name']}) specializing in income statement analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing revenue trends, profitability, operating efficiency, and financial ratios.
 You must output structured markdown with:
@@ -313,9 +416,11 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering revenue trends, profitability, and operating efficiency
 3. 5-10 bullet points with critical insights, trends, risks, and opportunities
 Always be precise, analytical, and use professional financial terminology."""
-    
-    elif sub_agent_key == "BALANCE_ANALYST_AGENT":
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in balance sheet analysis.
+
+
+def build_balance_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Balance Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in balance sheet analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing asset composition, liability structure, equity trends, liquidity, and financial health.
 You must output structured markdown with:
@@ -323,9 +428,11 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering asset quality, leverage, equity, and liquidity
 3. 5-10 bullet points with critical insights about financial position and health
 Always be precise, analytical, and use professional financial terminology."""
-    
-    elif sub_agent_key == "CASHFLOW_ANALYST_AGENT":
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in cash flow analysis.
+
+
+def build_cashflow_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Cashflow Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in cash flow analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing cash generation, operating cash flow trends, capital allocation, free cash flow, and liquidity.
 You must output structured markdown with:
@@ -333,9 +440,11 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering cash generation, operating trends, and capital allocation
 3. 5-10 bullet points with critical insights about cash position and liquidity
 Always be precise, analytical, and use professional financial terminology."""
-    
-    elif sub_agent_key == "TECHNICAL_ANALYST_AGENT":
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in technical analysis.
+
+
+def build_technical_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Technical Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in technical analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing technical indicators (RSI, MACD, Moving Averages), price trends, volume patterns, and market sentiment.
 You must output structured markdown with:
@@ -343,9 +452,11 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering price trends, momentum, and market signals
 3. 5-10 bullet points with critical insights about trading signals and market outlook
 Always be precise, technical, and use professional trading terminology."""
-    
-    elif sub_agent_key == "OPTION_ANALYST_AGENT":
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in options analysis.
+
+
+def build_option_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Option Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in options analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing options chains, implied volatility, volume, open interest, and options market sentiment.
 You must output structured markdown with:
@@ -353,9 +464,11 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering options flow, volatility, and market positioning
 3. 5-10 bullet points with critical insights about options market dynamics
 Always be precise, technical, and use professional options trading terminology."""
-    
-    elif sub_agent_key == "INSIDE_TRADING_ANALYST_AGENT":
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in insider trading analysis.
+
+
+def build_insider_trading_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Insider Trading Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in insider trading analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing insider transactions, executive trading patterns, and their implications for company outlook.
 You must output structured markdown with:
@@ -363,9 +476,11 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering trading patterns and implications
 3. 5-10 bullet points with critical insights about insider sentiment
 Always be precise, analytical, and use professional financial terminology."""
-    
-    elif sub_agent_key == "BOND_ANALYST_AGENT" or sub_agent_key == "CREDIT_ANALYST_AGENT":
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in bond and credit analysis.
+
+
+def build_bond_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Bond Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in bond and credit analysis.
 Your tone is {agent_config['tone']}.
 You excel at analyzing bond yields, credit spreads, credit quality, and fixed income market dynamics.
 You must output structured markdown with:
@@ -373,16 +488,466 @@ You must output structured markdown with:
 2. A comprehensive analysis paragraph (200-300 words) covering yield trends, credit quality, and market dynamics
 3. 5-10 bullet points with critical insights about credit and bond markets
 Always be precise, technical, and use professional fixed income terminology."""
-    
-    else:
-        # Generic system message for other agents
-        return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in {agent_config['focus']}.
+
+
+def build_credit_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Credit Analyst Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in bond and credit analysis.
+Your tone is {agent_config['tone']}.
+You excel at analyzing bond yields, credit spreads, credit quality, and fixed income market dynamics.
+You must output structured markdown with:
+1. A markdown table summarizing key bond/credit metrics
+2. A comprehensive analysis paragraph (200-300 words) covering yield trends, credit quality, and market dynamics
+3. 5-10 bullet points with critical insights about credit and bond markets
+Always be precise, technical, and use professional fixed income terminology."""
+
+
+def build_csuite_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for C-Suite Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in {agent_config['focus']}.
 Your tone is {agent_config['tone']}.
 You must output structured markdown with:
 1. A markdown table summarizing key metrics
 2. A comprehensive analysis paragraph (200-300 words)
 3. 5-10 bullet points with critical insights
 Always be precise, professional, and actionable."""
+
+
+def build_management_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Management Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in {agent_config['focus']}.
+Your tone is {agent_config['tone']}.
+You must output structured markdown with:
+1. A markdown table summarizing key metrics
+2. A comprehensive analysis paragraph (200-300 words)
+3. 5-10 bullet points with critical insights
+Always be precise, professional, and actionable."""
+
+
+def build_market_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Market Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in {agent_config['focus']}.
+Your tone is {agent_config['tone']}.
+You must output structured markdown with:
+1. A markdown table summarizing key metrics
+2. A comprehensive analysis paragraph (200-300 words)
+3. 5-10 bullet points with critical insights
+Always be precise, professional, and actionable."""
+
+
+def build_economics_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Economics Agent."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in {agent_config['focus']}.
+Your tone is {agent_config['tone']}.
+You must output structured markdown with:
+1. A markdown table summarizing key metrics
+2. A comprehensive analysis paragraph (200-300 words)
+3. 5-10 bullet points with critical insights
+Always be precise, professional, and actionable."""
+
+
+def build_agent_system_message(sub_agent_key: str, agent_config: Dict, sub_agent_name: str) -> str:
+    """Route to agent-specific system message builder."""
+    builders = {
+        "INCOME_ANALYST_AGENT": build_income_analyst_system_message,
+        "BALANCE_ANALYST_AGENT": build_balance_analyst_system_message,
+        "CASHFLOW_ANALYST_AGENT": build_cashflow_analyst_system_message,
+        "TECHNICAL_ANALYST_AGENT": build_technical_analyst_system_message,
+        "OPTION_ANALYST_AGENT": build_option_analyst_system_message,
+        "INSIDE_TRADING_ANALYST_AGENT": build_insider_trading_analyst_system_message,
+        "BOND_ANALYST_AGENT": build_bond_analyst_system_message,
+        "CREDIT_ANALYST_AGENT": build_credit_analyst_system_message,
+        "csuite": build_csuite_system_message,
+        "management": build_management_system_message,
+        "market": build_market_system_message,
+        "economics": build_economics_system_message,
+    }
+    
+    builder = builders.get(sub_agent_key)
+    if builder:
+        return builder(agent_config, sub_agent_name)
+    
+    # Fallback for unknown agents
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in {agent_config['focus']}.
+Your tone is {agent_config['tone']}.
+You must output structured markdown with:
+1. A markdown table summarizing key metrics
+2. A comprehensive analysis paragraph (200-300 words)
+3. 5-10 bullet points with critical insights
+Always be precise, professional, and actionable."""
+
+
+
+
+async def process_financial_statement_data(
+    raw_data: Dict,
+    agent_config: Dict,
+    sub_agent_key: str,
+    sub_agent_name: str,
+    ticker_context: str,
+    ticker: Optional[str]
+) -> Dict:
+    """
+    Process financial statement data (Income, Balance, Cash Flow) with separate quarterly and annual analysis.
+    Returns bubble with both "Annually" and "Quarterly" sections.
+    """
+    try:
+        print(f"[STEP 4.1] process_financial_statement_data: Starting for {sub_agent_key}, ticker: {ticker}")
+        client = get_openai_client()
+        import json
+        import base64
+        
+        print(f"[STEP 4.2] process_financial_statement_data: Extracting quarterly and annual data from raw_data")
+        quarterly_data = raw_data.get("quarterly", {})
+        annual_data = raw_data.get("annual", {})
+        
+        # Check if data is actually available (not just empty dict)
+        # Also check if dict has meaningful data (not just empty nested dicts)
+        def has_meaningful_data(data):
+            if not data or not isinstance(data, dict):
+                print(f"[DEBUG] has_meaningful_data: data is None or not dict: {type(data)}")
+                return False
+            if len(data) == 0:
+                print(f"[DEBUG] has_meaningful_data: data is empty dict")
+                return False
+            # Check if at least one value is not None/empty
+            # Handle pandas Series, DataFrames, and other types
+            for key, value in data.items():
+                if value is not None:
+                    # Check for pandas Series/DataFrame
+                    try:
+                        import pandas as pd
+                        if isinstance(value, (pd.Series, pd.DataFrame)):
+                            if len(value) > 0:
+                                print(f"[DEBUG] has_meaningful_data: Found pandas Series/DataFrame with {len(value)} items")
+                                return True
+                    except ImportError:
+                        pass
+                    # Check for dict
+                    if isinstance(value, dict):
+                        if len(value) > 0:
+                            print(f"[DEBUG] has_meaningful_data: Found non-empty dict value")
+                            return True
+                    # Check for list
+                    elif isinstance(value, list):
+                        if len(value) > 0:
+                            print(f"[DEBUG] has_meaningful_data: Found non-empty list value")
+                            return True
+                    # For other types (int, float, str, etc.), consider it meaningful
+                    else:
+                        print(f"[DEBUG] has_meaningful_data: Found non-empty value of type {type(value)}")
+                        return True
+            print(f"[DEBUG] has_meaningful_data: No meaningful values found in dict with {len(data)} keys")
+            return False
+        
+        has_quarterly = has_meaningful_data(quarterly_data)
+        has_annual = has_meaningful_data(annual_data)
+        print(f"[STEP 4.5] process_financial_statement_data: Validation results:")
+        print(f"  - has_quarterly: {has_quarterly}")
+        print(f"  - has_annual: {has_annual}")
+        if quarterly_data:
+            print(f"  - quarterly sample keys: {list(quarterly_data.keys())[:10]}")
+        if annual_data:
+            print(f"  - annual sample keys: {list(annual_data.keys())[:10]}")
+        
+        print(f"[STEP 4.3] process_financial_statement_data: Validating data availability")
+        print(f"  - Raw data keys: {list(raw_data.keys())}")
+        print(f"  - Quarterly data type: {type(quarterly_data)}, count: {len(quarterly_data) if isinstance(quarterly_data, dict) else 0}")
+        print(f"  - Annual data type: {type(annual_data)}, count: {len(annual_data) if isinstance(annual_data, dict) else 0}")
+        
+        # Determine title and prompt based on agent type
+        print(f"[STEP 4.4] process_financial_statement_data: Determining title and prompt template")
+        if sub_agent_key == "INCOME_ANALYST_AGENT":
+            title = "INCOME STATEMENT"
+            metric_examples = "Total Revenue, Cost of Revenue, Gross Profit, Operating Expenses, Net Income"
+            analysis_focus = "revenue trends and growth patterns, profitability analysis, operating efficiency, key financial ratios"
+        elif sub_agent_key == "BALANCE_ANALYST_AGENT":
+            title = "BALANCE SHEET"
+            metric_examples = "Total Assets, Total Liabilities, Total Equity, Cash & Equivalents, Debt"
+            analysis_focus = "asset composition and quality, liability structure and leverage, equity trends, liquidity position, financial health indicators"
+        elif sub_agent_key == "CASHFLOW_ANALYST_AGENT":
+            title = "CASH FLOW"
+            metric_examples = "Operating Cash Flow, Capital Expenditures, Free Cash Flow, Debt Issuance"
+            analysis_focus = "cash generation capabilities, operating cash flow trends, capital allocation strategy, free cash flow analysis, cash position and liquidity"
+        else:
+            return None
+        
+        prompt_template = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following {{period}} financial data {ticker_context}:
+
+                        {{data}}
+
+                        Your task:
+                        1. Extract key metrics from the data
+                        2. Identify the most important 4-6 metrics (e.g., {metric_examples})
+                        3. Format numbers in billions (B) with 2 decimals (e.g., "100.38B")
+                        4. Write a comprehensive 200-300 word analysis explaining:
+                        - {analysis_focus}
+                        5. Provide 5-10 bullet points highlighting:
+                        - Critical insights
+                        - Notable trends or changes
+                        - Risk factors or concerns
+                        - Opportunities or strengths
+
+                        Return a JSON object with:
+                        - data_metrics: Dictionary with key metric names (lowercase with spaces) and formatted values
+                        - insights: Object with:
+                        - "analysis": String containing 200-300 words of comprehensive analysis
+                        - "bullet_points": Array of 5-10 bullet point strings
+                        - "encoded_output": String containing base64-encoded JSON of the full analysis
+
+                        IMPORTANT: 
+                        - Be thorough and analytical
+                        - Use professional financial terminology
+                        - Highlight both positive and negative trends
+                        - Provide actionable insights"""
+        
+        result_data = {}
+        
+        # Process Annual Data
+        print(f"[STEP 5.1] process_financial_statement_data: Processing Annual Data")
+        print(f"  - has_annual: {has_annual}, type: {type(annual_data)}")
+        if has_annual:
+            print(f"[STEP 5.2] process_financial_statement_data: Annual data available, starting AI processing...")
+            try:
+                print(f"[STEP 5.3] process_financial_statement_data: Formatting annual prompt (data length: {len(str(annual_data))})")
+                annual_prompt = prompt_template.format(period="annual", data=str(annual_data)[:3000])
+                
+                print(f"[STEP 5.4] process_financial_statement_data: Calling OpenAI API for annual data")
+                annual_response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": f"You are a {sub_agent_name} specializing in {agent_config['focus']}. Your tone is {agent_config['tone']}. Always return valid JSON. Ensure all strings are properly escaped."
+                        },
+                        {
+                            "role": "user",
+                            "content": annual_prompt
+                        }
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000,
+                    response_format={"type": "json_object"}
+                )
+                
+                print(f"[STEP 5.5] process_financial_statement_data: OpenAI API returned, cleaning JSON response")
+                annual_content = annual_response.choices[0].message.content
+                print(f"[STEP 5.6] process_financial_statement_data: Raw response length: {len(annual_content)}")
+                print(f"[STEP 5.6.1] process_financial_statement_data: Raw response preview (first 200 chars): {annual_content[:200]}")
+                print(f"[STEP 5.6.2] process_financial_statement_data: Raw response preview (last 200 chars): {annual_content[-200:]}")
+                
+                annual_content = clean_json_response(annual_content)
+                print(f"[STEP 5.7] process_financial_statement_data: Cleaned response length: {len(annual_content)}")
+                print(f"[STEP 5.7.1] process_financial_statement_data: Cleaned response preview (first 200 chars): {annual_content[:200] if annual_content else 'EMPTY'}")
+                print(f"[STEP 5.7.2] process_financial_statement_data: Cleaned response preview (last 200 chars): {annual_content[-200:] if annual_content else 'EMPTY'}")
+                
+                if not annual_content:
+                    print(f"[STEP 5.8] ERROR: Cleaned content is empty, cannot parse JSON")
+                    raise ValueError("Cleaned JSON content is empty")
+                
+                print(f"[STEP 5.8] process_financial_statement_data: Parsing JSON")
+                try:
+                    annual_analyzed = json.loads(annual_content)
+                    print(f"[STEP 5.9] process_financial_statement_data: JSON parsed successfully")
+                    print(f"[STEP 5.9.1] process_financial_statement_data: Parsed JSON keys: {list(annual_analyzed.keys())}")
+                except json.JSONDecodeError as json_err:
+                    print(f"[STEP 5.8] ERROR: JSON parse error for annual data: {json_err}")
+                    print(f"[STEP 5.8.1] ERROR: Error position: {json_err.pos if hasattr(json_err, 'pos') else 'unknown'}")
+                    print(f"[STEP 5.8.2] ERROR: Error line: {json_err.lineno if hasattr(json_err, 'lineno') else 'unknown'}")
+                    print(f"[STEP 5.8.3] ERROR: Error column: {json_err.colno if hasattr(json_err, 'colno') else 'unknown'}")
+                    print(f"[STEP 5.8.4] ERROR: Content length: {len(annual_content)}")
+                    print(f"[STEP 5.8.5] ERROR: Content preview (first 1000 chars): {annual_content[:1000]}")
+                    print(f"[STEP 5.8.6] ERROR: Content preview (last 1000 chars): {annual_content[-1000:]}")
+                    if hasattr(json_err, 'pos') and json_err.pos:
+                        error_pos = json_err.pos
+                        start = max(0, error_pos - 100)
+                        end = min(len(annual_content), error_pos + 100)
+                        print(f"[STEP 5.8.7] ERROR: Content around error position ({error_pos}): {annual_content[start:end]}")
+                    print(f"[RESEARCH] Failed to parse annual JSON. Skipping annual data.")
+                    raise
+                print(f"[STEP 5.10] process_financial_statement_data: Extracting insights from annual_analyzed")
+                annual_insights = annual_analyzed.get("insights", {})
+                print(f"[STEP 5.11] process_financial_statement_data: Annual insights keys: {list(annual_insights.keys()) if isinstance(annual_insights, dict) else 'N/A'}")
+                
+                # Create encoded output for annual
+                print(f"[STEP 5.12] process_financial_statement_data: Creating encoded output for annual")
+                if isinstance(annual_insights, dict) and "encoded_output" not in annual_insights:
+                    encoded_annual_data = {
+                        "analysis": annual_insights.get("analysis", ""),
+                        "bullet_points": annual_insights.get("bullet_points", []),
+                        "timestamp": datetime.now().isoformat(),
+                        "agent": sub_agent_key,
+                        "ticker": ticker or "MARKET",
+                        "period": "annual"
+                    }
+                    annual_insights["encoded_output"] = base64.b64encode(json.dumps(encoded_annual_data).encode()).decode()
+                    print(f"[STEP 5.13] process_financial_statement_data: Encoded output created for annual")
+                
+                print(f"[STEP 5.14] process_financial_statement_data: Adding Annually to result_data")
+                result_data["Annually"] = {
+                    "data_metrics": annual_analyzed.get("data_metrics", {}),
+                    "insights": annual_insights  # Contains analysis, bullet_points, and encoded_output
+                }
+                data_metrics_keys = list(annual_analyzed.get('data_metrics', {}).keys())
+                print(f"[STEP 5.15] process_financial_statement_data: Annual data successfully processed!")
+                print(f"  - data_metrics count: {len(data_metrics_keys)}")
+                print(f"  - data_metrics keys: {data_metrics_keys[:5]}")
+            except json.JSONDecodeError as e:
+                print(f"[RESEARCH] Error parsing annual JSON response: {e}")
+                print(f"[RESEARCH] Response content (first 500 chars): {annual_response.choices[0].message.content[:500] if 'annual_response' in locals() else 'N/A'}")
+                print(f"[RESEARCH] Failed to process annual data, continuing without it")
+                # Don't add Annually to result_data if processing failed
+            except Exception as e:
+                print(f"[RESEARCH] Error processing annual data: {e}")
+                import traceback
+                traceback.print_exc()
+                # Don't add Annually to result_data if processing failed
+        else:
+            print(f"[RESEARCH] No annual_data available for {sub_agent_key} (empty or missing)")
+        
+        # Process Quarterly Data
+        print(f"[STEP 6.1] process_financial_statement_data: Processing Quarterly Data")
+        print(f"  - has_quarterly: {has_quarterly}, type: {type(quarterly_data)}")
+        if has_quarterly:
+            print(f"[STEP 6.2] process_financial_statement_data: Quarterly data available, starting AI processing...")
+            try:
+                print(f"[STEP 6.3] process_financial_statement_data: Formatting quarterly prompt (data length: {len(str(quarterly_data))})")
+                quarterly_prompt = prompt_template.format(period="quarterly", data=str(quarterly_data)[:3000])
+                
+                print(f"[STEP 6.4] process_financial_statement_data: Calling OpenAI API for quarterly data")
+                quarterly_response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": f"You are a {sub_agent_name} specializing in {agent_config['focus']}. Your tone is {agent_config['tone']}. Always return valid JSON. Ensure all strings are properly escaped."
+                        },
+                        {
+                            "role": "user",
+                            "content": quarterly_prompt
+                        }
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000,
+                    response_format={"type": "json_object"}
+                )
+                
+                print(f"[STEP 6.5] process_financial_statement_data: OpenAI API returned, cleaning JSON response")
+                quarterly_content = quarterly_response.choices[0].message.content
+                print(f"[STEP 6.6] process_financial_statement_data: Raw response length: {len(quarterly_content)}")
+                print(f"[STEP 6.6.1] process_financial_statement_data: Raw response preview (first 200 chars): {quarterly_content[:200]}")
+                print(f"[STEP 6.6.2] process_financial_statement_data: Raw response preview (last 200 chars): {quarterly_content[-200:]}")
+                
+                quarterly_content = clean_json_response(quarterly_content)
+                print(f"[STEP 6.7] process_financial_statement_data: Cleaned response length: {len(quarterly_content)}")
+                print(f"[STEP 6.7.1] process_financial_statement_data: Cleaned response preview (first 200 chars): {quarterly_content[:200] if quarterly_content else 'EMPTY'}")
+                print(f"[STEP 6.7.2] process_financial_statement_data: Cleaned response preview (last 200 chars): {quarterly_content[-200:] if quarterly_content else 'EMPTY'}")
+                
+                if not quarterly_content:
+                    print(f"[STEP 6.8] ERROR: Cleaned content is empty, cannot parse JSON")
+                    raise ValueError("Cleaned JSON content is empty")
+                
+                print(f"[STEP 6.8] process_financial_statement_data: Parsing JSON")
+                try:
+                    quarterly_analyzed = json.loads(quarterly_content)
+                    print(f"[STEP 6.9] process_financial_statement_data: JSON parsed successfully")
+                    print(f"[STEP 6.9.1] process_financial_statement_data: Parsed JSON keys: {list(quarterly_analyzed.keys())}")
+                except json.JSONDecodeError as json_err:
+                    print(f"[STEP 6.8] ERROR: JSON parse error for quarterly data: {json_err}")
+                    print(f"[STEP 6.8.1] ERROR: Error position: {json_err.pos if hasattr(json_err, 'pos') else 'unknown'}")
+                    print(f"[STEP 6.8.2] ERROR: Error line: {json_err.lineno if hasattr(json_err, 'lineno') else 'unknown'}")
+                    print(f"[STEP 6.8.3] ERROR: Error column: {json_err.colno if hasattr(json_err, 'colno') else 'unknown'}")
+                    print(f"[STEP 6.8.4] ERROR: Content length: {len(quarterly_content)}")
+                    print(f"[STEP 6.8.5] ERROR: Content preview (first 1000 chars): {quarterly_content[:1000]}")
+                    print(f"[STEP 6.8.6] ERROR: Content preview (last 1000 chars): {quarterly_content[-1000:]}")
+                    if hasattr(json_err, 'pos') and json_err.pos:
+                        error_pos = json_err.pos
+                        start = max(0, error_pos - 100)
+                        end = min(len(quarterly_content), error_pos + 100)
+                        print(f"[STEP 6.8.7] ERROR: Content around error position ({error_pos}): {quarterly_content[start:end]}")
+                    print(f"[RESEARCH] Failed to parse quarterly JSON. Skipping quarterly data.")
+                    raise
+                print(f"[STEP 6.10] process_financial_statement_data: Extracting insights from quarterly_analyzed")
+                quarterly_insights = quarterly_analyzed.get("insights", {})
+                print(f"[STEP 6.11] process_financial_statement_data: Quarterly insights keys: {list(quarterly_insights.keys()) if isinstance(quarterly_insights, dict) else 'N/A'}")
+                
+                # Create encoded output for quarterly
+                print(f"[STEP 6.12] process_financial_statement_data: Creating encoded output for quarterly")
+                if isinstance(quarterly_insights, dict) and "encoded_output" not in quarterly_insights:
+                    encoded_quarterly_data = {
+                        "analysis": quarterly_insights.get("analysis", ""),
+                        "bullet_points": quarterly_insights.get("bullet_points", []),
+                        "timestamp": datetime.now().isoformat(),
+                        "agent": sub_agent_key,
+                        "ticker": ticker or "MARKET",
+                        "period": "quarterly"
+                    }
+                    quarterly_insights["encoded_output"] = base64.b64encode(json.dumps(encoded_quarterly_data).encode()).decode()
+                    print(f"[STEP 6.13] process_financial_statement_data: Encoded output created for quarterly")
+                
+                print(f"[STEP 6.14] process_financial_statement_data: Adding Quarterly to result_data")
+                result_data["Quarterly"] = {
+                    "data_metrics": quarterly_analyzed.get("data_metrics", {}),
+                    "insights": quarterly_insights  # Contains analysis, bullet_points, and encoded_output
+                }
+                data_metrics_keys = list(quarterly_analyzed.get('data_metrics', {}).keys())
+                print(f"[STEP 6.15] process_financial_statement_data: Quarterly data successfully processed!")
+                print(f"  - data_metrics count: {len(data_metrics_keys)}")
+                print(f"  - data_metrics keys: {data_metrics_keys[:5]}")
+            except json.JSONDecodeError as e:
+                print(f"[RESEARCH] Error parsing quarterly JSON response: {e}")
+                print(f"[RESEARCH] Response content (first 500 chars): {quarterly_response.choices[0].message.content[:500] if 'quarterly_response' in locals() else 'N/A'}")
+                print(f"[RESEARCH] Failed to process quarterly data, continuing without it")
+                # Don't add Quarterly to result_data if processing failed
+            except Exception as e:
+                print(f"[RESEARCH] Error processing quarterly data: {e}")
+                import traceback
+                traceback.print_exc()
+                # Don't add Quarterly to result_data if processing failed
+        else:
+            print(f"[RESEARCH] No quarterly_data available for {sub_agent_key} (empty or missing)")
+        
+        # Only create bubble if we have at least one period of data
+        if not result_data:
+            print(f"[RESEARCH] No data processed for {sub_agent_key}, returning None")
+            return None
+        
+        # Create data bubble with both Annually and Quarterly sections
+        bubble_id = f"{sub_agent_key}-{ticker or 'market'}-{datetime.now().timestamp()}"
+        
+        bubble = {
+            "id": bubble_id,
+            "type": sub_agent_key,
+            "category": "FINANCIAL",
+            "title": title,
+            "timestamp": datetime.now().isoformat(),
+            "data": result_data
+        }
+        
+        # Debug: Print bubble structure
+        print(f"[RESEARCH] Created bubble for {sub_agent_key}:")
+        print(f"  - Title: {title}")
+        print(f"  - Data keys: {list(result_data.keys())}")
+        if "Annually" in result_data:
+            print(f"  - Annually keys: {list(result_data['Annually'].keys())}")
+            print(f"  - Annually data_metrics count: {len(result_data['Annually'].get('data_metrics', {}))}")
+            print(f"  - Annually data_metrics keys: {list(result_data['Annually'].get('data_metrics', {}).keys())[:5]}")
+        else:
+            print(f"  - WARNING: Annually data missing!")
+        if "Quarterly" in result_data:
+            print(f"  - Quarterly keys: {list(result_data['Quarterly'].keys())}")
+            print(f"  - Quarterly data_metrics count: {len(result_data['Quarterly'].get('data_metrics', {}))}")
+            print(f"  - Quarterly data_metrics keys: {list(result_data['Quarterly'].get('data_metrics', {}).keys())[:5]}")
+        else:
+            print(f"  - WARNING: Quarterly data missing!")
+        
+        return bubble
+        
+    except Exception as e:
+        print(f"Error processing financial statement data: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 
 async def collect_data_for_agent(agent_id: str, sub_agent_key: str, ticker: Optional[str]) -> Dict[str, Any]:
@@ -428,255 +993,675 @@ async def collect_data_for_agent(agent_id: str, sub_agent_key: str, ticker: Opti
         return {}
 
 
-def build_interpretation_prompt_with_data(
+# ============================================================================
+# AGENT-SPECIFIC INTERPRETATION PROMPT BUILDERS
+# ============================================================================
+
+def build_income_analyst_interpretation_prompt(
     raw_data: Dict[str, Any],
     agent_config: Dict,
-    sub_agent_key: str,
     sub_agent_name: str,
     ticker: Optional[str],
     context: str,
     original_bubble: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Build customized interpretation prompt using collected raw data."""
-    
+    """Build interpretation prompt for Income Analyst Agent."""
     ticker_context = f"for {ticker}" if ticker else "for the market"
     
-    # Extract existing insights from original bubble if available
     existing_analysis = ""
     if original_bubble:
         existing_insights = original_bubble.get("data", {}).get("insights", {})
         if isinstance(existing_insights, dict):
             existing_analysis = existing_insights.get("analysis", "")
     
-    # Build customized prompt based on sub-agent type, using raw_data
-    if sub_agent_key == "INCOME_ANALYST_AGENT":
-        prompt = f"""As an {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following income statement data {ticker_context}:
+    prompt = f"""As an {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following income statement data {ticker_context}:
 
-**Raw Data:**
-{str(raw_data)[:3000]}
+            **Raw Data:**
+            {str(raw_data)[:3000]}
 
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract key metrics from the data (quarterly, annual, and LTM if available)
-2. Identify the most important 4-6 metrics (e.g., Total Revenue, Cost of Revenue, Gross Profit, Operating Expenses, Net Income)
-3. Format numbers in billions (B) with 2 decimals (e.g., "100.38B")
-4. Create a markdown table with the key income statement metrics
-5. Write a comprehensive analysis paragraph (200-300 words) that:
-   - Analyzes revenue trends and growth patterns in detail
-   - Evaluates profitability and margin trends
-   - Assesses operating efficiency and cost management
-   - Discusses key financial ratios and their implications
-   - Compares current performance to historical trends
-6. Provide 5-10 bullet points with:
-   - Critical insights about revenue and profitability
-   - Notable trends or significant changes
-   - Risk factors or concerns
-   - Opportunities or competitive strengths
-   - Forward-looking implications
-
-**Requirements:**
-- Be specific and quantitative, referencing the exact data provided
-- Connect insights to broader market/company context
-- Use professional financial terminology
-- Highlight both positive and negative trends
-- If this is part of a larger analysis, reference how it fits into the narrative
-
-Output your analysis in clean markdown format."""
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
     
-    elif sub_agent_key == "BALANCE_ANALYST_AGENT":
-        prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following balance sheet data {ticker_context}:
-
-**Raw Data:**
-{str(raw_data)[:3000]}
-
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract key metrics from the data (quarterly, annual, and LTM if available)
-2. Identify the most important 4-6 metrics (e.g., Total Assets, Total Liabilities, Total Equity, Cash & Equivalents, Debt)
-3. Format numbers in billions (B) with 2 decimals
-4. Create a markdown table with the key balance sheet metrics
-5. Write a comprehensive analysis paragraph (200-300 words) that:
-   - Analyzes asset composition and quality
-   - Evaluates liability structure and leverage ratios
-   - Assesses equity trends and shareholder value
-   - Examines liquidity position and working capital
-   - Discusses financial health indicators and solvency
-6. Provide 5-10 bullet points with:
-   - Critical insights about financial position
-   - Notable trends in assets, liabilities, or equity
-   - Risk factors related to leverage or liquidity
-   - Strengths in financial structure
-   - Implications for future financial flexibility
-
-Output your analysis in clean markdown format."""
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
     
-    elif sub_agent_key == "CASHFLOW_ANALYST_AGENT":
-        prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following cash flow data {ticker_context}:
+    prompt += """**Your Task:**
+                1. Extract key metrics from the data (quarterly, annual, and LTM if available)
+                2. Identify the most important 4-6 metrics (e.g., Total Revenue, Cost of Revenue, Gross Profit, Operating Expenses, Net Income)
+                3. Format numbers in billions (B) with 2 decimals (e.g., "100.38B")
+                4. Create a markdown table with the key income statement metrics
+                5. Write a comprehensive analysis paragraph (200-300 words) that:
+                - Analyzes revenue trends and growth patterns in detail
+                - Evaluates profitability and margin trends
+                - Assesses operating efficiency and cost management
+                - Discusses key financial ratios and their implications
+                - Compares current performance to historical trends
+                6. Provide 5-10 bullet points with:
+                - Critical insights about revenue and profitability
+                - Notable trends or significant changes
+                - Risk factors or concerns
+                - Opportunities or competitive strengths
+                - Forward-looking implications
 
-**Raw Data:**
-{str(raw_data)[:3000]}
+                **Requirements:**
+                - Be specific and quantitative, referencing the exact data provided
+                - Connect insights to broader market/company context
+                - Use professional financial terminology
+                - Highlight both positive and negative trends
+                - If this is part of a larger analysis, reference how it fits into the narrative
 
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract key metrics from the data (quarterly, annual, and LTM if available)
-2. Identify the most important 4-6 metrics (e.g., Operating Cash Flow, Capital Expenditures, Free Cash Flow, Debt Issuance)
-3. Format numbers in billions (B) with 2 decimals (include negative signs where applicable)
-4. Create a markdown table with the key cash flow metrics
-5. Write a comprehensive analysis paragraph (200-300 words) that:
-   - Analyzes cash generation capabilities and trends
-   - Evaluates operating cash flow quality and sustainability
-   - Assesses capital allocation strategy and capital expenditures
-   - Examines free cash flow and its implications
-   - Discusses cash position, liquidity, and financial flexibility
-6. Provide 5-10 bullet points with:
-   - Critical insights about cash generation
-   - Notable trends in operating, investing, or financing cash flows
-   - Risk factors related to cash flow sustainability
-   - Strengths in cash management
-   - Implications for future capital allocation
-
-Output your analysis in clean markdown format."""
+                Output your analysis in clean markdown format."""
     
-    elif sub_agent_key == "TECHNICAL_ANALYST_AGENT":
-        prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following technical indicator data {ticker_context}:
+    return prompt
 
-**Raw Data:**
-{str(raw_data)[:3000]}
 
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract key technical indicators from the data (RSI, MACD, Moving Averages, Volume)
-2. Create a markdown table with the key technical indicators
-3. Write a comprehensive analysis paragraph (200-300 words) that:
-   - Analyzes price trends and momentum signals
-   - Evaluates technical indicator readings and their significance
-   - Assesses volume patterns and market participation
-   - Discusses support/resistance levels and trend direction
-   - Identifies potential entry/exit signals
-4. Provide 5-10 bullet points with:
-   - Critical technical insights and signals
-   - Notable patterns or formations
-   - Risk factors or bearish signals
-   - Opportunities or bullish signals
-   - Trading implications and outlook
-
-Output your analysis in clean markdown format."""
+def build_balance_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Balance Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
     
-    elif sub_agent_key == "OPTION_ANALYST_AGENT":
-        prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following options chain data {ticker_context}:
-
-**Raw Data:**
-{str(raw_data)[:3000]}
-
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract key options metrics (volume, open interest, IV, put/call ratios)
-2. Create a markdown table with the key options metrics
-3. Write a comprehensive analysis paragraph (200-300 words) that:
-   - Analyzes options flow and market positioning
-   - Evaluates implied volatility levels and their significance
-   - Assesses put/call ratios and market sentiment
-   - Discusses unusual options activity and its implications
-   - Identifies potential market expectations
-4. Provide 5-10 bullet points with:
-   - Critical insights about options market dynamics
-   - Notable patterns in volume or open interest
-   - Risk factors or bearish positioning
-   - Opportunities or bullish positioning
-   - Trading implications and market outlook
-
-Output your analysis in clean markdown format."""
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
     
-    elif sub_agent_key == "INSIDE_TRADING_ANALYST_AGENT":
-        prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following insider trading data {ticker_context}:
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following balance sheet data {ticker_context}:
 
-**Raw Data:**
-{str(raw_data)[:3000]}
+            **Raw Data:**
+            {str(raw_data)[:3000]}
 
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract key insider trading metrics
-2. Create a markdown table with the key insider trading metrics
-3. Write a comprehensive analysis paragraph (200-300 words) that:
-   - Analyzes insider trading patterns and trends
-   - Evaluates executive trading activity and its significance
-   - Assesses the balance between buys and sells
-   - Discusses implications for company outlook and management confidence
-   - Identifies any unusual or significant transactions
-4. Provide 5-10 bullet points with:
-   - Critical insights about insider sentiment
-   - Notable patterns in executive trading
-   - Risk factors or bearish signals
-   - Opportunities or bullish signals
-   - Implications for company outlook
-
-Output your analysis in clean markdown format."""
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
     
-    else:
-        # Generic prompt for other agents
-        prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following data {ticker_context}:
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+            1. Extract key metrics from the data (quarterly, annual, and LTM if available)
+            2. Identify the most important 4-6 metrics (e.g., Total Assets, Total Liabilities, Total Equity, Cash & Equivalents, Debt)
+            3. Format numbers in billions (B) with 2 decimals
+            4. Create a markdown table with the key balance sheet metrics
+            5. Write a comprehensive analysis paragraph (200-300 words) that:
+            - Analyzes asset composition and quality
+            - Evaluates liability structure and leverage ratios
+            - Assesses equity trends and shareholder value
+            - Examines liquidity position and working capital
+            - Discusses financial health indicators and solvency
+            6. Provide 5-10 bullet points with:
+            - Critical insights about financial position
+            - Notable trends in assets, liabilities, or equity
+            - Risk factors related to leverage or liquidity
+            - Strengths in financial structure
+            - Implications for future financial flexibility
 
-**Raw Data:**
-{str(raw_data)[:3000]}
+            Output your analysis in clean markdown format."""
+    
+    return prompt
 
-"""
-        if existing_analysis:
-            prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-        
-        if context:
-            prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-        
-        prompt += """**Your Task:**
-1. Extract the most important 4-6 key metrics from the data
-2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
-3. Create a markdown table with the key metrics
-4. Write a comprehensive analysis paragraph (200-300 words)
-5. Provide 5-10 bullet points with critical insights
 
-**Requirements:**
-- Be specific and quantitative where possible
-- Connect insights to broader market/company context
-- Use professional terminology
-- Highlight any anomalies or notable patterns
-- If this is part of a larger analysis, reference how it fits into the narrative
+def build_cashflow_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Cashflow Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following cash flow data {ticker_context}:
 
-Output your analysis in clean markdown format."""
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+            1. Extract key metrics from the data (quarterly, annual, and LTM if available)
+            2. Identify the most important 4-6 metrics (e.g., Operating Cash Flow, Capital Expenditures, Free Cash Flow, Debt Issuance)
+            3. Format numbers in billions (B) with 2 decimals (include negative signs where applicable)
+            4. Create a markdown table with the key cash flow metrics
+            5. Write a comprehensive analysis paragraph (200-300 words) that:
+            - Analyzes cash generation capabilities and trends
+            - Evaluates operating cash flow quality and sustainability
+            - Assesses capital allocation strategy and capital expenditures
+            - Examines free cash flow and its implications
+            - Discusses cash position, liquidity, and financial flexibility
+            6. Provide 5-10 bullet points with:
+            - Critical insights about cash generation
+            - Notable trends in operating, investing, or financing cash flows
+            - Risk factors related to cash flow sustainability
+            - Strengths in cash management
+            - Implications for future capital allocation
+
+            Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_technical_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Technical Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following technical indicator data {ticker_context}:
+
+        **Raw Data:**
+        {str(raw_data)[:3000]}
+
+        """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract key technical indicators from the data (RSI, MACD, Moving Averages, Volume)
+                2. Create a markdown table with the key technical indicators
+                3. Write a comprehensive analysis paragraph (200-300 words) that:
+                - Analyzes price trends and momentum signals
+                - Evaluates technical indicator readings and their significance
+                - Assesses volume patterns and market participation
+                - Discusses support/resistance levels and trend direction
+                - Identifies potential entry/exit signals
+                4. Provide 5-10 bullet points with:
+                - Critical technical insights and signals
+                - Notable patterns or formations
+                - Risk factors or bearish signals
+                - Opportunities or bullish signals
+                - Trading implications and outlook
+
+        Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_option_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Option Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following options chain data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+            1. Extract key options metrics (volume, open interest, IV, put/call ratios)
+            2. Create a markdown table with the key options metrics
+            3. Write a comprehensive analysis paragraph (200-300 words) that:
+            - Analyzes options flow and market positioning
+            - Evaluates implied volatility levels and their significance
+            - Assesses put/call ratios and market sentiment
+            - Discusses unusual options activity and its implications
+            - Identifies potential market expectations
+            4. Provide 5-10 bullet points with:
+            - Critical insights about options market dynamics
+            - Notable patterns in volume or open interest
+            - Risk factors or bearish positioning
+            - Opportunities or bullish positioning
+            - Trading implications and market outlook
+
+            Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_insider_trading_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Insider Trading Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following insider trading data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract key insider trading metrics
+                2. Create a markdown table with the key insider trading metrics
+                3. Write a comprehensive analysis paragraph (200-300 words) that:
+                - Analyzes insider trading patterns and trends
+                - Evaluates executive trading activity and its significance
+                - Assesses the balance between buys and sells
+                - Discusses implications for company outlook and management confidence
+                - Identifies any unusual or significant transactions
+                4. Provide 5-10 bullet points with:
+                - Critical insights about insider sentiment
+                - Notable patterns in executive trading
+                - Risk factors or bearish signals
+                - Opportunities or bullish signals
+                - Implications for company outlook
+
+                Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_bond_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Bond Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following bond data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract the most important 4-6 key metrics from the data
+                2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+                3. Create a markdown table with the key metrics
+                4. Write a comprehensive analysis paragraph (200-300 words)
+                5. Provide 5-10 bullet points with critical insights
+
+                **Requirements:**
+                - Be specific and quantitative where possible
+                - Connect insights to broader market/company context
+                - Use professional terminology
+                - Highlight any anomalies or notable patterns
+                - If this is part of a larger analysis, reference how it fits into the narrative
+
+                Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_credit_analyst_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Credit Analyst Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following credit data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+            1. Extract the most important 4-6 key metrics from the data
+            2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+            3. Create a markdown table with the key metrics
+            4. Write a comprehensive analysis paragraph (200-300 words)
+            5. Provide 5-10 bullet points with critical insights
+
+            **Requirements:**
+            - Be specific and quantitative where possible
+            - Connect insights to broader market/company context
+            - Use professional terminology
+            - Highlight any anomalies or notable patterns
+            - If this is part of a larger analysis, reference how it fits into the narrative
+
+            Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_csuite_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for C-Suite Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following C-Suite data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract the most important 4-6 key metrics from the data
+                2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+                3. Create a markdown table with the key metrics
+                4. Write a comprehensive analysis paragraph (200-300 words)
+                5. Provide 5-10 bullet points with critical insights
+
+                **Requirements:**
+                - Be specific and quantitative where possible
+                - Connect insights to broader market/company context
+                - Use professional terminology
+                - Highlight any anomalies or notable patterns
+                - If this is part of a larger analysis, reference how it fits into the narrative
+
+                Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_management_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Management Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following management data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+            1. Extract the most important 4-6 key metrics from the data
+            2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+            3. Create a markdown table with the key metrics
+            4. Write a comprehensive analysis paragraph (200-300 words)
+            5. Provide 5-10 bullet points with critical insights
+
+            **Requirements:**
+            - Be specific and quantitative where possible
+            - Connect insights to broader market/company context
+            - Use professional terminology
+            - Highlight any anomalies or notable patterns
+            - If this is part of a larger analysis, reference how it fits into the narrative
+
+            Output your analysis in clean markdown format."""           
+    
+    return prompt
+
+
+def build_market_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Market Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following market data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract the most important 4-6 key metrics from the data
+                2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+                3. Create a markdown table with the key metrics
+                4. Write a comprehensive analysis paragraph (200-300 words)
+                5. Provide 5-10 bullet points with critical insights
+
+                **Requirements:**
+                - Be specific and quantitative where possible
+                - Connect insights to broader market/company context
+                - Use professional terminology
+                - Highlight any anomalies or notable patterns
+                - If this is part of a larger analysis, reference how it fits into the narrative
+
+                Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_economics_interpretation_prompt(
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build interpretation prompt for Economics Agent."""
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following economics data {ticker_context}:
+
+                **Raw Data:**
+                {str(raw_data)[:3000]}
+
+                """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract the most important 4-6 key metrics from the data
+                2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+                3. Create a markdown table with the key metrics
+                4. Write a comprehensive analysis paragraph (200-300 words)
+                5. Provide 5-10 bullet points with critical insights
+
+                **Requirements:**
+                - Be specific and quantitative where possible
+                - Connect insights to broader market/company context
+                - Use professional terminology
+                - Highlight any anomalies or notable patterns
+                - If this is part of a larger analysis, reference how it fits into the narrative
+
+                Output your analysis in clean markdown format."""
+    
+    return prompt
+
+
+def build_agent_interpretation_prompt(
+    sub_agent_key: str,
+    raw_data: Dict[str, Any],
+    agent_config: Dict,
+    sub_agent_name: str,
+    ticker: Optional[str],
+    context: str,
+    original_bubble: Optional[Dict[str, Any]] = None
+) -> str:
+    """Route to agent-specific interpretation prompt builder."""
+    builders = {
+        "INCOME_ANALYST_AGENT": build_income_analyst_interpretation_prompt,
+        "BALANCE_ANALYST_AGENT": build_balance_analyst_interpretation_prompt,
+        "CASHFLOW_ANALYST_AGENT": build_cashflow_analyst_interpretation_prompt,
+        "TECHNICAL_ANALYST_AGENT": build_technical_analyst_interpretation_prompt,
+        "OPTION_ANALYST_AGENT": build_option_analyst_interpretation_prompt,
+        "INSIDE_TRADING_ANALYST_AGENT": build_insider_trading_analyst_interpretation_prompt,
+        "BOND_ANALYST_AGENT": build_bond_analyst_interpretation_prompt,
+        "CREDIT_ANALYST_AGENT": build_credit_analyst_interpretation_prompt,
+        "csuite": build_csuite_interpretation_prompt,
+        "management": build_management_interpretation_prompt,
+        "market": build_market_interpretation_prompt,
+        "economics": build_economics_interpretation_prompt,
+    }
+    
+    builder = builders.get(sub_agent_key)
+    if builder:
+        return builder(raw_data, agent_config, sub_agent_name, ticker, context, original_bubble)
+    
+    # Fallback for unknown agents
+    ticker_context = f"for {ticker}" if ticker else "for the market"
+    existing_analysis = ""
+    if original_bubble:
+        existing_insights = original_bubble.get("data", {}).get("insights", {})
+        if isinstance(existing_insights, dict):
+            existing_analysis = existing_insights.get("analysis", "")
+    
+    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following data {ticker_context}:
+
+            **Raw Data:**
+            {str(raw_data)[:3000]}
+
+            """
+    if existing_analysis:
+        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
+    
+    if context:
+        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
+    
+    prompt += """**Your Task:**
+                1. Extract the most important 4-6 key metrics from the data
+                2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+                3. Create a markdown table with the key metrics
+                4. Write a comprehensive analysis paragraph (200-300 words)
+                5. Provide 5-10 bullet points with critical insights
+
+                **Requirements:**
+                - Be specific and quantitative where possible
+                - Connect insights to broader market/company context
+                - Use professional terminology
+                - Highlight any anomalies or notable patterns
+                - If this is part of a larger analysis, reference how it fits into the narrative
+
+                Output your analysis in clean markdown format."""
     
     return prompt
 
@@ -684,6 +1669,7 @@ Output your analysis in clean markdown format."""
 async def process_data_with_agent(raw_data: Dict, agent_id: str, sub_agent_key: str, ticker: Optional[str] = None) -> Dict:
     """
     Process raw data through AI agent and return analyzed data bubble.
+    For financial statements (Income, Balance, Cash Flow), processes quarterly and annual data separately.
     Outputs: 200-300 words insights, 5-10 bullet points, and encoded output.
     """
     try:
@@ -696,102 +1682,36 @@ async def process_data_with_agent(raw_data: Dict, agent_id: str, sub_agent_key: 
         sub_agents = agent_config.get("sub_agents", {})
         sub_agent_name = sub_agents.get(sub_agent_key, "Data Examiner")
         
-        # Build analysis prompt based on agent type
         ticker_context = f"for {ticker}" if ticker else "for the market"
         
-        if sub_agent_key == "INCOME_ANALYST_AGENT":
-            prompt = f"""As an {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following income statement data {ticker_context}:
-
-{str(raw_data)[:3000]}
-
-Your task:
-1. Extract key metrics from the data (quarterly, annual, and LTM if available)
-2. Identify the most important 4-6 metrics (e.g., Total Revenue, Cost of Revenue, Gross Profit, Operating Expenses, Net Income)
-3. Format numbers in billions (B) with 2 decimals (e.g., "100.38B")
-4. Write a comprehensive 200-300 word analysis explaining:
-   - Revenue trends and growth patterns
-   - Profitability analysis
-   - Operating efficiency
-   - Key financial ratios and their implications
-5. Provide 5-10 bullet points highlighting:
-   - Critical insights
-   - Notable trends or changes
-   - Risk factors or concerns
-   - Opportunities or strengths
-
-Return a JSON object with:
-- data_metrics: Dictionary with key metric names (lowercase with spaces) and formatted values
-- insights: Object with:
-  - "analysis": String containing 200-300 words of comprehensive analysis
-  - "bullet_points": Array of 5-10 bullet point strings
-  - "encoded_output": String containing base64-encoded JSON of the full analysis (for future use)
-
-IMPORTANT: 
-- Be thorough and analytical
-- Use professional financial terminology
-- Highlight both positive and negative trends
-- Provide actionable insights"""
+        # Handle financial statements with quarterly and annual data separately
+        if sub_agent_key in ["INCOME_ANALYST_AGENT", "BALANCE_ANALYST_AGENT", "CASHFLOW_ANALYST_AGENT"]:
+            print(f"[PROCESS 1.1] process_data_with_agent: Routing {sub_agent_key} to process_financial_statement_data")
+            result = await process_financial_statement_data(raw_data, agent_config, sub_agent_key, sub_agent_name, ticker_context, ticker)
+            print(f"[PROCESS 1.2] process_data_with_agent: process_financial_statement_data returned: {result is not None}")
+            if result:
+                print(f"[PROCESS 1.3] process_data_with_agent: Result data keys: {list(result.get('data', {}).keys())}")
+            return result
         
-        elif sub_agent_key == "BALANCE_ANALYST_AGENT":
-            prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following balance sheet data {ticker_context}:
-
-{str(raw_data)[:3000]}
-
-Your task:
-1. Extract key metrics from the data (quarterly, annual, and LTM if available)
-2. Identify the most important 4-6 metrics (e.g., Total Assets, Total Liabilities, Total Equity, Cash & Equivalents, Debt)
-3. Format numbers in billions (B) with 2 decimals
-4. Write a comprehensive 200-300 word analysis explaining:
-   - Asset composition and quality
-   - Liability structure and leverage
-   - Equity trends
-   - Liquidity position
-   - Financial health indicators
-5. Provide 5-10 bullet points highlighting critical insights
-
-Return a JSON object with:
-- data_metrics: Dictionary with key metric names (lowercase with spaces) and formatted values
-- insights: Object with analysis, bullet_points, and encoded_output"""
-        
-        elif sub_agent_key == "CASHFLOW_ANALYST_AGENT":
-            prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following cash flow data {ticker_context}:
-
-{str(raw_data)[:3000]}
-
-Your task:
-1. Extract key metrics from the data (quarterly, annual, and LTM if available)
-2. Identify the most important 4-6 metrics (e.g., Operating Cash Flow, Capital Expenditures, Free Cash Flow, Debt Issuance)
-3. Format numbers in billions (B) with 2 decimals (include negative signs where applicable)
-4. Write a comprehensive 200-300 word analysis explaining:
-   - Cash generation capabilities
-   - Operating cash flow trends
-   - Capital allocation strategy
-   - Free cash flow analysis
-   - Cash position and liquidity
-5. Provide 5-10 bullet points highlighting critical insights
-
-Return a JSON object with:
-- data_metrics: Dictionary with key metric names (lowercase with spaces) and formatted values
-- insights: Object with analysis, bullet_points, and encoded_output"""
-        
+        # For other agents, use the original single processing
         else:
             # Generic prompt for other agents
             prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following data {ticker_context}:
 
-{str(raw_data)[:3000]}
+            {str(raw_data)[:3000]}
 
-Your task:
-1. Extract the most important 4-6 key metrics from the data
-2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
-3. Write a comprehensive 200-300 word analysis
-4. Provide 5-10 bullet points with critical insights
+            Your task:
+            1. Extract the most important 4-6 key metrics from the data
+            2. Format numbers appropriately (billions with "B", millions with "M", percentages with "%")
+            3. Write a comprehensive 200-300 word analysis
+            4. Provide 5-10 bullet points with critical insights
 
-Return a JSON object with:
-- data_metrics: Dictionary with key metric names (lowercase with spaces) and formatted values
-- insights: Object with:
-  - "analysis": String containing 200-300 words of comprehensive analysis
-  - "bullet_points": Array of 5-10 bullet point strings
-  - "encoded_output": String containing base64-encoded JSON of the full analysis"""
+            Return a JSON object with:
+            - data_metrics: Dictionary with key metric names (lowercase with spaces) and formatted values
+            - insights: Object with:
+            - "analysis": String containing 200-300 words of comprehensive analysis
+            - "bullet_points": Array of 5-10 bullet point strings
+            - "encoded_output": String containing base64-encoded JSON of the full analysis"""
         
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -830,9 +1750,6 @@ Return a JSON object with:
         
         # Determine title based on agent type
         title_map = {
-            "INCOME_ANALYST_AGENT": "INCOME STATEMENT",
-            "BALANCE_ANALYST_AGENT": "BALANCE SHEET",
-            "CASHFLOW_ANALYST_AGENT": "CASH FLOW",
             "TECHNICAL_ANALYST_AGENT": "TECHNICAL ANALYSIS",
             "OPTION_ANALYST_AGENT": "OPTIONS ANALYSIS",
             "INSIDE_TRADING_ANALYST_AGENT": "INSIDER TRADING",
@@ -887,7 +1804,11 @@ def get_icon_for_type(data_type: str) -> str:
 
 
 @router.get("/company-data/{ticker}")
-async def get_company_data(ticker: str, agent: str = Query(..., description="Agent ID")):
+async def get_company_data(
+    ticker: str, 
+    agent: str = Query(..., description="Agent ID"),
+    refresh: bool = Query(False, description="Force refresh and bypass cache")
+):
     """
     Fetch company data bubbles for the given ticker and agent.
     Data is collected, processed through AI agent, and returned as data bubbles.
@@ -895,14 +1816,19 @@ async def get_company_data(ticker: str, agent: str = Query(..., description="Age
     """
     try:
         # Log the ticker being used
-        print(f"[RESEARCH] Fetching company data for ticker: {ticker}, agent: {agent}")
+        print(f"[RESEARCH] Fetching company data for ticker: {ticker}, agent: {agent}, refresh: {refresh}")
         
-        # Check cache first
+        # Check cache first (unless refresh is requested)
         cache_key = get_cache_key("COMPANY", ticker, agent)
-        cached_result = get_cached_data(cache_key)
-        if cached_result:
-            print(f"[RESEARCH] Returning cached data for {ticker} - {agent}")
-            return cached_result
+        if refresh:
+            print(f"[RESEARCH] Refresh requested - clearing cache for {ticker} - {agent}")
+            if cache_key in _cache:
+                del _cache[cache_key]
+        else:
+            cached_result = get_cached_data(cache_key)
+            if cached_result:
+                print(f"[RESEARCH] Returning cached data for {ticker} - {agent}")
+                return cached_result
         
         print(f"[RESEARCH] Cache miss - fetching fresh data for {ticker}")
         bubbles = []
@@ -913,48 +1839,85 @@ async def get_company_data(ticker: str, agent: str = Query(..., description="Age
             
             # INCOME_ANALYST_AGENT
             try:
+                print(f"[MAIN 1.1] get_company_data: Processing INCOME_ANALYST_AGENT for {ticker}")
                 raw_data = await collect_income_statement_data(ticker)
+                print(f"[MAIN 1.2] get_company_data: collect_income_statement_data returned, keys: {list(raw_data.keys()) if raw_data else 'None'}")
                 if raw_data:
+                    print(f"[MAIN 1.3] get_company_data: Calling process_data_with_agent for INCOME_ANALYST_AGENT")
                     bubble = await process_data_with_agent(
                         raw_data,
                         "FUNDAMENTAL_AGENT",
                         "INCOME_ANALYST_AGENT",
                         ticker
                     )
+                    print(f"[MAIN 1.4] get_company_data: process_data_with_agent returned, bubble: {bubble is not None}")
                     if bubble:
+                        print(f"[MAIN 1.5] get_company_data: Adding INCOME_ANALYST_AGENT bubble to results")
                         bubbles.append(bubble)
+                    else:
+                        print(f"[MAIN 1.6] get_company_data: INCOME_ANALYST_AGENT bubble is None, skipping")
+                else:
+                    print(f"[MAIN 1.7] get_company_data: INCOME_ANALYST_AGENT raw_data is empty, skipping")
             except Exception as e:
-                print(f"Error processing income statement: {e}")
+                print(f"[ERROR] get_company_data: Error processing income statement: {e}")
+                import traceback
+                traceback.print_exc()
             
             # BALANCE_ANALYST_AGENT
             try:
+                print(f"[MAIN 2.1] get_company_data: Processing BALANCE_ANALYST_AGENT for {ticker}")
                 raw_data = await collect_balance_sheet_data(ticker)
+                print(f"[MAIN 2.2] get_company_data: collect_balance_sheet_data returned, keys: {list(raw_data.keys()) if raw_data else 'None'}")
                 if raw_data:
+                    print(f"[MAIN 2.3] get_company_data: Calling process_data_with_agent for BALANCE_ANALYST_AGENT")
                     bubble = await process_data_with_agent(
                         raw_data,
                         "FUNDAMENTAL_AGENT",
                         "BALANCE_ANALYST_AGENT",
                         ticker
                     )
+                    print(f"[MAIN 2.4] get_company_data: process_data_with_agent returned, bubble: {bubble is not None}")
                     if bubble:
+                        print(f"[MAIN 2.5] get_company_data: Adding BALANCE_ANALYST_AGENT bubble to results")
+                        print(f"  - bubble title: {bubble.get('title')}")
+                        print(f"  - bubble data keys: {list(bubble.get('data', {}).keys())}")
                         bubbles.append(bubble)
+                    else:
+                        print(f"[MAIN 2.6] get_company_data: BALANCE_ANALYST_AGENT bubble is None, skipping")
+                else:
+                    print(f"[MAIN 2.7] get_company_data: BALANCE_ANALYST_AGENT raw_data is empty, skipping")
             except Exception as e:
-                print(f"Error processing balance sheet: {e}")
+                print(f"[ERROR] get_company_data: Error processing balance sheet: {e}")
+                import traceback
+                traceback.print_exc()
             
             # CASHFLOW_ANALYST_AGENT
             try:
+                print(f"[MAIN 3.1] get_company_data: Processing CASHFLOW_ANALYST_AGENT for {ticker}")
                 raw_data = await collect_cashflow_data(ticker)
+                print(f"[MAIN 3.2] get_company_data: collect_cashflow_data returned, keys: {list(raw_data.keys()) if raw_data else 'None'}")
                 if raw_data:
+                    print(f"[MAIN 3.3] get_company_data: Calling process_data_with_agent for CASHFLOW_ANALYST_AGENT")
                     bubble = await process_data_with_agent(
                         raw_data,
                         "FUNDAMENTAL_AGENT",
                         "CASHFLOW_ANALYST_AGENT",
                         ticker
                     )
+                    print(f"[MAIN 3.4] get_company_data: process_data_with_agent returned, bubble: {bubble is not None}")
                     if bubble:
+                        print(f"[MAIN 3.5] get_company_data: Adding CASHFLOW_ANALYST_AGENT bubble to results")
+                        print(f"  - bubble title: {bubble.get('title')}")
+                        print(f"  - bubble data keys: {list(bubble.get('data', {}).keys())}")
                         bubbles.append(bubble)
+                    else:
+                        print(f"[MAIN 3.6] get_company_data: CASHFLOW_ANALYST_AGENT bubble is None, skipping")
+                else:
+                    print(f"[MAIN 3.7] get_company_data: CASHFLOW_ANALYST_AGENT raw_data is empty, skipping")
             except Exception as e:
-                print(f"Error processing cash flow: {e}")
+                print(f"[ERROR] get_company_data: Error processing cash flow: {e}")
+                import traceback
+                traceback.print_exc()
         
         elif agent == "TRADING_AGENT":
             # Process all three sub-agents
@@ -1101,10 +2064,32 @@ async def get_company_data(ticker: str, agent: str = Query(..., description="Age
         
         result = {"bubbles": bubbles}
         
+        # Final Summary Log
+        print(f"[SUMMARY] ========================================")
+        print(f"[SUMMARY] get_company_data: Final Results for {ticker} - {agent}")
+        print(f"[SUMMARY] Total bubbles: {len(bubbles)}")
+        for i, bubble in enumerate(bubbles):
+            print(f"[SUMMARY] Bubble {i+1}:")
+            print(f"  - type: {bubble.get('type')}")
+            print(f"  - title: {bubble.get('title')}")
+            print(f"  - data keys: {list(bubble.get('data', {}).keys())}")
+            if 'Annually' in bubble.get('data', {}):
+                ann_data = bubble.get('data', {}).get('Annually', {})
+                ann_metrics = ann_data.get('data_metrics', {})
+                print(f"  - ✓ Annually: data_metrics count={len(ann_metrics)}, keys={list(ann_metrics.keys())[:5]}")
+            else:
+                print(f"  - ✗ Annually: MISSING")
+            if 'Quarterly' in bubble.get('data', {}):
+                qtr_data = bubble.get('data', {}).get('Quarterly', {})
+                qtr_metrics = qtr_data.get('data_metrics', {})
+                print(f"  - ✓ Quarterly: data_metrics count={len(qtr_metrics)}, keys={list(qtr_metrics.keys())[:5]}")
+            else:
+                print(f"  - ✗ Quarterly: MISSING")
+        print(f"[SUMMARY] ========================================")
+        
         # Cache the result
         set_cached_data(cache_key, result)
         
-        print(f"[RESEARCH] Returning {len(bubbles)} bubbles for {ticker} - {agent}")
         return result
             
     except Exception as e:
@@ -1131,21 +2116,21 @@ async def process_market_data_with_agent(raw_data: Dict, agent_id: str, sub_agen
         # Build analysis prompt
         prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following market data:
 
-{str(raw_data)[:2000]}
+                {str(raw_data)[:2000]}
 
-Extract and summarize the key metrics in a structured format. Focus on:
-1. Key market metrics and their values
-2. Notable trends or changes
-3. Important relationships or patterns
-4. Market implications
+                Extract and summarize the key metrics in a structured format. Focus on:
+                1. Key market metrics and their values
+                2. Notable trends or changes
+                3. Important relationships or patterns
+                4. Market implications
 
-Return a JSON object with:
-- title: A descriptive title
-- category: Data source (e.g., "FRED", "YAHOO FINANCE")
-- key_metrics: Dictionary of key metric names and formatted values
-- insights: List of 2-3 key insights
+                Return a JSON object with:
+                - title: A descriptive title
+                - category: Data source (e.g., "FRED", "YAHOO FINANCE")
+                - key_metrics: Dictionary of key metric names and formatted values
+                - insights: List of 2-3 key insights
 
-Format numbers appropriately (percentages, basis points, etc.)."""
+                Format numbers appropriately (percentages, basis points, etc.)."""
         
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -1188,19 +2173,27 @@ Format numbers appropriately (percentages, basis points, etc.)."""
 
 
 @router.get("/market-data")
-async def get_market_data(agent: str = Query(..., description="Agent ID")):
+async def get_market_data(
+    agent: str = Query(..., description="Agent ID"),
+    refresh: bool = Query(False, description="Force refresh and bypass cache")
+):
     """
     Fetch global market data bubbles for the given agent.
     Data is fetched, processed through AI agent, and returned as data bubbles.
     Uses caching to prevent frequent API calls.
     """
     try:
-        # Check cache first
+        # Check cache first (unless refresh is requested)
         cache_key = get_cache_key("MARKET", None, agent)
-        cached_result = get_cached_data(cache_key)
-        if cached_result:
-            print(f"Returning cached market data for {agent}")
-            return cached_result
+        if refresh:
+            print(f"[RESEARCH] Refresh requested - clearing cache for MARKET - {agent}")
+            if cache_key in _cache:
+                del _cache[cache_key]
+        else:
+            cached_result = get_cached_data(cache_key)
+            if cached_result:
+                print(f"Returning cached market data for {agent}")
+                return cached_result
         
         import yfinance as yf
         from pandas_datareader import data as web
@@ -1364,14 +2357,6 @@ async def get_market_data(agent: str = Query(..., description="Agent ID")):
         return {"bubbles": []}
 
 
-def format_billions(value: float) -> str:
-    """Format a number in billions."""
-    if value == 0:
-        return "0.00B"
-    billions = value / 1_000_000_000
-    return f"{billions:.2f}B"
-
-
 # ============================================================================
 # DATA COLLECTION FUNCTIONS
 # ============================================================================
@@ -1379,48 +2364,255 @@ def format_billions(value: float) -> str:
 async def collect_income_statement_data(ticker: str) -> Dict[str, Any]:
     """Collect income statement data (quarterly and annual) from Yahoo Finance."""
     try:
+        import pandas as pd
+        print(f"[STEP 1.1] collect_income_statement_data: Starting for ticker {ticker}")
         from routers.internal import get_micro_data
-        micro_data = await get_micro_data(ticker)
         
-        return {
-            "quarterly": micro_data.get('financials', {}).get('quarterly', {}),
-            "annual": micro_data.get('financials', {}).get('annual', {}),
-            "ltm": micro_data.get('financials', {}).get('ltm', {})
+        print(f"[STEP 1.2] collect_income_statement_data: Calling get_micro_data({ticker})")
+        micro_data = await get_micro_data(ticker)
+        print(f"[STEP 1.3] collect_income_statement_data: get_micro_data returned, keys: {list(micro_data.keys())}")
+        
+        print(f"[STEP 1.4] collect_income_statement_data: Extracting financials")
+        financials = micro_data.get('financials', {})
+        quarterly = financials.get('quarterly', {})
+        annual = financials.get('annual', {})
+        ltm = financials.get('ltm', {})
+        
+        # Convert dictionaries to pandas DataFrames and print
+        def dict_to_dataframe(data_dict: Dict[str, Dict[str, Any]]) -> pd.DataFrame:
+            """Convert {metric: {date: value}} to DataFrame with metrics as rows and dates as columns."""
+            if not data_dict:
+                return pd.DataFrame()
+            
+            # Collect all unique dates
+            all_dates = set()
+            for metric_data in data_dict.values():
+                if isinstance(metric_data, dict):
+                    all_dates.update(metric_data.keys())
+            
+            if not all_dates:
+                return pd.DataFrame()
+            
+            # Create DataFrame
+            df_data = {}
+            for metric, date_values in data_dict.items():
+                if isinstance(date_values, dict):
+                    df_data[metric] = {date: date_values.get(date) for date in all_dates}
+            
+            df = pd.DataFrame(df_data).T  # Transpose so metrics are rows, dates are columns
+            return df
+        
+        # Convert and print quarterly data
+        if quarterly:
+            print(f"\n[STEP 1.5] collect_income_statement_data: QUARTERLY Income Statement (as DataFrame):")
+            quarterly_df = dict_to_dataframe(quarterly)
+            if not quarterly_df.empty:
+                print(quarterly_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        # Convert and print annual data
+        if annual:
+            print(f"\n[STEP 1.6] collect_income_statement_data: ANNUAL Income Statement (as DataFrame):")
+            annual_df = dict_to_dataframe(annual)
+            if not annual_df.empty:
+                print(annual_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        # Convert and print LTM data
+        if ltm:
+            print(f"\n[STEP 1.7] collect_income_statement_data: LTM Income Statement (as DataFrame):")
+            ltm_df = pd.DataFrame([ltm]).T  # LTM is {metric: value}, convert to single-column DataFrame
+            if not ltm_df.empty:
+                print(ltm_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        print(f"\n[STEP 1.8] collect_income_statement_data: NOTE: LTM (Last Twelve Months) is a current snapshot that could be quarterly or annual. It is collected but not processed separately.")
+        
+        result = {
+            "quarterly": quarterly,
+            "annual": annual,
+            "ltm": ltm  # LTM is collected but not processed separately - it's a current snapshot
         }
+        
+        print(f"[STEP 1.9] collect_income_statement_data: Returning result with keys: {list(result.keys())}")
+        return result
     except Exception as e:
-        print(f"Error collecting income statement data for {ticker}: {e}")
+        print(f"[ERROR] collect_income_statement_data: {e}")
+        import traceback
+        traceback.print_exc()
         return {}
 
 
 async def collect_balance_sheet_data(ticker: str) -> Dict[str, Any]:
     """Collect balance sheet data (quarterly and annual) from Yahoo Finance."""
     try:
+        import pandas as pd
+        print(f"[STEP 2.1] collect_balance_sheet_data: Starting for ticker {ticker}")
         from routers.internal import get_micro_data
-        micro_data = await get_micro_data(ticker)
         
-        return {
-            "quarterly": micro_data.get('balance_sheet', {}).get('quarterly', {}),
-            "annual": micro_data.get('balance_sheet', {}).get('annual', {}),
-            "ltm": micro_data.get('balance_sheet', {}).get('ltm', {})
+        print(f"[STEP 2.2] collect_balance_sheet_data: Calling get_micro_data({ticker})")
+        micro_data = await get_micro_data(ticker)
+        print(f"[STEP 2.3] collect_balance_sheet_data: get_micro_data returned, keys: {list(micro_data.keys())}")
+        
+        print(f"[STEP 2.4] collect_balance_sheet_data: Extracting balance_sheet")
+        balance_sheet = micro_data.get('balance_sheet', {})
+        quarterly = balance_sheet.get('quarterly', {})
+        annual = balance_sheet.get('annual', {})
+        ltm = balance_sheet.get('ltm', {})
+        
+        # Convert dictionaries to pandas DataFrames and print
+        def dict_to_dataframe(data_dict: Dict[str, Dict[str, Any]]) -> pd.DataFrame:
+            """Convert {metric: {date: value}} to DataFrame with metrics as rows and dates as columns."""
+            if not data_dict:
+                return pd.DataFrame()
+            
+            # Collect all unique dates
+            all_dates = set()
+            for metric_data in data_dict.values():
+                if isinstance(metric_data, dict):
+                    all_dates.update(metric_data.keys())
+            
+            if not all_dates:
+                return pd.DataFrame()
+            
+            # Create DataFrame
+            df_data = {}
+            for metric, date_values in data_dict.items():
+                if isinstance(date_values, dict):
+                    df_data[metric] = {date: date_values.get(date) for date in all_dates}
+            
+            df = pd.DataFrame(df_data).T  # Transpose so metrics are rows, dates are columns
+            return df
+        
+        # Convert and print quarterly data
+        if quarterly:
+            print(f"\n[STEP 2.5] collect_balance_sheet_data: QUARTERLY Balance Sheet (as DataFrame):")
+            quarterly_df = dict_to_dataframe(quarterly)
+            if not quarterly_df.empty:
+                print(quarterly_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        # Convert and print annual data
+        if annual:
+            print(f"\n[STEP 2.6] collect_balance_sheet_data: ANNUAL Balance Sheet (as DataFrame):")
+            annual_df = dict_to_dataframe(annual)
+            if not annual_df.empty:
+                print(annual_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        # Convert and print LTM data
+        if ltm:
+            print(f"\n[STEP 2.7] collect_balance_sheet_data: LTM Balance Sheet (as DataFrame):")
+            ltm_df = pd.DataFrame([ltm]).T  # LTM is {metric: value}, convert to single-column DataFrame
+            if not ltm_df.empty:
+                print(ltm_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        print(f"\n[STEP 2.8] collect_balance_sheet_data: NOTE: LTM (Last Twelve Months) is a current snapshot that could be quarterly or annual. It is collected but not processed separately.")
+        
+        result = {
+            "quarterly": quarterly,
+            "annual": annual,
+            "ltm": ltm  # LTM is collected but not processed separately - it's a current snapshot
         }
+        
+        print(f"[STEP 2.9] collect_balance_sheet_data: Returning result with keys: {list(result.keys())}")
+        return result
     except Exception as e:
-        print(f"Error collecting balance sheet data for {ticker}: {e}")
+        print(f"[ERROR] collect_balance_sheet_data: {e}")
+        import traceback
+        traceback.print_exc()
         return {}
 
 
 async def collect_cashflow_data(ticker: str) -> Dict[str, Any]:
     """Collect cash flow data (quarterly and annual) from Yahoo Finance."""
     try:
+        import pandas as pd
+        print(f"[STEP 3.1] collect_cashflow_data: Starting for ticker {ticker}")
         from routers.internal import get_micro_data
-        micro_data = await get_micro_data(ticker)
         
-        return {
-            "quarterly": micro_data.get('cashflow', {}).get('quarterly', {}),
-            "annual": micro_data.get('cashflow', {}).get('annual', {}),
-            "ltm": micro_data.get('cashflow', {}).get('ltm', {})
+        print(f"[STEP 3.2] collect_cashflow_data: Calling get_micro_data({ticker})")
+        micro_data = await get_micro_data(ticker)
+        print(f"[STEP 3.3] collect_cashflow_data: get_micro_data returned, keys: {list(micro_data.keys())}")
+        
+        print(f"[STEP 3.4] collect_cashflow_data: Extracting cashflow")
+        cashflow = micro_data.get('cashflow', {})
+        quarterly = cashflow.get('quarterly', {})
+        annual = cashflow.get('annual', {})
+        ltm = cashflow.get('ltm', {})
+        
+        # Convert dictionaries to pandas DataFrames and print
+        def dict_to_dataframe(data_dict: Dict[str, Dict[str, Any]]) -> pd.DataFrame:
+            """Convert {metric: {date: value}} to DataFrame with metrics as rows and dates as columns."""
+            if not data_dict:
+                return pd.DataFrame()
+            
+            # Collect all unique dates
+            all_dates = set()
+            for metric_data in data_dict.values():
+                if isinstance(metric_data, dict):
+                    all_dates.update(metric_data.keys())
+            
+            if not all_dates:
+                return pd.DataFrame()
+            
+            # Create DataFrame
+            df_data = {}
+            for metric, date_values in data_dict.items():
+                if isinstance(date_values, dict):
+                    df_data[metric] = {date: date_values.get(date) for date in all_dates}
+            
+            df = pd.DataFrame(df_data).T  # Transpose so metrics are rows, dates are columns
+            return df
+        
+        # Convert and print quarterly data
+        if quarterly:
+            print(f"\n[STEP 3.5] collect_cashflow_data: QUARTERLY Cash Flow (as DataFrame):")
+            quarterly_df = dict_to_dataframe(quarterly)
+            if not quarterly_df.empty:
+                print(quarterly_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        # Convert and print annual data
+        if annual:
+            print(f"\n[STEP 3.6] collect_cashflow_data: ANNUAL Cash Flow (as DataFrame):")
+            annual_df = dict_to_dataframe(annual)
+            if not annual_df.empty:
+                print(annual_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        # Convert and print LTM data
+        if ltm:
+            print(f"\n[STEP 3.7] collect_cashflow_data: LTM Cash Flow (as DataFrame):")
+            ltm_df = pd.DataFrame([ltm]).T  # LTM is {metric: value}, convert to single-column DataFrame
+            if not ltm_df.empty:
+                print(ltm_df.to_string())
+            else:
+                print("  (Empty DataFrame)")
+        
+        print(f"\n[STEP 3.8] collect_cashflow_data: NOTE: LTM (Last Twelve Months) is a current snapshot that could be quarterly or annual. It is collected but not processed separately.")
+        
+        result = {
+            "quarterly": quarterly,
+            "annual": annual,
+            "ltm": ltm  # LTM is collected but not processed separately - it's a current snapshot
         }
+        
+        print(f"[STEP 3.9] collect_cashflow_data: Returning result with keys: {list(result.keys())}")
+        return result
     except Exception as e:
-        print(f"Error collecting cashflow data for {ticker}: {e}")
+        print(f"[ERROR] collect_cashflow_data: {e}")
+        import traceback
+        traceback.print_exc()
         return {}
 
 

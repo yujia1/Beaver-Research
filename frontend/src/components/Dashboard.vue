@@ -47,6 +47,27 @@
                 </button>
                 <button 
                     class="tab-btn" 
+                    :class="{ active: activeTab === 'currency' }"
+                    @click="activeTab = 'currency'"
+                >
+                    Currency
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: activeTab === 'commodity' }"
+                    @click="activeTab = 'commodity'"
+                >
+                    Commodity
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: activeTab === 'crypto' }"
+                    @click="activeTab = 'crypto'"
+                >
+                    Crypto
+                </button>
+                <button 
+                    class="tab-btn" 
                     :class="{ active: activeTab === 'energy' }"
                     @click="activeTab = 'energy'"
                 >
@@ -742,6 +763,202 @@
                 </div>
             </div>
 
+            <!-- Currency Tab Content -->
+            <div v-if="activeTab === 'currency'" class="tab-content currency-tab-content">
+                <div class="currency-data">
+                    <div v-if="currencyLoading" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading Currency Data...</p>
+                    </div>
+                    <div v-else-if="currencyError" class="error-state">
+                        <p class="error-message">{{ currencyError }}</p>
+                    </div>
+                    <div v-else class="indicators">
+                        <div v-for="item in currencyIndicators" :key="item.indicator" class="indicator-card">
+                            <div class="card-content">
+                                <h3>{{ item.indicator }}</h3>
+                                <p class="value">{{ item.value ? item.value.toFixed(4) : 'N/A' }}</p>
+                                <p class="date">{{ item.date }}</p>
+                                <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                
+                                <!-- Per-graph Timeframe Selector -->
+                                <div class="card-timeframe-selector">
+                                    <button 
+                                        v-for="tf in currencyTimeframes" 
+                                        :key="tf.value" 
+                                        :class="{ active: item.selectedTimeframe === tf.value }"
+                                        @click="updateCurrencyIndicatorTimeframe(item, tf.value)"
+                                        :disabled="item.loading"
+                                    >
+                                        {{ tf.label }}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Interactive Chart.js Chart -->
+                            <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                <div v-if="item.loading" class="chart-loading-overlay">
+                                    <div class="spinner-small"></div>
+                                </div>
+                                <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                            </div>
+                            <div v-else class="no-data">
+                                <p>No history data available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commodity Tab Content -->
+            <div v-if="activeTab === 'commodity'" class="tab-content commodity-tab-content">
+                <div class="category-tabs">
+                    <button 
+                        :class="{ active: activeCommodityCategory === 'metals' }"
+                        @click="activeCommodityCategory = 'metals'"
+                    >
+                        Metals
+                    </button>
+                    <button 
+                        :class="{ active: activeCommodityCategory === 'agricultural' }"
+                        @click="activeCommodityCategory = 'agricultural'"
+                    >
+                        Agricultural
+                    </button>
+                    <button 
+                        :class="{ active: activeCommodityCategory === 'industrial' }"
+                        @click="activeCommodityCategory = 'industrial'"
+                    >
+                        Industrial
+                    </button>
+                </div>
+
+                <div class="commodity-data">
+                    <div v-if="commodityLoading" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading Commodity Data...</p>
+                    </div>
+                    <div v-else-if="commodityError" class="error-state">
+                        <p class="error-message">{{ commodityError }}</p>
+                    </div>
+                    <div v-else>
+                        <!-- Metals Section -->
+                        <div v-if="activeCommodityCategory === 'metals'" class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in commodityIndicators.metals" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in commodityTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: item.selectedTimeframe === tf.value }"
+                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>No history data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Agricultural Section -->
+                        <div v-if="activeCommodityCategory === 'agricultural'" class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in commodityIndicators.agricultural" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in commodityTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: item.selectedTimeframe === tf.value }"
+                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>No history data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Industrial Section -->
+                        <div v-if="activeCommodityCategory === 'industrial'" class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in commodityIndicators.industrial" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in commodityTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: item.selectedTimeframe === tf.value }"
+                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>No history data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Policy Tab Content -->
             <div v-if="activeTab === 'policy'" class="tab-content policy-tab-content">
                 <!-- White House Policy Sources -->
@@ -843,6 +1060,62 @@
                 <div class="security-section">
                     <h3 class="section-title">Security</h3>
                     <p class="placeholder-message">Security content coming soon...</p>
+                </div>
+            </div>
+
+            <!-- Crypto Tab Content -->
+            <div v-if="activeTab === 'crypto'" class="tab-content crypto-tab-content">
+                <div class="crypto-data">
+                    <div v-if="cryptoLoading" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading Crypto Data...</p>
+                    </div>
+                    <div v-else-if="cryptoError" class="error-state">
+                        <p class="error-message">{{ cryptoError }}</p>
+                    </div>
+                    <div v-else>
+                        <div class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in cryptoIndicators" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCryptoDailyChange(item)" :class="getCryptoDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCryptoDailyChange(item) >= 0 ? '+' : '' }}{{ getCryptoDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in cryptoTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: (item.selectedTimeframe || 'daily') === tf.value }"
+                                                @click="updateCryptoIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getCryptoChartData(item)" :options="cryptoChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>No history data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1044,6 +1317,51 @@ const fedTimeframes = [
     { label: '5Y', value: '5y' }
 ];
 
+// Currency Tab State
+const currencyIndicators = ref([]);
+const currencyLoading = ref(false);
+const currencyError = ref(null);
+const currencyTimeframes = [
+  { label: '1M', value: 'monthly' },
+  { label: '3M', value: 'quarterly' },
+  { label: '1Y', value: 'yearly' },
+  { label: '5Y', value: '5y' }
+];
+
+// Commodity Tab State
+const activeCommodityCategory = ref('metals');
+const commodityIndicators = ref({
+  metals: [],
+  agricultural: [],
+  industrial: []
+});
+const commodityLoading = ref(false);
+const commodityError = ref(null);
+const commodityTimeframes = [
+  { label: '1M', value: 'monthly' },
+  { label: '3M', value: 'quarterly' },
+  { label: '1Y', value: 'yearly' },
+  { label: '5Y', value: '5y' }
+];
+
+// Commodity series mapping by category
+const commoditySeriesMap = {
+  metals: ['PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
+  agricultural: ['PSOYBUSDM', 'PCOFFUSDM', 'PSUGAR', 'PCORNUSDM'],
+  industrial: ['PZINC', 'PALUMINUM']
+};
+
+// Crypto Tab State
+const cryptoIndicators = ref([]);
+const cryptoLoading = ref(false);
+const cryptoError = ref(null);
+const cryptoTimeframes = [
+  { label: 'Daily', value: 'daily' },
+  { label: 'Weekly', value: 'weekly' },
+  { label: 'Monthly', value: 'monthly' },
+  { label: 'Yearly', value: 'yearly' }
+];
+
 // Bond cache configuration
 const BOND_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
 const BOND_CACHE_KEY_PREFIX = 'bond_series_';
@@ -1142,10 +1460,10 @@ const priceTimeframes = [
 
 // Market indices data
 const indices = ref([
-    { name: 'Dow Jones', value: 43870.35, change: 0.28, history: [] },
-    { name: 'NASDAQ', value: 19281.40, change: -0.23, history: [] },
-    { name: 'S&P 500', value: 5948.71, change: 0.13, history: [] },
-    { name: 'Russell 2000', value: 2426.28, change: 0.52, history: [] }
+    { name: 'Dow Jones', value: 0, change: 0, history: [] },
+    { name: 'NASDAQ', value: 0, change: 0, history: [] },
+    { name: 'S&P 500', value: 0, change: 0, history: [] },
+    { name: 'Russell 2000', value: 0, change: 0, history: [] }
 ]);
 
 const hoverChart = ref({
@@ -1224,6 +1542,7 @@ const fetchMarketData = async () => {
     
     // Fetch fresh data if no cache
     try {
+        loading.value = true;
         const response = await fetch('http://localhost:8000/api/internal/market-movers');
         if (!response.ok) throw new Error('Failed to fetch market movers');
         const data = await response.json();
@@ -1238,19 +1557,79 @@ const fetchMarketData = async () => {
     }
 };
 
+const fetchIndices = async () => {
+    // Check cache first
+    const cached = getDailyCache('indices_data');
+    if (cached) {
+        console.log('Using cached indices data');
+        indices.value = cached;
+        return;
+    }
+    
+    // Fetch fresh data if no cache
+    try {
+        const response = await fetch('http://localhost:8000/api/internal/indices');
+        if (!response.ok) throw new Error('Failed to fetch indices');
+        const data = await response.json();
+        indices.value = data;
+        
+        // Cache the data
+        setDailyCache('indices_data', data);
+    } catch (e) {
+        console.error('Error fetching indices:', e);
+    }
+};
+
+const updateIndices = async () => {
+    clearCacheByKey('indices_data');
+    await fetchIndices();
+};
+
+const updateMarketData = async () => {
+    clearCacheByKey('market_movers');
+    loading.value = true; // Set loading state for Equity section
+    await fetchMarketData();
+};
+
+const updateCommodityData = async () => {
+    clearCacheByKey('commodity_data_monthly');
+    await fetchCommodityData();
+};
+
+const updateCurrencyData = async () => {
+  clearCacheByKey('currency_data_monthly');
+  await fetchCurrencyData();
+};
+
+const updateCryptoData = async () => {
+  clearCacheByKey('crypto_data_daily');
+  await fetchCryptoData();
+};
+
 const updateData = async () => {
+    // Clear all caches
+    clearCacheByKey('indices_data');
     clearCacheByKey('market_movers');
     clearCacheByKey('bond_data_monthly');
     clearCacheByKey('macro_data_monthly');
+    clearCacheByKey('fed_data_monthly');
     clearCacheByKey('energy_generation');
     clearCacheByKey('energy_consumption');
+    clearCacheByKey('crypto_data_daily');
+    clearCacheByKey('commodity_data_monthly');
+    clearCacheByKey('currency_data_monthly');
     
+    // Update all sections in parallel
     await Promise.all([
-        fetchMarketData(),
+        updateIndices(),
+        updateMarketData(),
         updateBondData(),
         updateEconomicData(),
         updateFedData(),
-        updateEnergyData()
+        updateEnergyData(),
+        updateCommodityData(),
+        updateCurrencyData(),
+        updateCryptoData()
     ]);
 };
 
@@ -1265,32 +1644,36 @@ const showChart = async (event, ticker) => {
         data: null
     };
 
-    // Fetch history for the ticker
+    // Fetch real stock history for the ticker
     try {
-        // We can use the micro endpoint to get history
-        // Note: This might be slow for a hover, but let's try.
-        // Optimization: Cache results?
-        const response = await fetch(`http://localhost:8000/api/internal/micro/${ticker}`);
+        // Use the stock history endpoint to get real data (last 30 days for hover chart)
+        const response = await fetch(`http://localhost:8000/api/internal/stock/${ticker}/history?period=1mo`);
         if (response.ok) {
             const data = await response.json();
-            // Mock history generation if not present or just use a random walk for demo if micro endpoint doesn't return history list
-            // The micro endpoint currently returns current price. We need history.
-            // Let's assume we need to generate mock history here or update micro endpoint.
-            // Actually, let's just generate mock history locally for the "hover" effect to be snappy 
-            // since the user wants "stock price daily historical graph".
             
-            // Generating mock history for demo speed
-            const history = generateMockHistory(data.price);
+            // Convert API response to chart format
+            const history = data.history || [];
             
             hoverChart.value.data = {
-                labels: history.map((_, i) => i),
+                labels: history.map((item, index) => {
+                    // Show only every 5th label to avoid crowding
+                    if (index % 5 === 0 || index === history.length - 1) {
+                        const date = new Date(item.date);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }
+                    return '';
+                }),
                 datasets: [{
                     label: ticker,
                     borderColor: '#3498db',
-                    data: history,
-                    fill: false
+                    data: history.map(item => item.price),
+                    fill: false,
+                    pointRadius: 0,
+                    tension: 0.4
                 }]
             };
+        } else {
+            console.error("Failed to fetch stock history for hover chart");
         }
     } catch (e) {
         console.error("Error fetching chart data", e);
@@ -1301,27 +1684,21 @@ const hideChart = () => {
     hoverChart.value.visible = false;
 };
 
-const generateMockHistory = (basePrice) => {
-    const history = [];
-    let current = basePrice;
-    const today = new Date();
-    
-    for (let i = 29; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        history.push({
-            date: date,
-            value: current
-        });
-        current = current * (1 + (Math.random() - 0.5) * 0.05);
-    }
-    return history;
-};
-
 const getIndexChartData = (index) => {
+    if (!index.history || index.history.length === 0) {
+        return {
+            labels: [],
+            datasets: [{
+                borderColor: index.change >= 0 ? '#42b983' : '#e74c3c',
+                data: [],
+                fill: false
+            }]
+        };
+    }
+    
     return {
         labels: index.history.map(item => {
-            const date = item.date;
+            const date = new Date(item.date);
             return `${date.getMonth() + 1}/${date.getDate()}`;
         }),
         datasets: [{
@@ -1823,6 +2200,200 @@ const getEconomicChartData = (item) => {
     }
 }
 
+// Calculate daily change percentage for crypto
+const getCryptoDailyChange = (item) => {
+    if (!item.history || item.history.length < 2) {
+        return null;
+    }
+    
+    const sortedHistory = [...item.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const currentPrice = sortedHistory[sortedHistory.length - 1]?.value;
+    const previousPrice = sortedHistory[sortedHistory.length - 2]?.value;
+    
+    if (!currentPrice || !previousPrice || previousPrice === 0) {
+        return null;
+    }
+    
+    const change = ((currentPrice - previousPrice) / previousPrice) * 100;
+    return change;
+}
+
+// Crypto Chart Data with Volume
+const getCryptoChartData = (item) => {
+    const sortedHistory = [...(item.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Check if volume data exists and has meaningful values (not all zeros)
+    const hasVolume = sortedHistory.length > 0 && 
+                     sortedHistory[0].volume !== undefined && 
+                     sortedHistory.some(h => h.volume && h.volume > 0);
+    
+    const datasets = [
+        {
+            label: 'Price',
+            data: sortedHistory.map(h => h.value),
+            borderColor: '#42b983',
+            backgroundColor: 'rgba(66, 185, 131, 0.1)',
+            yAxisID: 'y',
+            fill: false,
+            tension: 0.2,
+            pointRadius: 0,
+            borderWidth: 2
+        }
+    ];
+    
+    // Add volume as a line on secondary axis if available
+    if (hasVolume) {
+        datasets.push({
+            label: 'Volume',
+            data: sortedHistory.map(h => h.volume || 0),
+            borderColor: 'rgba(52, 152, 219, 0.5)',
+            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            yAxisID: 'y1',
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0,
+            borderWidth: 1,
+            order: 2
+        });
+    }
+    
+    return {
+        labels: sortedHistory.map(h => h.date),
+        datasets: datasets
+    }
+}
+
+// Crypto Chart Options with dual y-axes
+const cryptoChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    mode: 'index',
+    intersect: false
+  },
+  plugins: {
+    legend: { 
+      display: true,
+      position: 'top',
+      labels: {
+        color: '#000000',
+        usePointStyle: true,
+        padding: 15
+      }
+    },
+    tooltip: { 
+      mode: 'index', 
+      intersect: false,
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      titleColor: '#000000',
+      bodyColor: '#000000',
+      borderColor: '#cccccc',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+      borderWidth: 1,
+      padding: 12,
+      callbacks: {
+        label: function(context) {
+          let label = context.dataset.label || '';
+          if (label) {
+            label += ': ';
+          }
+          if (context.parsed.y !== null) {
+            if (label === 'Volume: ') {
+              // Format volume with commas
+              label += context.parsed.y.toLocaleString('en-US');
+            } else {
+              // Format price with 2 decimal places
+              label += context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+          }
+          return label;
+        }
+      }
+    }
+  },
+  scales: {
+    x: { 
+      display: true,
+      ticks: { 
+        color: '#666666', 
+        font: { size: 10 },
+        maxRotation: 45,
+        minRotation: 45
+      },
+      grid: { 
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)'
+      }
+    },
+    y: { 
+      type: 'linear',
+      display: true,
+      position: 'left',
+      ticks: { 
+        color: '#42b983',
+        font: { size: 10 },
+        callback: function(value) {
+          return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      },
+      grid: { 
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)'
+      },
+      title: {
+        display: true,
+        text: 'Price (USD)',
+        color: '#42b983',
+        font: { size: 11, weight: 'bold' }
+      }
+    },
+    y1: {
+      type: 'linear',
+      display: true,
+      position: 'right',
+      ticks: { 
+        color: '#3498db',
+        font: { size: 10 },
+        callback: function(value) {
+          // Format large numbers with K, M, B suffixes
+          if (value >= 1000000000) {
+            return (value / 1000000000).toFixed(1) + 'B';
+          } else if (value >= 1000000) {
+            return (value / 1000000).toFixed(1) + 'M';
+          } else if (value >= 1000) {
+            return (value / 1000).toFixed(1) + 'K';
+          }
+          return value.toLocaleString('en-US');
+        }
+      },
+      grid: { 
+        drawOnChartArea: false
+      },
+      title: {
+        display: true,
+        text: 'Volume',
+        color: '#3498db',
+        font: { size: 11, weight: 'bold' }
+      }
+    }
+  },
+  elements: {
+    point: { 
+      radius: 0, 
+      hitRadius: 10, 
+      hoverRadius: 4
+    },
+    line: { 
+      borderWidth: 2, 
+      tension: 0.2 
+    },
+    bar: {
+      borderRadius: 2,
+      borderSkipped: false
+    }
+  }
+};
+
 const fetchEconomicData = async () => {
   economicLoading.value = true;
   economicError.value = null;
@@ -1912,6 +2483,313 @@ const updateFedData = async () => {
   await fetchFedData();
 };
 
+// Currency data fetching
+const fetchCurrencyData = async () => {
+  currencyLoading.value = true;
+  currencyError.value = null;
+  
+  // Check daily cache first
+  const cached = getDailyCache('currency_data_monthly');
+  if (cached) {
+    console.log('Using cached currency data');
+    // Ensure history is preserved from cache (like Bond/Economic tabs)
+    const processedCached = cached.map(item => ({
+      ...item,
+      history: item.history || [], // Ensure history is always an array
+      selectedTimeframe: item.selectedTimeframe || 'monthly',
+      loading: false
+    }));
+    
+    currencyIndicators.value = processedCached;
+    currencyLoading.value = false;
+    return;
+  }
+  
+  try {
+    // Fetch currency series
+    const currencySeries = ['DEXUSEU', 'DEXJPUS', 'DEXCHUS'];
+    const promises = currencySeries.map(seriesId => 
+      fetch(`http://localhost:8000/api/internal/macro/series/${seriesId}?timeframe=monthly`)
+        .then(res => res.json())
+    );
+    
+    const data = await Promise.all(promises);
+    
+    // Initialize with default timeframe state and ensure history is always an array
+    const processedData = data.map(item => ({
+      ...item,
+      history: item.history || [], // Ensure history is always an array
+      selectedTimeframe: 'monthly',
+      loading: false
+    }));
+    
+    currencyIndicators.value = processedData;
+    
+    // Cache the data
+    setDailyCache('currency_data_monthly', processedData);
+    
+  } catch (err) {
+    currencyError.value = err.message;
+  } finally {
+    currencyLoading.value = false;
+  }
+};
+
+const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
+  if (item.selectedTimeframe === timeframe) return;
+  
+  item.selectedTimeframe = timeframe;
+  item.loading = true;
+  
+  // Check cache
+  const cached = getEconomicCachedData(item.series_id, timeframe);
+  if (cached) {
+    Object.assign(item, cached);
+    item.selectedTimeframe = timeframe;
+    item.loading = false;
+    return;
+  }
+  
+  try {
+    const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+    if (!response.ok) throw new Error('Failed to fetch data');
+    const data = await response.json();
+    
+    item.history = data.history || [];
+    item.value = data.value;
+    item.date = data.date;
+    item.selectedTimeframe = timeframe;
+    
+    // Cache the data
+    setEconomicCachedData(item.series_id, timeframe, {
+      history: item.history,
+      value: item.value,
+      date: item.date,
+      selectedTimeframe: timeframe
+    });
+  } catch (err) {
+    console.error(`Error fetching ${item.indicator}:`, err);
+  } finally {
+    item.loading = false;
+  }
+};
+
+// Commodity data fetching
+const fetchCommodityData = async () => {
+  commodityLoading.value = true;
+  commodityError.value = null;
+  
+  // Check daily cache first
+  const cached = getDailyCache('commodity_data_monthly');
+  if (cached) {
+    console.log('Using cached commodity data');
+    // Filter out removed commodities from cached data
+    const filteredCached = {};
+    Object.keys(cached).forEach(category => {
+      if (commoditySeriesMap[category]) {
+        const allowedSeriesIds = new Set(commoditySeriesMap[category]);
+        filteredCached[category] = cached[category].filter(item => 
+          allowedSeriesIds.has(item.series_id)
+        );
+      }
+    });
+    commodityIndicators.value = filteredCached;
+    commodityLoading.value = false;
+    return;
+  }
+  
+  try {
+    // Fetch all commodity series by category
+    const allPromises = {};
+    
+    for (const [category, seriesList] of Object.entries(commoditySeriesMap)) {
+      allPromises[category] = Promise.all(
+        seriesList.map(seriesId => 
+          fetch(`http://localhost:8000/api/internal/macro/series/${seriesId}?timeframe=monthly`)
+            .then(res => res.json())
+        )
+      );
+    }
+    
+    const results = await Promise.all(Object.values(allPromises));
+    const categories = Object.keys(commoditySeriesMap);
+    
+    // Process data for each category
+    const processedData = {};
+    categories.forEach((category, index) => {
+      processedData[category] = results[index].map(item => ({
+        ...item,
+        selectedTimeframe: 'monthly',
+        loading: false
+      }));
+    });
+    
+    commodityIndicators.value = processedData;
+    
+    // Cache the data
+    setDailyCache('commodity_data_monthly', processedData);
+    
+  } catch (err) {
+    commodityError.value = err.message;
+  } finally {
+    commodityLoading.value = false;
+  }
+};
+
+const updateCommodityIndicatorTimeframe = async (item, timeframe) => {
+  if (item.selectedTimeframe === timeframe) return;
+  
+  item.selectedTimeframe = timeframe;
+  item.loading = true;
+  
+  // Check cache
+  const cached = getEconomicCachedData(item.series_id, timeframe);
+  if (cached) {
+    Object.assign(item, cached);
+    item.selectedTimeframe = timeframe;
+    item.loading = false;
+    return;
+  }
+  
+  try {
+    const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+    if (!response.ok) throw new Error('Failed to fetch data');
+    const data = await response.json();
+    
+    item.history = data.history || [];
+    item.value = data.value;
+    item.date = data.date;
+    item.selectedTimeframe = timeframe;
+    
+    // Cache the data
+    setEconomicCachedData(item.series_id, timeframe, {
+      history: item.history,
+      value: item.value,
+      date: item.date,
+      selectedTimeframe: timeframe
+    });
+  } catch (err) {
+    console.error(`Error fetching ${item.indicator}:`, err);
+  } finally {
+    item.loading = false;
+  }
+};
+
+// Crypto data fetching
+const fetchCryptoData = async () => {
+  cryptoLoading.value = true;
+  cryptoError.value = null;
+  
+  // Check daily cache first
+  const cached = getDailyCache('crypto_data_daily');
+  if (cached) {
+    console.log('Using cached crypto data');
+    // Ensure history is preserved from cache (like Bond/Economic tabs)
+    const processedCached = cached.map(item => ({
+      ...item,
+      history: item.history || [], // Ensure history is always an array
+      selectedTimeframe: item.selectedTimeframe || 'daily',
+      loading: false
+    }));
+    
+    cryptoIndicators.value = processedCached;
+    cryptoLoading.value = false;
+    return;
+  }
+  
+  try {
+    // Fetch data WITH history (like Bond/Economic tabs) - default timeframe is 'daily'
+    const response = await fetch('http://localhost:8000/api/internal/crypto/all?timeframe=daily');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ERROR] Backend returned error:', response.status, errorText);
+      throw new Error(`Failed to fetch crypto data: ${response.status} ${errorText}`);
+    }
+    const cryptoData = await response.json();
+    
+    // Validate that cryptoData is an array
+    if (!Array.isArray(cryptoData)) {
+      console.error('[ERROR] Backend did not return an array. Received:', typeof cryptoData, cryptoData);
+      
+      // If it's an object with a detail/error message, extract it
+      if (cryptoData && typeof cryptoData === 'object') {
+        const errorMsg = cryptoData.detail || cryptoData.error || cryptoData.message || JSON.stringify(cryptoData);
+        throw new Error(`Invalid response format: ${errorMsg}`);
+      }
+      
+      throw new Error(`Invalid response format: expected array, got ${typeof cryptoData}`);
+    }
+    
+    console.log('[DEBUG] Received crypto data from backend:', cryptoData.length, 'items');
+    
+    // Process data - history is already included in the response (like Bond/Economic)
+    const processedData = cryptoData.map(item => ({
+      ...item,
+      history: item.history || [], // History is already included from backend
+      selectedTimeframe: item.selectedTimeframe || 'daily', // Default timeframe
+      loading: false
+    }));
+    
+    cryptoIndicators.value = processedData;
+    
+    // Cache data with history (like Bond/Economic tabs)
+    setDailyCache('crypto_data_daily', processedData);
+    
+  } catch (err) {
+    console.error('[ERROR] Failed to fetch crypto data:', err);
+    cryptoError.value = err.message;
+  } finally {
+    cryptoLoading.value = false;
+  }
+};
+
+const updateCryptoIndicatorTimeframe = async (item, timeframe) => {
+  if (item.selectedTimeframe === timeframe && item.history && item.history.length > 0) return;
+  
+  item.selectedTimeframe = timeframe;
+  item.loading = true;
+  
+  // Check cache
+  const cached = getEconomicCachedData(item.series_id, timeframe);
+  if (cached && cached.history && cached.history.length > 0) {
+    item.history = cached.history;
+    item.value = cached.value || item.value;
+    item.volume = cached.volume || item.volume;
+    item.date = cached.date || item.date;
+    item.selectedTimeframe = timeframe;
+    item.loading = false;
+    return;
+  }
+  
+  try {
+    // Fetch history data from crypto endpoint (like Bond/Economic tabs)
+    const historyResponse = await fetch(`http://localhost:8000/api/internal/crypto/${item.series_id}/history?period=${timeframe}`);
+    if (!historyResponse.ok) throw new Error('Failed to fetch crypto history');
+    
+    const historyData = await historyResponse.json();
+    
+    item.history = historyData.history || [];
+    item.value = historyData.value || item.value; // Update price if available, otherwise keep current
+    item.volume = historyData.volume || item.volume;
+    item.date = historyData.date || item.date;
+    item.selectedTimeframe = timeframe;
+    
+    // Cache the data (including volume)
+    setEconomicCachedData(item.series_id, timeframe, {
+      history: item.history,
+      value: item.value,
+      volume: item.volume,
+      date: item.date,
+      selectedTimeframe: timeframe
+    });
+  } catch (err) {
+    console.error(`Error fetching ${item.indicator} history:`, err);
+    item.history = []; // Clear history on error
+  } finally {
+    item.loading = false;
+  }
+};
+
 const updateFedIndicatorTimeframe = async (item, timeframe) => {
     if (item.selectedTimeframe === timeframe) return;
     
@@ -1984,11 +2862,7 @@ const updateIndicatorTimeframe = async (item, timeframe) => {
 };
 
 onMounted(() => {
-    // Generate mock history for each index
-    indices.value.forEach(index => {
-        index.history = generateMockHistory(index.value);
-    });
-    
+    fetchIndices();
     fetchMarketData();
     
     // Fetch bond data when bond tab might be accessed
@@ -2002,6 +2876,15 @@ onMounted(() => {
     
     // Fetch energy data when energy tab might be accessed
     fetchEnergyData();
+    
+    // Fetch currency data when currency tab might be accessed
+    fetchCurrencyData();
+    
+    // Fetch commodity data when commodity tab might be accessed
+    fetchCommodityData();
+    
+    // Fetch crypto data when crypto tab might be accessed
+    fetchCryptoData();
 });
 </script>
 
@@ -2398,6 +3281,14 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
+}
+
+.daily-change {
+    font-size: 0.95em;
+    font-weight: 600;
+    font-style: normal;
+    margin-left: 8px;
 }
 
 .card-timeframe-selector {
@@ -2781,5 +3672,116 @@ onMounted(() => {
 
 .energy-layout .timeframe-selector button:hover {
     background: #e9ecef;
+}
+
+/* Currency Tab Styles */
+.currency-tab-content {
+    padding: 0;
+}
+
+.currency-data {
+    margin-top: 20px;
+}
+
+.currency-timeframe-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.currency-timeframe-selector button {
+    background: #f8f9fa;
+    border: 1px solid #cccccc;
+    color: #000000;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.currency-timeframe-selector button.active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.currency-timeframe-selector button:hover:not(.active) {
+    background: #e9ecef;
+}
+
+.currency-value-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #cccccc;
+}
+
+.currency-label {
+    font-size: 0.95em;
+    color: #666666;
+    font-weight: 500;
+}
+
+.currency-value {
+    font-size: 1.3em;
+    color: #000000;
+    font-weight: 600;
+}
+
+/* Commodity Tab Styles */
+.commodity-tab-content {
+    padding: 0;
+}
+
+.commodity-data {
+    margin-top: 20px;
+}
+
+.commodity-timeframe-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.commodity-timeframe-selector button {
+    background: #f8f9fa;
+    border: 1px solid #cccccc;
+    color: #000000;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.commodity-timeframe-selector button.active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.commodity-timeframe-selector button:hover:not(.active) {
+    background: #e9ecef;
+}
+
+/* Crypto Tab Styles */
+.crypto-tab-content {
+    padding: 0;
+}
+
+.crypto-data {
+    margin-top: 20px;
 }
 </style>

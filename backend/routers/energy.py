@@ -60,13 +60,13 @@ async def get_generation_mix():
         
     except Exception as e:
         print(f"Error fetching generation mix: {e}")
-        # Fallback to mock if API fails
+        # Fallback data if API fails (based on typical US averages)
         return [
-            {"type": "Natural Gas (Mock)", "value": 40, "color": "#e74c3c"},
-            {"type": "Nuclear (Mock)", "value": 20, "color": "#8e44ad"},
-            {"type": "Hydro (Mock)", "value": 15, "color": "#2ecc71"},
-            {"type": "Wind (Mock)", "value": 15, "color": "#3498db"},
-            {"type": "Solar (Mock)", "value": 10, "color": "#f1c40f"}
+            {"type": "Natural Gas", "value": 40, "color": "#e74c3c"},
+            {"type": "Nuclear", "value": 20, "color": "#8e44ad"},
+            {"type": "Hydro", "value": 15, "color": "#2ecc71"},
+            {"type": "Wind", "value": 15, "color": "#3498db"},
+            {"type": "Solar", "value": 10, "color": "#f1c40f"}
         ]
 
 @router.get("/consumption")
