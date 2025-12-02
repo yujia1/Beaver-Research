@@ -185,7 +185,6 @@ setInterval(() => {
           </div>
         </div>
         <button @click="logout" class="logout-btn">
-          <span class="logout-icon">🚪</span>
           <span class="logout-text">Logout</span>
         </button>
       </div>
