@@ -689,6 +689,7 @@
                     <p>52W High: ${{ companyData.trading?.fiftyTwoWeekHigh }}</p>
                     <p>52W Low: ${{ companyData.trading?.fiftyTwoWeekLow }}</p>
                     <p>Beta: {{ companyData.trading?.beta }}</p>
+                    <p>Put/Call Ratio: {{ getPutCallRatio() }}</p>
                   </div>
                 </div>
                 
@@ -2832,6 +2833,22 @@ const prepareOptionsData = () => {
     callsVolumes: sortedOptions.map(opt => opt.callsVolume),
     putsVolumes: sortedOptions.map(opt => opt.putsVolume)
   }
+}
+
+const getPutCallRatio = () => {
+  if (!companyData.value || !companyData.value.trading || !companyData.value.trading.options) return '-'
+  
+  const options = companyData.value.trading.options
+  if (options.length === 0) return '-'
+  
+  // Sum all puts and calls volumes across all expiration dates
+  const totalPutsVolume = options.reduce((sum, opt) => sum + (opt.putsVolume || 0), 0)
+  const totalCallsVolume = options.reduce((sum, opt) => sum + (opt.callsVolume || 0), 0)
+  
+  if (totalCallsVolume === 0) return '-'
+  
+  const ratio = totalPutsVolume / totalCallsVolume
+  return ratio.toFixed(2)
 }
 
 const renderOptionsVolumeChart = () => {
