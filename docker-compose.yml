@@ -1,18 +1,36 @@
-version: '3.8'
-
 services:
   backend:
     build: ./backend
+    container_name: beaver_backend
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - backend_db:/app/data  # Persist SQLite database
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:////app/data/financial_agent.db
+    env_file:
+      - .env  # Load environment variables from .env file
+    restart: unless-stopped
+    networks:
+      - beaver_network
 
   frontend:
     build: ./frontend
+    container_name: beaver_frontend
     ports:
-      - "80:80"
+      - "5173:80"  # Changed from 80 to 5173 to match dev server port
     depends_on:
       - backend
+    restart: unless-stopped
+    networks:
+      - beaver_network
+
+volumes:
+  backend_db:
+    driver: local
+
+networks:
+  beaver_network:
+    driver: bridge

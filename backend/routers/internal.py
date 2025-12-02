@@ -516,7 +516,7 @@ async def get_macro_data(timeframe: str = "monthly"):
                         "chart_type": cfg["chart_type"],
                         "series_id": cfg["series_id"]
                     })
-        
+
         # Add FedWatch Tool as it's not from FRED and has a different history format
         today = datetime.today().date()
         
@@ -1235,8 +1235,8 @@ async def get_polymarket_data(ticker: str):
                     
                     if response.status_code != 200:
                         print(f"[POLYMARKET] Error response: {response.text[:500]}")
-                        continue
-                    
+                    continue
+
                     search_results = response.json()
                     print(f"[POLYMARKET] Response type: {type(search_results)}, keys: {search_results.keys() if isinstance(search_results, dict) else 'N/A (list)'}")
                     
@@ -1309,7 +1309,7 @@ async def get_polymarket_data(ticker: str):
                     import traceback
                     traceback.print_exc()
                     continue
-        
+                
         print(f"[POLYMARKET] Total markets found: {len(all_markets)}")
         
         # Filter markets that are related to stock price predictions

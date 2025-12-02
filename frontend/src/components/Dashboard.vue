@@ -84,21 +84,21 @@
 
             <!-- Equity Tab Content -->
             <div v-if="activeTab === 'equity'" class="tab-content">
-                <!-- Index Charts Section -->
-                <div class="indices-section">
-                    <div class="index-card" v-for="index in indices" :key="index.name">
-                        <h3>{{ index.name }}</h3>
-                        <div class="index-value" :class="index.change >= 0 ? 'positive' : 'negative'">
-                            {{ index.value.toLocaleString() }}
-                        </div>
-                        <div class="index-change" :class="index.change >= 0 ? 'positive' : 'negative'">
-                            {{ index.change >= 0 ? '+' : '' }}{{ index.change.toFixed(2) }}%
-                        </div>
-                        <div class="mini-chart">
-                            <Line :data="getIndexChartData(index)" :options="miniChartOptions" />
-                        </div>
-                    </div>
+        <!-- Index Charts Section -->
+        <div class="indices-section">
+            <div class="index-card" v-for="index in indices" :key="index.name">
+                <h3>{{ index.name }}</h3>
+                <div class="index-value" :class="index.change >= 0 ? 'positive' : 'negative'">
+                    {{ index.value.toLocaleString() }}
                 </div>
+                <div class="index-change" :class="index.change >= 0 ? 'positive' : 'negative'">
+                    {{ index.change >= 0 ? '+' : '' }}{{ index.change.toFixed(2) }}%
+                </div>
+                <div class="mini-chart">
+                    <Line :data="getIndexChartData(index)" :options="miniChartOptions" />
+                </div>
+            </div>
+        </div>
 
             </div>
 
@@ -418,15 +418,15 @@
                         <div class="liquidity-subsection">
                             <h4 class="subsection-title">Balance Sheet / QT</h4>
                             <table class="liquidity-table">
-                                <thead>
-                                    <tr>
+                <thead>
+                    <tr>
                                         <th>Indicators</th>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>URL</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                    </tr>
+                </thead>
+                <tbody>
                                     <tr>
                                         <td>WALCL</td>
                                         <td>Fed Total Assets</td>
@@ -450,24 +450,24 @@
                                         <td>H.4.1 Release</td>
                                         <td>liquidity</td>
                                         <td><a href="https://www.federalreserve.gov/releases/h41/" target="_blank" rel="noopener noreferrer">https://www.federalreserve.gov/releases/h41/</a></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
                         <!-- Money Market Plumbing -->
                         <div class="liquidity-subsection">
                             <h4 class="subsection-title">Money Market Plumbing</h4>
                             <table class="liquidity-table">
-                                <thead>
-                                    <tr>
+                <thead>
+                    <tr>
                                         <th>Indicators</th>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>URL</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                    </tr>
+                </thead>
+                <tbody>
                                     <tr>
                                         <td>RRPONTSYD</td>
                                         <td>Reverse Repo Usage</td>
@@ -497,24 +497,24 @@
                                         <td>Effective Fed Funds Rate</td>
                                         <td>liquidity</td>
                                         <td><a href="https://fred.stlouisfed.org/series/EFFR" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/EFFR</a></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
                         <!-- Stress / Funding -->
                         <div class="liquidity-subsection">
                             <h4 class="subsection-title">Stress / Funding</h4>
                             <table class="liquidity-table">
-                                <thead>
-                                    <tr>
+                <thead>
+                    <tr>
                                         <th>Indicators</th>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>URL</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                    </tr>
+                </thead>
+                <tbody>
                                     <tr>
                                         <td>TEDRATE</td>
                                         <td>TED Spread</td>
@@ -526,11 +526,11 @@
                                         <td>Financial Stress Index</td>
                                         <td>liquidity</td>
                                         <td><a href="https://fred.stlouisfed.org/series/STLFSI4" target="_blank" rel="noopener noreferrer">https://fred.stlouisfed.org/series/STLFSI4</a></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    </tr>
+                </tbody>
+            </table>
                         </div>
-                    </div>
+        </div>
 
                     <!-- Forecasting Section -->
                     <div v-if="activeFedCategory === 'forecasting'" class="category-section">
@@ -538,15 +538,15 @@
                         <div class="liquidity-subsection">
                             <h4 class="subsection-title">Yield Curve (Market-Implied Rate Path)</h4>
                             <table class="liquidity-table">
-                                <thead>
-                                    <tr>
+                <thead>
+                    <tr>
                                         <th>Indicators</th>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>URL</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                    </tr>
+                </thead>
+                <tbody>
                                     <tr>
                                         <td>DGS3MO</td>
                                         <td>3-Month Treasury Yield</td>
@@ -862,10 +862,10 @@
                                 <td>Executive Orders</td>
                                 <td><a href="https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/</a></td>
                                 <td>policy/federal/executive_orders</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
                 <!-- Federal Register -->
                 <div class="liquidity-subsection">
@@ -923,8 +923,8 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
+    </div>
+    </div>
 
             <!-- Crypto Tab Content -->
             <div v-if="activeTab === 'crypto'" class="tab-content crypto-tab-content">
@@ -962,8 +962,8 @@
                                             >
                                                 {{ tf.label }}
                                             </button>
-                                        </div>
-                                    </div>
+        </div>
+    </div>
                                     
                                     <!-- Interactive Chart.js Chart -->
                                     <div class="chart-container" v-if="item.history && item.history.length > 0">
@@ -1574,7 +1574,7 @@ const fetchBondData = async () => {
     // Initial fetch of all data with default 'monthly' (1Y) timeframe
     const response = await fetch(`http://localhost:8000/api/bond/all?timeframe=monthly`);
     if (!response.ok) throw new Error('Failed to fetch bond data');
-    const data = await response.json();
+            const data = await response.json();
     
     // Initialize with default timeframe state for each item in each category
     Object.keys(data).forEach(category => {
@@ -1691,7 +1691,7 @@ const energyLineOptions = {
 
 const generationData = computed(() => ({
     labels: generation.value.map(i => i.type),
-    datasets: [{
+                datasets: [{
         data: generation.value.map(i => i.value),
         backgroundColor: generation.value.map(i => i.color)
     }]
@@ -1712,7 +1712,7 @@ const demandCurveData = computed(() => {
         datasets: [{
             label: 'Demand (MW)',
             data: gridData.value.hourly_demand.map(i => i.demand),
-            borderColor: '#3498db',
+                    borderColor: '#3498db',
             backgroundColor: '#3498db',
             fill: false,
             tension: 0.4
@@ -1921,9 +1921,9 @@ const barChartOptions = {
 
 const getFedChartData = (item) => {
     if (item.chart_type === 'bar') {
-        return {
+    return {
             labels: item.history.map(h => h.date),
-            datasets: [{
+        datasets: [{
                 label: item.indicator,
                 data: item.history.map(h => h.value),
                 backgroundColor: 'rgba(52, 152, 219, 0.6)',

@@ -97,6 +97,8 @@ origins = [
     "http://localhost:5173",  # Vue.js dev server (default)
     "http://localhost:5174",  # Vue.js dev server (alternative port)
     "http://localhost:8080",
+    "http://localhost:80",  # Docker frontend (nginx)
+    "http://frontend:80",  # Docker internal network
 ]
 
 app.add_middleware(
