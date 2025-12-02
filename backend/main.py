@@ -7,11 +7,88 @@ import os
 load_dotenv()
 
 from routers import internal, external, agent, energy, sec, bond, reports, auth, events, research
-from database import engine
+from database import engine, SessionLocal
 import models
+import bcrypt
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
+
+# Initialize default users for each role type
+def init_default_users():
+    """Create default users for each role type if they don't exist"""
+    db = SessionLocal()
+    try:
+        default_users = [
+            {
+                "username": "admin",
+                "email": "admin@example.com",
+                "password": "admin123",
+                "role": "admin"
+            },
+            {
+                "username": "creator",
+                "email": "creator@example.com",
+                "password": "creator123",
+                "role": "creator"
+            },
+            {
+                "username": "contributor",
+                "email": "contributor@example.com",
+                "password": "contributor123",
+                "role": "contributor"
+            },
+            {
+                "username": "user",
+                "email": "user@example.com",
+                "password": "user123",
+                "role": "user"
+            }
+        ]
+        
+        created_count = 0
+        for user_data in default_users:
+            existing_user = db.query(models.User).filter(
+                models.User.username == user_data["username"]
+            ).first()
+            
+            if not existing_user:
+                # Hash password using bcrypt directly to avoid passlib initialization issues
+                password_bytes = user_data["password"].encode('utf-8')
+                # Truncate to 72 bytes if necessary (bcrypt limit)
+                if len(password_bytes) > 72:
+                    password_bytes = password_bytes[:72]
+                salt = bcrypt.gensalt(rounds=12)
+                hashed_password = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+                
+                new_user = models.User(
+                    username=user_data["username"],
+                    email=user_data["email"],
+                    hashed_password=hashed_password,
+                    role=user_data["role"]
+                )
+                db.add(new_user)
+                created_count += 1
+                print(f"✓ Created default {user_data['role']} user: {user_data['username']} / {user_data['password']}")
+            else:
+                print(f"✗ User '{user_data['username']}' already exists, skipping")
+        
+        if created_count > 0:
+            db.commit()
+            print(f"\n✓ Initialized {created_count} default user(s)")
+        else:
+            print("\n✓ All default users already exist")
+            
+    except Exception as e:
+        db.rollback()
+        print(f"Error initializing default users: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        db.close()
+
+# Initialize default users on startup
+init_default_users()
 
 app = FastAPI(title="Financial Dashboard Agent")
 
