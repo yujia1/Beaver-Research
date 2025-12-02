@@ -392,13 +392,25 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="item in getFinancialItems('income', financialPeriod)" :key="item">
-                            <td class="item-name">{{ item }}</td>
-                            <td class="ltm-col">{{ formatFinancialNumber(getFinancialValue('income', item, 'ltm')) }}</td>
-                            <td v-for="period in getFinancialYears('income', financialPeriod)" :key="period">
-                              {{ formatFinancialNumber(getFinancialValueByPeriod('income', item, period, financialPeriod)) }}
-                            </td>
-                          </tr>
+                          <template v-for="(items, category) in categorizeFinancialItems('income', financialPeriod)" :key="category">
+                            <tr class="category-header" @click="toggleCategory('income', category)">
+                              <td class="category-name">
+                                <span class="expand-icon">{{ isCategoryExpanded('income', category) ? '▼' : '▶' }}</span>
+                                {{ category }}
+                              </td>
+                              <td class="ltm-col">-</td>
+                              <td v-for="period in getFinancialYears('income', financialPeriod)" :key="period">-</td>
+                            </tr>
+                            <template v-if="isCategoryExpanded('income', category)">
+                              <tr v-for="item in items" :key="item" class="category-item">
+                                <td class="item-name">{{ item }}</td>
+                                <td class="ltm-col">{{ formatFinancialNumber(getFinancialValue('income', item, 'ltm')) }}</td>
+                                <td v-for="period in getFinancialYears('income', financialPeriod)" :key="period">
+                                  {{ formatFinancialNumber(getFinancialValueByPeriod('income', item, period, financialPeriod)) }}
+                                </td>
+                              </tr>
+                            </template>
+                          </template>
                         </tbody>
                       </table>
                     </div>
@@ -416,13 +428,25 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="item in getFinancialItems('balance', financialPeriod)" :key="item">
-                            <td class="item-name">{{ item }}</td>
-                            <td class="ltm-col">{{ formatFinancialNumber(getFinancialValue('balance', item, 'ltm')) }}</td>
-                            <td v-for="period in getFinancialYears('balance', financialPeriod)" :key="period">
-                              {{ formatFinancialNumber(getFinancialValueByPeriod('balance', item, period, financialPeriod)) }}
-                            </td>
-                          </tr>
+                          <template v-for="(items, category) in categorizeFinancialItems('balance', financialPeriod)" :key="category">
+                            <tr class="category-header" @click="toggleCategory('balance', category)">
+                              <td class="category-name">
+                                <span class="expand-icon">{{ isCategoryExpanded('balance', category) ? '▼' : '▶' }}</span>
+                                {{ category }}
+                              </td>
+                              <td class="ltm-col">-</td>
+                              <td v-for="period in getFinancialYears('balance', financialPeriod)" :key="period">-</td>
+                            </tr>
+                            <template v-if="isCategoryExpanded('balance', category)">
+                              <tr v-for="item in items" :key="item" class="category-item">
+                                <td class="item-name">{{ item }}</td>
+                                <td class="ltm-col">{{ formatFinancialNumber(getFinancialValue('balance', item, 'ltm')) }}</td>
+                                <td v-for="period in getFinancialYears('balance', financialPeriod)" :key="period">
+                                  {{ formatFinancialNumber(getFinancialValueByPeriod('balance', item, period, financialPeriod)) }}
+                                </td>
+                              </tr>
+                            </template>
+                          </template>
                         </tbody>
                       </table>
                     </div>
@@ -440,13 +464,25 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="item in getFinancialItems('cashflow', financialPeriod)" :key="item">
-                            <td class="item-name">{{ item }}</td>
-                            <td class="ltm-col">{{ formatFinancialNumber(getFinancialValue('cashflow', item, 'ltm')) }}</td>
-                            <td v-for="period in getFinancialYears('cashflow', financialPeriod)" :key="period">
-                              {{ formatFinancialNumber(getFinancialValueByPeriod('cashflow', item, period, financialPeriod)) }}
-                            </td>
-                          </tr>
+                          <template v-for="(items, category) in categorizeFinancialItems('cashflow', financialPeriod)" :key="category">
+                            <tr class="category-header" @click="toggleCategory('cashflow', category)">
+                              <td class="category-name">
+                                <span class="expand-icon">{{ isCategoryExpanded('cashflow', category) ? '▼' : '▶' }}</span>
+                                {{ category }}
+                              </td>
+                              <td class="ltm-col">-</td>
+                              <td v-for="period in getFinancialYears('cashflow', financialPeriod)" :key="period">-</td>
+                            </tr>
+                            <template v-if="isCategoryExpanded('cashflow', category)">
+                              <tr v-for="item in items" :key="item" class="category-item">
+                                <td class="item-name">{{ item }}</td>
+                                <td class="ltm-col">{{ formatFinancialNumber(getFinancialValue('cashflow', item, 'ltm')) }}</td>
+                                <td v-for="period in getFinancialYears('cashflow', financialPeriod)" :key="period">
+                                  {{ formatFinancialNumber(getFinancialValueByPeriod('cashflow', item, period, financialPeriod)) }}
+                                </td>
+                              </tr>
+                            </template>
+                          </template>
                         </tbody>
                       </table>
                     </div>
@@ -1090,6 +1126,13 @@ const companyError = ref(null)
 
 // Micro Economics tab state
 const microTab = ref('overview')
+
+// Financial statement expanded categories state
+const expandedCategories = ref({
+  income: new Set(),
+  balance: new Set(),
+  cashflow: new Set()
+})
 const financialPeriod = ref('annual')
 
 // Analysis state
@@ -2209,6 +2252,141 @@ const getFinancialItems = (statementType, period = 'annual') => {
   if (!dataSource) return []
   
   return Object.keys(dataSource)
+}
+
+// Categorize financial items into groups
+const categorizeFinancialItems = (statementType, period = 'annual') => {
+  const allItems = getFinancialItems(statementType, period)
+  const categories = {}
+  
+  if (statementType === 'income') {
+    // Income Statement categories
+    const revenueItems = allItems.filter(item => 
+      item.toLowerCase().includes('revenue') || 
+      item.toLowerCase().includes('sales') ||
+      item === 'Total Revenue'
+    )
+    const costItems = allItems.filter(item => 
+      item.toLowerCase().includes('cost') && 
+      !item.toLowerCase().includes('operating')
+    )
+    const operatingExpenseItems = allItems.filter(item => 
+      item.toLowerCase().includes('operating') ||
+      item.toLowerCase().includes('sga') ||
+      item.toLowerCase().includes('r&d') ||
+      item.toLowerCase().includes('research')
+    )
+    const otherItems = allItems.filter(item => 
+      !revenueItems.includes(item) && 
+      !costItems.includes(item) && 
+      !operatingExpenseItems.includes(item) &&
+      item !== 'Total Revenue' &&
+      item !== 'Gross Profit' &&
+      item !== 'Operating Income' &&
+      item !== 'Net Income'
+    )
+    
+    if (revenueItems.length > 0) categories['Revenue'] = revenueItems
+    if (costItems.length > 0) categories['Cost of Revenue'] = costItems
+    if (operatingExpenseItems.length > 0) categories['Operating Expenses'] = operatingExpenseItems
+    if (otherItems.length > 0) categories['Other Income/Expenses'] = otherItems
+    
+    // Add summary items
+    const summaryItems = ['Total Revenue', 'Gross Profit', 'Operating Income', 'Net Income']
+    summaryItems.forEach(item => {
+      if (allItems.includes(item)) {
+        if (!categories['Summary']) categories['Summary'] = []
+        categories['Summary'].push(item)
+      }
+    })
+  } else if (statementType === 'balance') {
+    // Balance Sheet categories
+    const assetItems = allItems.filter(item => 
+      item.toLowerCase().includes('asset') ||
+      item.toLowerCase().includes('cash') ||
+      item.toLowerCase().includes('inventory') ||
+      item.toLowerCase().includes('receivable') ||
+      item.toLowerCase().includes('property') ||
+      item.toLowerCase().includes('equipment')
+    )
+    const liabilityItems = allItems.filter(item => 
+      item.toLowerCase().includes('liabilit') ||
+      item.toLowerCase().includes('debt') ||
+      item.toLowerCase().includes('payable') ||
+      item.toLowerCase().includes('borrowing')
+    )
+    const equityItems = allItems.filter(item => 
+      item.toLowerCase().includes('equity') ||
+      item.toLowerCase().includes('stockholder') ||
+      item.toLowerCase().includes('retained')
+    )
+    
+    if (assetItems.length > 0) categories['Assets'] = assetItems
+    if (liabilityItems.length > 0) categories['Liabilities'] = liabilityItems
+    if (equityItems.length > 0) categories['Equity'] = equityItems
+    
+    // Add summary items
+    const summaryItems = ['Total Assets', 'Total Liabilities Net Minority Interest', 'Stockholders Equity']
+    summaryItems.forEach(item => {
+      if (allItems.includes(item)) {
+        if (!categories['Summary']) categories['Summary'] = []
+        categories['Summary'].push(item)
+      }
+    })
+  } else if (statementType === 'cashflow') {
+    // Cash Flow categories
+    const operatingItems = allItems.filter(item => 
+      item.toLowerCase().includes('operating') ||
+      item.toLowerCase().includes('net income') ||
+      item.toLowerCase().includes('depreciation') ||
+      item.toLowerCase().includes('amortization') ||
+      item.toLowerCase().includes('receivable') ||
+      item.toLowerCase().includes('payable') ||
+      item.toLowerCase().includes('inventory')
+    )
+    const investingItems = allItems.filter(item => 
+      item.toLowerCase().includes('investing') ||
+      item.toLowerCase().includes('capex') ||
+      item.toLowerCase().includes('capital expenditure') ||
+      item.toLowerCase().includes('acquisition') ||
+      item.toLowerCase().includes('sale of')
+    )
+    const financingItems = allItems.filter(item => 
+      item.toLowerCase().includes('financing') ||
+      item.toLowerCase().includes('debt') ||
+      item.toLowerCase().includes('issuance') ||
+      item.toLowerCase().includes('repayment') ||
+      item.toLowerCase().includes('dividend') ||
+      item.toLowerCase().includes('stock')
+    )
+    
+    if (operatingItems.length > 0) categories['Operating Activities'] = operatingItems
+    if (investingItems.length > 0) categories['Investing Activities'] = investingItems
+    if (financingItems.length > 0) categories['Financing Activities'] = financingItems
+    
+    // Add summary items
+    const summaryItems = ['Operating Cash Flow', 'Free Cash Flow', 'Net Change In Cash']
+    summaryItems.forEach(item => {
+      if (allItems.includes(item)) {
+        if (!categories['Summary']) categories['Summary'] = []
+        categories['Summary'].push(item)
+      }
+    })
+  }
+  
+  return categories
+}
+
+const toggleCategory = (statementType, category) => {
+  if (expandedCategories.value[statementType].has(category)) {
+    expandedCategories.value[statementType].delete(category)
+  } else {
+    expandedCategories.value[statementType].add(category)
+  }
+}
+
+const isCategoryExpanded = (statementType, category) => {
+  return expandedCategories.value[statementType].has(category)
 }
 
 const getFinancialValue = (statementType, item, yearOrLtm) => {
@@ -5984,6 +6162,42 @@ onUnmounted(() => {
 .detailed-tables .item-name {
   font-size: 0.9em;
   color: #2c3e50;
+}
+
+.detailed-tables .category-header {
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.detailed-tables .category-header:hover {
+  background-color: #e9ecef;
+}
+
+.detailed-tables .category-name {
+  font-weight: 600;
+  color: #000000;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detailed-tables .expand-icon {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  color: #3498db;
+  font-size: 0.9em;
+}
+
+.detailed-tables .category-item {
+  background-color: #ffffff;
+}
+
+.detailed-tables .category-item .item-name {
+  padding-left: 40px;
+  font-weight: 400;
 }
 
 .detailed-tables th {
