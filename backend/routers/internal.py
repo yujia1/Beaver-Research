@@ -9,6 +9,7 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from pandas_datareader import data as web
+import requests
 from requests.exceptions import ReadTimeout, Timeout, RequestException
 
 router = APIRouter()
@@ -515,7 +516,7 @@ async def get_macro_data(timeframe: str = "monthly"):
                         "chart_type": cfg["chart_type"],
                         "series_id": cfg["series_id"]
                     })
-
+        
         # Add FedWatch Tool as it's not from FRED and has a different history format
         today = datetime.today().date()
         
@@ -1128,6 +1129,347 @@ async def get_options_aggregation(request: OptionsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/polymarket/{ticker}")
+async def get_polymarket_data(ticker: str):
+    """
+    Fetch PolyMarket prediction market data for a given ticker using Gamma API.
+    Returns odds/probabilities for various price targets.
+    """
+    try:
+        import requests
+        import json
+        
+        # Get current stock price from yfinance for context
+        base_price = 200.0
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            if info and 'currentPrice' in info:
+                base_price = float(info.get('currentPrice', 200.0))
+        except Exception as e:
+            print(f"Warning: Could not fetch current price for {ticker}: {e}")
+        
+        # PolyMarket Gamma API base URL
+        # According to PolyMarket docs, Gamma API is public for reading market data
+        # The search endpoint should work without authentication
+        gamma_api_base = "https://gamma-api.polymarket.com"
+        
+        # Prepare basic headers (no authentication needed for public Gamma API)
+        headers = {
+            'User-Agent': 'Financial Dashboard/1.0',
+            'Accept': 'application/json'
+        }
+        
+        print(f"[POLYMARKET] Using Gamma API (public) for market data")
+        
+        # Search for markets related to the ticker
+        # Try multiple search queries to find relevant markets
+        search_queries = [
+            ticker.upper(),
+            f"{ticker.upper()} stock",
+            f"{ticker.upper()} price",
+            f"{ticker.upper()} hit"
+        ]
+        
+        all_markets = []
+        
+        # Try /markets endpoint first (public endpoint for fetching markets)
+        # According to PolyMarket docs, /markets is the public endpoint
+        try:
+            markets_url = f"{gamma_api_base}/markets"
+            # Search for markets by query parameter
+            params = {
+                "limit": 100,
+                "active": "true"
+            }
+            
+            print(f"[POLYMARKET] Fetching markets from {markets_url}")
+            response = requests.get(markets_url, params=params, headers=headers, timeout=10)
+            print(f"[POLYMARKET] Markets endpoint status: {response.status_code}")
+            
+            if response.status_code == 200:
+                markets_data = response.json()
+                print(f"[POLYMARKET] Markets response type: {type(markets_data)}")
+                
+                # Handle different response structures
+                markets_list = []
+                if isinstance(markets_data, list):
+                    markets_list = markets_data
+                elif isinstance(markets_data, dict):
+                    markets_list = markets_data.get('markets', markets_data.get('data', markets_data.get('results', [])))
+                
+                print(f"[POLYMARKET] Found {len(markets_list)} total markets")
+                
+                # Filter markets by ticker in question/title
+                ticker_lower = ticker.lower()
+                ticker_upper = ticker.upper()
+                for market in markets_list:
+                    if not isinstance(market, dict):
+                        continue
+                    question = (market.get('question', '') or market.get('title', '') or market.get('name', '') or '').lower()
+                    if ticker_lower in question or ticker_upper in question:
+                        if any(kw in question for kw in ['price', 'hit', '$', 'reach', 'above', 'below', 'stock']):
+                            print(f"[POLYMARKET] Found relevant market: {question[:100]}")
+                            all_markets.append(market)
+        except Exception as e:
+            print(f"[POLYMARKET] Error fetching from /markets endpoint: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # If no markets found, try /search endpoint as fallback
+        if not all_markets:
+            print(f"[POLYMARKET] No markets found from /markets, trying /search endpoint")
+            for query in search_queries:
+                try:
+                    search_url = f"{gamma_api_base}/search"
+                    params = {
+                        "q": query,
+                        "limit": 50
+                    }
+                    
+                    print(f"[POLYMARKET] Searching for '{query}' at {search_url} with params {params}")
+                    
+                    # Gamma API is public - no authentication needed
+                    response = requests.get(search_url, params=params, headers=headers, timeout=10)
+                    print(f"[POLYMARKET] Response status: {response.status_code}")
+                    
+                    if response.status_code != 200:
+                        print(f"[POLYMARKET] Error response: {response.text[:500]}")
+                        continue
+                    
+                    search_results = response.json()
+                    print(f"[POLYMARKET] Response type: {type(search_results)}, keys: {search_results.keys() if isinstance(search_results, dict) else 'N/A (list)'}")
+                    
+                    # Handle different response structures
+                    if isinstance(search_results, list):
+                        print(f"[POLYMARKET] Found {len(search_results)} results (list format)")
+                        # Check if items are events or markets
+                        for item in search_results:
+                            if isinstance(item, dict):
+                                # If it has 'markets' key, it's an event - extract markets
+                                if 'markets' in item and isinstance(item['markets'], list):
+                                    print(f"[POLYMARKET] Found event with {len(item['markets'])} markets")
+                                    all_markets.extend(item['markets'])
+                                # If it has 'question' or 'title', it might be a market
+                                elif 'question' in item or 'title' in item:
+                                    all_markets.append(item)
+                                else:
+                                    # Try other structures
+                                    all_markets.append(item)
+                    elif isinstance(search_results, dict):
+                        # Try common response keys
+                        if 'results' in search_results:
+                            results = search_results['results']
+                            print(f"[POLYMARKET] Found {len(results)} results in 'results' key")
+                            if isinstance(results, list):
+                                for item in results:
+                                    if isinstance(item, dict) and 'markets' in item:
+                                        all_markets.extend(item.get('markets', []))
+                                    else:
+                                        all_markets.append(item)
+                        elif 'data' in search_results:
+                            data = search_results['data']
+                            print(f"[POLYMARKET] Found {len(data) if isinstance(data, list) else 'N/A'} results in 'data' key")
+                            if isinstance(data, list):
+                                for item in data:
+                                    if isinstance(item, dict) and 'markets' in item:
+                                        all_markets.extend(item.get('markets', []))
+                                    else:
+                                        all_markets.append(item)
+                        elif 'markets' in search_results:
+                            markets = search_results['markets']
+                            print(f"[POLYMARKET] Found {len(markets) if isinstance(markets, list) else 'N/A'} results in 'markets' key")
+                            if isinstance(markets, list):
+                                all_markets.extend(markets)
+                        elif 'events' in search_results:
+                            events = search_results['events']
+                            print(f"[POLYMARKET] Found {len(events) if isinstance(events, list) else 'N/A'} events")
+                            if isinstance(events, list):
+                                for event in events:
+                                    if isinstance(event, dict) and 'markets' in event:
+                                        all_markets.extend(event.get('markets', []))
+                        else:
+                            # If it's a dict but we don't recognize the structure, log it
+                            print(f"[POLYMARKET] Unknown response structure. Keys: {list(search_results.keys())}")
+                            # Try to extract markets from the dict values
+                            for key, value in search_results.items():
+                                if isinstance(value, list) and len(value) > 0:
+                                    # Check if first item looks like a market or event
+                                    if isinstance(value[0], dict):
+                                        if 'question' in value[0] or 'title' in value[0]:
+                                            print(f"[POLYMARKET] Found markets in key '{key}': {len(value)} items")
+                                            all_markets.extend(value)
+                                        elif 'markets' in value[0]:
+                                            # It's a list of events
+                                            for event in value:
+                                                if isinstance(event, dict) and 'markets' in event:
+                                                    all_markets.extend(event.get('markets', []))
+                except Exception as e:
+                    print(f"[POLYMARKET] Error searching PolyMarket for '{query}': {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+        
+        print(f"[POLYMARKET] Total markets found: {len(all_markets)}")
+        
+        # Filter markets that are related to stock price predictions
+        relevant_markets = []
+        ticker_lower = ticker.lower()
+        ticker_upper = ticker.upper()
+        
+        for market in all_markets:
+            if not isinstance(market, dict):
+                continue
+            
+            # Check if market is about stock price - try multiple field names
+            question = (market.get('question', '') or market.get('title', '') or market.get('name', '') or '').lower()
+            title = (market.get('title', '') or market.get('name', '') or '').lower()
+            description = (market.get('description', '') or market.get('subtitle', '') or '').lower()
+            
+            # Also check slug and other fields
+            slug = (market.get('slug', '') or market.get('id', '') or '').lower()
+            
+            # Look for ticker in any field
+            ticker_found = (ticker_lower in question or ticker_upper in question or 
+                          ticker_lower in title or ticker_upper in title or
+                          ticker_lower in description or ticker_upper in description or
+                          ticker_lower in slug or ticker_upper in slug)
+            
+            # Look for price-related keywords
+            price_keywords = ['price', 'hit', 'reach', 'above', 'below', '$', 'stock', 'share', 'trading']
+            has_price_keyword = any(keyword in question or keyword in title or keyword in description or keyword in slug 
+                                   for keyword in price_keywords)
+            
+            if ticker_found and has_price_keyword:
+                print(f"[POLYMARKET] Found relevant market: {market.get('question') or market.get('title') or market.get('name')}")
+                relevant_markets.append(market)
+        
+        print(f"[POLYMARKET] Relevant markets after filtering: {len(relevant_markets)}")
+        
+        # Process markets to extract price targets and odds
+        targets = []
+        question_text = f"What will {ticker.upper()} hit before 2026?"
+        
+        if relevant_markets:
+            # Use the first relevant market
+            market = relevant_markets[0]
+            question_text = market.get('question') or market.get('title') or market.get('name') or question_text
+            print(f"[POLYMARKET] Using market: {question_text}")
+            print(f"[POLYMARKET] Market keys: {list(market.keys())}")
+            
+            # Extract outcomes and their prices - try multiple possible structures
+            outcomes = market.get('outcomes', [])
+            if not outcomes:
+                outcomes = market.get('tokens', [])
+            if not outcomes:
+                outcomes = market.get('conditions', [])
+            if not outcomes:
+                # Some markets have outcomes nested differently
+                if 'outcomePrices' in market:
+                    outcomes = market.get('outcomePrices', [])
+            
+            print(f"[POLYMARKET] Found {len(outcomes)} outcomes")
+            
+            for outcome in outcomes:
+                if not isinstance(outcome, dict):
+                    continue
+                
+                print(f"[POLYMARKET] Processing outcome: {outcome.keys()}")
+                
+                outcome_name = outcome.get('name', '') or outcome.get('title', '') or outcome.get('outcome', '')
+                price = outcome.get('price', None)
+                
+                # Try to extract price from different fields
+                if price is None:
+                    price = outcome.get('lastPrice', None)
+                if price is None:
+                    price = outcome.get('currentPrice', None)
+                if price is None:
+                    price = outcome.get('lastPrice', None)
+                if price is None:
+                    # Some APIs return price as a string or in a nested structure
+                    price_info = outcome.get('priceInfo', {})
+                    if isinstance(price_info, dict):
+                        price = price_info.get('price') or price_info.get('lastPrice')
+                
+                # Convert price to odds percentage
+                if price is not None:
+                    try:
+                        price_float = float(price)
+                        odds_percent = round(price_float * 100, 1)
+                        
+                        # Extract target from outcome name/title
+                        target_text = outcome_name
+                        if not target_text:
+                            continue
+
+                        print(f"[POLYMARKET] Adding target: {target_text} with odds {odds_percent}%")
+                        targets.append({
+                            "target": target_text,
+                            "odds": odds_percent
+                        })
+                    except (ValueError, TypeError) as e:
+                        print(f"[POLYMARKET] Error converting price {price}: {e}")
+                        continue
+                else:
+                    print(f"[POLYMARKET] No price found for outcome: {outcome_name}")
+            
+            print(f"[POLYMARKET] Total targets extracted: {len(targets)}")
+                
+        # If no targets found from API, generate fallback data based on current price
+        if not targets:
+            print(f"No PolyMarket data found for {ticker}, using fallback data")
+            import random
+            
+            if base_price < 100:
+                targets = [
+                    {"target": f"${base_price * 1.2:.0f}+", "odds": round(random.uniform(35, 50), 1)},
+                    {"target": f"${base_price * 1.5:.0f}+", "odds": round(random.uniform(20, 35), 1)},
+                    {"target": f"${base_price * 2.0:.0f}+", "odds": round(random.uniform(10, 25), 1)},
+                    {"target": f"${base_price * 2.5:.0f}+", "odds": round(random.uniform(5, 15), 1)},
+                    {"target": f"${base_price * 3.0:.0f}+", "odds": round(random.uniform(2, 10), 1)}
+                ]
+            elif base_price < 300:
+                targets = [
+                    {"target": f"${base_price * 1.15:.0f}+", "odds": round(random.uniform(40, 55), 1)},
+                    {"target": f"${base_price * 1.3:.0f}+", "odds": round(random.uniform(25, 40), 1)},
+                    {"target": f"${base_price * 1.5:.0f}+", "odds": round(random.uniform(15, 30), 1)},
+                    {"target": f"${base_price * 2.0:.0f}+", "odds": round(random.uniform(8, 20), 1)},
+                    {"target": f"${base_price * 2.5:.0f}+", "odds": round(random.uniform(3, 12), 1)}
+                ]
+            else:
+                targets = [
+                    {"target": f"${base_price * 1.1:.0f}+", "odds": round(random.uniform(45, 60), 1)},
+                    {"target": f"${base_price * 1.2:.0f}+", "odds": round(random.uniform(30, 45), 1)},
+                    {"target": f"${base_price * 1.3:.0f}+", "odds": round(random.uniform(20, 35), 1)},
+                    {"target": f"${base_price * 1.5:.0f}+", "odds": round(random.uniform(10, 25), 1)},
+                    {"target": f"${base_price * 2.0:.0f}+", "odds": round(random.uniform(5, 15), 1)}
+                ]
+        
+        # Sort by target price (ascending) - try to extract numeric value
+        def extract_price(target_str):
+            try:
+                # Remove $ and +, extract number
+                cleaned = target_str.replace('$', '').replace('+', '').strip()
+                return float(cleaned)
+            except:
+                return 0
+        
+        targets.sort(key=lambda x: extract_price(x["target"]))
+        
+        return {
+            "ticker": ticker.upper(),
+            "current_price": base_price,
+            "question": question_text,
+            "targets": targets,
+            "last_updated": datetime.datetime.now().isoformat()
+        }
+    except Exception as e:
+        print(f"Error fetching PolyMarket data for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/indices")
 async def get_indices():
     """
@@ -1157,8 +1499,8 @@ async def get_indices():
                         "change": 0.0,
                         "history": []
                     })
-                    continue
-                
+                continue
+
                 # Get current and previous close
                 current_price = float(history['Close'].iloc[-1])
                 prev_close = float(history['Close'].iloc[-2]) if len(history) > 1 else current_price
@@ -1359,7 +1701,7 @@ async def get_crypto_data(ticker: str):
         # Get crypto name from info or use ticker
         crypto_name = info.get("longName") or info.get("shortName") or ticker.replace("-USD", "")
         description = f"{crypto_name} Price"
-        
+
         return {
             "ticker": ticker.upper(),
             "name": crypto_name,

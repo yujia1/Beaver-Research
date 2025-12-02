@@ -719,11 +719,40 @@
 
       <!-- PolyMarket Tab Content -->
       <div v-if="activeTab === 'productivity'" class="tab-content productivity-tab-content">
-        <div class="content-section">
-          <div class="info-card">
-            <h3>📊 PolyMarket</h3>
-            <p>This section will display PolyMarket-related information and metrics.</p>
-            <p class="coming-soon">Coming soon: PolyMarket data and insights.</p>
+        <div v-if="!selectedStock" class="empty-deck">
+          <p>Please select a stock ticker to view PolyMarket data.</p>
+        </div>
+        <div v-else class="content-section">
+          <div v-if="loadingPolyMarket" class="loading-state">
+            <p>Loading PolyMarket data...</p>
+          </div>
+          <div v-else-if="polyMarketError" class="error-message">
+            <p>{{ polyMarketError }}</p>
+          </div>
+          <div v-else-if="polyMarketData" class="polymarket-content">
+            <div class="polymarket-header">
+              <h3>📊 PolyMarket - {{ selectedStock }}</h3>
+              <p class="polymarket-question">{{ polyMarketData.question }}</p>
+            </div>
+            <div class="polymarket-chart-container">
+              <canvas ref="polyMarketChart"></canvas>
+            </div>
+            <div class="polymarket-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Price Target</th>
+                    <th>Odds</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="target in polyMarketData.targets" :key="target.target">
+                    <td>{{ target.target }}</td>
+                    <td class="odds-value">{{ target.odds }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1036,6 +1065,7 @@ import {
   PointElement,
   LineElement,
   BarElement,
+  BarController,
   ArcElement,
   DoughnutController,
   Title,
@@ -1047,6 +1077,7 @@ import { Line } from 'vue-chartjs'
 // Register additional Chart.js components for Micro Economics
 ChartJS.register(
   BarElement,
+  BarController,
   ArcElement,
   DoughnutController
 )
@@ -1190,6 +1221,7 @@ const assetsChart = ref(null)
 const liabilitiesChart = ref(null)
 const optionsVolumeChart = ref(null)
 const optionsCallsPutsChart = ref(null)
+const polyMarketChart = ref(null)
 
 // Chart instances
 let revenueProfitChartInstance = null
@@ -1198,6 +1230,12 @@ let assetsChartInstance = null
 let liabilitiesChartInstance = null
 let optionsVolumeChartInstance = null
 let optionsCallsPutsChartInstance = null
+let polyMarketChartInstance = null
+
+// PolyMarket data
+const polyMarketData = ref(null)
+const loadingPolyMarket = ref(false)
+const polyMarketError = ref(null)
 
 // Filings sorting
 const filingsSortBy = ref('date')
@@ -1863,6 +1901,11 @@ watch(selectedStock, (newStock, oldStock) => {
     loadReportHistory()
   }
   
+  // Fetch PolyMarket data if on PolyMarket tab
+  if (selectedStock.value && activeTab.value === 'productivity') {
+    fetchPolyMarketData()
+  }
+  
   // Reload stock data for the new ticker
   if (selectedStock.value) {
     loadStockData()
@@ -1884,6 +1927,11 @@ watch(activeTab, (newTab) => {
   if (newTab === 'report' && selectedStock.value) {
     loadReportData()
     loadReportHistory()
+  }
+  
+  // Fetch PolyMarket data when switching to PolyMarket tab
+  if (newTab === 'productivity' && selectedStock.value) {
+    fetchPolyMarketData()
   }
 })
 
@@ -2849,6 +2897,103 @@ const getPutCallRatio = () => {
   
   const ratio = totalPutsVolume / totalCallsVolume
   return ratio.toFixed(2)
+}
+
+// PolyMarket functions
+const fetchPolyMarketData = async () => {
+  if (!selectedStock.value) {
+    polyMarketData.value = null
+    return
+  }
+  
+  loadingPolyMarket.value = true
+  polyMarketError.value = null
+  
+  try {
+    const response = await fetch(`http://localhost:8000/api/internal/polymarket/${selectedStock.value.toUpperCase()}`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch PolyMarket data')
+    }
+    polyMarketData.value = await response.json()
+    
+    // Render chart after data is loaded
+    await nextTick()
+    renderPolyMarketChart()
+  } catch (err) {
+    polyMarketError.value = err.message || 'Error loading PolyMarket data'
+    console.error('Error fetching PolyMarket data:', err)
+  } finally {
+    loadingPolyMarket.value = false
+  }
+}
+
+const renderPolyMarketChart = () => {
+  if (!polyMarketChart.value || !polyMarketData.value) return
+  
+  // Destroy existing chart if it exists
+  const existingChart = ChartJS.getChart(polyMarketChart.value)
+  if (existingChart) {
+    existingChart.destroy()
+  }
+  
+  const labels = polyMarketData.value.targets.map(t => t.target)
+  const odds = polyMarketData.value.targets.map(t => t.odds)
+  
+  polyMarketChartInstance = new ChartJS(polyMarketChart.value, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Odds (%)',
+        data: odds,
+        backgroundColor: odds.map(o => {
+          // Color gradient: higher odds = greener, lower odds = redder
+          if (o >= 40) return '#42b983'
+          if (o >= 25) return '#95a5a6'
+          if (o >= 15) return '#f39c12'
+          return '#e74c3c'
+        }),
+        borderColor: '#000000',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              return `Odds: ${context.parsed.y}%`
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: (value) => value + '%'
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#000000'
+          }
+        }
+      }
+    }
+  })
 }
 
 const renderOptionsVolumeChart = () => {
@@ -6551,6 +6696,97 @@ onUnmounted(() => {
     font-style: italic;
     color: #999999;
     margin-top: 20px;
+}
+
+/* PolyMarket Styles */
+.polymarket-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.polymarket-header {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #cccccc;
+}
+
+.polymarket-header h3 {
+    margin: 0 0 10px 0;
+    color: #000000;
+    font-size: 1.5em;
+    font-weight: 600;
+}
+
+.polymarket-question {
+    margin: 0;
+    color: #666666;
+    font-size: 1em;
+}
+
+.polymarket-chart-container {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #cccccc;
+    height: 400px;
+    position: relative;
+}
+
+.polymarket-table {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #cccccc;
+    overflow-x: auto;
+}
+
+.polymarket-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.polymarket-table thead {
+    background: #f8f9fa;
+}
+
+.polymarket-table th {
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #000000;
+    border-bottom: 2px solid #cccccc;
+}
+
+.polymarket-table td {
+    padding: 12px 15px;
+    color: #000000;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.polymarket-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.odds-value {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: #3498db;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #666666;
+}
+
+.error-message {
+    background: #ffe6e6;
+    border: 1px solid #ff9999;
+    padding: 20px;
+    border-radius: 8px;
+    color: #cc0000;
 }
 
 </style>
