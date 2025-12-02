@@ -104,14 +104,7 @@
           :class="{ active: activeTab === 'productivity' }"
           @click="activeTab = 'productivity'"
         >
-          Productivity
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: activeTab === 'policy' }"
-          @click="activeTab = 'policy'"
-        >
-          Policy
+          PolyMarket
         </button>
         <button 
           class="tab-btn" 
@@ -298,9 +291,6 @@
               <button :class="{ active: microTab === 'overview' }" @click="microTab = 'overview'">Overview</button>
               <button :class="{ active: microTab === 'financials' }" @click="microTab = 'financials'">Financial Statements</button>
               <button :class="{ active: microTab === 'ratios' }" @click="microTab = 'ratios'">Ratios</button>
-              <button :class="{ active: microTab === 'notes' }" @click="microTab = 'notes'">Notes & Disclosures</button>
-              <button :class="{ active: microTab === 'drivers' }" @click="microTab = 'drivers'">Operating Drivers</button>
-              <button :class="{ active: microTab === 'capital' }" @click="microTab = 'capital'">Capital Structure</button>
               <button :class="{ active: microTab === 'filings' }" @click="microTab = 'filings'">Filings</button>
               <button :class="{ active: microTab === 'release' }" @click="microTab = 'release'">Release</button>
               <button :class="{ active: microTab === 'holders' }" @click="microTab = 'holders'">Holders</button>
@@ -325,64 +315,6 @@
                     <div class="report-content" v-html="renderMarkdown(analysisReport)"></div>
                   </div>
 
-                  <div v-if="notesReport" class="analysis-section">
-                    <h4>Notes & Disclosures</h4>
-                    <div class="report-content" v-html="renderMarkdown(notesReport)"></div>
-                  </div>
-
-                  <div v-if="driversReport" class="analysis-section">
-                    <h4>Operating Drivers</h4>
-                    <div class="report-content" v-html="renderMarkdown(driversReport)"></div>
-                    
-                    <div v-if="companyData" class="metrics-viz">
-                      <h5>Key Operating Metrics (LTM)</h5>
-                      <div class="metrics-grid">
-                        <div class="metric-card">
-                          <div class="metric-label">Revenue Growth</div>
-                          <div class="metric-value">{{ calculateRevenueGrowth() }}%</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Operating Margin</div>
-                          <div class="metric-value">{{ formatPercentMicro(companyData.ratios?.profitability?.operatingMargins) }}</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Asset Turnover</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.efficiency?.assetTurnover) }}x</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Inventory Turnover</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.efficiency?.inventoryTurnover) }}x</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-if="capitalReport" class="analysis-section">
-                    <h4>Capital Structure & Financing</h4>
-                    <div class="report-content" v-html="renderMarkdown(capitalReport)"></div>
-                    
-                    <div v-if="companyData" class="capital-viz">
-                      <h5>Capital Structure Metrics</h5>
-                      <div class="metrics-grid">
-                        <div class="metric-card">
-                          <div class="metric-label">Debt/Equity</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEquity) }}</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Debt/EBITDA</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEbitda) }}x</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Interest Coverage</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.liquidity?.interestCoverage) }}x</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">FCF Yield</div>
-                          <div class="metric-value">{{ formatPercentMicro(companyData.ratios?.profitability?.fcfYield) }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -560,106 +492,6 @@
                     <p>EV/EBITDA: {{ formatRatioMicro(companyData.ratios?.valuation?.enterpriseToEbitda) }}</p>
                     <p>P/S: {{ formatRatioMicro(companyData.ratios?.valuation?.priceToSales) }}</p>
                     <p>EV/Revenue: {{ formatRatioMicro(companyData.ratios?.valuation?.evToRevenue) }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Notes & Disclosures Tab -->
-              <div v-if="microTab === 'notes'" class="micro-tab-pane">
-                <div class="ai-section">
-                  <button @click="generateNotesAnalysis" :disabled="analyzingNotes" class="ai-btn">
-                    {{ analyzingNotes ? 'Generating Analysis...' : '📋 Generate Notes & Disclosures Analysis' }}
-                  </button>
-                  <div v-if="notesReport" class="report-content" v-html="renderMarkdown(notesReport)"></div>
-                  <div v-else class="info-message">
-                    Generate the Complete Deep Dive from the Overview tab to see this analysis.
-                  </div>
-                </div>
-              </div>
-
-              <!-- Operating Drivers Tab -->
-              <div v-if="microTab === 'drivers'" class="micro-tab-pane">
-                <div class="ai-section">
-                  <button @click="generateDriversAnalysis" :disabled="analyzingDrivers" class="ai-btn">
-                    {{ analyzingDrivers ? 'Generating Analysis...' : '⚙️ Generate Operating Drivers Analysis' }}
-                  </button>
-                  
-                  <div v-if="driversReport">
-                    <div class="report-content" v-html="renderMarkdown(driversReport)"></div>
-                    
-                    <div v-if="companyData" class="metrics-viz">
-                      <h5>Key Operating Metrics (LTM)</h5>
-                      <div class="metrics-grid">
-                        <div class="metric-card">
-                          <div class="metric-label">Revenue Growth</div>
-                          <div class="metric-value">{{ calculateRevenueGrowth() }}%</div>
-                          <div class="metric-trend" :class="calculateRevenueGrowth() > 0 ? 'positive' : 'negative'">
-                            {{ calculateRevenueGrowth() > 0 ? '↑' : '↓' }}
-                          </div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Operating Margin</div>
-                          <div class="metric-value">{{ formatPercentMicro(companyData.ratios?.profitability?.operatingMargins) }}</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Asset Turnover</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.efficiency?.assetTurnover) }}x</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Inventory Turnover</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.efficiency?.inventoryTurnover) }}x</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Days Sales Outstanding</div>
-                          <div class="metric-value">{{ formatDaysMicro(companyData.ratios?.efficiency?.daysSalesOutstanding) }}</div>
-                        </div>
-                        <div class="metric-card">
-                          <div class="metric-label">Working Capital</div>
-                          <div class="metric-value">{{ formatNumberMicro(companyData.ratios?.efficiency?.workingCapital) }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else class="info-message">
-                    Generate the Complete Deep Dive from the Overview tab to see this analysis.
-                  </div>
-                </div>
-              </div>
-
-              <!-- Capital Structure Tab -->
-              <div v-if="microTab === 'capital'" class="micro-tab-pane">
-                <div class="ai-section">
-                  <button @click="generateCapitalAnalysis" :disabled="analyzingCapital" class="ai-btn">
-                    {{ analyzingCapital ? 'Generating Analysis...' : '💰 Generate Capital Structure Analysis' }}
-                  </button>
-                  
-                  <div v-if="capitalReport">
-                    <div class="report-content" v-html="renderMarkdown(capitalReport)"></div>
-                    
-                    <div v-if="companyData" class="capital-viz">
-                      <h5>Capital Structure Metrics</h5>
-                      <div class="metrics-grid">
-                        <div class="metric-card highlight">
-                          <div class="metric-label">Debt/Equity</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEquity) }}</div>
-                        </div>
-                        <div class="metric-card highlight">
-                          <div class="metric-label">Debt/EBITDA</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEbitda) }}x</div>
-                        </div>
-                        <div class="metric-card highlight">
-                          <div class="metric-label">Interest Coverage</div>
-                          <div class="metric-value">{{ formatRatioMicro(companyData.ratios?.liquidity?.interestCoverage) }}x</div>
-                        </div>
-                        <div class="metric-card highlight">
-                          <div class="metric-label">FCF Yield</div>
-                          <div class="metric-value">{{ formatPercentMicro(companyData.ratios?.profitability?.fcfYield) }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else class="info-message">
-                    Generate the Complete Deep Dive from the Overview tab to see this analysis.
                   </div>
                 </div>
               </div>
@@ -848,24 +680,13 @@
         </div>
       </div>
 
-      <!-- Productivity Tab Content -->
+      <!-- PolyMarket Tab Content -->
       <div v-if="activeTab === 'productivity'" class="tab-content productivity-tab-content">
         <div class="content-section">
           <div class="info-card">
-            <h3>📊 Productivity Metrics</h3>
-            <p>This section will display productivity-related economic indicators and metrics.</p>
-            <p class="coming-soon">Coming soon: Labor productivity, GDP per capita, manufacturing productivity, and more.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Policy Tab Content -->
-      <div v-if="activeTab === 'policy'" class="tab-content policy-tab-content">
-        <div class="content-section">
-          <div class="info-card">
-            <h3>📜 Policy & Regulation</h3>
-            <p>This section will display policy and regulatory information affecting financial markets.</p>
-            <p class="coming-soon">Coming soon: Federal Reserve policy decisions, regulatory changes, SEC filings, and more.</p>
+            <h3>📊 PolyMarket</h3>
+            <p>This section will display PolyMarket-related information and metrics.</p>
+            <p class="coming-soon">Coming soon: PolyMarket data and insights.</p>
           </div>
         </div>
       </div>
@@ -1274,12 +1095,6 @@ const financialPeriod = ref('annual')
 // Analysis state
 const analyzing = ref(false)
 const analysisReport = ref(null)
-const analyzingNotes = ref(false)
-const notesReport = ref(null)
-const analyzingDrivers = ref(false)
-const driversReport = ref(null)
-const analyzingCapital = ref(false)
-const capitalReport = ref(null)
 const analysisProgress = ref('')
 
 // Report and Linked Cards State
@@ -1950,9 +1765,6 @@ const fetchCompanyData = async () => {
   companyError.value = null
   companyData.value = null
   analysisReport.value = null
-  notesReport.value = null
-  driversReport.value = null
-  capitalReport.value = null
   
   try {
     const response = await fetch(`http://localhost:8000/api/internal/micro/${selectedStock.value.toUpperCase()}`)
@@ -2507,39 +2319,12 @@ const generateAllAnalyses = async () => {
     analysisProgress.value = 'Generating Company Overview & Industry Analysis...'
     await generateAnalysis()
     
-    analysisProgress.value = 'Generating Notes & Disclosures Analysis...'
-    await generateNotesAnalysis()
-    
-    analysisProgress.value = 'Generating Operating Drivers Analysis...'
-    await generateDriversAnalysis()
-    
-    analysisProgress.value = 'Generating Capital Structure Analysis...'
-    await generateCapitalAnalysis()
-    
     analysisProgress.value = 'Saving complete deep dive report...'
     const combinedReport = `# Deep Dive Analysis: ${companyData.value.company_name} (${companyData.value.ticker})
 
 ## Company Overview & Industry Analysis
 
-${analysisReport.value || 'Not generated'}
-
----
-
-## Notes & Disclosures
-
-${notesReport.value || 'Not generated'}
-
----
-
-## Operating Drivers
-
-${driversReport.value || 'Not generated'}
-
----
-
-## Capital Structure & Financing
-
-${capitalReport.value || 'Not generated'}`
+${analysisReport.value || 'Not generated'}`
 
     // Save to backend
     await saveReport(
@@ -2600,89 +2385,6 @@ const generateAnalysis = async () => {
   }
 }
 
-const generateNotesAnalysis = async () => {
-  if (!companyData.value) return
-  analyzingNotes.value = true
-  try {
-    const response = await fetch('http://localhost:8000/api/agent/analyze_notes_disclosures', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ticker: companyData.value.ticker,
-        company_name: companyData.value.company_name,
-        sector: companyData.value.sector
-      })
-    })
-    if (!response.ok) throw new Error('Failed to generate analysis')
-    const result = await response.json()
-    notesReport.value = result.report
-    await saveReport(`Notes & Disclosures: ${companyData.value.company_name}`, result.report, 'notes_disclosures')
-    // Force Vue reactivity update
-    await nextTick()
-  } catch (e) {
-    console.error(e)
-    if (!analyzing.value) alert("Failed to generate notes analysis")
-    throw e
-  } finally {
-    analyzingNotes.value = false
-  }
-}
-
-const generateDriversAnalysis = async () => {
-  if (!companyData.value) return
-  analyzingDrivers.value = true
-  try {
-    const response = await fetch('http://localhost:8000/api/agent/analyze_operating_drivers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ticker: companyData.value.ticker,
-        company_name: companyData.value.company_name,
-        sector: companyData.value.sector
-      })
-    })
-    if (!response.ok) throw new Error('Failed to generate analysis')
-    const result = await response.json()
-    driversReport.value = result.report
-    await saveReport(`Operating Drivers: ${companyData.value.company_name}`, result.report, 'operating_drivers')
-    // Force Vue reactivity update
-    await nextTick()
-  } catch (e) {
-    console.error(e)
-    if (!analyzing.value) alert("Failed to generate drivers analysis")
-    throw e
-  } finally {
-    analyzingDrivers.value = false
-  }
-}
-
-const generateCapitalAnalysis = async () => {
-  if (!companyData.value) return
-  analyzingCapital.value = true
-  try {
-    const response = await fetch('http://localhost:8000/api/agent/analyze_capital_structure', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ticker: companyData.value.ticker,
-        company_name: companyData.value.company_name,
-        sector: companyData.value.sector
-      })
-    })
-    if (!response.ok) throw new Error('Failed to generate analysis')
-    const result = await response.json()
-    capitalReport.value = result.report
-    await saveReport(`Capital Structure: ${companyData.value.company_name}`, result.report, 'capital_structure')
-    // Force Vue reactivity update
-    await nextTick()
-  } catch (e) {
-    console.error(e)
-    if (!analyzing.value) alert("Failed to generate capital analysis")
-    throw e
-  } finally {
-    analyzingCapital.value = false
-  }
-}
 
 // Chart rendering functions
 const renderFinancialCharts = () => {
@@ -6583,10 +6285,6 @@ onUnmounted(() => {
 
 /* Productivity Tab Styles */
 .productivity-tab-content {
-    padding: 20px 0;
-}
-
-.policy-tab-content {
     padding: 20px 0;
 }
 

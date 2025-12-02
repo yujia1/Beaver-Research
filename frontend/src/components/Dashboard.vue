@@ -80,13 +80,6 @@
                 >
                     Policy
                 </button>
-                <button 
-                    class="tab-btn" 
-                    :class="{ active: activeTab === 'security' }"
-                    @click="activeTab = 'security'"
-                >
-                    Security
-                </button>
             </div>
 
             <!-- Equity Tab Content -->
@@ -107,128 +100,6 @@
                     </div>
                 </div>
 
-                <!-- Market Movers Grid -->
-                <div class="market-grid">
-        <!-- Top Gainers -->
-        <div class="market-section">
-            <h3>🚀 Top Gainers</h3>
-            <table class="market-table">
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Price</th>
-                        <th>Chg %</th>
-                        <th>Vol</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="stock in marketData.gainers" :key="stock.ticker">
-                        <td 
-                            class="ticker-cell" 
-                            @mouseenter="showChart($event, stock.ticker)" 
-                            @mouseleave="hideChart"
-                        >
-                            {{ stock.ticker }}
-                        </td>
-                        <td>{{ stock.price }}</td>
-                        <td class="positive">+{{ stock.change_percent }}%</td>
-                        <td>{{ stock.volume }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Top Losers -->
-        <div class="market-section">
-            <h3>📉 Top Losers</h3>
-            <table class="market-table">
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Price</th>
-                        <th>Chg %</th>
-                        <th>Vol</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="stock in marketData.losers" :key="stock.ticker">
-                        <td 
-                            class="ticker-cell" 
-                            @mouseenter="showChart($event, stock.ticker)" 
-                            @mouseleave="hideChart"
-                        >
-                            {{ stock.ticker }}
-                        </td>
-                        <td>{{ stock.price }}</td>
-                        <td class="negative">{{ stock.change_percent }}%</td>
-                        <td>{{ stock.volume }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Most Volatile -->
-        <div class="market-section">
-            <h3>⚡ Most Volatile</h3>
-            <table class="market-table">
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Price</th>
-                        <th>Chg %</th>
-                        <th>Vol</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="stock in marketData.volatile" :key="stock.ticker">
-                        <td 
-                            class="ticker-cell" 
-                            @mouseenter="showChart($event, stock.ticker)" 
-                            @mouseleave="hideChart"
-                        >
-                            {{ stock.ticker }}
-                        </td>
-                        <td>{{ stock.price }}</td>
-                        <td :class="stock.change_percent >= 0 ? 'positive' : 'negative'">
-                            {{ stock.change_percent > 0 ? '+' : ''}}{{ stock.change_percent }}%
-                        </td>
-                        <td>{{ stock.volume }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Most Active -->
-        <div class="market-section">
-            <h3>🔥 Most Active</h3>
-            <table class="market-table">
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Price</th>
-                        <th>Chg %</th>
-                        <th>Vol</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="stock in marketData.active" :key="stock.ticker">
-                        <td 
-                            class="ticker-cell" 
-                            @mouseenter="showChart($event, stock.ticker)" 
-                            @mouseleave="hideChart"
-                        >
-                            {{ stock.ticker }}
-                        </td>
-                        <td>{{ stock.price }}</td>
-                        <td :class="stock.change_percent >= 0 ? 'positive' : 'negative'">
-                            {{ stock.change_percent > 0 ? '+' : ''}}{{ stock.change_percent }}%
-                        </td>
-                        <td>{{ stock.volume }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-                </div>
             </div>
 
             <!-- Bond Tab Content -->
@@ -1055,14 +926,6 @@
                 </div>
             </div>
 
-            <!-- Security Tab Content -->
-            <div v-if="activeTab === 'security'" class="tab-content security-tab-content">
-                <div class="security-section">
-                    <h3 class="section-title">Security</h3>
-                    <p class="placeholder-message">Security content coming soon...</p>
-                </div>
-            </div>
-
             <!-- Crypto Tab Content -->
             <div v-if="activeTab === 'crypto'" class="tab-content crypto-tab-content">
                 <div class="crypto-data">
@@ -1216,18 +1079,6 @@
         </div>
     </div>
 
-    <!-- Hover Chart Tooltip -->
-    <div 
-        v-if="hoverChart.visible" 
-        class="hover-chart-tooltip" 
-        :style="{ top: hoverChart.y + 'px', left: hoverChart.x + 'px' }"
-    >
-        <h4>{{ hoverChart.ticker }} Daily History</h4>
-        <div class="chart-wrapper" v-if="hoverChart.data">
-            <Line :data="hoverChart.data" :options="chartOptions" />
-        </div>
-        <div v-else>Loading chart...</div>
-    </div>
   </div>
 </template>
 
@@ -1260,8 +1111,7 @@ ChartJS.register(
   Legend
 )
 
-const marketData = ref({ gainers: [], losers: [], volatile: [], active: [] });
-const loading = ref(true);
+const loading = ref(false);
 const activeTab = ref('equity');
 
 // Bond Tab State
@@ -1466,31 +1316,6 @@ const indices = ref([
     { name: 'Russell 2000', value: 0, change: 0, history: [] }
 ]);
 
-const hoverChart = ref({
-    visible: false,
-    x: 0,
-    y: 0,
-    ticker: '',
-    data: null
-});
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    tooltip: { mode: 'index', intersect: false }
-  },
-  scales: {
-    x: { display: false },
-    y: { display: false } // Sparkline style
-  },
-  elements: {
-    point: { radius: 0 },
-    line: { borderWidth: 2, tension: 0.4 }
-  }
-};
-
 const miniChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -1530,33 +1355,6 @@ const miniChartOptions = {
   }
 };
 
-const fetchMarketData = async () => {
-    // Check cache first
-    const cached = getDailyCache('market_movers');
-    if (cached) {
-        console.log('Using cached market data');
-        marketData.value = cached;
-        loading.value = false;
-        return;
-    }
-    
-    // Fetch fresh data if no cache
-    try {
-        loading.value = true;
-        const response = await fetch('http://localhost:8000/api/internal/market-movers');
-        if (!response.ok) throw new Error('Failed to fetch market movers');
-        const data = await response.json();
-        marketData.value = data;
-        
-        // Cache the data
-        setDailyCache('market_movers', data);
-    } catch (e) {
-        console.error(e);
-    } finally {
-        loading.value = false;
-    }
-};
-
 const fetchIndices = async () => {
     // Check cache first
     const cached = getDailyCache('indices_data');
@@ -1585,12 +1383,6 @@ const updateIndices = async () => {
     await fetchIndices();
 };
 
-const updateMarketData = async () => {
-    clearCacheByKey('market_movers');
-    loading.value = true; // Set loading state for Equity section
-    await fetchMarketData();
-};
-
 const updateCommodityData = async () => {
     clearCacheByKey('commodity_data_monthly');
     await fetchCommodityData();
@@ -1606,10 +1398,33 @@ const updateCryptoData = async () => {
   await fetchCryptoData();
 };
 
+const clearAllTimeframeCaches = () => {
+    // Clear all bond series timeframe caches
+    try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith(BOND_CACHE_KEY_PREFIX) || key.startsWith(ECONOMIC_CACHE_KEY_PREFIX)) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch (e) {
+        console.error('Error clearing timeframe caches:', e);
+    }
+};
+
 const updateData = async () => {
-    // Clear all caches
+    // Set loading states for all sections
+    loading.value = true;
+    bondLoading.value = true;
+    economicLoading.value = true;
+    fedLoading.value = true;
+    energyLoading.value = true;
+    currencyLoading.value = true;
+    commodityLoading.value = true;
+    cryptoLoading.value = true;
+    
+    // Clear all daily caches
     clearCacheByKey('indices_data');
-    clearCacheByKey('market_movers');
     clearCacheByKey('bond_data_monthly');
     clearCacheByKey('macro_data_monthly');
     clearCacheByKey('fed_data_monthly');
@@ -1619,70 +1434,29 @@ const updateData = async () => {
     clearCacheByKey('commodity_data_monthly');
     clearCacheByKey('currency_data_monthly');
     
+    // Clear all per-item timeframe caches (localStorage)
+    clearAllTimeframeCaches();
+    
     // Update all sections in parallel
-    await Promise.all([
-        updateIndices(),
-        updateMarketData(),
-        updateBondData(),
-        updateEconomicData(),
-        updateFedData(),
-        updateEnergyData(),
-        updateCommodityData(),
-        updateCurrencyData(),
-        updateCryptoData()
-    ]);
-};
-
-
-const showChart = async (event, ticker) => {
-    const rect = event.target.getBoundingClientRect();
-    hoverChart.value = {
-        visible: true,
-        x: rect.right + 10, // Position to the right of the cell
-        y: rect.top,
-        ticker: ticker,
-        data: null
-    };
-
-    // Fetch real stock history for the ticker
     try {
-        // Use the stock history endpoint to get real data (last 30 days for hover chart)
-        const response = await fetch(`http://localhost:8000/api/internal/stock/${ticker}/history?period=1mo`);
-        if (response.ok) {
-            const data = await response.json();
-            
-            // Convert API response to chart format
-            const history = data.history || [];
-            
-            hoverChart.value.data = {
-                labels: history.map((item, index) => {
-                    // Show only every 5th label to avoid crowding
-                    if (index % 5 === 0 || index === history.length - 1) {
-                        const date = new Date(item.date);
-                        return `${date.getMonth() + 1}/${date.getDate()}`;
-                    }
-                    return '';
-                }),
-                datasets: [{
-                    label: ticker,
-                    borderColor: '#3498db',
-                    data: history.map(item => item.price),
-                    fill: false,
-                    pointRadius: 0,
-                    tension: 0.4
-                }]
-            };
-        } else {
-            console.error("Failed to fetch stock history for hover chart");
-        }
-    } catch (e) {
-        console.error("Error fetching chart data", e);
+        await Promise.all([
+            updateIndices(),
+            updateBondData(),
+            updateEconomicData(),
+            updateFedData(),
+            updateEnergyData(),
+            updateCommodityData(),
+            updateCurrencyData(),
+            updateCryptoData()
+        ]);
+    } catch (error) {
+        console.error('Error updating data:', error);
+    } finally {
+        // Reset main loading state
+        loading.value = false;
     }
 };
 
-const hideChart = () => {
-    hoverChart.value.visible = false;
-};
 
 const getIndexChartData = (index) => {
     if (!index.history || index.history.length === 0) {
@@ -2863,7 +2637,6 @@ const updateIndicatorTimeframe = async (item, timeframe) => {
 
 onMounted(() => {
     fetchIndices();
-    fetchMarketData();
     
     // Fetch bond data when bond tab might be accessed
     fetchBondData();
@@ -3543,18 +3316,6 @@ onMounted(() => {
     font-size: 1em;
     text-align: center;
     padding: 40px 20px;
-}
-
-/* Security Tab Styles */
-.security-tab-content {
-    padding: 20px;
-}
-
-.security-section {
-    background: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #cccccc;
 }
 
 /* Energy Tab Styles */

@@ -11,7 +11,7 @@
             </svg>
           </div>
           <div class="logo-text">
-            <div class="logo-title">CHRONOS LEDGER</div>
+            <div class="logo-title">Beaver Research</div>
             <div class="logo-subtitle">FINANCIAL INTELLIGENCE UNIT</div>
           </div>
         </div>
@@ -29,7 +29,7 @@
     <header class="editor-header">
       <div class="header-content">
         <!-- Title -->
-        <h1 class="header-title">DAILY BRIEFING</h1>
+        <h1 class="header-title">BEAVER RESEARCH BRIEFING</h1>
         
         <!-- Mode Toggle Switch -->
         <div class="mode-toggle-switch" @click="toggleViewMode">
@@ -351,65 +351,65 @@ const companyAgents = [
   { 
     id: 'FUNDAMENTAL_AGENT', 
     name: 'Financials', 
-    icon: '📊', 
+    icon: '🀃', 
     focus: ['income', 'balance', 'cashflow'],
     subAgents: ['INCOME_ANALYST_AGENT', 'BALANCE_ANALYST_AGENT', 'CASHFLOW_ANALYST_AGENT']
   },
   { 
     id: 'TECHNICAL_ANALYST_AGENT', 
     name: 'Technical', 
-    icon: '📈', 
+    icon: '♕', 
     focus: ['technical', 'rsi', 'macd', 'moving average'],
     subAgents: ['TECHNICAL_ANALYST_AGENT']
   },
   { 
     id: 'INSIDE_TRADING_ANALYST_AGENT', 
     name: 'Insider', 
-    icon: '👤', 
+    icon: '♙', 
     focus: ['insider', 'trading', 'executive'],
     subAgents: ['INSIDE_TRADING_ANALYST_AGENT']
   },
   { 
     id: 'OPTION_ANALYST_AGENT', 
     name: 'Option', 
-    icon: '📈', 
+    icon: '♘', 
     focus: ['option', 'options', 'chain', 'calls', 'puts'],
     subAgents: ['OPTION_ANALYST_AGENT']
   },
   { 
     id: 'POLYMARKET_AGENT', 
     name: 'PolyMarket', 
-    icon: '📊', 
+    icon: '⛪︎', 
     focus: ['polymarket', 'prediction', 'market'],
     subAgents: ['polymarket']
   },
   { 
     id: 'BOND_AGENT', 
     name: 'Bond', 
-    icon: '💵', 
+    icon: '🀅', 
     focus: ['bond', 'credit', 'yield', 'treasury'],
     subAgents: ['BOND_ANALYST_AGENT', 'CREDIT_ANALYST_AGENT']
   },
   { 
     id: 'ECONOMICS_AGENT', 
     name: 'Economics', 
-    icon: '🌐', 
+    icon: '🀏', 
     focus: ['economics', 'cpi', 'macro', 'inflation'],
     subAgents: ['economics']
   },
   { 
     id: 'MANAGEMENT_AGENT', 
     name: 'Research', 
-    icon: '📝', 
+    icon: '🀢', 
     focus: ['research', '10k', '10q', 'filing', 'management'],
     subAgents: ['management']
   }
 ]
 
 const marketAgents = [
-  { id: 'EQUITY_AGENT', name: 'Equity Agent', icon: '📊', focus: ['equity', 'sector', 'sp500'], subAgents: ['sp500_index'] },
-  { id: 'BOND_AGENT', name: 'Bond Agent', icon: '💵', focus: ['yield', 'treasury', 'rates'], subAgents: ['treasury_yield'] },
-  { id: 'ECONOMICS_AGENT', name: 'Economics Agent', icon: '🌐', focus: ['cpi', 'jobs', 'macro'], subAgents: ['cpi_inflation'] }
+  { id: 'EQUITY_AGENT', name: 'Equity Agent', icon: '🀉', focus: ['equity', 'sector', 'sp500'], subAgents: ['sp500_index'] },
+  { id: 'BOND_AGENT', name: 'Bond Agent', icon: '🀅', focus: ['yield', 'treasury', 'rates'], subAgents: ['treasury_yield'] },
+  { id: 'ECONOMICS_AGENT', name: 'Economics Agent', icon: '🀏', focus: ['cpi', 'jobs', 'macro'], subAgents: ['cpi_inflation'] }
 ]
 
 const availableAgents = computed(() => {
