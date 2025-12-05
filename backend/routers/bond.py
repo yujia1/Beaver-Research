@@ -18,6 +18,16 @@ period_map = {
     "max": "max"
 }
 
+# Mapping of Treasury yield FRED series IDs to Yahoo Finance ticker symbols
+# Yahoo Finance provides real-time Treasury yield data
+treasury_yield_ticker_map = {
+    "DGS3MO": "^IRX",  # 3-Month Treasury Bill (13-week)
+    "DGS2": "^FVX",    # 5-Year Treasury Note (closest to 2-year, using 5-year as proxy)
+    "DGS5": "^FVX",    # 5-Year Treasury Note
+    "DGS10": "^TNX",   # 10-Year Treasury Note
+    "DGS30": "^TYX",   # 30-Year Treasury Bond
+}
+
 def fetch_fred_series(series_id: str, start_date: str):
     """Fetch a series from FRED and return list of {'date': str, 'value': float} sorted oldest to newest."""
     try:
@@ -114,7 +124,8 @@ class BondData(BaseModel):
 @router.get("/treasury-yields", response_model=List[BondData])
 async def get_treasury_yields(timeframe: str = "monthly"):
     """
-    Fetch Treasury Yields (3m, 2y, 5y, 10y, 30y) from FRED.
+    Fetch Treasury Yields (3m, 2y, 5y, 10y, 30y) from Yahoo Finance (primary) or FRED (fallback).
+    Yahoo Finance provides more up-to-date data than FRED.
     """
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
@@ -129,13 +140,30 @@ async def get_treasury_yields(timeframe: str = "monthly"):
     
     results = []
     for series in treasury_series:
-        history = fetch_fred_series(series["series_id"], start_date)
-        if history:
+        series_id = series["series_id"]
+        history = None
+        
+        # Try Yahoo Finance first for more up-to-date data
+        if series_id in treasury_yield_ticker_map:
+            yahoo_ticker = treasury_yield_ticker_map[series_id]
+            history = fetch_yfinance_series(yahoo_ticker, start_date)
+            if history and len(history) > 0:
+                print(f"Using Yahoo Finance data for {series_id} ({yahoo_ticker})")
+            else:
+                print(f"Yahoo Finance failed for {series_id}, trying FRED as fallback")
+        
+        # Fallback to FRED if Yahoo Finance fails or not available
+        if not history or len(history) == 0:
+            history = fetch_fred_series(series_id, start_date)
+            if history and len(history) > 0:
+                print(f"Using FRED data for {series_id}")
+        
+        if history and len(history) > 0:
             latest = history[-1]
             results.append({
                 "category": "Treasury Yields",
                 "title": series["title"],
-                "series_id": series["series_id"],
+                "series_id": series_id,
                 "current_value": latest["value"],
                 "current_date": latest["date"],
                 "description": series["description"],
@@ -149,16 +177,27 @@ async def get_treasury_yields(timeframe: str = "monthly"):
 async def get_yield_curve(timeframe: str = "monthly"):
     """
     Calculate Yield Curve Spreads (2s10s, 3m10s, 5s30s).
+    Uses Yahoo Finance data (primary) or FRED (fallback) for underlying yields.
     """
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
-    # Fetch individual yields
-    dgs2 = fetch_fred_series("DGS2", start_date)
-    dgs3mo = fetch_fred_series("DGS3MO", start_date)
-    dgs5 = fetch_fred_series("DGS5", start_date)
-    dgs10 = fetch_fred_series("DGS10", start_date)
-    dgs30 = fetch_fred_series("DGS30", start_date)
+    # Helper function to fetch yield data with Yahoo Finance first, then FRED fallback
+    def fetch_yield_data(series_id: str):
+        history = None
+        if series_id in treasury_yield_ticker_map:
+            yahoo_ticker = treasury_yield_ticker_map[series_id]
+            history = fetch_yfinance_series(yahoo_ticker, start_date)
+        if not history or len(history) == 0:
+            history = fetch_fred_series(series_id, start_date)
+        return history
+    
+    # Fetch individual yields (trying Yahoo Finance first, then FRED)
+    dgs2 = fetch_yield_data("DGS2")
+    dgs3mo = fetch_yield_data("DGS3MO")
+    dgs5 = fetch_yield_data("DGS5")
+    dgs10 = fetch_yield_data("DGS10")
+    dgs30 = fetch_yield_data("DGS30")
     
     results = []
     
@@ -260,8 +299,18 @@ async def get_bond_series(series_id: str, timeframe: str = "monthly"):
         else:
             raise HTTPException(status_code=404, detail="Spread not found")
 
-        h1 = fetch_fred_series(s1, start_date)
-        h2 = fetch_fred_series(s2, start_date)
+        # Helper function to fetch yield data with Yahoo Finance first, then FRED fallback
+        def fetch_yield_data(series_id: str):
+            history = None
+            if series_id in treasury_yield_ticker_map:
+                yahoo_ticker = treasury_yield_ticker_map[series_id]
+                history = fetch_yfinance_series(yahoo_ticker, start_date)
+            if not history or len(history) == 0:
+                history = fetch_fred_series(series_id, start_date)
+            return history
+        
+        h1 = fetch_yield_data(s1)
+        h2 = fetch_yield_data(s2)
         
         spread_history = []
         if h1 and h2:
@@ -377,8 +426,17 @@ async def get_bond_series(series_id: str, timeframe: str = "monthly"):
     meta = find_meta(series_id)
     if not meta:
         raise HTTPException(status_code=404, detail="Series not found")
-        
-    history = fetch_fred_series(series_id, start_date)
+    
+    # Try Yahoo Finance first for Treasury yields, then fallback to FRED
+    history = None
+    if series_id in treasury_yield_ticker_map:
+        yahoo_ticker = treasury_yield_ticker_map[series_id]
+        history = fetch_yfinance_series(yahoo_ticker, start_date)
+        if not history or len(history) == 0:
+            history = fetch_fred_series(series_id, start_date)
+    else:
+        history = fetch_fred_series(series_id, start_date)
+    
     latest = history[-1] if history else {"value": None, "date": None}
     
     return {

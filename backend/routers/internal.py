@@ -42,6 +42,13 @@ fred_indicators = [
         "chart_type": "line"
     },
     {
+        "indicator": "Initial Jobless Claims",
+        "series_id": "ICSA",
+        "description": "Initial Claims for Unemployment Insurance (Thousands)",
+        "category": "Labor",
+        "chart_type": "line"
+    },
+    {
         "indicator": "10Y Treasury Yield",
         "series_id": "DGS10",
         "description": "10-Year Treasury Yield (%)",
@@ -82,6 +89,34 @@ fred_indicators = [
         "series_id": "PERMIT",
         "description": "New Privately-Owned Housing Units Authorized (Thousands)",
         "category": "Housing",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Revolving Credit",
+        "series_id": "REVOLSL",
+        "description": "Revolving Credit (Credit Card Balances) ($B)",
+        "category": "Credit",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Charge-Off Rates",
+        "series_id": "CORCCACBS",
+        "description": "Charge-Off Rate on Credit Card Loans (%)",
+        "category": "Credit",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Delinquencies",
+        "series_id": "DRCCLACBS",
+        "description": "Delinquency Rate on Credit Card Loans (%)",
+        "category": "Credit",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Consumer Credit Growth",
+        "series_id": "TOTALSL",
+        "description": "Consumer Credit Growth (YoY %)",
+        "category": "Credit",
         "chart_type": "line"
     },
     {
@@ -215,6 +250,333 @@ fred_indicators = [
     }
 ]
 
+def fetch_bls_cpi(start_date: str, max_retries: int = 2, timeout: int = 15):
+    """Fetch CPI data from U.S. Bureau of Labor Statistics (BLS) API and calculate YoY percentage change.
+    
+    Args:
+        start_date: Start date in YYYY-MM-DD format
+        max_retries: Maximum number of retry attempts (default: 2)
+        timeout: Request timeout in seconds (default: 15)
+    
+    Returns:
+        List of {'date': str, 'value': float} with YoY percentage change, sorted oldest to newest
+    """
+    bls_api_key = os.getenv('BLS_API_KEY')
+    if not bls_api_key:
+        print("Warning: BLS_API_KEY not set. Cannot fetch CPI data")
+        return []
+    
+    # Calculate years needed (need at least 2 years for YoY calculation)
+    from datetime import datetime
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+    end_dt = datetime.today()
+    years_needed = max(2, (end_dt.year - start_dt.year) + 1)
+    
+    # BLS API requires year ranges
+    start_year = start_dt.year
+    end_year = end_dt.year
+    
+    # CPI-U series ID (Consumer Price Index for All Urban Consumers: All Items in U.S. City Average)
+    series_id = "CUUR0000SA0"
+    
+    # Retry logic with exponential backoff
+    for attempt in range(max_retries + 1):
+        try:
+            # BLS API v2 endpoint
+            url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+            
+            # BLS API request payload
+            payload = {
+                "seriesid": [series_id],
+                "startyear": str(start_year),
+                "endyear": str(end_year),
+                "registrationkey": bls_api_key
+            }
+            
+            headers = {
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=timeout)
+            
+            if response.status_code != 200:
+                print(f"BLS API returned status {response.status_code}: {response.text[:200]}")
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                return []
+            
+            data = response.json()
+            
+            # Check for API errors
+            if data.get("status") != "REQUEST_SUCCEEDED":
+                print(f"BLS API error: {data.get('message', 'Unknown error')}")
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)
+                    continue
+                return []
+            
+            # Extract data from response
+            results = data.get("Results", {}).get("series", [])
+            if not results:
+                print("BLS API returned no series data")
+                return []
+            
+            series_data = results[0].get("data", [])
+            if not series_data:
+                print("BLS API returned no data points")
+                return []
+            
+            # Convert BLS data format to our format and calculate YoY
+            # BLS returns data in reverse chronological order (newest first)
+            # Format: [{"year": "2024", "period": "M11", "value": "308.417", ...}, ...]
+            import pandas as pd
+            
+            # Parse BLS data
+            cpi_data = []
+            for item in reversed(series_data):  # Reverse to get chronological order
+                year = int(item.get("year", 0))
+                period = item.get("period", "")
+                value_str = item.get("value", "")
+                
+                # Skip annual averages (period "A00")
+                if period == "A00":
+                    continue
+                
+                # Parse month from period (M01 = January, M02 = February, etc.)
+                if period.startswith("M"):
+                    month = int(period[1:])
+                    # Create date (first day of month)
+                    date_str = f"{year}-{month:02d}-01"
+                    
+                    try:
+                        value = float(value_str)
+                        cpi_data.append({
+                            "date": date_str,
+                            "value": value
+                        })
+                    except (ValueError, TypeError):
+                        continue
+            
+            if len(cpi_data) < 13:  # Need at least 13 months for YoY calculation
+                print(f"Warning: BLS returned only {len(cpi_data)} months, need at least 13 for YoY calculation")
+                return []
+            
+            # Convert to DataFrame for easier manipulation
+            df = pd.DataFrame(cpi_data)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date').reset_index(drop=True)
+            
+            # Calculate YoY percentage change
+            # Shift by 12 rows to get value from same month previous year
+            df['value_12m_ago'] = df['value'].shift(12)
+            
+            # Calculate YoY percentage change: ((current / 12m_ago) - 1) * 100
+            mask = df['value_12m_ago'].notna()
+            df.loc[mask, 'yoy_pct'] = ((df.loc[mask, 'value'] / df.loc[mask, 'value_12m_ago']) - 1) * 100
+            df['yoy_pct'] = df['yoy_pct'].round(2)
+            
+            # Filter to only include dates after start_date and convert to list
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            df_filtered = df[df['date'] >= start_dt]
+            
+            # Convert to list format with only YoY percentages
+            result = []
+            for idx, row in df_filtered.iterrows():
+                if pd.notna(row.get('yoy_pct')):
+                    result.append({
+                        "date": row['date'].strftime('%Y-%m-%d'),
+                        "value": float(row['yoy_pct'])
+                    })
+            
+            return result
+            
+        except ReadTimeout:
+            print(f"BLS API timeout for CPI (attempt {attempt + 1}/{max_retries + 1})")
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+                continue
+            return []
+        except (Timeout, RequestException) as e:
+            print(f"BLS API request error for CPI: {e} (attempt {attempt + 1}/{max_retries + 1})")
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+                continue
+            return []
+        except Exception as e:
+            print(f"Error fetching BLS CPI data: {e}")
+            import traceback
+            traceback.print_exc()
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+                continue
+            return []
+    
+    return []
+
+def fetch_bls_cpi(start_date: str, max_retries: int = 2, timeout: int = 15):
+    """Fetch CPI data from U.S. Bureau of Labor Statistics (BLS) API and calculate YoY percentage change.
+    
+    Args:
+        start_date: Start date in YYYY-MM-DD format
+        max_retries: Maximum number of retry attempts (default: 2)
+        timeout: Request timeout in seconds (default: 15)
+    
+    Returns:
+        List of {'date': str, 'value': float} with YoY percentage change, sorted oldest to newest
+    """
+    bls_api_key = os.getenv('BLS_API_KEY')
+    if not bls_api_key:
+        print("Warning: BLS_API_KEY not set. Cannot fetch CPI data")
+        return []
+    
+    # Calculate years needed (need at least 2 years for YoY calculation)
+    from datetime import datetime
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+    end_dt = datetime.today()
+    
+    # BLS API requires year ranges
+    start_year = start_dt.year
+    end_year = end_dt.year
+    
+    # CPI-U series ID (Consumer Price Index for All Urban Consumers: All Items in U.S. City Average)
+    series_id = "CUUR0000SA0"
+    
+    # Retry logic with exponential backoff
+    for attempt in range(max_retries + 1):
+        try:
+            # BLS API v2 endpoint
+            url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+            
+            # BLS API request payload
+            payload = {
+                "seriesid": [series_id],
+                "startyear": str(start_year),
+                "endyear": str(end_year),
+                "registrationkey": bls_api_key
+            }
+            
+            headers = {
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=timeout)
+            
+            if response.status_code != 200:
+                print(f"BLS API returned status {response.status_code}: {response.text[:200]}")
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                return []
+            
+            data = response.json()
+            
+            # Check for API errors
+            if data.get("status") != "REQUEST_SUCCEEDED":
+                print(f"BLS API error: {data.get('message', 'Unknown error')}")
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)
+                    continue
+                return []
+            
+            # Extract data from response
+            results = data.get("Results", {}).get("series", [])
+            if not results:
+                print("BLS API returned no series data")
+                return []
+            
+            series_data = results[0].get("data", [])
+            if not series_data:
+                print("BLS API returned no data points")
+                return []
+            
+            # Convert BLS data format to our format and calculate YoY
+            # BLS returns data in reverse chronological order (newest first)
+            # Format: [{"year": "2024", "period": "M11", "value": "308.417", ...}, ...]
+            import pandas as pd
+            
+            # Parse BLS data
+            cpi_data = []
+            for item in reversed(series_data):  # Reverse to get chronological order
+                year = int(item.get("year", 0))
+                period = item.get("period", "")
+                value_str = item.get("value", "")
+                
+                # Skip annual averages (period "A00")
+                if period == "A00":
+                    continue
+                
+                # Parse month from period (M01 = January, M02 = February, etc.)
+                if period.startswith("M"):
+                    month = int(period[1:])
+                    # Create date (first day of month)
+                    date_str = f"{year}-{month:02d}-01"
+                    
+                    try:
+                        value = float(value_str)
+                        cpi_data.append({
+                            "date": date_str,
+                            "value": value
+                        })
+                    except (ValueError, TypeError):
+                        continue
+            
+            if len(cpi_data) < 13:  # Need at least 13 months for YoY calculation
+                print(f"Warning: BLS returned only {len(cpi_data)} months, need at least 13 for YoY calculation")
+                return []
+            
+            # Convert to DataFrame for easier manipulation
+            df = pd.DataFrame(cpi_data)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date').reset_index(drop=True)
+            
+            # Calculate YoY percentage change
+            # Shift by 12 rows to get value from same month previous year
+            df['value_12m_ago'] = df['value'].shift(12)
+            
+            # Calculate YoY percentage change: ((current / 12m_ago) - 1) * 100
+            mask = df['value_12m_ago'].notna()
+            df.loc[mask, 'yoy_pct'] = ((df.loc[mask, 'value'] / df.loc[mask, 'value_12m_ago']) - 1) * 100
+            df['yoy_pct'] = df['yoy_pct'].round(2)
+            
+            # Filter to only include dates after start_date and convert to list
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            df_filtered = df[df['date'] >= start_dt]
+            
+            # Convert to list format with only YoY percentages
+            result = []
+            for idx, row in df_filtered.iterrows():
+                if pd.notna(row.get('yoy_pct')):
+                    result.append({
+                        "date": row['date'].strftime('%Y-%m-%d'),
+                        "value": float(row['yoy_pct'])
+                    })
+            
+            return result
+            
+        except ReadTimeout:
+            print(f"BLS API timeout for CPI (attempt {attempt + 1}/{max_retries + 1})")
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+                continue
+            return []
+        except (Timeout, RequestException) as e:
+            print(f"BLS API request error for CPI: {e} (attempt {attempt + 1}/{max_retries + 1})")
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+                continue
+            return []
+        except Exception as e:
+            print(f"Error fetching BLS CPI data: {e}")
+            import traceback
+            traceback.print_exc()
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+                continue
+            return []
+    
+    return []
+
 def fetch_fred_series(series_id: str, start_date: str, max_retries: int = 2, timeout: int = 15):
     """Fetch a series from FRED and return list of {'date': str, 'value': float} sorted oldest to newest.
     
@@ -326,6 +688,16 @@ commodity_ticker_map = {
     "PZINC": "ZN=F",  # Zinc Futures
 }
 
+# Mapping of currency series IDs to Yahoo Finance ticker symbols
+# Note: FRED DEXUSEU is "U.S. Dollars to One Euro" (USD/EUR), so EURUSD=X matches
+# FRED DEXJPUS is "Japanese Yen to One U.S. Dollar" (JPY/USD), so JPY=X matches
+# FRED DEXCHUS is "Chinese Yuan to One U.S. Dollar" (CNY/USD), so CNY=X matches
+currency_ticker_map = {
+    "DEXUSEU": "EURUSD=X",  # U.S. / Euro Foreign Exchange Rate (USD per EUR)
+    "DEXJPUS": "JPY=X",     # Japanese Yen to U.S. Dollar Spot Exchange Rate (JPY per USD)
+    "DEXCHUS": "CNY=X",     # China / U.S. Foreign Exchange Rate (CNY per USD)
+}
+
 def fetch_commodity_from_yahoo(series_id: str, timeframe: str):
     """Fetch commodity data from Yahoo Finance and return list of {'date': str, 'value': float}."""
     try:
@@ -372,6 +744,61 @@ def fetch_commodity_from_yahoo(series_id: str, timeframe: str):
         return history
     except Exception as e:
         print(f"Error fetching commodity {series_id} from Yahoo Finance: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+def fetch_currency_from_yahoo(series_id: str, timeframe: str):
+    """Fetch currency exchange rate data from Yahoo Finance and return list of {'date': str, 'value': float}."""
+    try:
+        ticker_symbol = currency_ticker_map.get(series_id)
+        if not ticker_symbol:
+            print(f"No Yahoo Finance ticker mapping found for {series_id}")
+            return []
+        
+        # Map timeframe to yfinance period
+        period_map_yahoo = {
+            "daily": "1mo",
+            "weekly": "3mo",
+            "monthly": "1y",
+            "quarterly": "1y",
+            "yearly": "5y",
+            "5y": "5y",
+            "max": "max"
+        }
+        period = period_map_yahoo.get(timeframe, "1y")
+        
+        # Map timeframe to interval
+        interval_map = {
+            "daily": "1d",
+            "weekly": "1d",
+            "monthly": "1d",
+            "quarterly": "1d",
+            "yearly": "1wk",
+            "5y": "1mo",
+            "max": "1mo"
+        }
+        interval = interval_map.get(timeframe, "1d")
+        
+        ticker = yf.Ticker(ticker_symbol)
+        hist = ticker.history(period=period, interval=interval)
+        
+        if hist.empty:
+            print(f"No data found for {ticker_symbol}")
+            return []
+        
+        # Convert to list of {date, value} objects
+        history = []
+        for date, row in hist.iterrows():
+            history.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "value": float(row['Close'])
+            })
+        
+        print(f"[CURRENCY] Fetched {len(history)} data points from Yahoo Finance for {series_id} ({ticker_symbol}), latest date: {history[-1]['date'] if history else 'N/A'}")
+        return history
+    except Exception as e:
+        print(f"Error fetching currency {series_id} from Yahoo Finance: {e}")
         import traceback
         traceback.print_exc()
         return []
@@ -433,9 +860,11 @@ async def get_macro_data(timeframe: str = "monthly"):
             start_date = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d')
 
         # Filter to only Economic indicators (exclude Currency and Commodity)
-        # Only include: Consumer Price Index (CPI), Unemployment Rate, Consumer Spending (PCE),
-        # Manufacturing Output, Bank Lending, Housing Permits
-        allowed_economic_series = ['CPIAUCSL', 'UNRATE', 'PCE', 'IPMAN', 'TOTLL', 'PERMIT']
+        # Only include: Consumer Price Index (CPI), Unemployment Rate, Initial Jobless Claims,
+        # Consumer Spending (PCE), Manufacturing Output, Bank Lending, Housing Permits,
+        # Revolving Credit, Charge-Off Rates, Delinquencies, Consumer Credit Growth
+        allowed_economic_series = ['CPIAUCSL', 'UNRATE', 'ICSA', 'PCE', 'IPMAN', 'TOTLL', 'PERMIT', 
+                                   'REVOLSL', 'CORCCACBS', 'DRCCLACBS', 'TOTALSL']
         economic_indicators = [
             cfg for cfg in fred_indicators 
             if cfg["series_id"] in allowed_economic_series
@@ -447,7 +876,44 @@ async def get_macro_data(timeframe: str = "monthly"):
         def fetch_single_indicator(cfg):
             """Fetch a single indicator with error handling"""
             try:
-                history = fetch_fred_series(cfg["series_id"], start_date)
+                # Special handling for CPI - use BLS API instead of FRED
+                if cfg["series_id"] == "CPIAUCSL":
+                    history = fetch_bls_cpi(start_date)
+                # Special handling for Consumer Credit Growth - calculate YoY percentage change
+                elif cfg["series_id"] == "TOTALSL":
+                    history = fetch_fred_series(cfg["series_id"], start_date)
+                    if history and len(history) > 0:
+                        # Calculate YoY percentage change for consumer credit
+                        import pandas as pd
+                        from datetime import datetime
+                        
+                        # Create DataFrame from history
+                        df = pd.DataFrame(history)
+                        df['date'] = pd.to_datetime(df['date'])
+                        df = df.sort_values('date').reset_index(drop=True)
+                        
+                        # Calculate YoY percentage change (shift by 12 months for monthly data)
+                        df['value_12m_ago'] = df['value'].shift(12)
+                        
+                        # Calculate YoY percentage change: ((current / 12m_ago) - 1) * 100
+                        mask = df['value_12m_ago'].notna()
+                        df.loc[mask, 'yoy_pct'] = ((df.loc[mask, 'value'] / df.loc[mask, 'value_12m_ago']) - 1) * 100
+                        df['yoy_pct'] = df['yoy_pct'].round(2)
+                        
+                        # Filter to only include dates after start_date
+                        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                        df_filtered = df[df['date'] >= start_dt]
+                        
+                        # Convert to list format with only YoY percentages
+                        history = []
+                        for idx, row in df_filtered.iterrows():
+                            if pd.notna(row.get('yoy_pct')):
+                                history.append({
+                                    "date": row['date'].strftime('%Y-%m-%d'),
+                                    "value": float(row['yoy_pct'])
+                                })
+                else:
+                    history = fetch_fred_series(cfg["series_id"], start_date)
                 
                 # Always append the indicator, even if history is empty (frontend handles empty history)
                 if history and len(history) > 0:
@@ -655,9 +1121,70 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
     if not cfg:
         raise HTTPException(status_code=404, detail="Series not found")
 
+    # Special handling for CPI - use BLS API instead of FRED
+    if series_id == "CPIAUCSL":
+        history = fetch_bls_cpi(start_date)
+    # Special handling for Consumer Credit Growth - calculate YoY percentage change
+    elif series_id == "TOTALSL":
+        history = fetch_fred_series(series_id, start_date)
+        if history and len(history) > 0:
+            import pandas as pd
+            from datetime import datetime
+            
+            # Create DataFrame from history
+            df = pd.DataFrame(history)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date').reset_index(drop=True)
+            
+            # Calculate YoY percentage change (shift by 12 months for monthly data)
+            df['value_12m_ago'] = df['value'].shift(12)
+            
+            # Calculate YoY percentage change: ((current / 12m_ago) - 1) * 100
+            mask = df['value_12m_ago'].notna()
+            df.loc[mask, 'yoy_pct'] = ((df.loc[mask, 'value'] / df.loc[mask, 'value_12m_ago']) - 1) * 100
+            df['yoy_pct'] = df['yoy_pct'].round(2)
+            
+            # Filter to only include dates after start_date
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            df_filtered = df[df['date'] >= start_dt]
+            
+            # Convert to list format with only YoY percentages
+            history_pct = []
+            for idx, row in df_filtered.iterrows():
+                if pd.notna(row.get('yoy_pct')):
+                    history_pct.append({
+                        "date": row['date'].strftime('%Y-%m-%d'),
+                        "value": float(row['yoy_pct'])
+                    })
+            
+            # Get latest YoY percentage
+            if len(history_pct) > 0:
+                latest_val = float(history_pct[-1]["value"])
+                latest_date = str(history_pct[-1]["date"])
+            else:
+                latest_val = 0.0
+                latest_date = datetime.today().strftime('%Y-%m-%d')
+            
+            return {
+                "indicator": cfg["indicator"],
+                "value": latest_val,
+                "date": latest_date,
+                "description": cfg["description"],
+                "category": cfg["category"],
+                "history": history_pct if history_pct else [],
+                "chart_type": cfg["chart_type"],
+                "series_id": cfg["series_id"]
+            }
     # Check if this is a commodity and use Yahoo Finance
-    if cfg["category"] == "Commodity" and series_id in commodity_ticker_map:
+    elif cfg["category"] == "Commodity" and series_id in commodity_ticker_map:
         history = fetch_commodity_from_yahoo(series_id, timeframe)
+        # If Yahoo Finance fails, try FRED as fallback
+        if not history or len(history) == 0:
+            print(f"Yahoo Finance failed for {series_id}, trying FRED as fallback")
+            history = fetch_fred_series(series_id, start_date)
+    # Check if this is a currency and use Yahoo Finance
+    elif cfg["category"] == "Currency" and series_id in currency_ticker_map:
+        history = fetch_currency_from_yahoo(series_id, timeframe)
         # If Yahoo Finance fails, try FRED as fallback
         if not history or len(history) == 0:
             print(f"Yahoo Finance failed for {series_id}, trying FRED as fallback")
@@ -1416,9 +1943,12 @@ async def get_polymarket_data(ticker: str):
             
             print(f"[POLYMARKET] Total targets extracted: {len(targets)}")
                 
+        # Track if data is from PolyMarket API or fallback
+        is_real_data = len(targets) > 0
+        
         # If no targets found from API, generate fallback data based on current price
         if not targets:
-            print(f"No PolyMarket data found for {ticker}, using fallback data")
+            print(f"[POLYMARKET] No PolyMarket data found for {ticker}, using fallback data")
             import random
             
             if base_price < 100:
@@ -1462,6 +1992,7 @@ async def get_polymarket_data(ticker: str):
             "current_price": base_price,
             "question": question_text,
             "targets": targets,
+            "is_real_data": is_real_data,  # Flag to indicate if data is from PolyMarket API
             "last_updated": datetime.datetime.now().isoformat()
         }
     except Exception as e:
@@ -1499,7 +2030,7 @@ async def get_indices():
                         "change": 0.0,
                         "history": []
                     })
-                continue
+                    continue
 
                 # Get current and previous close
                 current_price = float(history['Close'].iloc[-1])

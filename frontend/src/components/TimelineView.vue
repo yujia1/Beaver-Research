@@ -301,20 +301,46 @@
             <div class="micro-tab-content">
               <!-- Overview Tab -->
               <div v-if="microTab === 'overview'" class="micro-tab-pane">
-                <div class="ai-section">
-                  <button @click="generateAllAnalyses" :disabled="analyzing" class="ai-btn">
-                    {{ analyzing ? 'Generating Complete Deep Dive...' : '✨ Generate Complete Deep Dive Analysis' }}
-                  </button>
-                  
-                  <div v-if="analyzing" class="progress-indicator">
-                    <p>{{ analysisProgress }}</p>
+                <div class="overview-layout">
+                  <!-- Left Side: Latest 10K -->
+                  <div class="tenk-section">
+                    <div class="section-header">
+                      <h4>Latest 10K</h4>
+                      <button @click="fetch10KChunks" :disabled="loading10K" class="refresh-btn">
+                        {{ loading10K ? 'Loading...' : 'Refresh' }}
+                      </button>
+                    </div>
+                    
+                    <div v-if="loading10K" class="loading">Loading 10-K filing...</div>
+                    <div v-else-if="tenKError" class="error">{{ tenKError }}</div>
+                    <div v-else-if="tenKChunks" class="tenk-content">
+                      <div class="tenk-full-html" v-html="tenKChunks"></div>
+                    </div>
+                    <div v-else class="no-data">No 10-K data available. Click Refresh to load.</div>
                   </div>
                   
-                  <div v-if="analysisReport" class="analysis-section">
-                    <h4>Company Overview & Industry Analysis</h4>
-                    <div class="report-content" v-html="renderMarkdown(analysisReport)"></div>
+                  <!-- Right Side: Company Overview & Industry Analysis -->
+                  <div class="analysis-section-wrapper">
+                    <div class="analysis-report-section">
+                      <div class="section-header">
+                        <h4>Company Overview & Industry Analysis</h4>
+                        <button @click="generateAllAnalyses" :disabled="analyzing" class="refresh-btn">
+                          {{ analyzing ? 'Generating...' : 'Generate' }}
+                        </button>
+                      </div>
+                      
+                      <div v-if="analyzing" class="progress-indicator">
+                        <p>{{ analysisProgress }}</p>
+                      </div>
+                      
+                      <div v-if="analysisReport" class="analysis-report-content">
+                        <div class="analysis-html-content" v-html="renderMarkdown(analysisReport)"></div>
+                      </div>
+                      <div v-else class="no-data">
+                        <p>No analysis available. Click "Generate" to create a Company Overview & Industry Analysis.</p>
+                      </div>
+                    </div>
                   </div>
-
                 </div>
               </div>
 
@@ -730,6 +756,9 @@
             <p>{{ polyMarketError }}</p>
           </div>
           <div v-else-if="polyMarketData" class="polymarket-content">
+            <div v-if="polyMarketData.is_real_data === false" class="polymarket-warning">
+              <strong>⚠️ Note:</strong> No PolyMarket data found for {{ selectedStock }}. Displaying estimated fallback data based on current stock price. These odds are not from PolyMarket and should not be used for trading decisions.
+            </div>
             <div class="polymarket-header">
               <h3>📊 PolyMarket - {{ selectedStock }}</h3>
               <p class="polymarket-question">{{ polyMarketData.question }}</p>
@@ -1171,6 +1200,11 @@ const financialPeriod = ref('annual')
 const analyzing = ref(false)
 const analysisReport = ref(null)
 const analysisProgress = ref('')
+
+// 10-K chunks state
+const tenKChunks = ref(null)
+const loading10K = ref(false)
+const tenKError = ref(null)
 
 // Report and Linked Cards State
 const reportContent = ref('')
@@ -1853,6 +1887,11 @@ const fetchCompanyData = async () => {
     if (!response.ok) throw new Error('Failed to fetch company data')
     companyData.value = await response.json()
     
+    // Fetch 10-K chunks when company data is loaded
+    if (microTab.value === 'overview') {
+      fetch10KChunks()
+    }
+    
     // Render charts if on financials or trading tab
     await nextTick()
     if (microTab.value === 'financials') {
@@ -1866,6 +1905,27 @@ const fetchCompanyData = async () => {
     companyError.value = err.message
   } finally {
     loadingCompany.value = false
+  }
+}
+
+const fetch10KChunks = async () => {
+  if (!selectedStock.value) return
+  loading10K.value = true
+  tenKError.value = null
+  
+  try {
+    const response = await fetch(`http://localhost:8000/api/agent/10k/${selectedStock.value.toUpperCase()}`)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch 10-K' }))
+      throw new Error(errorData.detail || 'Failed to fetch 10-K')
+    }
+    const data = await response.json()
+    tenKChunks.value = data.content
+  } catch (err) {
+    tenKError.value = err.message || 'Error loading 10-K filing'
+    console.error('Error fetching 10-K:', err)
+  } finally {
+    loading10K.value = false
   }
 }
 
@@ -1945,6 +2005,9 @@ watch([microTab, financialPeriod], async () => {
     await nextTick()
     renderOptionsVolumeChart()
     renderOptionsCallsPutsChart()
+  }
+  if (companyData.value && microTab.value === 'overview' && !tenKChunks.value) {
+    fetch10KChunks()
   }
 })
 
@@ -6015,6 +6078,66 @@ onUnmounted(() => {
   padding: 10px 0;
 }
 
+.overview-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.tenk-section {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.section-header h4 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  background: transparent;
+  color: #3498db;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #3498db;
+  color: white;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.analysis-section-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
 .micro-tab-pane {
   padding: 10px 0;
 }
@@ -6705,6 +6828,21 @@ onUnmounted(() => {
     gap: 24px;
 }
 
+.polymarket-warning {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 15px 20px;
+    color: #856404;
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+
+.polymarket-warning strong {
+    color: #856404;
+    font-weight: 600;
+}
+
 .polymarket-header {
     background: #ffffff;
     padding: 20px;
@@ -6787,6 +6925,297 @@ onUnmounted(() => {
     padding: 20px;
     border-radius: 8px;
     color: #cc0000;
+}
+
+/* Overview Layout Styles */
+.overview-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.tenk-section {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.section-header h4 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  background: transparent;
+  color: #3498db;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #3498db;
+  color: white;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tenk-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.tenk-full-html {
+  color: #000000;
+  font-size: 0.95em;
+  line-height: 1.8;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tenk-full-html :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+  font-size: 0.9em;
+}
+
+.tenk-full-html :deep(table th),
+.tenk-full-html :deep(table td) {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.tenk-full-html :deep(table th) {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.tenk-full-html :deep(p) {
+  margin: 10px 0;
+  line-height: 1.6;
+}
+
+.tenk-full-html :deep(h1),
+.tenk-full-html :deep(h2),
+.tenk-full-html :deep(h3),
+.tenk-full-html :deep(h4),
+.tenk-full-html :deep(h5),
+.tenk-full-html :deep(h6) {
+  margin: 20px 0 10px 0;
+  font-weight: 600;
+  color: #000000;
+}
+
+.tenk-full-html :deep(ul),
+.tenk-full-html :deep(ol) {
+  margin: 10px 0;
+  padding-left: 30px;
+}
+
+.tenk-full-html :deep(li) {
+  margin: 5px 0;
+  line-height: 1.6;
+}
+
+.tenk-full-html :deep(strong),
+.tenk-full-html :deep(b) {
+  font-weight: 600;
+  color: #000000;
+}
+
+.tenk-full-html :deep(em),
+.tenk-full-html :deep(i) {
+  font-style: italic;
+}
+
+.analysis-section-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.analysis-report-section {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.analysis-report-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.analysis-report-section .progress-indicator {
+  background: #e8f5e9;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-weight: 500;
+  color: #2e7d32;
+  text-align: center;
+}
+
+.analysis-html-content {
+  color: #000000;
+  font-size: 0.95em;
+  line-height: 1.8;
+  padding: 0;
+  background: transparent;
+}
+
+.analysis-html-content :deep(h1),
+.analysis-html-content :deep(h2),
+.analysis-html-content :deep(h3),
+.analysis-html-content :deep(h4),
+.analysis-html-content :deep(h5),
+.analysis-html-content :deep(h6) {
+  margin: 20px 0 10px 0;
+  font-weight: 600;
+  color: #000000;
+}
+
+.analysis-html-content :deep(h1) {
+  font-size: 1.8em;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+}
+
+.analysis-html-content :deep(h2) {
+  font-size: 1.5em;
+  margin-top: 30px;
+}
+
+.analysis-html-content :deep(h3) {
+  font-size: 1.3em;
+}
+
+.analysis-html-content :deep(p) {
+  margin: 10px 0;
+  line-height: 1.8;
+  color: #000000;
+}
+
+.analysis-html-content :deep(ul),
+.analysis-html-content :deep(ol) {
+  margin: 15px 0;
+  padding-left: 30px;
+}
+
+.analysis-html-content :deep(li) {
+  margin: 8px 0;
+  line-height: 1.8;
+  color: #000000;
+}
+
+.analysis-html-content :deep(strong),
+.analysis-html-content :deep(b) {
+  font-weight: 600;
+  color: #000000;
+}
+
+.analysis-html-content :deep(em),
+.analysis-html-content :deep(i) {
+  font-style: italic;
+}
+
+.analysis-html-content :deep(blockquote) {
+  border-left: 4px solid #3498db;
+  padding-left: 15px;
+  margin: 15px 0;
+  color: #666666;
+  font-style: italic;
+}
+
+.analysis-html-content :deep(code) {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.analysis-html-content :deep(pre) {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 15px 0;
+}
+
+.analysis-html-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
+}
+
+.analysis-html-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+  font-size: 0.9em;
+}
+
+.analysis-html-content :deep(table th),
+.analysis-html-content :deep(table td) {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.analysis-html-content :deep(table th) {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.analysis-html-content :deep(a) {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.analysis-html-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666666;
+  font-style: italic;
 }
 
 </style>

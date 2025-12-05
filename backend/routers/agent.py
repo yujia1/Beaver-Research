@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
 from services.agent import agent_service
+from services.edgar_service import edgar_service
 from typing import Optional
 import openai
 import os
@@ -78,11 +79,33 @@ async def generate_report(request: ReportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/10k/{ticker}")
+async def get_10k_chunks(ticker: str):
+    """
+    Fetch the latest 10-K filing for a ticker.
+    Returns the full 10-K document text without AI processing.
+    """
+    try:
+        full_content = edgar_service.get_latest_10k_full(ticker)
+        if not full_content:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not fetch 10-K filing for {ticker}. The company may not have filed a 10-K, or there was an error retrieving it."
+            )
+        return {"content": full_content, "ticker": ticker.upper()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching 10-K for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/analyze_company")
 async def analyze_company(request: CompanyAnalysisRequest):
     """
-    Generate a comprehensive deep dive analysis for a company.
-    Covers: Industry, Business Model, Operating Drivers, Risks, Capital Structure.
+    Generate a comprehensive forensic business analysis based on the latest 10-K filing.
+    Uses the latest 10-K from SEC EDGAR and generates a detailed forensic analysis.
     Uses caching to avoid redundant API calls.
     """
     try:
@@ -97,72 +120,180 @@ async def analyze_company(request: CompanyAnalysisRequest):
         except ValueError as e:
             raise HTTPException(status_code=503, detail=str(e))
         
+        # Fetch the latest 10-K content from SEC (chunked)
+        print(f"Fetching latest 10-K for {request.ticker}...")
+        ten_k_chunks = edgar_service.get_latest_10k_content(request.ticker)
+        
+        if not ten_k_chunks or not isinstance(ten_k_chunks, dict):
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Could not fetch 10-K filing for {request.ticker}. The company may not have filed a 10-K, or there was an error retrieving it."
+            )
+        
+        # Calculate total content length
+        total_length = sum(len(chunk) for chunk in ten_k_chunks.values() if chunk)
+        print(f"Successfully fetched 10-K chunks (total: {total_length} characters)")
+        print(f"Chunks found: {list(ten_k_chunks.keys())}")
+        
         # Get current date for context
         current_date = datetime.now()
         current_year = current_date.year
-        current_month = current_date.month
-        current_quarter = (current_month - 1) // 3 + 1
+        
+        # Build the prompt with chunked content
+        chunk_a = ten_k_chunks.get("chunk_a", "Not available")
+        chunk_b = ten_k_chunks.get("chunk_b", "Not available")
+        chunk_c1 = ten_k_chunks.get("chunk_c1", "Not available")
+        chunk_c2 = ten_k_chunks.get("chunk_c2", "Not available")
+        chunk_d = ten_k_chunks.get("chunk_d", "Not available")
+        chunk_e = ten_k_chunks.get("chunk_e", "Not available")
         
         prompt = f"""
-        Perform a comprehensive Micro Economic Deep Dive analysis for {request.company_name} ({request.ticker}) in the {request.sector} sector.
-        
-        CRITICAL REQUIREMENTS:
-        1. **USE LATEST SEC FILINGS**: You MUST base your analysis on the most recent 10-Q (quarterly) and 10-K (annual) filings available from SEC EDGAR. Do NOT use outdated information or historical data from previous years unless explicitly comparing to current period.
-        2. **CURRENT DATE CONTEXT**: Today's date is {current_date.strftime('%B %d, %Y')} (Year: {current_year}, Quarter: Q{current_quarter}). All timelines, milestones, and dates in your analysis must reflect this current date. Do NOT reference past years (e.g., 2023-2024) as if they are current or future targets.
-        3. **DATE ACCURACY**: When listing milestones, targets, or timelines, ensure they are forward-looking from {current_year}. If a company mentioned targets for 2023-2024 in old filings, note that these are historical and update with current expectations from the latest filings.
-        4. **Be SPECIFIC and ACTIONABLE**: Avoid generic statements. Focus on concrete risks, opportunities, and catalysts unique to this company based on the latest available information.
-        
-        Structure the response in Markdown with the following sections:
+        You are a forensic business analyst and financial strategist.
+        Your job is to dissect the company's 10-K with zero mercy and extract insights that matter to investors, operators, and competitors.
 
-        ## 1. Industry Research & Competitive Position
-        - Current state of the {request.sector} industry and key trends (as of {current_year})
-        - {request.company_name}'s competitive positioning and market share (based on latest 10-Q/10-K)
-        - Key competitors and differentiation factors
-        - Industry tailwinds and headwinds
+        Analyze the 10-K chunks I provide for {request.company_name} ({request.ticker}) in the {request.sector} sector and produce a comprehensive breakdown with the following structure:
 
-        ## 2. Business Model & Revenue Streams
-        - Brief company history and evolution
-        - Core business model (how they make money) - use latest financial data from most recent 10-Q/10-K
-        - Revenue breakdown by segment/product/geography (if applicable) - from latest filings
-        - Major customers and suppliers (if publicly known) - from latest 10-K
-        - Customer concentration risks - from latest 10-K
+        ## 1. Executive Snapshot
 
-        ## 3. Key Investment Thesis
-        **Bull Case (Upside Scenarios)**:
-        - Identify 3-5 SPECIFIC catalysts that could drive significant upside
-        - For each catalyst: describe the opportunity, probability, timeline (must be future dates from {current_year}), and potential impact
-        - Base catalysts on information from the latest 10-Q/10-K filings
-        - Example: "If NRC licensing milestones are achieved by Q2 {current_year + 1}, could unlock $XXX revenue potential" (NOT 2023-2024)
-        
-        **Bear Case (Downside Risks)**:
-        - Identify 3-5 SPECIFIC risks that could significantly impair value
-        - For each risk: describe the threat, probability, timeline, and potential impact
-        - Include regulatory, operational, financial, and market risks from latest 10-Q/10-K
-        
-        **Base Case**:
-        - Most likely scenario given current information from latest filings
-        - Key assumptions and what to monitor
+        What the company actually does (in one punchy paragraph)
 
-        ## 4. Critical Milestones to Monitor
-        - List 5-7 specific events/metrics to track (e.g., regulatory approvals, product launches, financial metrics)
-        - For each milestone: why it matters and expected timeline (MUST be future dates from {current_year}, not past years)
-        - Base milestones on the latest 10-Q/10-K filings and management guidance
-        - IMPORTANT: If old filings mentioned 2023-2024 targets, note these are historical and provide current expectations
+        Its core business model
 
-        ## 5. Valuation Context
-        - Current valuation metrics vs. peers (if applicable) - use latest financial data
-        - What the market is pricing in
-        - Key valuation drivers
+        Primary revenue streams & cost drivers
 
-        Keep the analysis professional, data-driven, and actionable (approx. 800-1000 words).
-        Focus on what makes THIS company unique, not generic industry commentary.
-        REMEMBER: Always reference the most recent 10-Q and 10-K filings, and ensure all dates and timelines are current and forward-looking from {current_year}.
+        ## 2. Financial Health Check
+
+        Summaries + sharp interpretation:
+
+        Revenue, margins, FCF trends (3–5 year direction)
+
+        Liquidity & leverage analysis
+
+        Cash runway & debt risk
+
+        Any accounting red flags or weird footnotes
+
+        ## 3. Competitive Position
+
+        Core moats (if any)
+
+        Market structure (fragmented? consolidated? growing?)
+
+        Key competitors & differentiators
+
+        Switching costs & barriers to entry
+
+        ## 4. Risks They Didn't Intend to Highlight
+
+        (Read between the lines)
+        Identify:
+
+        Hidden operational fragilities
+
+        Dependence on key customers/suppliers
+
+        Lawsuits/regulatory exposure
+
+        Any "dangerous optimism" in management tone
+
+        Risks that are mentioned but downplayed
+
+        ## 5. Strategic Outlook & Catalysts
+
+        Long-term opportunities
+
+        Realistic near-term growth levers
+
+        Technology tailwinds/headwinds
+
+        M&A viability
+
+        Signals of strategic pivots
+
+        ## 6. Quality of Management
+
+        Evaluate based on:
+
+        Transparency (or lack thereof)
+
+        Capital allocation discipline
+
+        KPI alignment
+
+        Compensation incentives
+
+        Insider holdings & behavior (if disclosed)
+
+        ## 7. Valuation Considerations (If Enough Data Available)
+
+        What metrics the market should use
+
+        Whether current fundamentals support potential multiples
+
+        Whether business model deserves premium/discount
+
+        ## 8. "If I Were the CEO" — Actionable Recommendations
+
+        Give 3–5 bold, pragmatic moves that would most improve:
+
+        Growth
+
+        Efficiency
+
+        Cash generation
+
+        Competitive resilience
+
+        ## 9. Final Verdict
+
+        Summarize in one line:
+        "This is a (great / average / risky / doomed) business because…"
+
+        **Tone & Style Requirements:**
+
+        Be direct and analytical
+
+        Use numbers wherever possible
+
+        Call out BS, hype, or soft language
+
+        Highlight contradictions in the filing
+
+        Provide insights, not summaries
+
+        **10-K Content Chunks:**
+        (Today's date: {current_date.strftime('%B %d, %Y')})
+
+        === CHUNK A: Item 1. Business ===
+        {chunk_a}
+
+        === CHUNK B: Item 1A. Risk Factors ===
+        {chunk_b}
+
+        === CHUNK C1: Item 7. MD&A ===
+        {chunk_c1}
+
+        === CHUNK C2: Item 7A. Market Risk ===
+        {chunk_c2}
+
+        === CHUNK D: Item 8. Financial Statements ===
+        {chunk_d}
+
+        === CHUNK E: Items 10, 11, 12, 13 (Governance, Compensation, Ownership) ===
+        {chunk_e}
         """
+
+        system_message = """You are a forensic business analyst and financial strategist.
+Your job is to dissect company 10-K filings with zero mercy and extract insights that matter to investors, operators, and competitors.
+
+You are direct and analytical. You use numbers wherever possible. You call out BS, hype, or soft language. You highlight contradictions in filings. You provide insights, not summaries.
+
+Today's date is {current_date}. Base your analysis strictly on the 10-K content provided. Be specific, use concrete examples from the filing, and avoid generic statements.""".format(current_date=current_date.strftime('%B %d, %Y'))
 
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": f"You are a senior equity research analyst at a top-tier investment bank. Today's date is {current_date.strftime('%B %d, %Y')}. You MUST base your analysis on the most recent 10-Q and 10-K SEC filings available. Do NOT use outdated information. All timelines and milestones must be forward-looking from {current_year}. If you see references to past years (e.g., 2023-2024 targets), note they are historical and provide current expectations. Provide specific, actionable analysis with concrete examples. Avoid generic statements. Focus on unique company-specific risks and opportunities based on the latest available data."},
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -175,7 +306,12 @@ async def analyze_company(request: CompanyAnalysisRequest):
         
         return {"report": report_content, "cached": False}
 
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Error in analyze_company: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze_operating_drivers")
