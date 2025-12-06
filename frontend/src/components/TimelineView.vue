@@ -106,13 +106,6 @@
         >
           PolyMarket
         </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: activeTab === 'report' }"
-          @click="activeTab = 'report'"
-        >
-          Report
-        </button>
       </div>
 
       <!-- Events Tab Content -->
@@ -790,225 +783,6 @@
         </div>
       </div>
 
-      <!-- Report Tab Content - Interactive Report with Linked Cards -->
-      <div v-if="activeTab === 'report'" class="tab-content report-tab-content">
-        <div class="report-container">
-          <!-- Report Header -->
-          <div class="report-header">
-            <h2>Report - {{ selectedStock || 'No Stock Selected' }}</h2>
-            <div class="report-actions">
-              <div v-if="isSelectingText && selectedText && reportSection === 'editor'" class="selection-actions">
-                <button @click="createLinkedCard" class="btn-link-card">
-                  📎 Link Selected Text
-                </button>
-                <button @click="isSelectingText = false; selectedText = ''" class="btn-cancel">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Report Section Tabs -->
-          <div class="report-section-tabs">
-            <button 
-              :class="{ active: reportSection === 'editor' }"
-              @click="reportSection = 'editor'"
-              class="section-tab-btn"
-            >
-              Editor
-            </button>
-            <button 
-              :class="{ active: reportSection === 'upload' }"
-              @click="reportSection = 'upload'"
-              class="section-tab-btn"
-            >
-              Upload
-            </button>
-            <button 
-              :class="{ active: reportSection === 'history' }"
-              @click="reportSection = 'history'"
-              class="section-tab-btn"
-            >
-              History
-            </button>
-          </div>
-          
-          <div v-if="!selectedStock" class="empty-deck">
-            <p>Please select a stock ticker to create and manage reports.</p>
-          </div>
-
-          <!-- Editor Section -->
-          <div v-if="selectedStock && reportSection === 'editor'" class="report-main-layout">
-            <!-- Main Report Editor Area -->
-            <div class="report-editor-area">
-              <div class="report-editor-header">
-                <h3>Report Content</h3>
-                <p class="editor-hint">Select any sentence and click "Link Selected Text" to create a linked card</p>
-              </div>
-              
-              <div class="report-editor-wrapper">
-                <div 
-                  ref="reportEditor"
-                  class="report-editor"
-                  @mouseup="handleTextSelection"
-                  @scroll="updateConnectorLines"
-                  contenteditable="true"
-                  dir="ltr"
-                  @input="updateReportContent"
-                  v-html="reportContent"
-                ></div>
-                <!-- SVG overlay for connector lines -->
-                <svg 
-                  v-if="linkedCards.length > 0"
-                  class="connector-lines"
-                  ref="connectorSvg"
-                >
-                  <line
-                    v-for="card in linkedCards"
-                    :key="card.id"
-                    :x1="0"
-                    :y1="0"
-                    :x2="0"
-                    :y2="0"
-                    :class="{ active: selectedSentenceId === card.id }"
-                    class="connector-line"
-                    :data-card-id="card.id"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            <!-- Linked Cards Sidebar -->
-            <div class="linked-cards-sidebar">
-              <h3>Linked Cards ({{ linkedCards.length }})</h3>
-              
-              <div v-if="linkedCards.length === 0" class="no-cards">
-                <p>No linked cards yet. Select text in the report to create one.</p>
-              </div>
-              
-              <div v-else class="cards-list">
-                <div
-                  v-for="card in linkedCards"
-                  :key="card.id"
-                  @click="selectCard(card.id)"
-                  :class="{ active: selectedSentenceId === card.id }"
-                  class="linked-card-item"
-                  :data-card-id="card.id"
-                >
-                  <div class="card-header">
-                    <div class="card-sentence-preview">
-                      "{{ getCardPreview(card.sentenceText, 40) }}"
-                    </div>
-                    <button 
-                      @click.stop="deleteCard(card.id)"
-                      class="btn-delete-small"
-                      title="Delete card"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div class="card-content-editor">
-                    <textarea
-                      v-model="card.content"
-                      @input="saveReportData"
-                      @click.stop
-                      placeholder="Add your insight or note here..."
-                      class="card-textarea-small"
-                    ></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Upload Section -->
-          <div v-if="selectedStock && reportSection === 'upload'" class="report-upload-section">
-            <div class="upload-header">
-              <h3>Upload Document</h3>
-              <p class="upload-hint">Upload PDF, Word (.docx), or Text files to extract and beautify content</p>
-            </div>
-            
-            <div class="upload-area">
-              <input
-                type="file"
-                ref="fileInput"
-                @change="handleFileUpload"
-                accept=".pdf,.doc,.docx,.txt,.text"
-                class="file-input"
-                id="file-upload-input"
-              />
-              <label for="file-upload-input" class="file-upload-label">
-                <div class="upload-icon">📄</div>
-                <div class="upload-text">
-                  <strong>Click to upload</strong> or drag and drop
-                  <br>
-                  <span class="upload-formats">PDF, Word (.docx), or Text files</span>
-                </div>
-              </label>
-              
-              <div v-if="uploading" class="upload-progress">
-                <p>{{ uploadStatus }}</p>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
-                </div>
-              </div>
-              
-              <div v-if="uploadError" class="upload-error">
-                <p>{{ uploadError }}</p>
-              </div>
-              
-              <div v-if="uploadSuccess" class="upload-success">
-                <p>✓ File uploaded and saved to history successfully!</p>
-                <p class="upload-filename">{{ uploadedFileName }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- History Section -->
-          <div v-if="selectedStock && reportSection === 'history'" class="report-history-section">
-            <div class="history-header">
-              <h3>Report History</h3>
-              <button @click="loadReportHistory" class="btn-refresh">Refresh</button>
-            </div>
-            
-            <div v-if="loadingHistory" class="loading-state">
-              <p>Loading report history...</p>
-            </div>
-            
-            <div v-else-if="reportHistory.length === 0" class="empty-history">
-              <p>No saved reports found for {{ selectedStock }}.</p>
-              <p class="hint-text">Reports are automatically saved as you edit in the Editor section.</p>
-            </div>
-            
-            <div v-else class="history-list">
-              <div
-                v-for="(report, index) in reportHistory"
-                :key="index"
-                class="history-item"
-                @click="loadReportFromHistory(report)"
-              >
-                <div class="history-item-header">
-                  <div class="history-item-info">
-                    <h4>{{ report.title || `Report ${index + 1}` }}</h4>
-                    <p class="history-date">{{ formatHistoryDate(report.savedAt) }}</p>
-                  </div>
-                  <div class="history-item-actions" @click.stop>
-                    <button @click="loadReportFromHistory(report)" class="btn-load-report">
-                      Load
-                    </button>
-                    <button @click="deleteReportFromHistory(index)" class="btn-delete-history">
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                <div class="history-item-preview">
-                  <p>{{ getReportPreview(report.content || report.markdownContent) }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Add Event Modal -->
@@ -1212,27 +986,6 @@ const tenKChunks = ref(null)
 const loading10K = ref(false)
 const tenKError = ref(null)
 
-// Report and Linked Cards State
-const reportContent = ref('')
-const linkedCards = ref([]) // Array of { id, sentenceId, content, sentenceText, position }
-const selectedSentenceId = ref(null)
-const nextCardId = ref(1)
-const isSelectingText = ref(false)
-const selectedText = ref('')
-const selectedRange = ref(null)
-const reportEditor = ref(null)
-const connectorSvg = ref(null)
-const reportSection = ref('editor') // 'editor', 'upload', or 'history'
-const reportHistory = ref([]) // Array of saved report versions
-
-// File upload state
-const fileInput = ref(null)
-const uploading = ref(false)
-const uploadStatus = ref('')
-const uploadProgress = ref(0)
-const uploadError = ref(null)
-const uploadSuccess = ref(false)
-const uploadedFileName = ref('')
 
 // Computed properties
 const currentCard = computed({
@@ -1959,11 +1712,6 @@ watch(selectedStock, (newStock, oldStock) => {
     fetchCompanyData()
   }
   
-  // Reload report data if on report tab
-  if (selectedStock.value && activeTab.value === 'report') {
-    loadReportData()
-    loadReportHistory()
-  }
   
   // Fetch PolyMarket data if on PolyMarket tab
   if (selectedStock.value && activeTab.value === 'productivity') {
@@ -1987,11 +1735,6 @@ watch(activeTab, (newTab) => {
     }
   }
   
-  // Load report data when switching to report tab
-  if (newTab === 'report' && selectedStock.value) {
-    loadReportData()
-    loadReportHistory()
-  }
   
   // Fetch PolyMarket data when switching to PolyMarket tab
   if (newTab === 'productivity' && selectedStock.value) {
@@ -2587,23 +2330,6 @@ const getRevenueGrowthClass = () => {
 }
 
 // Analysis generation functions
-const saveReport = async (title, content, type) => {
-  if (!companyData.value) return
-  try {
-    await fetch('http://localhost:8000/api/reports/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: title,
-        content: content,
-        report_type: type,
-        ticker: companyData.value.ticker
-      })
-    })
-  } catch (e) {
-    console.error("Failed to save report", e)
-  }
-}
 
 const checkPaymentStatus = async () => {
   const token = localStorage.getItem('access_token')
@@ -2654,28 +2380,6 @@ const generateAllAnalyses = async () => {
 
 ${analysisReport.value || 'Not generated'}`
 
-    // Save to backend
-    await saveReport(
-      `Deep Dive: ${companyData.value.company_name} (${companyData.value.ticker})`,
-      combinedReport,
-      'deep_dive'
-    )
-    
-    // Save to report history with ticker + date format
-    const currentDate = new Date()
-    const dateStr = currentDate.toISOString().split('T')[0] // YYYY-MM-DD format
-    const historyTitle = `${companyData.value.ticker} - ${dateStr}`
-    
-    // Convert markdown to HTML for editor display
-    const htmlContent = renderMarkdown(combinedReport)
-    
-    // Save to report history
-    saveDeepDiveToHistory(historyTitle, htmlContent, combinedReport)
-    
-    // Refresh history if on history tab
-    if (activeTab.value === 'report' && reportSection.value === 'history') {
-      loadReportHistory()
-    }
     
     // Ensure all sections are visible after generation
     // Force Vue to update the DOM by using nextTick
@@ -2726,7 +2430,6 @@ const generateAnalysis = async () => {
     if (!response.ok) throw new Error('Failed to generate analysis')
     const result = await response.json()
     analysisReport.value = result.report
-    await saveReport(`Company Overview: ${companyData.value.company_name}`, result.report, 'company_overview')
   } catch (e) {
     console.error(e)
     throw e
@@ -3405,501 +3108,7 @@ const formatPercentChange = (value) => {
   return sign + (value * 100).toFixed(2) + '%'
 }
 
-// Report and Linked Cards Functions
-const loadReportData = () => {
-  if (!selectedStock.value) {
-    reportContent.value = ''
-    linkedCards.value = []
-    return
-  }
-  
-  const key = `report_${selectedStock.value.toUpperCase()}`
-  const saved = localStorage.getItem(key)
-  if (saved) {
-    try {
-      const data = JSON.parse(saved)
-      reportContent.value = data.content || ''
-      linkedCards.value = data.cards || []
-      nextCardId.value = Math.max(1, ...(linkedCards.value.length > 0 ? linkedCards.value.map(c => {
-        const idNum = parseInt(c.id?.replace('sentence_', '') || '0')
-        return isNaN(idNum) ? 0 : idNum
-      }) : [0])) + 1
-      
-      // Restore linked sentences after DOM updates
-      nextTick(() => {
-        restoreLinkedSentences()
-        updateConnectorLines()
-      })
-      
-      // Load report history
-      loadReportHistory()
-    } catch (e) {
-      console.error('Failed to load report data:', e)
-      reportContent.value = ''
-      linkedCards.value = []
-    }
-  } else {
-    reportContent.value = ''
-    linkedCards.value = []
-  }
-}
-
-const saveReportData = () => {
-  if (!selectedStock.value) return
-  
-  const key = `report_${selectedStock.value.toUpperCase()}`
-  const data = {
-    content: reportContent.value,
-    cards: linkedCards.value
-  }
-  localStorage.setItem(key, JSON.stringify(data))
-  
-  // Auto-save to history every 30 seconds (debounced)
-  if (reportContent.value.trim()) {
-    clearTimeout(saveReportData.historyTimeout)
-    saveReportData.historyTimeout = setTimeout(() => {
-      saveReportToHistory()
-    }, 30000) // 30 seconds
-  }
-}
-
-const handleTextSelection = () => {
-  const selection = window.getSelection()
-  const selectedTextStr = selection.toString().trim()
-  
-  if (selectedTextStr.length > 0) {
-    selectedText.value = selectedTextStr
-    selectedRange.value = selection.getRangeAt(0).cloneRange()
-    isSelectingText.value = true
-  } else {
-    isSelectingText.value = false
-    selectedText.value = ''
-    selectedRange.value = null
-  }
-}
-
-const createLinkedCard = () => {
-  if (!selectedText.value || !selectedRange.value) return
-  
-  const sentenceId = `sentence_${nextCardId.value++}`
-  const range = selectedRange.value
-  
-  // Wrap the selected text in a span with the sentence ID
-  const span = document.createElement('span')
-  span.setAttribute('data-sentence-id', sentenceId)
-  span.classList.add('linked-sentence')
-  span.textContent = selectedText.value
-  
-  try {
-    range.deleteContents()
-    range.insertNode(span)
-  } catch (e) {
-    console.error('Error creating linked card:', e)
-    return
-  }
-  
-  // Create the linked card
-  const newCard = {
-    id: sentenceId,
-    sentenceId: sentenceId,
-    content: '',
-    sentenceText: selectedText.value,
-    position: { top: 0, left: 0 }
-  }
-  
-  linkedCards.value.push(newCard)
-  selectedSentenceId.value = sentenceId
-  selectedText.value = ''
-  selectedRange.value = null
-  isSelectingText.value = false
-  saveReportData()
-  
-  // Clear selection and update report content
-  window.getSelection().removeAllRanges()
-  updateReportContentFromDOM()
-  
-  // Update connector lines after DOM update
-  nextTick(() => {
-    updateConnectorLines()
-  })
-}
-
-const updateReportContentFromDOM = () => {
-  const editor = document.querySelector('.report-editor')
-  if (editor) {
-    reportContent.value = editor.innerHTML
-    saveReportData()
-  }
-}
-
-const selectCard = (cardId) => {
-  selectedSentenceId.value = cardId
-  // Scroll to the linked sentence and highlight it
-  const sentenceElement = document.querySelector(`[data-sentence-id="${cardId}"]`)
-  if (sentenceElement) {
-    sentenceElement.classList.add('active')
-    sentenceElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    // Remove active class after animation
-    setTimeout(() => {
-      sentenceElement.classList.remove('active')
-    }, 2000)
-  }
-  updateConnectorLines()
-}
-
-const updateConnectorLines = () => {
-  // This will be called to update visual connector lines
-  // For now, we'll use CSS to show connections
-  nextTick(() => {
-    linkedCards.value.forEach(card => {
-      const sentenceElement = document.querySelector(`[data-sentence-id="${card.sentenceId}"]`)
-      const cardElement = document.querySelector(`[data-card-id="${card.id}"]`)
-      
-      if (sentenceElement && cardElement) {
-        // Store positions for potential SVG line drawing
-        const sentenceRect = sentenceElement.getBoundingClientRect()
-        const cardRect = cardElement.getBoundingClientRect()
-        card.position = {
-          top: sentenceRect.top,
-          left: sentenceRect.left,
-          cardTop: cardRect.top,
-          cardLeft: cardRect.left
-        }
-      }
-    })
-  })
-}
-
-const deleteCard = (cardId) => {
-  if (confirm('Are you sure you want to delete this linked card?')) {
-    // Remove linked class from sentence
-    const sentenceElement = document.querySelector(`[data-sentence-id="${cardId}"]`)
-    if (sentenceElement) {
-      sentenceElement.classList.remove('linked-sentence')
-      sentenceElement.removeAttribute('data-sentence-id')
-    }
-    
-    // Remove card
-    linkedCards.value = linkedCards.value.filter(c => c.id !== cardId)
-    if (selectedSentenceId.value === cardId) {
-      selectedSentenceId.value = null
-    }
-    saveReportData()
-  }
-}
-
-const updateReportContent = () => {
-  const editor = document.querySelector('.report-editor')
-  if (editor) {
-    reportContent.value = editor.innerHTML
-  }
-  saveReportData()
-}
-
-// Report History Functions
-const loadReportHistory = () => {
-  if (!selectedStock.value) {
-    reportHistory.value = []
-    return
-  }
-  
-  loadingHistory.value = true
-  try {
-    const key = `report_history_${selectedStock.value.toUpperCase()}`
-    const saved = localStorage.getItem(key)
-    if (saved) {
-      try {
-        reportHistory.value = JSON.parse(saved)
-        // Sort by date, newest first
-        reportHistory.value.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
-      } catch (e) {
-        console.error('Failed to load report history:', e)
-        reportHistory.value = []
-      }
-    } else {
-      reportHistory.value = []
-    }
-  } finally {
-    loadingHistory.value = false
-  }
-}
-
-const saveReportToHistory = () => {
-  if (!selectedStock.value || !reportContent.value.trim()) return
-  
-  const key = `report_history_${selectedStock.value.toUpperCase()}`
-  const historyItem = {
-    title: `Report - ${new Date().toLocaleString()}`,
-    content: reportContent.value,
-    cards: JSON.parse(JSON.stringify(linkedCards.value)),
-    savedAt: new Date().toISOString()
-  }
-  
-  let history = []
-  const saved = localStorage.getItem(key)
-  if (saved) {
-    try {
-      history = JSON.parse(saved)
-    } catch (e) {
-      console.error('Failed to parse history:', e)
-    }
-  }
-  
-  // Add new history item
-  history.unshift(historyItem)
-  
-  // Keep only last 50 history items
-  if (history.length > 50) {
-    history = history.slice(0, 50)
-  }
-  
-  localStorage.setItem(key, JSON.stringify(history))
-  reportHistory.value = history
-}
-
-const handleFileUpload = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-  
-  // Validate file type
-  const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.text']
-  const fileExt = '.' + file.name.split('.').pop().toLowerCase()
-  if (!allowedTypes.includes(fileExt)) {
-    uploadError.value = 'Please upload a PDF, Word (.docx), or Text file'
-    uploadSuccess.value = false
-    return
-  }
-  
-  uploading.value = true
-  uploadError.value = null
-  uploadSuccess.value = false
-  uploadStatus.value = 'Uploading file...'
-  uploadProgress.value = 30
-  
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    
-    uploadStatus.value = 'Processing file and extracting text...'
-    uploadProgress.value = 60
-    
-    const response = await fetch('http://localhost:8000/api/external/upload', {
-      method: 'POST',
-      body: formData
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }))
-      throw new Error(errorData.detail || 'Failed to upload file')
-    }
-    
-    uploadStatus.value = 'Beautifying content...'
-    uploadProgress.value = 80
-    
-    const data = await response.json()
-    
-    // Convert text content to HTML (preserve line breaks)
-    const htmlContent = data.content.replace(/\n/g, '<br>')
-    
-    // Save to report history with filename + date
-    const currentDate = new Date()
-    const dateStr = currentDate.toISOString().split('T')[0]
-    const historyTitle = `${file.name} - ${dateStr}`
-    
-    saveDeepDiveToHistory(historyTitle, htmlContent, data.content)
-    
-    uploadStatus.value = 'Saving to history...'
-    uploadProgress.value = 100
-    
-    uploadedFileName.value = file.name
-    uploadSuccess.value = true
-    
-    // Refresh history if on history tab
-    if (activeTab.value === 'report' && reportSection.value === 'history') {
-      loadReportHistory()
-    }
-    
-    // Reset file input
-    if (fileInput.value) {
-      fileInput.value.value = ''
-    }
-    
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      uploadSuccess.value = false
-      uploadProgress.value = 0
-    }, 3000)
-    
-  } catch (err) {
-    console.error('File upload error:', err)
-    uploadError.value = err.message || 'Failed to upload and process file'
-    uploadSuccess.value = false
-  } finally {
-    uploading.value = false
-    uploadStatus.value = ''
-  }
-}
-
-const saveDeepDiveToHistory = (title, htmlContent, markdownContent) => {
-  if (!selectedStock.value) return
-  
-  const key = `report_history_${selectedStock.value.toUpperCase()}`
-  const historyItem = {
-    title: title,
-    content: htmlContent, // HTML content for editor
-    markdownContent: markdownContent, // Original markdown for reference
-    cards: [], // No linked cards for auto-generated reports
-    savedAt: new Date().toISOString(),
-    isDeepDive: true // Flag to identify deep dive reports
-  }
-  
-  let history = []
-  const saved = localStorage.getItem(key)
-  if (saved) {
-    try {
-      history = JSON.parse(saved)
-    } catch (e) {
-      console.error('Failed to parse history:', e)
-    }
-  }
-  
-  // Add new history item at the beginning
-  history.unshift(historyItem)
-  
-  // Keep only last 50 history items
-  if (history.length > 50) {
-    history = history.slice(0, 50)
-  }
-  
-  localStorage.setItem(key, JSON.stringify(history))
-  reportHistory.value = history
-}
-
-const loadReportFromHistory = (report) => {
-  if (confirm('Load this report? Current unsaved changes will be lost.')) {
-    // Use HTML content if available, otherwise use markdown content
-    if (report.content) {
-      reportContent.value = report.content
-    } else if (report.markdownContent) {
-      // Convert markdown to HTML if only markdown is available
-      reportContent.value = marked(report.markdownContent)
-    } else {
-      reportContent.value = ''
-    }
-    
-    linkedCards.value = JSON.parse(JSON.stringify(report.cards || []))
-    nextCardId.value = Math.max(1, ...(linkedCards.value.length > 0 ? linkedCards.value.map(c => {
-      const idNum = parseInt(c.id?.replace('sentence_', '') || '0')
-      return isNaN(idNum) ? 0 : idNum
-    }) : [0])) + 1
-    
-    // Switch to editor section
-    reportSection.value = 'editor'
-    
-    // Restore linked sentences (only if there are linked cards)
-    nextTick(() => {
-      if (linkedCards.value.length > 0) {
-        restoreLinkedSentences()
-        updateConnectorLines()
-      }
-    })
-    
-    saveReportData()
-  }
-}
-
-const deleteReportFromHistory = (index) => {
-  if (confirm('Delete this report from history?')) {
-    reportHistory.value.splice(index, 1)
-    
-    const key = `report_history_${selectedStock.value.toUpperCase()}`
-    localStorage.setItem(key, JSON.stringify(reportHistory.value))
-  }
-}
-
-const formatHistoryDate = (dateString) => {
-  if (!dateString) return 'Unknown date'
-  const date = new Date(dateString)
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-const getReportPreview = (content) => {
-  if (!content) return '(Empty)'
-  // Remove HTML tags for preview
-  const text = content.replace(/<[^>]*>/g, '')
-  const preview = text.trim().substring(0, 150)
-  return preview.length < text.trim().length ? preview + '...' : preview
-}
-
-const loadingHistory = ref(false)
-
-// Restore linked sentences when loading report
-const restoreLinkedSentences = () => {
-  nextTick(() => {
-    linkedCards.value.forEach(card => {
-      const sentenceElement = document.querySelector(`[data-sentence-id="${card.sentenceId}"]`)
-      if (!sentenceElement && card.sentenceText) {
-        // Try to find and restore the sentence
-        const editor = document.querySelector('.report-editor')
-        if (editor) {
-          const text = editor.innerText || editor.textContent
-          const index = text.indexOf(card.sentenceText)
-          if (index !== -1) {
-            // This is a simplified restoration - in a real app you'd want more robust matching
-            const walker = document.createTreeWalker(
-              editor,
-              NodeFilter.SHOW_TEXT,
-              null,
-              false
-            )
-            let node
-            let currentIndex = 0
-            while (node = walker.nextNode()) {
-              const nodeText = node.textContent
-              if (currentIndex <= index && index < currentIndex + nodeText.length) {
-                const range = document.createRange()
-                const startOffset = index - currentIndex
-                const endOffset = startOffset + card.sentenceText.length
-                range.setStart(node, startOffset)
-                range.setEnd(node, Math.min(endOffset, nodeText.length))
-                
-                const span = document.createElement('span')
-                span.setAttribute('data-sentence-id', card.sentenceId)
-                span.classList.add('linked-sentence')
-                span.textContent = card.sentenceText
-                
-                try {
-                  range.deleteContents()
-                  range.insertNode(span)
-                } catch (e) {
-                  console.error('Error restoring linked sentence:', e)
-                }
-                break
-              }
-              currentIndex += nodeText.length
-            }
-          }
-        }
-      } else if (sentenceElement) {
-        sentenceElement.classList.add('linked-sentence')
-      }
-    })
-  })
-}
-
-const getCardPreview = (text, maxLength = 50) => {
-  if (!text || text.trim() === '') {
-    return '(Empty)'
-  }
-  const preview = text.trim().substring(0, maxLength)
-  return preview.length < text.trim().length ? preview + '...' : preview
-}
+// Report functions removed - reports are now handled in /report route
 
 // Fetch user info from API
 const fetchUserInfo = async () => {
@@ -3976,7 +3185,6 @@ onMounted(() => {
   if (selectedStock.value) {
     loadStockData()
     fetchCompanyData()
-    loadReportData()
   }
 })
 
@@ -3987,12 +3195,6 @@ watch(selectedTimePeriod, () => {
   }
 })
 
-// Watch activeTab to load report data when switching to report tab
-watch(activeTab, (newTab) => {
-  if (newTab === 'report' && selectedStock.value) {
-    loadReportData()
-  }
-})
 
 // Cleanup interval on unmount
 onUnmounted(() => {
@@ -4428,6 +3630,53 @@ onUnmounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.position-selector {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.position-selector label {
+  font-weight: 500;
+  color: #000000;
+}
+
+.position-select {
+  padding: 6px 12px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  background: white;
+  color: #000000;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.position-select:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.btn-save-report {
+  padding: 8px 16px;
+  background: #42b983;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-save-report:hover:not(:disabled) {
+  background: #35a372;
+}
+
+.btn-save-report:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .selection-actions {
