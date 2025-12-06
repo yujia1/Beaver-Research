@@ -21,28 +21,28 @@ def init_default_users():
     try:
         default_users = [
             {
-                "username": "admin",
-                "email": "admin@example.com",
+                "username": "admin@gmail.com",
+                "email": "admin@gmail.com",
                 "password": "admin123",
                 "role": "admin"
             },
             {
-                "username": "creator",
-                "email": "creator@example.com",
+                "username": "creator@gmail.com",
+                "email": "creator@gmail.com",
                 "password": "creator123",
                 "role": "creator"
+            },
+            {
+                "username": "testuser@gmail.com",
+                "email": "testuser@gmail.com",
+                "password": "testpass123",
+                "role": "user"
             },
             {
                 "username": "contributor",
                 "email": "contributor@example.com",
                 "password": "contributor123",
                 "role": "contributor"
-            },
-            {
-                "username": "user",
-                "email": "user@example.com",
-                "password": "user123",
-                "role": "user"
             }
         ]
         

@@ -7,13 +7,13 @@
         
         <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="username">Email</label>
             <input
               id="username"
               v-model="username"
-              type="text"
+              type="email"
               required
-              placeholder="Enter your username"
+              placeholder="Enter your email"
               :disabled="loading"
             />
           </div>

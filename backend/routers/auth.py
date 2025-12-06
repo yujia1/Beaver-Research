@@ -444,6 +444,56 @@ async def create_user(
     
     return db_user
 
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Delete a user (admin only)"""
+    # Check if current user is admin
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can delete users"
+        )
+    
+    # Prevent admin from deleting themselves
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account"
+        )
+    
+    # Find the user to delete
+    user_to_delete = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user_to_delete:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Delete the user and all associated data
+    try:
+        # Delete all events associated with this user
+        events_to_delete = db.query(models.Event).filter(models.Event.user_id == user_id).all()
+        for event in events_to_delete:
+            db.delete(event)
+        
+        # Delete all reports associated with this user (if reports have user_id)
+        # Note: Check if Report model has user_id field, if not, this can be skipped
+        # For now, we'll delete reports that might be associated via other means if needed
+        
+        # Delete the user
+        db.delete(user_to_delete)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting user: {str(e)}"
+        )
+
 # Payment verification endpoints
 class PaymentVerificationRequest(BaseModel):
     transaction_id: str

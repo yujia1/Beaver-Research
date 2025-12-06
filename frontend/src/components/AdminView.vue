@@ -92,13 +92,23 @@
                 {{ formatDate(user.created_at) }}
               </td>
               <td class="actions-cell">
-                <button
-                  @click="togglePaymentStatus(user)"
-                  :class="['action-button', user.has_paid ? 'unverify' : 'verify']"
-                  :disabled="updatingUserId === user.id"
-                >
-                  {{ updatingUserId === user.id ? 'Updating...' : (user.has_paid ? 'Unverify' : 'Verify Payment') }}
-                </button>
+                <div class="action-buttons">
+                  <button
+                    @click="togglePaymentStatus(user)"
+                    :class="['action-button', user.has_paid ? 'unverify' : 'verify']"
+                    :disabled="updatingUserId === user.id"
+                  >
+                    {{ updatingUserId === user.id ? 'Updating...' : (user.has_paid ? 'Unverify' : 'Verify Payment') }}
+                  </button>
+                  <button
+                    @click="confirmDelete(user)"
+                    class="action-button delete"
+                    :disabled="deletingUserId === user.id || isCurrentUser(user)"
+                    :title="isCurrentUser(user) ? 'Cannot delete your own account' : 'Delete user'"
+                  >
+                    {{ deletingUserId === user.id ? 'Deleting...' : 'Delete' }}
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -112,6 +122,21 @@
 
     <div v-if="message" :class="['message', messageType]">
       {{ message }}
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
+      <div class="modal-content" @click.stop>
+        <h2>Confirm Delete</h2>
+        <p>Are you sure you want to delete user <strong>{{ userToDelete?.username }}</strong> ({{ userToDelete?.email }})?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button @click="cancelDelete" class="modal-button cancel">Cancel</button>
+          <button @click="deleteUser" class="modal-button delete-confirm" :disabled="deletingUserId !== null">
+            {{ deletingUserId !== null ? 'Deleting...' : 'Delete User' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -129,8 +154,11 @@ const searchQuery = ref('')
 const roleFilter = ref('')
 const paymentFilter = ref('')
 const updatingUserId = ref(null)
+const deletingUserId = ref(null)
 const message = ref('')
 const messageType = ref('')
+const userToDelete = ref(null)
+const showDeleteConfirm = ref(false)
 
 const paidUsersCount = computed(() => {
   return users.value.filter(u => u.has_paid).length
@@ -268,6 +296,77 @@ const formatDate = (dateString) => {
     })
   } catch {
     return '-'
+  }
+}
+
+const isCurrentUser = (user) => {
+  const currentUserStr = localStorage.getItem('user')
+  if (!currentUserStr) return false
+  try {
+    const currentUser = JSON.parse(currentUserStr)
+    return currentUser.id === user.id
+  } catch {
+    return false
+  }
+}
+
+const confirmDelete = (user) => {
+  userToDelete.value = user
+  showDeleteConfirm.value = true
+}
+
+const cancelDelete = () => {
+  userToDelete.value = null
+  showDeleteConfirm.value = false
+}
+
+const deleteUser = async () => {
+  if (!userToDelete.value) return
+
+  deletingUserId.value = userToDelete.value.id
+  message.value = ''
+
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    const response = await fetch(`http://localhost:8000/api/auth/users/${userToDelete.value.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to delete user')
+    }
+
+    // Remove user from local state
+    users.value = users.value.filter(u => u.id !== userToDelete.value.id)
+
+    message.value = `User ${userToDelete.value.username} has been deleted successfully`
+    messageType.value = 'success'
+
+    // Close modal
+    cancelDelete()
+
+    setTimeout(() => {
+      message.value = ''
+    }, 3000)
+  } catch (err) {
+    console.error('Error deleting user:', err)
+    message.value = err.message || 'Failed to delete user'
+    messageType.value = 'error'
+
+    setTimeout(() => {
+      message.value = ''
+    }, 5000)
+  } finally {
+    deletingUserId.value = null
   }
 }
 
@@ -510,6 +609,12 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .action-button {
   padding: 0.5rem 1rem;
   border: none;
@@ -543,6 +648,15 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+.action-button.delete {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.action-button.delete:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
 .no-results {
   text-align: center;
   padding: 3rem;
@@ -570,6 +684,92 @@ onMounted(() => {
   color: #ffffff;
 }
 
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h2 {
+  margin: 0 0 1rem 0;
+  color: #000000;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.modal-content p {
+  margin: 0.5rem 0;
+  color: #000000;
+  line-height: 1.5;
+}
+
+.modal-content strong {
+  color: #000000;
+  font-weight: 600;
+}
+
+.warning-text {
+  color: #dc2626;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.modal-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-button.cancel {
+  background: #f3f4f6;
+  color: #000000;
+}
+
+.modal-button.cancel:hover {
+  background: #e5e7eb;
+}
+
+.modal-button.delete-confirm {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.modal-button.delete-confirm:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.modal-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .admin-view {
     padding: 1rem;
@@ -582,6 +782,21 @@ onMounted(() => {
   .users-table th,
   .users-table td {
     padding: 0.5rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .action-button {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
   }
 }
 </style>

@@ -7,21 +7,21 @@ This dashboard aggregates data from various real-time and historical sources.
 For testing purposes, the following users have been created:
 
 ### Regular User
-- **Username**: `testuser`
+- **Username**: `testuser@gmail.com`
 - **Password**: `testpass123`
 - **Role**: `user`
 - **Permissions**: Can view Market and Investment pages, but cannot add events
 
 ### Creator User
-- **Username**: `creator`
+- **Username**: `creator@gmail.com`
 - **Password**: `creator123`
 - **Role**: `creator`
 - **Permissions**: Can view Market and Investment pages, and can add/manage their own events on the timeline
 ### Admin User
-- **Username**: `admin`
+- **Username**: `admin@gmail.com`
 - **Password**: `admin123`
 - **Role**: `admin`
-- **Permissions**: Can view Market and Investment pages, and can add/manage their own events on the timeline
+
 ## 1. Macro Economics
 -   **Source**: Yahoo Finance (`yfinance`)
 -   **Indicators**:

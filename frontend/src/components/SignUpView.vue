@@ -15,20 +15,10 @@
               required
               placeholder="Enter your email"
               :disabled="loading"
+              @blur="validateEmail"
+              :class="{ 'invalid': emailError }"
             />
-          </div>
-          
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input
-              id="username"
-              v-model="username"
-              type="text"
-              required
-              placeholder="Choose a username"
-              :disabled="loading"
-              minlength="3"
-            />
+            <div v-if="emailError" class="validation-error">{{ emailError }}</div>
           </div>
           
           <div class="form-group">
@@ -60,7 +50,7 @@
           <div v-if="error" class="error-message">{{ error }}</div>
           <div v-if="success" class="success-message">{{ success }}</div>
           
-          <button type="submit" class="submit-btn" :disabled="loading || password !== confirmPassword || password.length < 6 || password.length > 12">
+          <button type="submit" class="submit-btn" :disabled="loading || !isFormValid">
             {{ loading ? 'Creating account...' : 'Sign Up' }}
           </button>
           
@@ -84,21 +74,69 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const email = ref('')
-const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref(null)
 const success = ref(null)
+const emailError = ref(null)
+
+// Email validation function
+const validateEmail = () => {
+  emailError.value = null
+  if (!email.value) {
+    return
+  }
+  
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value)) {
+    emailError.value = 'Please enter a valid email address'
+    return false
+  }
+  
+  // Additional validation: check for common issues
+  if (email.value.includes('..')) {
+    emailError.value = 'Email cannot contain consecutive dots'
+    return false
+  }
+  
+  if (email.value.startsWith('.') || email.value.endsWith('.')) {
+    emailError.value = 'Email cannot start or end with a dot'
+    return false
+  }
+  
+  return true
+}
+
+// Computed property to check if form is valid
+const isFormValid = computed(() => {
+  return email.value && 
+         !emailError.value && 
+         password.value.length >= 6 && 
+         password.value.length <= 12 && 
+         password.value === confirmPassword.value
+})
 
 const handleSignup = async () => {
+  // Validate email before submitting
+  if (!validateEmail()) {
+    error.value = emailError.value || 'Please enter a valid email address'
+    return
+  }
+  
   if (password.value !== confirmPassword.value) {
     error.value = 'Passwords do not match'
+    return
+  }
+  
+  if (password.value.length < 6 || password.value.length > 12) {
+    error.value = 'Password must be between 6 and 12 characters'
     return
   }
   
@@ -118,7 +156,7 @@ const handleSignup = async () => {
       },
       body: JSON.stringify({
         email: email.value,
-        username: username.value,
+        username: email.value, // Use email as username
         password: password.value
       }),
       signal: controller.signal
@@ -237,6 +275,16 @@ const handleSignup = async () => {
 
 .form-group input::placeholder {
   color: #999999;
+}
+
+.form-group input.invalid {
+  border-color: #e74c3c;
+}
+
+.validation-error {
+  color: #e74c3c;
+  font-size: 0.85em;
+  margin-top: -5px;
 }
 
 .error-message {
