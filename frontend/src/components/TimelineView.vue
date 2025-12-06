@@ -323,11 +323,15 @@
                   <div class="analysis-section-wrapper">
                     <div class="analysis-report-section">
                       <div class="section-header">
-                        <h4>Company Overview & Industry Analysis</h4>
-                        <button @click="generateAllAnalyses" :disabled="analyzing" class="refresh-btn">
-                          {{ analyzing ? 'Generating...' : 'Generate' }}
+                        <h4>Company Overview & Deep Dive Analysis</h4>
+                        <button @click="generateAllAnalyses" :disabled="analyzing || !hasPaid" class="refresh-btn" :class="{ 'disabled': !hasPaid }">
+                          {{ analyzing ? 'Generating...' : (!hasPaid ? '🔒 Payment Required - Generate' : 'Generate') }}
                         </button>
                       </div>
+                      
+                      <p v-if="!hasPaid && !checkingPayment" class="payment-notice">
+                        Payment required to generate analysis. <a href="/research" style="color: #3498db; text-decoration: underline;">Visit Research page to complete payment</a>
+                      </p>
                       
                       <div v-if="analyzing" class="progress-indicator">
                         <p>{{ analysisProgress }}</p>
@@ -337,7 +341,7 @@
                         <div class="analysis-html-content" v-html="renderMarkdown(analysisReport)"></div>
                       </div>
                       <div v-else class="no-data">
-                        <p>No analysis available. Click "Generate" to create a Company Overview & Industry Analysis.</p>
+                        <p>No analysis available. Click "Generate" to create a Company Overview & Deep dive Analysis.</p>
                       </div>
                     </div>
                   </div>
@@ -626,7 +630,7 @@
                     </tbody>
                   </table>
                 </div>
-                <div v-else class="no-data">No release data available</div>
+                <div v-else class="no-data">release data will be available soon</div>
               </div>
 
               <!-- Holders Tab -->
@@ -757,7 +761,7 @@
           </div>
           <div v-else-if="polyMarketData" class="polymarket-content">
             <div v-if="polyMarketData.is_real_data === false" class="polymarket-warning">
-              <strong>⚠️ Note:</strong> No PolyMarket data found for {{ selectedStock }}. Displaying estimated fallback data based on current stock price. These odds are not from PolyMarket and should not be used for trading decisions.
+              <strong>Note:</strong> No PolyMarket data available for {{ selectedStock }}. Displaying estimated fallback data based on current stock price. These odds are based on monte carlo simulation&normal distribution for trading decisions.
             </div>
             <div class="polymarket-header">
               <h3>📊 PolyMarket - {{ selectedStock }}</h3>
@@ -1200,6 +1204,8 @@ const financialPeriod = ref('annual')
 const analyzing = ref(false)
 const analysisReport = ref(null)
 const analysisProgress = ref('')
+const hasPaid = ref(false)
+const checkingPayment = ref(true)
 
 // 10-K chunks state
 const tenKChunks = ref(null)
@@ -1396,19 +1402,17 @@ const chartData = computed(() => {
       }
       return ''
     } else if (selectedTimePeriod.value === 'monthly') {
-      // Show first of each month
-      if (date.getDate() === 1 || index === 0) {
-        const month = date.toLocaleString('default', { month: 'short' })
-        const year = date.getFullYear()
-        return `${month} ${year}`
-      }
-      return ''
+      // Show date for monthly view - show every data point with month and year
+      const month = date.toLocaleString('default', { month: 'short' })
+      const day = date.getDate()
+      const year = date.getFullYear()
+      return `${month} ${day}, ${year}`
     } else if (selectedTimePeriod.value === 'yearly') {
-      // Show first of each year
-      if ((date.getMonth() === 0 && date.getDate() === 1) || index === 0) {
-        return date.getFullYear().toString()
-      }
-      return ''
+      // Show date for yearly view - show every data point with full date
+      const month = date.toLocaleString('default', { month: 'short' })
+      const day = date.getDate()
+      const year = date.getFullYear()
+      return `${month} ${day}, ${year}`
     } else {
       // Max - show monthly labels
       if (date.getDate() === 1 || index === 0 || index === dataToUse.length - 1) {
@@ -2601,8 +2605,42 @@ const saveReport = async (title, content, type) => {
   }
 }
 
+const checkPaymentStatus = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    hasPaid.value = false
+    checkingPayment.value = false
+    return
+  }
+  
+  try {
+    const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.ok) {
+      const status = await response.json()
+      hasPaid.value = status.has_paid || false
+    }
+  } catch (error) {
+    console.error('Error checking payment status:', error)
+    hasPaid.value = false
+  } finally {
+    checkingPayment.value = false
+  }
+}
+
 const generateAllAnalyses = async () => {
   if (!companyData.value) return
+  
+  // Check payment status first
+  if (!hasPaid.value) {
+    alert('Payment required. Please verify your payment to access Company Overview & Industry Analysis generation. Visit the Research page to complete payment.')
+    return
+  }
+  
   analyzing.value = true
   
   try {
@@ -2655,16 +2693,36 @@ ${analysisReport.value || 'Not generated'}`
 
 const generateAnalysis = async () => {
   if (!companyData.value) return
+  
+  // Check payment status first
+  if (!hasPaid.value) {
+    alert('Payment required. Please verify your payment to access Company Overview & Industry Analysis generation. Visit the Research page to complete payment.')
+    return
+  }
+  
   try {
+    const token = localStorage.getItem('access_token')
     const response = await fetch('http://localhost:8000/api/agent/analyze_company', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         ticker: companyData.value.ticker,
         company_name: companyData.value.company_name,
         sector: companyData.value.sector
       })
     })
+    
+    if (response.status === 403) {
+      const errorData = await response.json()
+      alert(errorData.detail || 'Payment required to generate analysis')
+      // Refresh payment status
+      await checkPaymentStatus()
+      return
+    }
+    
     if (!response.ok) throw new Error('Failed to generate analysis')
     const result = await response.json()
     analysisReport.value = result.report
@@ -3886,11 +3944,20 @@ onMounted(() => {
   // Fetch fresh user info from API to ensure role is correct
   fetchUserInfo()
   
+  // Check payment status
+  checkPaymentStatus()
+  
   // Listen for login events to update user info
   const handleLoginEvent = () => {
     fetchUserInfo()
+    checkPaymentStatus()
   }
   window.addEventListener('user-logged-in', handleLoginEvent)
+  
+  // Listen for payment verification events
+  window.addEventListener('payment-verified', () => {
+    checkPaymentStatus()
+  })
   
   // Fetch creators list (will auto-select first creator, but won't fetch events until stock is selected)
   fetchCreators()
@@ -6981,6 +7048,24 @@ onUnmounted(() => {
 .refresh-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.refresh-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #cccccc !important;
+  color: #666666 !important;
+  border-color: #cccccc !important;
+}
+
+.payment-notice {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  color: #856404;
+  font-size: 0.9em;
 }
 
 .tenk-content {

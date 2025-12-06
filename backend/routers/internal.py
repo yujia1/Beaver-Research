@@ -1164,17 +1164,17 @@ async def get_macro_series(series_id: str, timeframe: str = "monthly"):
             else:
                 latest_val = 0.0
                 latest_date = datetime.today().strftime('%Y-%m-%d')
-            
-            return {
-                "indicator": cfg["indicator"],
-                "value": latest_val,
-                "date": latest_date,
-                "description": cfg["description"],
-                "category": cfg["category"],
-                "history": history_pct if history_pct else [],
-                "chart_type": cfg["chart_type"],
-                "series_id": cfg["series_id"]
-            }
+
+        return {
+            "indicator": cfg["indicator"],
+            "value": latest_val,
+            "date": latest_date,
+            "description": cfg["description"],
+            "category": cfg["category"],
+            "history": history_pct if history_pct else [],
+            "chart_type": cfg["chart_type"],
+            "series_id": cfg["series_id"]
+        }
     # Check if this is a commodity and use Yahoo Finance
     elif cfg["category"] == "Commodity" and series_id in commodity_ticker_map:
         history = fetch_commodity_from_yahoo(series_id, timeframe)

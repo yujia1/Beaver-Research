@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from pydantic import BaseModel
 from services.agent import agent_service
 from services.edgar_service import edgar_service
@@ -7,6 +7,8 @@ import openai
 import os
 from datetime import datetime, timedelta
 import hashlib
+from routers.auth import get_current_user
+import models
 
 router = APIRouter()
 
@@ -102,12 +104,23 @@ async def get_10k_chunks(ticker: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze_company")
-async def analyze_company(request: CompanyAnalysisRequest):
+async def analyze_company(
+    request: CompanyAnalysisRequest,
+    current_user: models.User = Depends(get_current_user)
+):
     """
     Generate a comprehensive forensic business analysis based on the latest 10-K filing.
     Uses the latest 10-K from SEC EDGAR and generates a detailed forensic analysis.
     Uses caching to avoid redundant API calls.
+    
+    Requires user to have paid for Research access.
     """
+    # Check if user has paid
+    if not hasattr(current_user, 'has_paid') or not current_user.has_paid:
+        raise HTTPException(
+            status_code=403,
+            detail="Payment required. Please verify your payment to access Company Overview & Industry Analysis generation."
+        )
     try:
         # Check cache first
         cached_report = get_cached_analysis(request.ticker, "company_overview")

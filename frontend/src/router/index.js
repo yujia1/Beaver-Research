@@ -4,6 +4,7 @@ import TimelineView from '../components/TimelineView.vue'
 import LoginView from '../components/LoginView.vue'
 import SignUpView from '../components/SignUpView.vue'
 import ResearchView from '../components/ResearchView.vue'
+import AdminView from '../components/AdminView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,19 +38,65 @@ const router = createRouter({
       name: 'research',
       component: ResearchView,
       meta: { requiresAuth: false }
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AdminView,
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('access_token')
   const requiresAuth = to.meta.requiresAuth !== false
+  const requiresAdmin = to.meta.requiresAdmin === true
   
   if (requiresAuth && !token) {
     // Redirect to login if route requires auth and user is not authenticated
     next('/login')
-  } else if (!requiresAuth && token && (to.path === '/login' || to.path === '/signup')) {
+    return
+  }
+  
+  // Check admin requirement
+  if (requiresAdmin && token) {
+    try {
+      const userStr = localStorage.getItem('user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        if (user.role !== 'admin') {
+          next('/')
+          return
+        }
+      } else {
+        // Fetch user info if not in localStorage
+        const response = await fetch('http://localhost:8000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          const user = await response.json()
+          localStorage.setItem('user', JSON.stringify(user))
+          if (user.role !== 'admin') {
+            next('/')
+            return
+          }
+        } else {
+          next('/login')
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error)
+      next('/')
+      return
+    }
+  }
+  
+  if (!requiresAuth && token && (to.path === '/login' || to.path === '/signup')) {
     // Redirect to home if user is already logged in and tries to access login/signup
     next('/')
   } else {

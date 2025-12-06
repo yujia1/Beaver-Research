@@ -51,6 +51,7 @@ class UserResponse(BaseModel):
     username: str
     role: str
     is_active: bool
+    has_paid: bool
     created_at: datetime
 
     class Config:
@@ -366,6 +367,21 @@ async def get_creators(db: Session = Depends(get_db)):
     ).order_by(models.User.username).all()
     return creators
 
+@router.get("/users", response_model=List[UserResponse])
+async def get_all_users(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get all users (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can view all users"
+        )
+    
+    users = db.query(models.User).order_by(models.User.created_at.desc()).all()
+    return users
+
 @router.post("/create-user", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_data: UserCreate,
@@ -427,4 +443,99 @@ async def create_user(
     db.refresh(db_user)
     
     return db_user
+
+# Payment verification endpoints
+class PaymentVerificationRequest(BaseModel):
+    transaction_id: str
+    email: Optional[str] = None
+
+@router.get("/payment-status")
+async def get_payment_status(current_user: models.User = Depends(get_current_user)):
+    """Get current user's payment status"""
+    return {
+        "has_paid": current_user.has_paid if hasattr(current_user, 'has_paid') else False,
+        "payment_date": current_user.payment_date.isoformat() if hasattr(current_user, 'payment_date') and current_user.payment_date else None,
+        "transaction_id": current_user.payment_transaction_id if hasattr(current_user, 'payment_transaction_id') else None
+    }
+
+@router.post("/verify-payment")
+async def verify_payment(
+    payment_data: PaymentVerificationRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Verify payment and grant access to Research page (admin can verify manually)"""
+    # Only admin can verify payments manually
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can verify payments"
+        )
+    
+    # Find user by email or transaction ID
+    user = None
+    if payment_data.email:
+        user = get_user_by_email(db, payment_data.email)
+    elif payment_data.transaction_id:
+        user = db.query(models.User).filter(
+            models.User.payment_transaction_id == payment_data.transaction_id
+        ).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Update payment status
+    user.has_paid = True
+    user.payment_transaction_id = payment_data.transaction_id
+    user.payment_date = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "Payment verified successfully",
+        "user": UserResponse.model_validate(user)
+    }
+
+class UpdatePaymentStatusRequest(BaseModel):
+    user_id: int
+    has_paid: bool
+    transaction_id: Optional[str] = None
+
+@router.post("/update-payment-status")
+async def update_payment_status(
+    payment_data: UpdatePaymentStatusRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update payment status for a user (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can update payment status"
+        )
+    
+    user = db.query(models.User).filter(models.User.id == payment_data.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    user.has_paid = payment_data.has_paid
+    if payment_data.transaction_id:
+        user.payment_transaction_id = payment_data.transaction_id
+    if payment_data.has_paid and not user.payment_date:
+        user.payment_date = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "Payment status updated successfully",
+        "user": UserResponse.model_validate(user)
+    }
 

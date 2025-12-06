@@ -38,9 +38,12 @@
             <!-- Overview & AI Analysis -->
             <div v-if="activeTab === 'overview'" class="tab-pane">
                 <div class="ai-section">
-                    <button @click="generateAllAnalyses" :disabled="analyzing" class="ai-btn">
-                        {{ analyzing ? 'Generating Complete Deep Dive...' : '✨ Generate Complete Deep Dive Analysis' }}
+                    <button @click="generateAllAnalyses" :disabled="analyzing || !hasPaid" class="ai-btn" :class="{ 'disabled': !hasPaid }">
+                        {{ analyzing ? 'Generating Complete Deep Dive...' : (!hasPaid ? '🔒 Payment Required - Generate Complete Deep Dive Analysis' : '✨ Generate Complete Deep Dive Analysis') }}
                     </button>
+                    <p v-if="!hasPaid && !checkingPayment" class="payment-notice">
+                        Payment required to generate analysis. <a href="/research" style="color: #3498db; text-decoration: underline;">Visit Research page to complete payment</a>
+                    </p>
                     
                     <div v-if="analyzing" class="progress-indicator">
                         <p>{{ analysisProgress }}</p>
@@ -48,7 +51,7 @@
                     
                     <!-- Company Overview -->
                     <div v-if="analysisReport" class="analysis-section">
-                        <h3>Company Overview & Industry Analysis</h3>
+                        <h3>Company Overview & Deep Dive Analysis</h3>
                         <div class="report-content" v-html="renderMarkdown(analysisReport)"></div>
                     </div>
 
@@ -601,7 +604,7 @@
                             </tr>
                         </tbody>
                     </table>
-                    <div v-else class="no-data">No institutional holder data available</div>
+                    <div v-else class="no-data">Institutional holder data will be available soon</div>
                 </div>
             </div>
 
@@ -698,6 +701,8 @@ const driversReport = ref(null);
 const analyzingCapital = ref(false);
 const capitalReport = ref(null);
 const analysisProgress = ref('');
+const hasPaid = ref(false);
+const checkingPayment = ref(true);
 
 
 // Chart refs
@@ -740,6 +745,16 @@ onActivated(async () => {
             renderOptionsCallsPutsChart();
         }
     }
+});
+
+// Check payment status on mount
+onMounted(() => {
+    checkPaymentStatus()
+    
+    // Listen for payment verification events
+    window.addEventListener('payment-verified', () => {
+        checkPaymentStatus()
+    })
 });
 
 const fetchData = async () => {
@@ -796,6 +811,13 @@ const saveReport = async (title, content, type) => {
 
 const generateAllAnalyses = async () => {
     if (!data.value) return;
+    
+    // Check payment status first
+    if (!hasPaid.value) {
+        alert('Payment required. Please verify your payment to access Company Overview & Industry Analysis generation. Visit the Research page to complete payment.')
+        return
+    }
+    
     analyzing.value = true;
     
     try {
@@ -857,18 +879,65 @@ ${capitalReport.value || 'Not generated'}`;
     }
 };
 
+const checkPaymentStatus = async () => {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+        hasPaid.value = false
+        checkingPayment.value = false
+        return
+    }
+    
+    try {
+        const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        
+        if (response.ok) {
+            const status = await response.json()
+            hasPaid.value = status.has_paid || false
+        }
+    } catch (error) {
+        console.error('Error checking payment status:', error)
+        hasPaid.value = false
+    } finally {
+        checkingPayment.value = false
+    }
+}
+
 const generateAnalysis = async () => {
     if (!data.value) return;
+    
+    // Check payment status first
+    if (!hasPaid.value) {
+        alert('Payment required. Please verify your payment to access Company Overview & Industry Analysis generation. Visit the Research page to complete payment.')
+        return
+    }
+    
     try {
+        const token = localStorage.getItem('access_token')
         const response = await fetch('http://localhost:8000/api/agent/analyze_company', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({
                 ticker: data.value.ticker,
                 company_name: data.value.company_name,
                 sector: data.value.sector
             })
         });
+        
+        if (response.status === 403) {
+            const errorData = await response.json()
+            alert(errorData.detail || 'Payment required to generate analysis')
+            // Refresh payment status
+            await checkPaymentStatus()
+            return
+        }
+        
         if (!response.ok) throw new Error('Failed to generate analysis');
         const result = await response.json();
         analysisReport.value = result.report;
@@ -2013,6 +2082,24 @@ const formatCurrency = (value) => {
     border-radius: 4px;
     margin-bottom: 20px;
     font-weight: bold;
+}
+
+.payment-notice {
+    margin-top: 10px;
+    padding: 12px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    color: #856404;
+    font-size: 0.9em;
+}
+
+.ai-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #cccccc !important;
+    color: #666666 !important;
+}
     color: #2e7d32;
 }
 

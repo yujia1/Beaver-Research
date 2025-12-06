@@ -12,6 +12,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, server_default="user", nullable=False)  # admin, creator, contributor, user
     is_active = Column(Boolean, default=True)
+    has_paid = Column(Boolean, default=False, nullable=False)  # Payment status for Research access
+    payment_transaction_id = Column(String, nullable=True)  # PayPal transaction ID
+    payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Event(Base):
