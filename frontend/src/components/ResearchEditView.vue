@@ -58,9 +58,13 @@
         <!-- Ticker Search (only in Company mode) -->
         <div v-if="props.viewMode === 'COMPANY'" class="search-container">
           <input
+            ref="tickerInputRef"
             type="text"
-            v-model="tickerInput"
+            :value="tickerInput"
+            @input="handleTickerInput"
             @keyup.enter="handleTickerSearch"
+            @focus="isEditingTicker = true"
+            @blur="isEditingTicker = false"
             placeholder="Q TSLA"
             class="search-input"
           />
@@ -137,7 +141,6 @@
           @dragenter.prevent="handleDragEnter"
           @dragleave.prevent="handleDragLeave"
           :class="{ 'drag-active': isDragging, 'has-content': editorContent.trim() !== '' }"
-          v-html="editorContent"
           @input="handleEditorInput"
         ></div>
       </div>
@@ -300,7 +303,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { getDailyCache, setDailyCache } from '../utils/dailyCache.js'
 
 const props = defineProps({
@@ -325,6 +328,8 @@ const emit = defineEmits(['update:view-mode', 'update:active-agent', 'update:tic
 const editorRef = ref(null)
 const editorContent = ref('')
 const tickerInput = ref(props.ticker)
+const tickerInputRef = ref(null)
+const isEditingTicker = ref(false)
 const isDragging = ref(false)
 const draggedBubble = ref(null)
 const companyName = ref('Alphabet Inc.')
@@ -553,15 +558,37 @@ const insertInsight = (insight, range) => {
     selection.removeAllRanges()
     selection.addRange(insertRange)
     
+    // Insert at cursor position
+    const selection = window.getSelection()
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0)
+      range.deleteContents()
+      const textNode = document.createTextNode(insight)
+      range.insertNode(textNode)
+      range.setStartAfter(textNode)
+      range.collapse(true)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
     editorContent.value = editorRef.value.innerHTML
   } else {
     // Append to end if no selection
-    editorContent.value += insight
-    editorRef.value.innerHTML = editorContent.value
+    const textNode = document.createTextNode(insight)
+    editorRef.value.appendChild(textNode)
+    // Move cursor to end
+    const range = document.createRange()
+    const sel = window.getSelection()
+    range.selectNodeContents(editorRef.value)
+    range.collapse(false)
+    sel.removeAllRanges()
+    sel.addRange(range)
+    editorContent.value = editorRef.value.innerHTML
   }
 }
 
 const handleEditorInput = () => {
+  // Just sync the content without re-rendering
+  // This prevents cursor from jumping
   if (editorRef.value) {
     editorContent.value = editorRef.value.innerHTML
   }
@@ -1571,6 +1598,17 @@ const toggleViewMode = () => {
   emit('update:view-mode', newMode)
 }
 
+const handleTickerInput = (event) => {
+  const cursorPosition = event.target.selectionStart
+  tickerInput.value = event.target.value
+  // Preserve cursor position after value update
+  nextTick(() => {
+    if (tickerInputRef.value && cursorPosition !== null) {
+      tickerInputRef.value.setSelectionRange(cursorPosition, cursorPosition)
+    }
+  })
+}
+
 const handleTickerSearch = () => {
   if (tickerInput.value.trim()) {
     emit('update:ticker', tickerInput.value.trim().toUpperCase())
@@ -1642,8 +1680,19 @@ watch(() => props.activeAgent, () => {
   fetchDataBubbles()
 }, { immediate: false })
 
-watch(() => props.ticker, () => {
-  tickerInput.value = props.ticker
+watch(() => props.ticker, (newTicker, oldTicker) => {
+  // Only update tickerInput if user is not currently editing
+  // This prevents cursor jumping while user is typing
+  if (!isEditingTicker.value && newTicker !== tickerInput.value) {
+    const cursorPos = tickerInputRef.value ? tickerInputRef.value.selectionStart : tickerInput.value.length
+    tickerInput.value = newTicker
+    // Preserve cursor position when updating from prop
+    nextTick(() => {
+      if (tickerInputRef.value && cursorPos !== null) {
+        tickerInputRef.value.setSelectionRange(cursorPos, cursorPos)
+      }
+    })
+  }
   if (props.viewMode === 'COMPANY') {
     fetchDataBubbles()
   }
@@ -1651,6 +1700,12 @@ watch(() => props.ticker, () => {
 
 onMounted(() => {
   fetchDataBubbles()
+  // Initialize editor content only if it exists
+  nextTick(() => {
+    if (editorRef.value && editorContent.value && !editorRef.value.innerHTML) {
+      editorRef.value.innerHTML = editorContent.value
+    }
+  })
 })
 </script>
 
