@@ -1,22 +1,28 @@
 <template>
   <div class="report-view">
-    <h2>Reports</h2>
-    
-    <div class="category-tabs">
-      <button 
-        v-for="category in categories" 
-        :key="category.value" 
-        :class="{ active: activeCategory === category.value }"
-        @click="activeCategory = category.value"
-      >
-        {{ category.label }}
-      </button>
+    <PaymentGate v-if="!hasPaid && !loading" />
+    <div v-else-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Checking access...</p>
     </div>
+    <div v-else>
+      <h2>Reports</h2>
+      
+      <div class="category-tabs">
+        <button 
+          v-for="category in categories" 
+          :key="category.value" 
+          :class="{ active: activeCategory === category.value }"
+          @click="activeCategory = category.value"
+        >
+          {{ category.label }}
+        </button>
+      </div>
 
-    <div class="content-container">
-        <div class="main-report-area">
-            <div v-if="loadingReports" class="loading">Loading reports...</div>
-            <div v-else>
+      <div class="content-container">
+          <div class="main-report-area">
+              <div v-if="loadingReports" class="loading">Loading reports...</div>
+              <div v-else>
                 <!-- Long Position Reports -->
                 <div v-if="activeCategory === 'long'" class="report-category">
                     <div v-if="longReports.length === 0" class="no-reports">No long position reports</div>
@@ -67,8 +73,9 @@
                         </li>
                     </ul>
                 </div>
-            </div>
-        </div>
+              </div>
+          </div>
+      </div>
     </div>
   </div>
 </template>
@@ -76,6 +83,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { marked } from 'marked';
+import { useRouter } from 'vue-router';
+import PaymentGate from './PaymentGate.vue';
+
+const router = useRouter();
+
+// Payment State
+const hasPaid = ref(false);
+const loading = ref(true);
 
 // Saved Reports State
 const savedReports = ref([]);
@@ -602,8 +617,49 @@ const dailyReports = computed(() => {
     );
 });
 
+const checkPaymentStatus = async () => {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    router.push('/login');
+    return;
+  }
+  
+  try {
+    const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const status = await response.json();
+      hasPaid.value = status.has_paid || false;
+      // Fetch reports if user has paid
+      if (hasPaid.value) {
+        fetchReports();
+      }
+    } else if (response.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      router.push('/login');
+    }
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    // On error, deny access (fail closed for payment)
+    hasPaid.value = false;
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
-    fetchReports();
+  checkPaymentStatus();
+  
+  // Listen for payment verification events
+  window.addEventListener('payment-verified', () => {
+    checkPaymentStatus();
+  });
 });
 
 const fetchReports = async () => {
@@ -870,6 +926,35 @@ const formatDate = (dateString) => {
     font-style: italic;
     text-align: center;
     margin-top: 20px;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 1rem;
+}
+
+.loading-container p {
+    color: #a8a29e;
+    font-size: 1rem;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #42b983;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 </style>

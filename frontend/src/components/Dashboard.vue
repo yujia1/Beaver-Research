@@ -854,13 +854,13 @@
                             <tr>
                                 <td>White house fact sheets</td>
                                 <td>White House Fact Sheets</td>
-                                <td><a href="https://www.whitehouse.gov/briefing-room/statements-releases/fact-sheets/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/statements-releases/fact-sheets/</a></td>
+                                <td><a href="https://www.whitehouse.gov/fact-sheets/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/statements-releases/fact-sheets/</a></td>
                                 <td>policy/federal/whitehouse_fact_sheets</td>
                             </tr>
                             <tr>
                                 <td>Whitehouse executive orders</td>
                                 <td>Executive Orders</td>
-                                <td><a href="https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/</a></td>
+                                <td><a href="https://www.whitehouse.gov/presidential-actions/executive-orders/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/</a></td>
                                 <td>policy/federal/executive_orders</td>
                     </tr>
                 </tbody>

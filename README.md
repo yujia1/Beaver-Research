@@ -17,7 +17,11 @@ For testing purposes, the following users have been created:
 - **Password**: `creator123`
 - **Role**: `creator`
 - **Permissions**: Can view Market and Investment pages, and can add/manage their own events on the timeline
-
+### Admin User
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Role**: `admin`
+- **Permissions**: Can view Market and Investment pages, and can add/manage their own events on the timeline
 ## 1. Macro Economics
 -   **Source**: Yahoo Finance (`yfinance`)
 -   **Indicators**:

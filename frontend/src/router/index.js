@@ -38,13 +38,13 @@ const router = createRouter({
       path: '/research',
       name: 'research',
       component: ResearchView,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: true, requiresAdminOrCreator: true }
     },
     {
       path: '/report',
       name: 'report',
       component: ReportView,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: false, requiresPayment: true }
     },
     {
       path: '/admin',
@@ -60,6 +60,8 @@ router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('access_token')
   const requiresAuth = to.meta.requiresAuth !== false
   const requiresAdmin = to.meta.requiresAdmin === true
+  const requiresAdminOrCreator = to.meta.requiresAdminOrCreator === true
+  const requiresPayment = to.meta.requiresPayment === true
   
   if (requiresAuth && !token) {
     // Redirect to login if route requires auth and user is not authenticated
@@ -101,6 +103,49 @@ router.beforeEach(async (to, from, next) => {
       next('/')
       return
     }
+  }
+  
+  // Check admin or creator requirement
+  if (requiresAdminOrCreator && token) {
+    try {
+      const userStr = localStorage.getItem('user')
+      let user = null
+      if (userStr) {
+        user = JSON.parse(userStr)
+      } else {
+        // Fetch user info if not in localStorage
+        const response = await fetch('http://localhost:8000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          user = await response.json()
+          localStorage.setItem('user', JSON.stringify(user))
+        } else {
+          next('/login')
+          return
+        }
+      }
+      
+      // Check if user has admin or creator role
+      if (user && user.role !== 'admin' && user.role !== 'creator') {
+        next('/')
+        return
+      }
+    } catch (error) {
+      console.error('Error checking admin/creator status:', error)
+      next('/')
+      return
+    }
+  }
+  
+  // Check payment requirement - allow route but component will handle payment gate
+  // This allows the component to show PaymentGate UI instead of redirecting
+  if (requiresPayment && !token) {
+    // If payment required but no token, redirect to login
+    next('/login')
+    return
   }
   
   if (!requiresAuth && token && (to.path === '/login' || to.path === '/signup')) {
