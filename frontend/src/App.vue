@@ -46,13 +46,14 @@ const menuItems = computed(() => {
 })
 
 const user = ref(null)
-const isAuthenticated = computed(() => {
-  return !!localStorage.getItem('access_token')
-})
+const isAuthenticated = ref(!!localStorage.getItem('access_token'))
 
 const getUserInfo = async () => {
   const token = localStorage.getItem('access_token')
-  if (!token) return
+  if (!token) {
+    isAuthenticated.value = false
+    return
+  }
   
   try {
     const response = await fetch('http://localhost:8000/api/auth/me', {
@@ -63,13 +64,17 @@ const getUserInfo = async () => {
     if (response.ok) {
       user.value = await response.json()
       localStorage.setItem('user', JSON.stringify(user.value))
+      isAuthenticated.value = true
     } else {
       // Token invalid, clear storage
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
+      isAuthenticated.value = false
+      user.value = null
     }
   } catch (err) {
     console.error('Failed to fetch user info:', err)
+    isAuthenticated.value = false
   }
 }
 
@@ -81,6 +86,7 @@ const logout = (e) => {
   localStorage.removeItem('access_token')
   localStorage.removeItem('user')
   user.value = null
+  isAuthenticated.value = false
   router.push('/login')
 }
 
@@ -98,6 +104,9 @@ const getRoleBadgeColor = (role) => {
 const updateUserState = () => {
   const storedUser = localStorage.getItem('user')
   const token = localStorage.getItem('access_token')
+  
+  // Update authentication state
+  isAuthenticated.value = !!token
   
   if (token && storedUser) {
     try {
@@ -122,6 +131,7 @@ onMounted(() => {
   
   // Listen for custom login event
   const handleLoginEvent = () => {
+    isAuthenticated.value = !!localStorage.getItem('access_token')
     updateUserState()
     if (isAuthenticated.value) {
       getUserInfo()
@@ -164,10 +174,27 @@ setInterval(() => {
   const token = localStorage.getItem('access_token')
   const storedUser = localStorage.getItem('user')
   
-  if (token && storedUser && (!user.value || user.value.username !== JSON.parse(storedUser).username)) {
-    updateUserState()
+  // Update authentication state
+  const wasAuthenticated = isAuthenticated.value
+  isAuthenticated.value = !!token
+  
+  if (token && storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser)
+      if (!user.value || user.value.username !== parsedUser.username) {
+        updateUserState()
+      }
+    } catch (e) {
+      console.error('Error parsing user data:', e)
+    }
   } else if (!token && user.value) {
     user.value = null
+    isAuthenticated.value = false
+  }
+  
+  // If authentication state changed, update user state
+  if (wasAuthenticated !== isAuthenticated.value) {
+    updateUserState()
   }
 }, 500) // Check every 500ms
 </script>
@@ -192,12 +219,6 @@ setInterval(() => {
           <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
           <div class="user-details">
             <div class="username">{{ user.username }}</div>
-            <div 
-              class="user-role" 
-              :style="{ backgroundColor: getRoleBadgeColor(user.role) }"
-            >
-              {{ user.role }}
-            </div>
           </div>
         </div>
         <div v-else class="user-info">

@@ -1,21 +1,39 @@
 <template>
   <div class="admin-view">
     <div class="admin-header">
-      <h1>👤 User Management</h1>
-      <p class="subtitle">Manage users and payment status</p>
+      <h1>Admin Panel</h1>
+      <p class="subtitle">Manage users and reports</p>
     </div>
 
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Loading users...</p>
+    <!-- Tabs -->
+    <div class="category-tabs">
+      <button 
+        :class="{ active: activeTab === 'users' }"
+        @click="activeTab = 'users'"
+      >
+        User Management
+      </button>
+      <button 
+        :class="{ active: activeTab === 'reports' }"
+        @click="activeTab = 'reports'"
+      >
+        Report Management
+      </button>
     </div>
 
-    <div v-else-if="error" class="error-container">
-      <p class="error-message">{{ error }}</p>
-      <button @click="loadUsers" class="retry-button">Retry</button>
-    </div>
+    <!-- User Management Tab -->
+    <div v-if="activeTab === 'users'">
+      <div v-if="loading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading users...</p>
+      </div>
 
-    <div v-else class="admin-content">
+      <div v-else-if="error" class="error-container">
+        <p class="error-message">{{ error }}</p>
+        <button @click="loadUsers" class="retry-button">Retry</button>
+      </div>
+
+      <div v-else class="admin-content">
       <div class="stats-section">
         <div class="stat-card">
           <div class="stat-value">{{ users.length }}</div>
@@ -118,13 +136,88 @@
       <div v-if="filteredUsers.length === 0" class="no-results">
         <p>No users found matching your filters.</p>
       </div>
+      </div>
+    </div>
+
+    <!-- Report Management Tab -->
+    <div v-if="activeTab === 'reports'">
+      <div v-if="loadingReports" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading reports...</p>
+      </div>
+
+      <div v-else-if="reportsError" class="error-container">
+        <p class="error-message">{{ reportsError }}</p>
+        <button @click="loadReports" class="retry-button">Retry</button>
+      </div>
+
+      <div v-else class="admin-content">
+        <div class="filters-section">
+          <input
+            v-model="reportSearchQuery"
+            type="text"
+            placeholder="Search by ticker or title..."
+            class="search-input"
+          />
+          <select v-model="reportTypeFilter" class="filter-select">
+            <option value="">All Types</option>
+            <option value="daily">Daily</option>
+            <option value="long">Long Position</option>
+            <option value="short">Short Position</option>
+            <option value="research">Research</option>
+          </select>
+        </div>
+
+        <div class="users-table-container">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Ticker</th>
+                <th>Type</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="report in filteredReports" :key="report.id" class="user-row">
+                <td>{{ report.id }}</td>
+                <td>{{ report.title }}</td>
+                <td>{{ report.ticker || '-' }}</td>
+                <td>
+                  <span :class="['role-badge', `role-${report.report_type?.toLowerCase() || 'research'}`]">
+                    {{ (report.report_type || 'research').toUpperCase() }}
+                  </span>
+                </td>
+                <td class="created-date">
+                  {{ formatDate(report.created_at) }}
+                </td>
+                <td class="actions-cell">
+                  <button
+                    @click="confirmDeleteReport(report)"
+                    class="action-button delete"
+                    :disabled="deletingReportId === report.id"
+                  >
+                    {{ deletingReportId === report.id ? 'Deleting...' : 'Delete' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="filteredReports.length === 0" class="no-results">
+          <p>No reports found matching your filters.</p>
+        </div>
+      </div>
     </div>
 
     <div v-if="message" :class="['message', messageType]">
       {{ message }}
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Delete User Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
       <div class="modal-content" @click.stop>
         <h2>Confirm Delete</h2>
@@ -138,15 +231,34 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Report Confirmation Modal -->
+    <div v-if="showDeleteReportConfirm" class="modal-overlay" @click="cancelDeleteReport">
+      <div class="modal-content" @click.stop>
+        <h2>Confirm Delete Report</h2>
+        <p>Are you sure you want to delete report <strong>{{ reportToDelete?.title }}</strong>?</p>
+        <p v-if="reportToDelete?.ticker" class="report-details">Ticker: {{ reportToDelete.ticker }} | Type: {{ reportToDelete.report_type }}</p>
+        <p class="warning-text">This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button @click="cancelDeleteReport" class="modal-button cancel">Cancel</button>
+          <button @click="deleteReport" class="modal-button delete-confirm" :disabled="deletingReportId !== null">
+            {{ deletingReportId !== null ? 'Deleting...' : 'Delete Report' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+const activeTab = ref('users')
+
+// User Management State
 const users = ref([])
 const loading = ref(true)
 const error = ref('')
@@ -155,10 +267,22 @@ const roleFilter = ref('')
 const paymentFilter = ref('')
 const updatingUserId = ref(null)
 const deletingUserId = ref(null)
-const message = ref('')
-const messageType = ref('')
 const userToDelete = ref(null)
 const showDeleteConfirm = ref(false)
+
+// Report Management State
+const reports = ref([])
+const loadingReports = ref(false)
+const reportsError = ref('')
+const reportSearchQuery = ref('')
+const reportTypeFilter = ref('')
+const deletingReportId = ref(null)
+const reportToDelete = ref(null)
+const showDeleteReportConfirm = ref(false)
+
+// Message State
+const message = ref('')
+const messageType = ref('')
 
 const paidUsersCount = computed(() => {
   return users.value.filter(u => u.has_paid).length
@@ -190,6 +314,26 @@ const filteredUsers = computed(() => {
     filtered = filtered.filter(user => user.has_paid)
   } else if (paymentFilter.value === 'unpaid') {
     filtered = filtered.filter(user => !user.has_paid)
+  }
+
+  return filtered
+})
+
+const filteredReports = computed(() => {
+  let filtered = reports.value
+
+  // Search filter
+  if (reportSearchQuery.value) {
+    const query = reportSearchQuery.value.toLowerCase()
+    filtered = filtered.filter(report =>
+      report.title.toLowerCase().includes(query) ||
+      (report.ticker && report.ticker.toLowerCase().includes(query))
+    )
+  }
+
+  // Type filter
+  if (reportTypeFilter.value) {
+    filtered = filtered.filter(report => report.report_type === reportTypeFilter.value)
   }
 
   return filtered
@@ -370,6 +514,96 @@ const deleteUser = async () => {
   }
 }
 
+const loadReports = async () => {
+  loadingReports.value = true
+  reportsError.value = ''
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    const response = await fetch('http://localhost:8000/api/reports/', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to load reports')
+    }
+
+    reports.value = await response.json()
+  } catch (err) {
+    console.error('Error loading reports:', err)
+    reportsError.value = 'Failed to load reports. Please try again.'
+  } finally {
+    loadingReports.value = false
+  }
+}
+
+const confirmDeleteReport = (report) => {
+  reportToDelete.value = report
+  showDeleteReportConfirm.value = true
+}
+
+const cancelDeleteReport = () => {
+  reportToDelete.value = null
+  showDeleteReportConfirm.value = false
+}
+
+const deleteReport = async () => {
+  if (!reportToDelete.value) return
+
+  deletingReportId.value = reportToDelete.value.id
+  message.value = ''
+
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`http://localhost:8000/api/reports/${reportToDelete.value.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to delete report')
+    }
+
+    message.value = `Report "${reportToDelete.value.title}" deleted successfully.`
+    messageType.value = 'success'
+    
+    // Dispatch event to notify ReportView to refresh
+    window.dispatchEvent(new CustomEvent('report-deleted', {
+      detail: {
+        reportId: reportToDelete.value.id,
+        reportType: reportToDelete.value.report_type
+      }
+    }))
+    
+    loadReports() // Reload reports after deletion
+    cancelDeleteReport()
+  } catch (err) {
+    console.error('Error deleting report:', err)
+    message.value = err.message || 'Failed to delete report'
+    messageType.value = 'error'
+  } finally {
+    deletingReportId.value = null
+    setTimeout(() => { message.value = '' }, 3000)
+  }
+}
+
+// Watch for tab changes to load reports
+watch(activeTab, (newTab) => {
+  if (newTab === 'reports' && reports.value.length === 0) {
+    loadReports()
+  }
+})
+
 onMounted(() => {
   loadUsers()
 })
@@ -384,7 +618,42 @@ onMounted(() => {
 }
 
 .admin-header {
-  margin-bottom: 2rem;
+  margin-bottom: 20px;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  border-bottom: 2px solid #cccccc;
+  padding-bottom: 12px;
+}
+
+.category-tabs button {
+  background: transparent;
+  border: none;
+  color: #666666;
+  padding: 12px 20px;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.category-tabs button.active {
+  color: #000000;
+  border-bottom-color: #3498db;
+  background: rgba(52, 152, 219, 0.1);
+  font-weight: 600;
+}
+
+.category-tabs button:hover {
+  color: #000000;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .admin-header h1 {
@@ -543,6 +812,12 @@ onMounted(() => {
   background: #f9f9f9;
 }
 
+.report-details {
+  color: #666666;
+  font-size: 0.9em;
+  margin: 0.5rem 0;
+}
+
 .role-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -570,6 +845,15 @@ onMounted(() => {
 .role-user {
   background: #f3f4f6;
   color: #374151;
+}
+
+.role-daily,
+.role-long,
+.role-short,
+.role-market,
+.role-research {
+  background: #3498db;
+  color: #ffffff;
 }
 
 .payment-badge {

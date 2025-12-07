@@ -29,7 +29,7 @@
     <header class="editor-header">
       <div class="header-content">
         <!-- Title -->
-        <h1 class="header-title">BEAVER RESEARCH BRIEFING</h1>
+        <h1 class="header-title">BEAVER RESEARCH</h1>
         
         <!-- Mode Toggle Switch -->
         <div class="mode-toggle-switch" @click="toggleViewMode">
@@ -86,13 +86,12 @@
 
         <!-- Action Buttons -->
         <div class="header-actions">
-          <button @click="clearEditor" class="action-btn clear-btn">
+          <button @click="publishEditor" class="action-btn publish-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-              <line x1="18" y1="9" x2="12" y2="15"></line>
-              <line x1="12" y1="9" x2="18" y2="15"></line>
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
-            <span>CLEAR</span>
+            <span>PUBLISH</span>
           </button>
           <button @click="auditReport" class="action-btn audit-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -105,6 +104,18 @@
         <!-- Active Agent Display -->
         <div class="active-agent-display">
           ACTIVE AGENT: <span class="agent-name-highlight">{{ currentAgentName.toUpperCase() }}</span>
+        </div>
+
+        <!-- Report Type Selector -->
+        <div class="report-type-selector">
+          <button
+            v-for="type in reportTypes"
+            :key="type.value"
+            @click="selectedReportType = type.value"
+            :class="['report-type-btn', { active: selectedReportType === type.value }]"
+          >
+            {{ type.label }}
+          </button>
         </div>
       </div>
     </header>
@@ -140,6 +151,7 @@
           @dragover.prevent="handleDragOver"
           @dragenter.prevent="handleDragEnter"
           @dragleave.prevent="handleDragLeave"
+          @paste.prevent="handlePaste"
           :class="{ 'drag-active': isDragging, 'has-content': editorContent.trim() !== '' }"
           @input="handleEditorInput"
         ></div>
@@ -299,12 +311,50 @@
         <span>AUTOSAVE ON</span>
       </div>
     </div>
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay" @click="closeSuccessModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Report Published Successfully!</h3>
+        </div>
+        <div class="modal-body">
+          <div class="success-icon">✓</div>
+          <p class="success-message">Your report has been published successfully.</p>
+          <div class="success-details">
+            <div class="detail-item">
+              <span class="detail-label">Type:</span>
+              <span class="detail-value">{{ publishedReportType }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Ticker:</span>
+              <span class="detail-value">{{ publishedReportTicker }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">{{ publishedReportDate }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">UUID:</span>
+              <span class="detail-value uuid-value">{{ publishedReportUuid }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="redirectToReports" class="modal-btn primary">View Reports</button>
+          <button @click="closeSuccessModal" class="modal-btn secondary">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { getDailyCache, setDailyCache } from '../utils/dailyCache.js'
+
+const router = useRouter()
 
 const props = defineProps({
   viewMode: {
@@ -333,6 +383,22 @@ const isEditingTicker = ref(false)
 const isDragging = ref(false)
 const draggedBubble = ref(null)
 const companyName = ref('Alphabet Inc.')
+
+// Report type selection
+const reportTypes = [
+  { label: 'Daily', value: 'daily' },
+  { label: 'Market', value: 'market' },
+  { label: 'Long Position', value: 'long' },
+  { label: 'Short Position', value: 'short' }
+]
+const selectedReportType = ref('daily')
+
+// Success modal state
+const showSuccessModal = ref(false)
+const publishedReportType = ref('')
+const publishedReportTicker = ref('')
+const publishedReportDate = ref('')
+const publishedReportUuid = ref('')
 
 // Chatbox state for Research agent
 const chatMessages = ref([
@@ -480,6 +546,15 @@ const handleDrop = async (event) => {
   event.preventDefault()
   isDragging.value = false
   
+  // Check if files are being dropped (images)
+  const files = event.dataTransfer.files
+  if (files && files.length > 0) {
+    // Handle file drops (images)
+    await handleImageFiles(Array.from(files))
+    return
+  }
+  
+  // Otherwise, handle data bubble drops
   if (!draggedBubble.value) return
 
   const selection = window.getSelection()
@@ -591,6 +666,115 @@ const handleEditorInput = () => {
   // This prevents cursor from jumping
   if (editorRef.value) {
     editorContent.value = editorRef.value.innerHTML
+  }
+}
+
+// Handle image paste and file drops
+const handleImageFiles = async (files) => {
+  const imageFiles = files.filter(file => file.type.startsWith('image/'))
+  
+  if (imageFiles.length === 0) {
+    return
+  }
+  
+  const selection = window.getSelection()
+  const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
+  
+  for (const file of imageFiles) {
+    try {
+      // Convert image to base64 data URL
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const dataUrl = e.target.result
+        insertImage(dataUrl, file.name, range)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error processing image:', error)
+      alert(`Failed to process image ${file.name}`)
+    }
+  }
+}
+
+const insertImage = (dataUrl, altText, range) => {
+  if (!editorRef.value) return
+  
+  const img = document.createElement('img')
+  img.src = dataUrl
+  img.alt = altText || 'Image'
+  img.style.maxWidth = '100%'
+  img.style.height = 'auto'
+  img.style.display = 'block'
+  img.style.margin = '10px 0'
+  
+  const selection = window.getSelection()
+  let insertRange = range
+  
+  if (!insertRange && selection.rangeCount > 0) {
+    insertRange = selection.getRangeAt(0)
+  }
+  
+  if (insertRange) {
+    insertRange.deleteContents()
+    insertRange.insertNode(img)
+    insertRange.setStartAfter(img)
+    insertRange.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(insertRange)
+  } else {
+    // Append to end if no selection
+    editorRef.value.appendChild(img)
+    // Move cursor after image
+    const newRange = document.createRange()
+    const sel = window.getSelection()
+    newRange.setStartAfter(img)
+    newRange.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(newRange)
+  }
+  
+  // Update content
+  editorContent.value = editorRef.value.innerHTML
+}
+
+const handlePaste = async (event) => {
+  const items = event.clipboardData?.items || []
+  const imageFiles = []
+  
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (item.type.indexOf('image') !== -1) {
+      const file = item.getAsFile()
+      if (file) {
+        imageFiles.push(file)
+      }
+    }
+  }
+  
+  if (imageFiles.length > 0) {
+    event.preventDefault()
+    await handleImageFiles(imageFiles)
+    return
+  }
+  
+  // Allow default paste behavior for text
+  // We need to manually handle this to preserve cursor position
+  const selection = window.getSelection()
+  if (selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0)
+    const text = event.clipboardData?.getData('text/plain') || ''
+    
+    if (text) {
+      event.preventDefault()
+      range.deleteContents()
+      const textNode = document.createTextNode(text)
+      range.insertNode(textNode)
+      range.setStartAfter(textNode)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      editorContent.value = editorRef.value.innerHTML
+    }
   }
 }
 
@@ -1616,11 +1800,84 @@ const handleTickerSearch = () => {
   }
 }
 
-const clearEditor = () => {
-  editorContent.value = ''
-  if (editorRef.value) {
-    editorRef.value.innerHTML = ''
+const publishEditor = async () => {
+  // Publish the editor content
+  if (!editorContent.value.trim()) {
+    alert('Cannot publish empty content. Please add some content to the editor.')
+    return
   }
+  
+  // Ticker is required for all report types except "market"
+  if (!props.ticker && selectedReportType.value !== 'market') {
+    alert('Please enter a ticker symbol before publishing.')
+    return
+  }
+  
+  if (!selectedReportType.value) {
+    alert('Please select a report type (Daily, Market, Long Position, or Short Position) before publishing.')
+    return
+  }
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      alert('Please login to publish reports.')
+      return
+    }
+    
+    const response = await fetch('http://localhost:8000/api/reports/publish', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ticker: props.ticker || 'MARKET', // Use 'MARKET' as placeholder when market type is selected
+        content: editorContent.value,
+        view_mode: props.viewMode,
+        active_agent: props.activeAgent,
+        report_type: selectedReportType.value
+      })
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to publish report')
+    }
+    
+    const result = await response.json()
+    
+    // Show success modal
+    publishedReportType.value = reportTypes.find(t => t.value === selectedReportType.value)?.label || ''
+    publishedReportTicker.value = result.ticker
+    publishedReportDate.value = result.date
+    publishedReportUuid.value = result.uuid
+    showSuccessModal.value = true
+    
+    // Dispatch event to notify other components (e.g., ReportView) that a new report was published
+    window.dispatchEvent(new CustomEvent('report-published', {
+      detail: {
+        reportType: selectedReportType.value,
+        ticker: result.ticker,
+        date: result.date,
+        uuid: result.uuid
+      }
+    }))
+    
+    console.log('Report published:', result)
+  } catch (error) {
+    console.error('Error publishing report:', error)
+    alert(`Failed to publish report: ${error.message}`)
+  }
+}
+
+const closeSuccessModal = () => {
+  showSuccessModal.value = false
+}
+
+const redirectToReports = () => {
+  showSuccessModal.value = false
+  router.push('/report')
 }
 
 const auditReport = () => {
@@ -1999,14 +2256,25 @@ onMounted(() => {
   background: transparent;
 }
 
-.clear-btn {
-  color: #737373;
+.publish-btn {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000000;
+  font-weight: 600;
 }
 
-.clear-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.2);
-  color: #1a1a1a;
+.research-edit-view.market-mode .publish-btn {
+  background: #22d3ee;
+  border-color: #22d3ee;
+}
+
+.publish-btn:hover {
+  background: #fbbf24;
+  transform: scale(1.02);
+}
+
+.research-edit-view.market-mode .publish-btn:hover {
+  background: #38bdf8;
 }
 
 .audit-btn {
@@ -2036,6 +2304,9 @@ onMounted(() => {
   color: #737373;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .agent-name-highlight {
@@ -2047,9 +2318,47 @@ onMounted(() => {
   color: #22d3ee;
 }
 
+/* Report Type Selector */
+.report-type-selector {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.report-type-btn {
+  padding: 8px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-type-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.report-type-btn.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000000;
+  font-weight: 600;
+}
+
+.research-edit-view.market-mode .report-type-btn.active {
+  background: #22d3ee;
+  border-color: #22d3ee;
+}
+
 /* Editor Container */
 .editor-container {
   display: flex;
+  flex-direction: row;
   flex: 1;
   overflow: hidden;
 }
@@ -2186,24 +2495,31 @@ onMounted(() => {
 }
 
 .refresh-btn {
-  background: transparent;
+  background: #3498db;
   border: none;
-  color: #737373;
+  border-radius: 6px;
+  color: white;
   cursor: pointer;
   padding: 4px;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .refresh-btn:hover {
-  color: #f59e0b;
+  background: #2980b9;
+  color: white;
   transform: rotate(180deg);
 }
 
+.research-edit-view.market-mode .refresh-btn {
+  background: #3498db;
+}
+
 .research-edit-view.market-mode .refresh-btn:hover {
-  color: #22d3ee;
+  background: #2980b9;
+  color: white;
 }
 
 /* Data Bubbles */
@@ -2592,5 +2908,184 @@ onMounted(() => {
 .editor-panel::-webkit-scrollbar-thumb:hover,
 .data-sidebar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+/* Success Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #000000;
+}
+
+.modal-body {
+  padding: 24px;
+  text-align: center;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0 auto 20px;
+  animation: successPulse 0.5s ease-out;
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-message {
+  font-family: 'Lora', serif;
+  font-size: 1.1em;
+  color: #1a1a1a;
+  margin-bottom: 24px;
+}
+
+.success-details {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85em;
+  color: #737373;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9em;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.uuid-value {
+  font-size: 0.75em;
+  word-break: break-all;
+  text-align: right;
+  max-width: 60%;
+}
+
+.modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+
+.modal-btn.primary {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000000;
+}
+
+.research-edit-view.market-mode .modal-btn.primary {
+  background: #22d3ee;
+  border-color: #22d3ee;
+}
+
+.modal-btn.primary:hover {
+  background: #fbbf24;
+  transform: scale(1.02);
+}
+
+.research-edit-view.market-mode .modal-btn.primary:hover {
+  background: #38bdf8;
+}
+
+.modal-btn.secondary {
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #1a1a1a;
+}
+
+.modal-btn.secondary:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 </style>

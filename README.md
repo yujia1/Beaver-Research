@@ -21,6 +21,10 @@ For testing purposes, the following users have been created:
 - **Username**: `admin@gmail.com`
 - **Password**: `admin123`
 - **Role**: `admin`
+### MinIO Console Access
+- **Username**: `minioadmin`
+- **Password**: `minioadmin`
+- **URL**: `http://localhost:9001`
 
 ## 1. Macro Economics
 -   **Source**: Yahoo Finance (`yfinance`)

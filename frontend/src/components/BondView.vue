@@ -524,7 +524,7 @@ onMounted(() => {
 }
 
 .update-btn {
-  background: #42b983;
+  background: #3498db;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -536,7 +536,7 @@ onMounted(() => {
 }
 
 .update-btn:hover:not(:disabled) {
-  background: #35a372;
+  background: #2980b9;
   transform: translateY(-1px);
 }
 

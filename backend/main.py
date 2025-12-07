@@ -39,7 +39,7 @@ def init_default_users():
                 "role": "user"
             },
             {
-                "username": "contributor",
+                "username": "contributor@example.com",
                 "email": "contributor@example.com",
                 "password": "contributor123",
                 "role": "contributor"
