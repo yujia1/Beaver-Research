@@ -44,3 +44,21 @@ class Report(Base):
     report_type = Column(String) # e.g., 'company_overview', 'operating_drivers'
     ticker = Column(String, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Filing13F(Base):
+    """Track processed 13F filings per CIK"""
+    __tablename__ = "filing_13f"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cik = Column(String, nullable=False, index=True)
+    accession_number = Column(String, nullable=False, unique=True, index=True)
+    form_type = Column(String, nullable=False)  # 13F-HR, 13F-HR/A, 13F-NT
+    filing_date = Column(DateTime(timezone=True), nullable=False)
+    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    quarter = Column(String, nullable=False, index=True)  # YYYY-Q1, YYYY-Q2, etc.
+    is_amended = Column(Boolean, default=False, nullable=False)
+    minio_path = Column(String, nullable=True)  # Path to CSV in MinIO
+    holdings_count = Column(Integer, nullable=True)
+    total_value = Column(Integer, nullable=True)  # Total value in USD (cents)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

@@ -19,6 +19,18 @@
       >
         Report Management
       </button>
+      <button 
+        :class="{ active: activeTab === 'batch' }"
+        @click="activeTab = 'batch'"
+      >
+        Batch Management
+      </button>
+      <button 
+        :class="{ active: activeTab === 'health' }"
+        @click="activeTab = 'health'"
+      >
+        Health Management
+      </button>      
     </div>
 
     <!-- User Management Tab -->
@@ -139,6 +151,122 @@
       </div>
     </div>
 
+    <!-- Health Management Tab -->
+    <div v-if="activeTab === 'health'">
+      <div class="admin-content">
+        <div class="health-section">
+          <h2>System Health</h2>
+          <p class="subtitle">Monitor system status and services</p>
+          
+          <div class="health-cards">
+            <div class="health-card">
+              <h3>Backend API</h3>
+              <div class="health-status" :class="backendHealth.status">
+                <span class="status-indicator"></span>
+                <span>{{ backendHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
+              </div>
+              <p v-if="backendHealth.message" class="health-message">{{ backendHealth.message }}</p>
+            </div>
+            
+            <div class="health-card">
+              <h3>Database</h3>
+              <div class="health-status" :class="databaseHealth.status">
+                <span class="status-indicator"></span>
+                <span>{{ databaseHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
+              </div>
+              <p v-if="databaseHealth.message" class="health-message">{{ databaseHealth.message }}</p>
+            </div>
+            
+            <div class="health-card">
+              <h3>MinIO Storage</h3>
+              <div class="health-status" :class="minioHealth.status">
+                <span class="status-indicator"></span>
+                <span>{{ minioHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
+              </div>
+              <p v-if="minioHealth.message" class="health-message">{{ minioHealth.message }}</p>
+            </div>
+          </div>
+          
+          <div class="health-actions">
+            <button @click="checkHealth" class="action-button verify" :disabled="checkingHealth">
+              {{ checkingHealth ? 'Checking...' : 'Refresh Health Status' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Management Tab -->
+    <div v-if="activeTab === 'batch'">
+      <div class="admin-content">
+        <div class="batch-section">
+          <h2>Batch Job Management</h2>
+          <p class="subtitle">Trigger and monitor batch processing jobs</p>
+          
+          <div class="batch-jobs">
+            <!-- 13F Filing Processing Job -->
+            <div class="batch-job-card">
+              <div class="batch-job-header">
+                <h3>13F Filing Processing</h3>
+                <span class="job-status" :class="batchJobs.filing13f.status">
+                  {{ batchJobs.filing13f.status === 'running' ? 'Running...' : batchJobs.filing13f.status === 'success' ? 'Completed' : batchJobs.filing13f.status === 'error' ? 'Failed' : 'Ready' }}
+                </span>
+              </div>
+              <p class="job-description">
+                Process 13F institutional holdings filings from SEC EDGAR. Fetches, parses, and stores holdings data with CUSIP-to-ticker mapping.
+              </p>
+              
+              <div class="job-options">
+                <div class="option-group">
+                  <label>
+                    <input type="checkbox" v-model="batchJobs.filing13f.forceReprocess" />
+                    Force Reprocess (reprocess already processed filings)
+                  </label>
+                </div>
+                <div class="option-group">
+                  <label>Quarters (leave empty for all):</label>
+                  <input 
+                    type="text" 
+                    v-model="batchJobs.filing13f.quarters" 
+                    placeholder="e.g., 2025-Q3,2025-Q4"
+                    class="quarters-input"
+                  />
+                  <small>Comma-separated list of quarters (e.g., 2025-Q3,2025-Q4)</small>
+                </div>
+              </div>
+              
+              <div class="job-actions">
+                <button 
+                  @click="trigger13FProcessing" 
+                  class="action-button verify"
+                  :disabled="batchJobs.filing13f.status === 'running'"
+                >
+                  {{ batchJobs.filing13f.status === 'running' ? 'Processing...' : 'Process 13F Filings' }}
+                </button>
+              </div>
+              
+              <div v-if="batchJobs.filing13f.result" class="job-result">
+                <h4>Last Run Result:</h4>
+                <div class="result-details">
+                  <p><strong>Total Filings:</strong> {{ batchJobs.filing13f.result.total_filings || 0 }}</p>
+                  <p><strong>Processed:</strong> {{ batchJobs.filing13f.result.processed || 0 }}</p>
+                  <p><strong>Skipped:</strong> {{ batchJobs.filing13f.result.skipped || 0 }}</p>
+                  <p><strong>Errors:</strong> {{ batchJobs.filing13f.result.errors || 0 }}</p>
+                  <p v-if="batchJobs.filing13f.result.quarters"><strong>Quarters:</strong> {{ batchJobs.filing13f.result.quarters.join(', ') }}</p>
+                </div>
+              </div>
+              
+              <div v-if="batchJobs.filing13f.error" class="job-error">
+                <strong>Error:</strong> {{ batchJobs.filing13f.error }}
+              </div>
+            </div>
+            
+            <!-- Add more batch jobs here in the future -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Report Management Tab -->
     <div v-if="activeTab === 'reports'">
       <div v-if="loadingReports" class="loading-container">
@@ -251,7 +379,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -279,6 +407,23 @@ const reportTypeFilter = ref('')
 const deletingReportId = ref(null)
 const reportToDelete = ref(null)
 const showDeleteReportConfirm = ref(false)
+
+// Health Management State
+const checkingHealth = ref(false)
+const backendHealth = ref({ status: 'unknown', message: '' })
+const databaseHealth = ref({ status: 'unknown', message: '' })
+const minioHealth = ref({ status: 'unknown', message: '' })
+
+// Batch Management State
+const batchJobs = ref({
+  filing13f: {
+    status: 'idle', // idle, running, success, error
+    forceReprocess: false,
+    quarters: '',
+    result: null,
+    error: null
+  }
+})
 
 // Message State
 const message = ref('')
@@ -597,10 +742,232 @@ const deleteReport = async () => {
   }
 }
 
-// Watch for tab changes to load reports
+// Health Management Functions
+const checkHealth = async () => {
+  checkingHealth.value = true
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    // Check backend API
+    try {
+      const backendResponse = await fetch('http://localhost:8000/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      backendHealth.value = {
+        status: backendResponse.ok ? 'healthy' : 'unhealthy',
+        message: backendResponse.ok ? 'API is responding' : 'API is not responding'
+      }
+    } catch (err) {
+      backendHealth.value = {
+        status: 'unhealthy',
+        message: 'Cannot reach backend API'
+      }
+    }
+
+    // Check database (via a simple API call)
+    try {
+      const dbResponse = await fetch('http://localhost:8000/api/auth/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      databaseHealth.value = {
+        status: dbResponse.ok ? 'healthy' : 'unhealthy',
+        message: dbResponse.ok ? 'Database connection working' : 'Database connection failed'
+      }
+    } catch (err) {
+      databaseHealth.value = {
+        status: 'unhealthy',
+        message: 'Database connection error'
+      }
+    }
+
+    // Check MinIO (via reports endpoint which uses MinIO)
+    try {
+      const minioResponse = await fetch('http://localhost:8000/api/reports/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      minioHealth.value = {
+        status: minioResponse.ok ? 'healthy' : 'unhealthy',
+        message: minioResponse.ok ? 'MinIO storage accessible' : 'MinIO storage error'
+      }
+    } catch (err) {
+      minioHealth.value = {
+        status: 'unhealthy',
+        message: 'MinIO storage error'
+      }
+    }
+  } catch (err) {
+    console.error('Error checking health:', err)
+  } finally {
+    checkingHealth.value = false
+  }
+}
+
+// Batch Management Functions
+let pollingInterval = null
+
+const pollJobStatus = async (jobId) => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    router.push('/login')
+    return
+  }
+
+  try {
+    const response = await fetch(`/api/filing-13f/process/status/${jobId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to check job status')
+    }
+
+    const status = await response.json()
+    
+    if (status.status === 'completed') {
+      // Stop polling
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+        pollingInterval = null
+      }
+      
+      batchJobs.value.filing13f.status = 'success'
+      batchJobs.value.filing13f.result = status.result
+      batchJobs.value.filing13f.error = null
+      
+      const result = status.result
+      message.value = `13F processing completed: ${result.processed} processed, ${result.skipped} skipped`
+      messageType.value = 'success'
+      
+      setTimeout(() => {
+        message.value = ''
+      }, 5000)
+    } else if (status.status === 'error') {
+      // Stop polling
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+        pollingInterval = null
+      }
+      
+      batchJobs.value.filing13f.status = 'error'
+      batchJobs.value.filing13f.error = status.error || 'Processing failed'
+      batchJobs.value.filing13f.result = null
+      
+      message.value = status.error || '13F processing failed'
+      messageType.value = 'error'
+      
+      setTimeout(() => {
+        message.value = ''
+      }, 5000)
+    } else if (status.status === 'running') {
+      // Continue polling - job is still running
+      batchJobs.value.filing13f.status = 'running'
+    }
+  } catch (err) {
+    console.error('Error polling job status:', err)
+    // Continue polling on error (might be temporary)
+  }
+}
+
+const trigger13FProcessing = async () => {
+  batchJobs.value.filing13f.status = 'running'
+  batchJobs.value.filing13f.error = null
+  batchJobs.value.filing13f.result = null
+  
+  // Clear any existing polling interval
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    const requestBody = {
+      force_reprocess: batchJobs.value.filing13f.forceReprocess
+    }
+    
+    // Parse quarters if provided
+    if (batchJobs.value.filing13f.quarters.trim()) {
+      requestBody.quarters = batchJobs.value.filing13f.quarters
+        .split(',')
+        .map(q => q.trim())
+        .filter(q => q.length > 0)
+    }
+
+    const response = await fetch('/api/filing-13f/process', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to trigger 13F processing')
+    }
+
+    const result = await response.json()
+    
+    // Start polling for job status
+    message.value = result.message || '13F processing started...'
+    messageType.value = 'info'
+    
+    // Poll every 2 seconds
+    pollingInterval = setInterval(() => {
+      pollJobStatus(result.job_id)
+    }, 2000)
+    
+    // Initial poll
+    pollJobStatus(result.job_id)
+    
+  } catch (err) {
+    console.error('Error triggering 13F processing:', err)
+    batchJobs.value.filing13f.error = err.message || 'Failed to trigger 13F processing'
+    batchJobs.value.filing13f.status = 'error'
+    
+    message.value = err.message || 'Failed to trigger 13F processing'
+    messageType.value = 'error'
+    
+    setTimeout(() => {
+      message.value = ''
+    }, 5000)
+  }
+}
+
+// Watch for tab changes to load reports and health
 watch(activeTab, (newTab) => {
   if (newTab === 'reports' && reports.value.length === 0) {
     loadReports()
+  }
+  if (newTab === 'health') {
+    checkHealth()
+  }
+})
+
+onUnmounted(() => {
+  // Clean up polling interval when component unmounts
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
   }
 })
 
@@ -1049,9 +1416,257 @@ onMounted(() => {
   background: #b91c1c;
 }
 
-.modal-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  .modal-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+.health-section {
+  padding: 1rem 0;
+}
+
+.health-section h2 {
+  color: #000000;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.health-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.health-card {
+  background: #f5f5f5;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
+
+.health-card h3 {
+  color: #000000;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.health-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.health-status.healthy {
+  color: #065f46;
+}
+
+.health-status.healthy .status-indicator {
+  background: #10b981;
+}
+
+.health-status.unhealthy {
+  color: #991b1b;
+}
+
+.health-status.unhealthy .status-indicator {
+  background: #ef4444;
+}
+
+.health-status.unknown {
+  color: #666666;
+}
+
+.health-status.unknown .status-indicator {
+  background: #9ca3af;
+}
+
+.health-message {
+  color: #666666;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.health-actions {
+  margin-top: 2rem;
+}
+
+.batch-section {
+  padding: 1rem 0;
+}
+
+.batch-section h2 {
+  color: #000000;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.batch-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.batch-job-card {
+  background: #f5f5f5;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
+
+.batch-job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.batch-job-header h3 {
+  color: #000000;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.job-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.job-status.idle {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.job-status.running {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.job-status.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.job-status.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.job-description {
+  color: #666666;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.job-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option-group label {
+  color: #000000;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.option-group input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+.quarters-input {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: #000000;
+}
+
+.quarters-input:focus {
+  outline: none;
+  border-color: #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.option-group small {
+  color: #666666;
+  font-size: 0.75rem;
+}
+
+.job-actions {
+  margin-top: 1rem;
+}
+
+.job-result {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+}
+
+.job-result h4 {
+  color: #000000;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.result-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.result-details p {
+  margin: 0;
+  color: #000000;
+  font-size: 0.875rem;
+}
+
+.result-details strong {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.job-error {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fee2e2;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 768px) {

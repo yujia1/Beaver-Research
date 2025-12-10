@@ -80,6 +80,13 @@
                 >
                     Policy
                 </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: activeTab === 'short-interest' }"
+                    @click="activeTab = 'short-interest'"
+                >
+                    Short Interest
+                </button>
             </div>
 
             <!-- Equity Tab Content -->
@@ -926,6 +933,111 @@
     </div>
     </div>
 
+            <!-- Short Interest Tab Content -->
+            <div v-if="activeTab === 'short-interest'" class="tab-content short-interest-tab-content">
+                <div class="short-interest-category-tabs">
+                    <button 
+                        v-for="category in shortInterestCategories" 
+                        :key="category.value" 
+                        :class="{ active: activeShortInterestCategory === category.value }"
+                        @click="activeShortInterestCategory = category.value; shortInterestCurrentPage = 1; fetchShortInterestData(1)"
+                    >
+                        {{ category.label }}
+                    </button>
+                </div>
+
+                <div v-if="shortInterestLoading" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Loading short interest data...</p>
+                </div>
+
+                <div v-else-if="shortInterestError" class="error-state">
+                    <p class="error-message">{{ shortInterestError }}</p>
+                    <button @click="fetchShortInterestData" class="retry-btn">Retry</button>
+                </div>
+
+                <div v-else class="short-interest-content-section">
+                    <div class="short-interest-table-container">
+                        <table class="short-interest-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Current Short Int.</th>
+                                    <th>Previous Short Int.</th>
+                                    <th>Short Int. Change</th>
+                                    <th>Short Int. % Change</th>
+                                    <th>Days to Cover</th>
+                                    <th>Shares Short Value</th>
+                                    <th>Avg Daily Volume</th>
+                                    <th>Market Cap</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(row, index) in shortInterestTableData" :key="index">
+                                    <td class="symbol-cell">
+                                        <strong>{{ row.symbol }}</strong>
+                                    </td>
+                                    <td>{{ formatShortInterestPercentage(row.current_short_int) }}</td>
+                                    <td>{{ formatShortInterestPercentage(row.previous_short_int) }}</td>
+                                    <td>{{ formatShortInterestNumber(row.short_int_change) }}</td>
+                                    <td :class="getShortInterestChangeClass(row.short_int_pct_change)">
+                                        {{ formatShortInterestPercentage(row.short_int_pct_change) }}
+                                    </td>
+                                    <td>{{ formatShortInterestNumber(row.days_to_cover) }}</td>
+                                    <td>{{ row.shares_short_value || '-' }}</td>
+                                    <td>{{ row.avg_daily_volume || '-' }}</td>
+                                    <td>{{ row.market_cap || '-' }}</td>
+                                </tr>
+                                <tr v-if="shortInterestTableData.length === 0">
+                                    <td colspan="9" class="no-data">No data available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div v-if="shortInterestTotalPages > 1" class="short-interest-pagination-container">
+                        <div class="short-interest-pagination">
+                            <button 
+                                @click="goToShortInterestPage(shortInterestCurrentPage - 1)" 
+                                :disabled="shortInterestCurrentPage === 1"
+                                class="short-interest-pagination-btn"
+                            >
+                                &lt;
+                            </button>
+                            
+                            <template v-for="pageNum in shortInterestVisiblePages" :key="pageNum">
+                                <button
+                                    v-if="pageNum !== '...'"
+                                    @click="goToShortInterestPage(pageNum)"
+                                    :class="{ active: shortInterestCurrentPage === pageNum }"
+                                    class="short-interest-pagination-btn short-interest-page-number"
+                                >
+                                    {{ pageNum }}
+                                </button>
+                                <span v-else class="short-interest-pagination-ellipsis">...</span>
+                            </template>
+                            
+                            <button 
+                                @click="goToShortInterestPage(shortInterestCurrentPage + 1)" 
+                                :disabled="shortInterestCurrentPage === shortInterestTotalPages"
+                                class="short-interest-pagination-btn"
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                        
+                        <div class="short-interest-pagination-info">
+                            <span>100 / page</span>
+                        </div>
+                    </div>
+
+                    <div v-if="shortInterestUpdatedAt" class="short-interest-data-footer">
+                        <p class="short-interest-update-time">Last updated: {{ formatShortInterestDate(shortInterestUpdatedAt) }}</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Crypto Tab Content -->
             <div v-if="activeTab === 'crypto'" class="tab-content crypto-tab-content">
                 <div class="crypto-data">
@@ -1083,7 +1195,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -1196,7 +1308,7 @@ const commodityTimeframes = [
 
 // Commodity series mapping by category
 const commoditySeriesMap = {
-  metals: ['PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
+  metals: ['GOLDAMGBD228NLBM', 'PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
   agricultural: ['PSOYBUSDM', 'PCOFFUSDM', 'PSUGAR', 'PCORNUSDM'],
   industrial: ['PZINC', 'PALUMINUM']
 };
@@ -1280,6 +1392,167 @@ const setEconomicCachedData = (seriesId, timeframe, data) => {
     } catch (e) {
         console.error('Cache write error', e);
     }
+};
+
+// Short Interest Tab State
+const activeShortInterestCategory = ref('most-shorted');
+const shortInterestLoading = ref(false);
+const shortInterestError = ref(null);
+const shortInterestTableData = ref([]);
+const shortInterestUpdatedAt = ref(null);
+const shortInterestCurrentPage = ref(1);
+const shortInterestTotalPages = ref(20); // Maximum 20 pages as per backend
+const shortInterestItemsPerPage = 100;
+
+const shortInterestCategories = [
+  { label: 'Most Shorted', value: 'most-shorted' },
+  { label: 'Largest Increase', value: 'largest-increase' },
+  { label: 'Largest Decrease', value: 'largest-decrease' }
+];
+
+const shortInterestVisiblePages = computed(() => {
+  const pages = [];
+  const maxVisible = 7; // Show up to 7 page numbers
+  
+  if (shortInterestTotalPages.value <= maxVisible) {
+    // Show all pages if total is less than max visible
+    for (let i = 1; i <= shortInterestTotalPages.value; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Show first page
+    pages.push(1);
+    
+    if (shortInterestCurrentPage.value <= 3) {
+      // Near the beginning
+      for (let i = 2; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(shortInterestTotalPages.value);
+    } else if (shortInterestCurrentPage.value >= shortInterestTotalPages.value - 2) {
+      // Near the end
+      pages.push('...');
+      for (let i = shortInterestTotalPages.value - 4; i <= shortInterestTotalPages.value; i++) {
+        pages.push(i);
+      }
+    } else {
+      // In the middle
+      pages.push('...');
+      for (let i = shortInterestCurrentPage.value - 1; i <= shortInterestCurrentPage.value + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(shortInterestTotalPages.value);
+    }
+  }
+  
+  return pages;
+});
+
+const fetchShortInterestData = async (page = null) => {
+  shortInterestLoading.value = true;
+  shortInterestError.value = null;
+  
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      shortInterestError.value = 'Please login to view short interest data';
+      shortInterestLoading.value = false;
+      return;
+    }
+
+    let endpoint = '';
+    switch (activeShortInterestCategory.value) {
+      case 'most-shorted':
+        endpoint = '/api/short-interest/most-shorted';
+        break;
+      case 'largest-increase':
+        endpoint = '/api/short-interest/largest-increase';
+        break;
+      case 'largest-decrease':
+        endpoint = '/api/short-interest/largest-decrease';
+        break;
+      default:
+        endpoint = '/api/short-interest/most-shorted';
+    }
+
+    // Add page parameter if specified
+    const pageToFetch = page !== null ? page : shortInterestCurrentPage.value;
+    const url = pageToFetch ? `${endpoint}?page=${pageToFetch}` : endpoint;
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch data' }));
+      throw new Error(errorData.detail || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    shortInterestTableData.value = data.data || [];
+    shortInterestUpdatedAt.value = data.updated_at || null;
+    
+    // If we got less than itemsPerPage, we've reached the last page
+    if (shortInterestTableData.value.length < shortInterestItemsPerPage && pageToFetch < shortInterestTotalPages.value) {
+      shortInterestTotalPages.value = pageToFetch;
+    }
+  } catch (err) {
+    console.error('Error fetching short interest data:', err);
+    shortInterestError.value = err.message || 'Failed to load short interest data';
+    shortInterestTableData.value = [];
+  } finally {
+    shortInterestLoading.value = false;
+  }
+};
+
+const goToShortInterestPage = (page) => {
+  if (page < 1 || page > shortInterestTotalPages.value || page === shortInterestCurrentPage.value) {
+    return;
+  }
+  shortInterestCurrentPage.value = page;
+  fetchShortInterestData(page);
+};
+
+const formatShortInterestPercentage = (value) => {
+  if (value === null || value === undefined) return '-';
+  return `${value.toFixed(2)}%`;
+};
+
+const formatShortInterestNumber = (value) => {
+  if (value === null || value === undefined) return '-';
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(2)}M`;
+  } else if (value >= 1000) {
+    return `${(value / 1000).toFixed(2)}K`;
+  }
+  return value.toFixed(2);
+};
+
+const getShortInterestChangeClass = (value) => {
+  if (value === null || value === undefined) return '';
+  if (value > 0) return 'positive-change';
+  if (value < 0) return 'negative-change';
+  return '';
+};
+
+const formatShortInterestDate = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return dateString;
+  }
 };
 
 // Energy Tab State (from EnergyView)
@@ -2357,19 +2630,38 @@ const fetchCommodityData = async () => {
   const cached = getDailyCache('commodity_data_monthly');
   if (cached) {
     console.log('Using cached commodity data');
-    // Filter out removed commodities from cached data
+    // Filter out removed commodities from cached data and check if all required series are present
     const filteredCached = {};
-    Object.keys(cached).forEach(category => {
-      if (commoditySeriesMap[category]) {
-        const allowedSeriesIds = new Set(commoditySeriesMap[category]);
-        filteredCached[category] = cached[category].filter(item => 
-          allowedSeriesIds.has(item.series_id)
-        );
+    let cacheComplete = true;
+    
+    Object.keys(commoditySeriesMap).forEach(category => {
+      const allowedSeriesIds = new Set(commoditySeriesMap[category]);
+      const cachedItems = (cached[category] || []).filter(item => 
+        allowedSeriesIds.has(item.series_id)
+      );
+      
+      // Check if all required series are in cache
+      const cachedSeriesIds = new Set(cachedItems.map(item => item.series_id));
+      const missingSeries = commoditySeriesMap[category].filter(id => !cachedSeriesIds.has(id));
+      
+      if (missingSeries.length > 0) {
+        console.log(`Missing series in cache for ${category}:`, missingSeries);
+        cacheComplete = false;
       }
+      
+      filteredCached[category] = cachedItems;
     });
-    commodityIndicators.value = filteredCached;
-    commodityLoading.value = false;
-    return;
+    
+    // If cache is complete, use it; otherwise fetch fresh data
+    if (cacheComplete) {
+      commodityIndicators.value = filteredCached;
+      commodityLoading.value = false;
+      return;
+    } else {
+      console.log('Cache incomplete, fetching fresh data');
+      // Clear cache to force fresh fetch
+      clearCacheByKey('commodity_data_monthly');
+    }
   }
   
   try {
@@ -2379,7 +2671,7 @@ const fetchCommodityData = async () => {
     for (const [category, seriesList] of Object.entries(commoditySeriesMap)) {
       allPromises[category] = Promise.all(
         seriesList.map(seriesId => 
-          fetch(`http://localhost:8000/api/internal/macro/series/${seriesId}?timeframe=monthly`)
+          fetch(`/api/internal/macro/series/${seriesId}?timeframe=monthly`)
             .then(res => res.json())
         )
       );
@@ -2634,6 +2926,13 @@ const updateIndicatorTimeframe = async (item, timeframe) => {
         item.loading = false;
     }
 };
+
+// Watch for tab changes to fetch short interest data
+watch(activeTab, (newTab) => {
+  if (newTab === 'short-interest' && shortInterestTableData.value.length === 0) {
+    fetchShortInterestData();
+  }
+});
 
 onMounted(() => {
     fetchIndices();
@@ -3544,5 +3843,205 @@ onMounted(() => {
 
 .crypto-data {
     margin-top: 20px;
+}
+
+/* Short Interest Tab Styles */
+.short-interest-tab-content {
+    padding: 0;
+}
+
+.short-interest-category-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e5e5e5;
+}
+
+.short-interest-category-tabs button {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666666;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+}
+
+.short-interest-category-tabs button:hover {
+    color: #000000;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.short-interest-category-tabs button.active {
+    color: #3498db;
+    border-bottom-color: #3498db;
+    font-weight: 600;
+}
+
+.short-interest-content-section {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+}
+
+.short-interest-table-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
+    width: 100%;
+    position: relative;
+}
+
+.short-interest-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.short-interest-table thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e5e5e5;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.short-interest-table th {
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #000000;
+    white-space: nowrap;
+    border-right: 1px solid #e5e5e5;
+}
+
+.short-interest-table th:last-child {
+    border-right: none;
+}
+
+.short-interest-table tbody tr {
+    border-bottom: 1px solid #e5e5e5;
+    transition: background-color 0.15s ease;
+}
+
+.short-interest-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.short-interest-table td {
+    padding: 0.875rem 0.75rem;
+    color: #000000;
+    border-right: 1px solid #e5e5e5;
+    white-space: nowrap;
+}
+
+.short-interest-table td:last-child {
+    border-right: none;
+}
+
+.short-interest-table .symbol-cell {
+    font-weight: 600;
+}
+
+.short-interest-table .positive-change {
+    color: #e74c3c;
+    font-weight: 500;
+}
+
+.short-interest-table .negative-change {
+    color: #27ae60;
+    font-weight: 500;
+}
+
+.short-interest-table .no-data {
+    text-align: center;
+    padding: 2rem;
+    color: #666666;
+    font-style: italic;
+}
+
+.short-interest-data-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e5e5;
+    text-align: center;
+    color: #666666;
+    font-size: 0.9rem;
+}
+
+.short-interest-update-time {
+    font-size: 0.85rem;
+    color: #999999;
+}
+
+.short-interest-pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e5e5;
+}
+
+.short-interest-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.short-interest-pagination-btn {
+    padding: 0.5rem 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    color: #000000;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.short-interest-pagination-btn:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #3498db;
+    color: #3498db;
+}
+
+.short-interest-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.short-interest-pagination-btn.active {
+    background: #3498db;
+    border-color: #3498db;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.short-interest-pagination-btn.active:hover {
+    background: #2980b9;
+    border-color: #2980b9;
+}
+
+.short-interest-pagination-ellipsis {
+    padding: 0 0.5rem;
+    color: #666666;
+    font-size: 0.9rem;
+}
+
+.short-interest-pagination-info {
+    color: #666666;
+    font-size: 0.9rem;
 }
 </style>

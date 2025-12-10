@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -8,11 +8,30 @@ from botocore.client import Config
 import uuid
 import os
 import json
+from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
 from routers.auth import get_current_user
 import models
+
+# Token verification for query parameter (for iframe access)
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
+ALGORITHM = "HS256"
+
+async def verify_token_from_query(token: str = Query(...), db: Session = Depends(get_db)):
+    """Verify token from query parameter"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 router = APIRouter()
 
@@ -98,20 +117,18 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Report not found")
     return report
 
-class ResearchReportCreate(BaseModel):
-    ticker: str
-    content: str
-    view_mode: Optional[str] = "COMPANY"
-    active_agent: Optional[str] = None
-    report_type: Optional[str] = "daily"  # daily, long, short
-
 @router.post("/publish", status_code=201)
 async def publish_research_report(
-    report_data: ResearchReportCreate,
+    pdf_file: UploadFile = File(...),
+    ticker: str = Form(...),
+    view_mode: Optional[str] = Form("COMPANY"),
+    active_agent: Optional[str] = Form(None),
+    report_type: Optional[str] = Form("daily"),
+    report_name: Optional[str] = Form("Untitled Report"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Save research report to MinIO with ticker, date, UUID, and content"""
+    """Save research report PDF to MinIO with ticker, date, UUID"""
     try:
         # Generate UUID
         report_uuid = str(uuid.uuid4())
@@ -122,32 +139,22 @@ async def publish_research_report(
         
         # Validate report type
         valid_report_types = ["daily", "long", "short", "market"]
-        report_type = report_data.report_type or "daily"
         if report_type not in valid_report_types:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid report_type. Must be one of: {', '.join(valid_report_types)}"
             )
         
-        # Prepare report data
-        report_json = {
-            "uuid": report_uuid,
-            "ticker": report_data.ticker,
-            "date": date_str,
-            "timestamp": report_date.isoformat(),
-            "content": report_data.content,
-            "view_mode": report_data.view_mode,
-            "active_agent": report_data.active_agent,
-            "report_type": report_type,
-            "user_id": current_user.id,
-            "username": current_user.username
-        }
+        # Validate PDF file
+        if pdf_file.content_type != "application/pdf":
+            raise HTTPException(
+                status_code=400,
+                detail="File must be a PDF"
+            )
         
-        # Convert to JSON string
-        report_json_str = json.dumps(report_json, indent=2)
+        # Read PDF file content
+        pdf_content = await pdf_file.read()
         
-        # Create file path: reports/{report_type}/{ticker}/{date}/{uuid}.json
-        # For "market" type, use Market/{date}/{uuid}.json (no ticker folder)
         # Map report_type to folder name
         folder_map = {
             "daily": "Daily",
@@ -159,30 +166,32 @@ async def publish_research_report(
         
         # For market reports, don't include ticker in path
         if report_type == "market":
-            file_path = f"{folder_name}/{date_str}/{report_uuid}.json"
+            file_path = f"{folder_name}/{date_str}/{report_uuid}.pdf"
         else:
-            file_path = f"{folder_name}/{report_data.ticker}/{date_str}/{report_uuid}.json"
+            file_path = f"{folder_name}/{ticker}/{date_str}/{report_uuid}.pdf"
         
         # Ensure bucket exists
         ensure_bucket_exists()
         
-        # Upload to MinIO
+        # Upload PDF to MinIO
         client = get_minio_client()
         client.put_object(
             Bucket=MINIO_BUCKET,
             Key=file_path,
-            Body=report_json_str.encode('utf-8'),
-            ContentType='application/json'
+            Body=pdf_content,
+            ContentType='application/pdf'
         )
         
         # Also save to database for quick access
         # Store MinIO path in content field so we can delete it later
         minio_path_in_db = f"minio://{MINIO_BUCKET}/{file_path}"
+        # Use report_name if provided, otherwise use default format
+        report_title = report_name if report_name and report_name.strip() else f"{ticker} - {date_str}"
         db_report = Report(
-            title=f"{report_data.ticker} - {date_str}",
+            title=report_title,
             content=minio_path_in_db,  # Store MinIO path instead of content
             report_type=report_type,
-            ticker=report_data.ticker
+            ticker=ticker
         )
         db.add(db_report)
         db.commit()
@@ -191,11 +200,13 @@ async def publish_research_report(
         return {
             "success": True,
             "uuid": report_uuid,
-            "ticker": report_data.ticker,
+            "ticker": ticker,
             "date": date_str,
             "file_path": file_path,
             "report_id": db_report.id
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error saving report to MinIO: {e}")
         raise HTTPException(
@@ -247,40 +258,39 @@ async def get_reports_from_minio(
                 if 'Contents' in page:
                     for obj in page['Contents']:
                         try:
-                            # Get the object
-                            obj_response = client.get_object(Bucket=MINIO_BUCKET, Key=obj['Key'])
-                            content = obj_response['Body'].read().decode('utf-8')
-                            report_data = json.loads(content)
-                            
-                            # Extract UUID to check for duplicates
-                            report_uuid = report_data.get("uuid")
-                            if not report_uuid or report_uuid in seen_uuids:
-                                continue  # Skip if no UUID or already seen
-                            seen_uuids.add(report_uuid)
-                            
-                            # Extract ticker and date from path
-                            # For market: Market/{date}/{uuid}.json (3 parts)
-                            # For others: {folder}/{ticker}/{date}/{uuid}.json (4 parts)
+                            # Extract ticker, date, and UUID from path
+                            # For market: Market/{date}/{uuid}.pdf (3 parts)
+                            # For others: {folder}/{ticker}/{date}/{uuid}.pdf (4 parts)
                             parts = obj['Key'].split('/')
                             if report_type == "market" and len(parts) >= 3:
-                                # Market reports: Market/{date}/{uuid}.json
+                                # Market reports: Market/{date}/{uuid}.pdf
                                 date = parts[1]
                                 ticker = "MARKET"  # Use MARKET as ticker for market reports
+                                uuid_from_filename = parts[2].replace('.pdf', '')
                             elif len(parts) >= 4:
-                                # Other reports: {folder}/{ticker}/{date}/{uuid}.json
+                                # Other reports: {folder}/{ticker}/{date}/{uuid}.pdf
                                 ticker = parts[1]
                                 date = parts[2]
+                                uuid_from_filename = parts[3].replace('.pdf', '')
                             else:
                                 continue  # Skip invalid paths
                             
+                            # Check for duplicates by UUID
+                            if uuid_from_filename in seen_uuids:
+                                continue
+                            seen_uuids.add(uuid_from_filename)
+                            
+                            # Get file metadata (last modified time)
+                            last_modified = obj.get('LastModified', datetime.utcnow())
+                            
                             reports.append({
-                                "id": report_uuid,
+                                "id": uuid_from_filename,
                                 "ticker": ticker,
                                 "date": date,
-                                "created_at": report_data.get("timestamp") or report_data.get("date"),
-                                "content": report_data.get("content"),
+                                "created_at": last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified),
                                 "report_type": report_type,
-                                "uuid": report_uuid
+                                "uuid": uuid_from_filename,
+                                "file_path": obj['Key']
                             })
                         except Exception as e:
                             print(f"Error reading object {obj['Key']}: {e}")
@@ -301,6 +311,59 @@ async def get_reports_from_minio(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch reports: {str(e)}"
+        )
+
+@router.get("/minio/pdf/{report_type}/{ticker}/{date}/{uuid}")
+async def get_pdf_from_minio(
+    report_type: str,
+    ticker: str,
+    date: str,
+    uuid: str,
+    current_user: models.User = Depends(verify_token_from_query)
+):
+    """Get PDF content from MinIO"""
+    try:
+        # Map report_type to folder name
+        folder_map = {
+            "daily": "Daily",
+            "long": "Long",
+            "short": "Short",
+            "market": "Market"
+        }
+        folder_name = folder_map.get(report_type, "Daily")
+        
+        # Construct file path
+        if report_type == "market":
+            file_path = f"{folder_name}/{date}/{uuid}.pdf"
+        else:
+            file_path = f"{folder_name}/{ticker}/{date}/{uuid}.pdf"
+        
+        # Get PDF from MinIO
+        client = get_minio_client()
+        try:
+            obj_response = client.get_object(Bucket=MINIO_BUCKET, Key=file_path)
+            pdf_content = obj_response['Body'].read()
+            
+            from fastapi.responses import Response
+            return Response(
+                content=pdf_content,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f"inline; filename={uuid}.pdf"
+                }
+            )
+        except client.exceptions.NoSuchKey:
+            raise HTTPException(
+                status_code=404,
+                detail="PDF not found"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching PDF from MinIO: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch PDF: {str(e)}"
         )
 
 @router.delete("/{report_id}", status_code=204)
@@ -355,13 +418,13 @@ async def delete_report(
             try:
                 prefix = None
                 if report.report_type == "market":
-                    # Market reports: Market/{date}/{uuid}.json
+                    # Market reports: Market/{date}/{uuid}.pdf
                     if report_date:
                         prefix = f"{folder_name}/{report_date}/"
                     else:
                         prefix = f"{folder_name}/"
                 else:
-                    # Other reports: {folder}/{ticker}/{date}/{uuid}.json
+                    # Other reports: {folder}/{ticker}/{date}/{uuid}.pdf
                     if report.ticker:
                         if report_date:
                             prefix = f"{folder_name}/{report.ticker}/{report_date}/"

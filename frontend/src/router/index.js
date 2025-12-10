@@ -6,6 +6,7 @@ import SignUpView from '../components/SignUpView.vue'
 import ResearchView from '../components/ResearchView.vue'
 import AdminView from '../components/AdminView.vue'
 import ReportView from '../components/ReportView.vue'
+import ShortInterestView from '../components/ShortInterestView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,6 +39,12 @@ const router = createRouter({
       path: '/research',
       name: 'research',
       component: ResearchView,
+      meta: { requiresAuth: true, requiresAdminOrCreator: true }
+    },
+    {
+      path: '/short-interest',
+      name: 'short-interest',
+      component: ShortInterestView,
       meta: { requiresAuth: true, requiresAdminOrCreator: true }
     },
     {

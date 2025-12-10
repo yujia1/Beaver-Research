@@ -34,7 +34,15 @@
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
                                 <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
-                                <div v-else class="report-body" v-html="getReportContent(savedReport)"></div>
+                                <div v-else class="report-body">
+                                    <iframe 
+                                        v-if="getReportPdfUrl(savedReport)" 
+                                        :src="getReportPdfUrl(savedReport)" 
+                                        class="pdf-viewer"
+                                        frameborder="0"
+                                    ></iframe>
+                                    <div v-else class="report-error">PDF not available</div>
+                                </div>
                             </div>
                         </li>
                     </ul>
@@ -68,7 +76,15 @@
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
                                 <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
-                                <div v-else class="report-body" v-html="getReportContent(savedReport)"></div>
+                                <div v-else class="report-body">
+                                    <iframe 
+                                        v-if="getReportPdfUrl(savedReport)" 
+                                        :src="getReportPdfUrl(savedReport)" 
+                                        class="pdf-viewer"
+                                        frameborder="0"
+                                    ></iframe>
+                                    <div v-else class="report-error">PDF not available</div>
+                                </div>
                             </div>
                         </li>
                     </ul>
@@ -85,7 +101,15 @@
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
                                 <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
-                                <div v-else class="report-body" v-html="getReportContent(savedReport)"></div>
+                                <div v-else class="report-body">
+                                    <iframe 
+                                        v-if="getReportPdfUrl(savedReport)" 
+                                        :src="getReportPdfUrl(savedReport)" 
+                                        class="pdf-viewer"
+                                        frameborder="0"
+                                    ></iframe>
+                                    <div v-else class="report-error">PDF not available</div>
+                                </div>
                             </div>
                 </li>
             </ul>
@@ -324,53 +348,34 @@ const toggleReport = async (savedReportSummary) => {
     // Otherwise, expand the clicked report
     expandedReportIds.value.add(reportId);
     
-    // If content is already loaded, don't fetch again
-    if (reportContents.value[reportId]) {
-        return;
-    }
-    
-    loadingReportsById.value[reportId] = true;
-    
-    try {
-        // Check if it's a report from MinIO (has content already)
-        if (savedReportSummary.content) {
-            reportContents.value[reportId] = savedReportSummary.content;
-            loadingReportsById.value[reportId] = false;
-        } else if (savedReportSummary.id) {
-            // Fetch from database API if it has a numeric ID
-        const response = await fetch(`http://localhost:8000/api/reports/${savedReportSummary.id}`);
-        if (!response.ok) throw new Error('Failed to fetch report content');
-        const data = await response.json();
-            reportContents.value[reportId] = data.content;
-        } else {
-            reportContents.value[reportId] = "Report content not available.";
-        }
-    } catch (e) {
-        console.error("Failed to load report", e);
-        reportContents.value[reportId] = "Failed to load report content.";
-    } finally {
-        loadingReportsById.value[reportId] = false;
-    }
+    // Mark as loaded (PDFs are loaded via iframe src, no need to fetch content)
+    loadingReportsById.value[reportId] = false;
 };
 
-const getReportContent = (savedReportSummary) => {
-    // If content is already in the report object (from MinIO), use it
-    if (savedReportSummary.content) {
-        try {
-            return marked(savedReportSummary.content);
-        } catch {
-            return savedReportSummary.content.replace(/\n/g, '<br>');
-        }
-    }
-    // Otherwise, use cached content
-    const content = reportContents.value[savedReportSummary.id];
-    if (!content) return '';
+const getReportPdfUrl = (savedReportSummary) => {
+    // Construct PDF URL from report metadata
+    const reportType = savedReportSummary.report_type || 'daily';
+    const ticker = savedReportSummary.ticker || 'MARKET';
+    const date = savedReportSummary.date || new Date(savedReportSummary.created_at || savedReportSummary.timestamp).toISOString().split('T')[0];
+    const uuid = savedReportSummary.uuid || savedReportSummary.id;
     
-    try {
-        return marked(content);
-    } catch {
-        return content.replace(/\n/g, '<br>');
+    if (!uuid || !date) {
+        return null;
     }
+    
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        return null;
+    }
+    
+    // Construct URL to backend PDF endpoint with token as query parameter
+    // Encode the ticker and other path components to handle special characters
+    const encodedTicker = encodeURIComponent(ticker);
+    const encodedDate = encodeURIComponent(date);
+    const encodedUuid = encodeURIComponent(uuid);
+    const encodedReportType = encodeURIComponent(reportType);
+    
+    return `http://localhost:8000/api/reports/minio/pdf/${encodedReportType}/${encodedTicker}/${encodedDate}/${encodedUuid}?token=${encodeURIComponent(token)}`;
 };
 
 const formatDate = (dateString) => {
@@ -527,6 +532,19 @@ const formatDate = (dateString) => {
 .report-body {
     line-height: 1.6;
     color: #000000;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.report-error {
+    color: #e74c3c;
+    text-align: center;
+    padding: 20px;
 }
 
 .report-body :deep(h1), .report-body :deep(h2), .report-body :deep(h3), .report-body :deep(h4), .report-body :deep(h5), .report-body :deep(h6) {

@@ -6,10 +6,11 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from routers import internal, external, agent, energy, sec, bond, reports, auth, events, research
+from routers import internal, external, agent, energy, sec, bond, reports, auth, events, research, filing_13f, short_interest
 from database import engine, SessionLocal
 import models
 import bcrypt
+from services.scheduler_13f import setup_13f_scheduler
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -90,6 +91,9 @@ def init_default_users():
 # Initialize default users on startup
 init_default_users()
 
+# Setup 13F filing scheduler
+scheduler = setup_13f_scheduler()
+
 app = FastAPI(title="Financial Dashboard Agent")
 
 # CORS configuration
@@ -120,6 +124,8 @@ app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
 app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(research.router, prefix="/api/research", tags=["Research"])
+app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filings"])
+app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
 
 @app.get("/")
 def read_root():

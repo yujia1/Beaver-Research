@@ -19,3 +19,5 @@ passlib[bcrypt]
 email-validator
 py-clob-client
 boto3
+APScheduler
+lxml

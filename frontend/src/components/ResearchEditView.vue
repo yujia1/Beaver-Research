@@ -28,8 +28,16 @@
     <!-- Main Header Section -->
     <header class="editor-header">
       <div class="header-content">
+        <!-- Report Name Input -->
+        <input
+          v-model="reportName"
+          type="text"
+          placeholder="Report Name"
+          class="report-name-input"
+        />
+        
         <!-- Title -->
-        <h1 class="header-title">BEAVER RESEARCH</h1>
+        <h1 class="header-title"></h1>
         
         <!-- Mode Toggle Switch -->
         <div class="mode-toggle-switch" @click="toggleViewMode">
@@ -312,6 +320,33 @@
       </div>
     </div>
 
+    <!-- PDF Preview Modal -->
+    <div v-if="showPreviewModal" class="modal-overlay" @click="closePreviewModal">
+      <div class="modal-content preview-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Preview PDF Report</h3>
+          <button @click="closePreviewModal" class="close-modal-btn">×</button>
+        </div>
+        <div class="modal-body preview-body">
+          <div class="pdf-preview-container">
+            <iframe 
+              v-if="previewPdfUrl" 
+              :src="previewPdfUrl" 
+              class="pdf-preview-iframe"
+              frameborder="0"
+            ></iframe>
+            <div v-else class="loading-pdf">Generating PDF preview...</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="confirmPublish" class="modal-btn primary" :disabled="isPublishing">
+            {{ isPublishing ? 'Publishing...' : 'Confirm & Publish' }}
+          </button>
+          <button @click="closePreviewModal" class="modal-btn secondary" :disabled="isPublishing">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Success Modal -->
     <div v-if="showSuccessModal" class="modal-overlay" @click="closeSuccessModal">
       <div class="modal-content" @click.stop>
@@ -353,6 +388,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDailyCache, setDailyCache } from '../utils/dailyCache.js'
+import html2pdf from 'html2pdf.js'
 
 const router = useRouter()
 
@@ -379,6 +415,7 @@ const editorRef = ref(null)
 const editorContent = ref('')
 const tickerInput = ref(props.ticker)
 const tickerInputRef = ref(null)
+const reportName = ref('')
 const isEditingTicker = ref(false)
 const isDragging = ref(false)
 const draggedBubble = ref(null)
@@ -392,6 +429,12 @@ const reportTypes = [
   { label: 'Short Position', value: 'short' }
 ]
 const selectedReportType = ref('daily')
+
+// Preview modal state
+const showPreviewModal = ref(false)
+const previewPdfUrl = ref(null)
+const previewPdfBlob = ref(null)
+const isPublishing = ref(false)
 
 // Success modal state
 const showSuccessModal = ref(false)
@@ -1800,6 +1843,56 @@ const handleTickerSearch = () => {
   }
 }
 
+const generatePdfPreview = async () => {
+  // Generate PDF from editor content
+  if (!editorRef.value) {
+    throw new Error('Editor not found')
+  }
+  
+  // Create a temporary container for PDF generation
+  const tempContainer = document.createElement('div')
+  tempContainer.style.width = '210mm' // A4 width
+  tempContainer.style.padding = '20mm'
+  tempContainer.style.fontFamily = 'Arial, sans-serif'
+  tempContainer.style.fontSize = '12pt'
+  tempContainer.style.lineHeight = '1.6'
+  tempContainer.innerHTML = editorRef.value.innerHTML
+  
+  // Copy styles from editor to temp container
+  const editorStyles = window.getComputedStyle(editorRef.value)
+  tempContainer.style.color = editorStyles.color
+  tempContainer.style.backgroundColor = editorStyles.backgroundColor
+  
+  // Ensure images are properly sized in PDF
+  const images = tempContainer.querySelectorAll('img')
+  images.forEach(img => {
+    img.style.maxWidth = '100%'
+    img.style.height = 'auto'
+    img.style.display = 'block'
+    img.style.margin = '10px 0'
+  })
+  
+  // Generate PDF
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `report_${Date.now()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait' 
+    }
+  }
+  
+  const pdfBlob = await html2pdf().set(opt).from(tempContainer).outputPdf('blob')
+  return pdfBlob
+}
+
 const publishEditor = async () => {
   // Publish the editor content
   if (!editorContent.value.trim()) {
@@ -1819,25 +1912,53 @@ const publishEditor = async () => {
   }
   
   try {
+    // Generate PDF and show preview
+    const pdfBlob = await generatePdfPreview()
+    
+    // Create object URL for preview
+    const pdfUrl = URL.createObjectURL(pdfBlob)
+    previewPdfUrl.value = pdfUrl
+    previewPdfBlob.value = pdfBlob
+    
+    // Show preview modal
+    showPreviewModal.value = true
+  } catch (error) {
+    console.error('Error generating PDF preview:', error)
+    alert(`Failed to generate PDF preview: ${error.message}`)
+  }
+}
+
+const confirmPublish = async () => {
+  if (!previewPdfBlob.value) {
+    return
+  }
+  
+  isPublishing.value = true
+  
+  try {
     const token = localStorage.getItem('access_token')
     if (!token) {
       alert('Please login to publish reports.')
+      closePreviewModal()
       return
     }
+    
+    // Create FormData to send PDF file
+    const formData = new FormData()
+    formData.append('pdf_file', previewPdfBlob.value, `report.pdf`)
+    formData.append('ticker', props.ticker || 'MARKET')
+    formData.append('view_mode', props.viewMode)
+    formData.append('active_agent', props.activeAgent || '')
+    formData.append('report_type', selectedReportType.value)
+    formData.append('report_name', reportName.value || 'Untitled Report')
     
     const response = await fetch('http://localhost:8000/api/reports/publish', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${token}`
+        // Don't set Content-Type, let browser set it with boundary
       },
-      body: JSON.stringify({
-        ticker: props.ticker || 'MARKET', // Use 'MARKET' as placeholder when market type is selected
-        content: editorContent.value,
-        view_mode: props.viewMode,
-        active_agent: props.activeAgent,
-        report_type: selectedReportType.value
-      })
+      body: formData
     })
     
     if (!response.ok) {
@@ -1846,6 +1967,9 @@ const publishEditor = async () => {
     }
     
     const result = await response.json()
+    
+    // Close preview modal
+    closePreviewModal()
     
     // Show success modal
     publishedReportType.value = reportTypes.find(t => t.value === selectedReportType.value)?.label || ''
@@ -1868,7 +1992,19 @@ const publishEditor = async () => {
   } catch (error) {
     console.error('Error publishing report:', error)
     alert(`Failed to publish report: ${error.message}`)
+  } finally {
+    isPublishing.value = false
   }
+}
+
+const closePreviewModal = () => {
+  showPreviewModal.value = false
+  // Clean up object URL to free memory
+  if (previewPdfUrl.value) {
+    URL.revokeObjectURL(previewPdfUrl.value)
+    previewPdfUrl.value = null
+  }
+  previewPdfBlob.value = null
 }
 
 const closeSuccessModal = () => {
@@ -2075,6 +2211,27 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.report-name-input {
+  padding: 8px 16px;
+  font-size: 1.2em;
+  font-weight: 500;
+  color: #000000;
+  border: 2px solid #cccccc;
+  border-radius: 6px;
+  background: #ffffff;
+  min-width: 200px;
+  font-family: 'Arial', sans-serif;
+}
+
+.report-name-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.report-name-input::placeholder {
+  color: #999999;
+}
+
 .header-title {
   font-family: 'Cinzel', serif;
   font-size: 2em;
@@ -2083,6 +2240,7 @@ onMounted(() => {
   margin: 0;
   letter-spacing: 1px;
   white-space: nowrap;
+  display: none;
 }
 
 /* Mode Toggle Switch */
@@ -2936,6 +3094,14 @@ onMounted(() => {
   animation: modalSlideIn 0.3s ease-out;
 }
 
+.preview-modal-content {
+  max-width: 90%;
+  width: 1200px;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+}
+
 @keyframes modalSlideIn {
   from {
     opacity: 0;
@@ -2950,6 +3116,30 @@ onMounted(() => {
 .modal-header {
   padding: 24px 24px 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-modal-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000;
 }
 
 .modal-header h3 {
@@ -2963,6 +3153,38 @@ onMounted(() => {
 .modal-body {
   padding: 24px;
   text-align: center;
+}
+
+.preview-body {
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pdf-preview-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #f5f5f5;
+}
+
+.pdf-preview-iframe {
+  width: 100%;
+  flex: 1;
+  border: none;
+  min-height: 600px;
+}
+
+.loading-pdf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #666;
+  font-size: 16px;
 }
 
 .success-icon {
@@ -3087,5 +3309,11 @@ onMounted(() => {
 
 .modal-btn.secondary:hover {
   background: rgba(0, 0, 0, 0.05);
+}
+
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 </style>

@@ -632,7 +632,7 @@
                 
                 <div class="trade-log-tabs">
                   <button :class="{ active: holdersView === 'all' }" @click="holdersView = 'all'">All</button>
-                  <button :class="{ active: holdersView === 'institutions' }" @click="holdersView = 'institutions'">Institutions</button>
+                  <button :class="{ active: holdersView === 'institutions' }" @click="handleInstitutionsClick">Institutions</button>
                   <button :class="{ active: holdersView === 'insider' }" @click="holdersView = 'insider'">Insider</button>
                 </div>
 
@@ -669,7 +669,8 @@
 
                 <div v-if="holdersView === 'institutions' || holdersView === 'all'" class="trade-log-container">
                   <h5 v-if="holdersView === 'all'" class="section-heading">Institutional Holders</h5>
-                  <table class="trade-log-table" v-if="getInstitutionalHolders().length > 0">
+                  <div v-if="loadingInstitutionalHolders" class="loading">Loading institutional holders...</div>
+                  <table v-else-if="getInstitutionalHolders().length > 0" class="trade-log-table">
                     <thead>
                       <tr>
                         <th>DATE REPORTED</th>
@@ -677,6 +678,7 @@
                         <th>SHARES</th>
                         <th>VALUE</th>
                         <th>% HELD</th>
+                        <th>ACTION</th>
                         <th>% CHANGE</th>
                       </tr>
                     </thead>
@@ -687,6 +689,9 @@
                         <td class="trade-shares">{{ formatNumberMicro(holder.Shares) }}</td>
                         <td class="trade-value">{{ formatCurrencyMicro(holder.Value) }}</td>
                         <td class="trade-holdings">{{ formatPercentMicro(holder.pctHeld) }}</td>
+                        <td class="trade-action" :class="getActionClass(holder.action || holder.pctChange)">
+                          {{ holder.action || (holder.pctChange > 0 ? 'BUY' : holder.pctChange < 0 ? 'SELL' : 'HOLD') }}
+                        </td>
                         <td class="trade-action" :class="getChangeClass(holder.pctChange)">
                           {{ formatPercentChange(holder.pctChange) }}
                         </td>
@@ -1688,6 +1693,10 @@ const fetch10KChunks = async () => {
 
 // Watch selectedStock to auto-fetch company data
 watch(selectedStock, (newStock, oldStock) => {
+  // Fetch institutional holders when stock changes
+  if (newStock && activeTab.value === 'company' && microTab.value === 'holders') {
+    fetchInstitutionalHolders()
+  }
   // Clear price info when stock is cleared
   if (!newStock) {
     currentPrice.value = 0
@@ -1741,6 +1750,16 @@ watch(activeTab, (newTab) => {
     fetchPolyMarketData()
   }
 })
+
+// Watch microTab and holdersView to fetch data when switching tabs
+watch([microTab, holdersView], async () => {
+  console.log(`Watcher triggered: microTab=${microTab.value}, holdersView=${holdersView.value}, selectedStock=${selectedStock.value}`)
+  // Fetch institutional holders when switching to holders tab
+  if (microTab.value === 'holders' && holdersView.value === 'institutions' && selectedStock.value) {
+    console.log('Calling fetchInstitutionalHolders from watcher')
+    fetchInstitutionalHolders()
+  }
+}, { immediate: true })
 
 // Watch microTab to render charts when switching tabs
 watch([microTab, financialPeriod], async () => {
@@ -3028,7 +3047,79 @@ const getInsiderTransactions = () => {
   return Object.values(insider).slice(0, 50)
 }
 
+const institutionalHolders13F = ref([])
+const loadingInstitutionalHolders = ref(false)
+
+const handleInstitutionsClick = () => {
+  holdersView.value = 'institutions'
+  if (selectedStock.value && microTab.value === 'holders') {
+    console.log('handleInstitutionsClick: Calling fetchInstitutionalHolders')
+    fetchInstitutionalHolders()
+  }
+}
+
+const fetchInstitutionalHolders = async () => {
+  if (!selectedStock.value) {
+    console.log('fetchInstitutionalHolders: No stock selected')
+    return
+  }
+  
+  console.log(`fetchInstitutionalHolders: Fetching for ${selectedStock.value}`)
+  loadingInstitutionalHolders.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      console.error('fetchInstitutionalHolders: No access token found')
+      institutionalHolders13F.value = []
+      return
+    }
+    
+    // Use relative URL so nginx can proxy it, or absolute if running outside Docker
+    const url = `/api/filing-13f/holdings/${selectedStock.value.toUpperCase()}`
+    console.log(`fetchInstitutionalHolders: Calling ${url}`)
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    console.log(`fetchInstitutionalHolders: Response status ${response.status}`)
+    
+    if (response.ok) {
+      const data = await response.json()
+      console.log(`fetchInstitutionalHolders: Received ${data.holdings?.length || 0} holdings`)
+      institutionalHolders13F.value = data.holdings || []
+    } else {
+      const errorText = await response.text()
+      console.error(`fetchInstitutionalHolders: API error ${response.status}:`, errorText)
+      institutionalHolders13F.value = []
+    }
+  } catch (error) {
+    console.error('fetchInstitutionalHolders: Exception:', error)
+    institutionalHolders13F.value = []
+  } finally {
+    loadingInstitutionalHolders.value = false
+  }
+}
+
 const getInstitutionalHolders = () => {
+  // First try 13F data (new source)
+  if (institutionalHolders13F.value.length > 0) {
+    return institutionalHolders13F.value.map(h => ({
+      'Date Reported': h['Date Reported'],
+      'Holder': h['Holder'],
+      'Shares': h['Shares'],
+      'Value': h['Value'],
+      'pctHeld': h['pctHeld'] || 0,
+      'pctChange': h['pctChange'] || 0,
+      'action': h['action'] || 'HOLD',
+      'sharesChange': h['sharesChange'] || 0,
+      'valueChange': h['valueChange'] || 0
+    })).slice(0, 50)
+  }
+  
+  // Fallback to old data structure if available
   if (!companyData.value || !companyData.value.holders || !companyData.value.holders.institutional) return []
   const institutional = companyData.value.holders.institutional
   
@@ -3088,11 +3179,31 @@ const extractAction = (text) => {
   return 'OTHER'
 }
 
-const getActionClass = (text) => {
-  const action = extractAction(text)
-  if (action === 'SELL') return 'action-sell'
-  if (action === 'PURCHASE') return 'action-purchase'
-  return ''
+const getActionClass = (action) => {
+  if (!action) return ''
+  
+  // Handle action strings (BUY, SELL, HOLD, NEW)
+  if (typeof action === 'string') {
+    const actionUpper = action.toUpperCase()
+    if (actionUpper === 'BUY' || actionUpper === 'NEW') return 'action-buy'
+    if (actionUpper === 'SELL') return 'action-sell'
+    if (actionUpper === 'HOLD') return 'action-hold'
+    // Legacy text parsing
+    if (actionUpper.includes('SALE') || actionUpper.includes('SELL')) return 'action-sell'
+    if (actionUpper.includes('PURCHASE') || actionUpper.includes('BUY')) return 'action-buy'
+    if (actionUpper.includes('GIFT')) return 'action-gift'
+    if (actionUpper.includes('NO CHANGE')) return 'action-no-change'
+    if (actionUpper.includes('OPTION')) return 'action-option'
+  }
+  
+  // Handle numeric pctChange (legacy support)
+  if (typeof action === 'number') {
+    if (action > 0) return 'action-buy'
+    if (action < 0) return 'action-sell'
+    return 'action-hold'
+  }
+  
+  return 'action-other'
 }
 
 const getChangeClass = (pctChange) => {
@@ -6035,9 +6146,28 @@ onUnmounted(() => {
   font-size: 0.85em;
 }
 
+.trade-action.action-buy {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.trade-action.action-sell {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.trade-action.action-hold {
+  color: #6b7280;
+}
+
 .trade-action {
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.trade-action.action-buy {
+  color: #10b981;
+  font-weight: 600;
 }
 
 .trade-action.action-purchase {
@@ -6046,6 +6176,10 @@ onUnmounted(() => {
 
 .trade-action.action-sell {
   color: #e74c3c;
+}
+
+.trade-action.action-hold {
+  color: #6b7280;
 }
 
 .trade-shares,
