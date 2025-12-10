@@ -63,20 +63,6 @@
           </div>
         </div>
 
-        <!-- Ticker Search (only in Company mode) -->
-        <div v-if="props.viewMode === 'COMPANY'" class="search-container">
-          <input
-            ref="tickerInputRef"
-            type="text"
-            :value="tickerInput"
-            @input="handleTickerInput"
-            @keyup.enter="handleTickerSearch"
-            @focus="isEditingTicker = true"
-            @blur="isEditingTicker = false"
-            placeholder="Q TSLA"
-            class="search-input"
-          />
-        </div>
 
         <!-- Icon Group (Agent Selector) -->
         <div class="icon-group">
@@ -178,13 +164,32 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
-            <span>{{ viewMode === 'MARKET' ? 'GLOBAL FEED' : `${ticker} STREAM` }}</span>
-            <button @click="refreshData" class="refresh-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <polyline points="1 20 1 14 7 14"></polyline>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
+            <!-- Ticker Input for Company Mode - Only for specific agents -->
+            <input
+              v-if="viewMode === 'COMPANY' && ['FUNDAMENTAL_AGENT', 'INSIDE_TRADING_ANALYST_AGENT', 'OPTION_ANALYST_AGENT', 'POLYMARKET_AGENT'].includes(activeAgent)"
+              ref="tickerInputRef"
+              type="text"
+              :value="tickerInput"
+              @input="handleTickerInput"
+              @keyup.enter="handleTickerSearch"
+              @focus="isEditingTicker = true"
+              @blur="isEditingTicker = false"
+              placeholder="Q TSLA"
+              class="ticker-stream-input"
+            />
+            <!-- Text for Market Mode or agents that don't need ticker -->
+            <span v-else>{{ viewMode === 'MARKET' ? 'GLOBAL FEED' : 'STREAM' }}</span>
+            
+            <!-- Refresh button -->
+            <button 
+              v-if="activeAgent !== 'MANAGEMENT_AGENT'"
+              @click="refreshData" 
+              class="refresh-btn"
+              :disabled="isLoading"
+              :class="{ 'loading': isLoading }"
+            >
+              <span v-if="!isLoading">↻</span>
+              <span v-else class="spinner">⟳</span>
             </button>
           </div>
         </div>
@@ -262,9 +267,9 @@
               </div>
             </div>
             
-            <div class="bubble-data">
+            <div class="bubble-data" v-if="!isFinancialStatementBubble(bubble)">
               <template v-if="isFinancialStatementBubble(bubble) && hasPeriodData(bubble)">
-                <!-- Financial statement with period data -->
+                <!-- Financial statement with period data - HIDDEN -->
                 <div
                   v-for="(value, key) in getPeriodDataMetrics(bubble)"
                   :key="key"
@@ -466,15 +471,8 @@ const companyAgents = [
     id: 'FUNDAMENTAL_AGENT', 
     name: 'Financials', 
     icon: '🀃', 
-    focus: ['income', 'balance', 'cashflow'],
-    subAgents: ['INCOME_ANALYST_AGENT', 'BALANCE_ANALYST_AGENT', 'CASHFLOW_ANALYST_AGENT']
-  },
-  { 
-    id: 'TECHNICAL_ANALYST_AGENT', 
-    name: 'Technical', 
-    icon: '♕', 
-    focus: ['technical', 'rsi', 'macd', 'moving average'],
-    subAgents: ['TECHNICAL_ANALYST_AGENT']
+    focus: ['income', 'balance', 'cashflow', 'financial'],
+    subAgents: ['FUNDAMENTAL_AGENT']
   },
   { 
     id: 'INSIDE_TRADING_ANALYST_AGENT', 
@@ -537,6 +535,7 @@ const currentAgentName = computed(() => {
 
 // Data bubbles state
 const dataBubbles = ref([])
+const isLoading = ref(false)
 
 // Period selection state for financial statement bubbles (Annually/Quarterly)
 const bubblePeriods = ref({}) // { bubbleId: 'Annually' | 'Quarterly' }
@@ -599,6 +598,13 @@ const handleDrop = async (event) => {
   
   // Otherwise, handle data bubble drops
   if (!draggedBubble.value) return
+  
+  // IMPORTANT: Only allow drops on the editor element
+  if (!editorRef.value || !editorRef.value.contains(event.target)) {
+    console.log('Drop ignored - not on editor')
+    draggedBubble.value = null
+    return
+  }
 
   const selection = window.getSelection()
   const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
@@ -625,8 +631,22 @@ const handleDrop = async (event) => {
         const decodedJson = atob(insights.encoded_output)
         const decodedData = JSON.parse(decodedJson)
         
-        // Format as markdown
-        insight = formatDecodedInsight(decodedData, draggedBubble.value)
+        // Format the analysis with proper structure
+        if (decodedData.analysis) {
+          // The analysis already has markdown formatting from AI
+          // Just add some spacing and structure
+          insight = decodedData.analysis
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join('\n\n') // Double newlines for better spacing
+          
+          // Add title at the top
+          insight = `## ${draggedBubble.value.title}\n\n${insight}`
+        } else {
+          // Fallback to formatted version
+          insight = formatInsightsAsMarkdown(insights, draggedBubble.value)
+        }
       } catch (decodeError) {
         console.error('Error decoding encoded_output:', decodeError)
         // Fallback to using insights directly if decoding fails
@@ -653,55 +673,96 @@ const handleDrop = async (event) => {
 const insertInsight = (insight, range) => {
   if (!editorRef.value) return
   
+  // Convert markdown to HTML for better formatting
+  const htmlContent = convertMarkdownToHTML(insight)
+  
+  // Get the current selection/cursor position
   const selection = window.getSelection()
   let insertRange = range
   
+  // If no range provided, try to get current selection
   if (!insertRange && selection.rangeCount > 0) {
     insertRange = selection.getRangeAt(0)
   }
   
   if (insertRange) {
+    // Insert at the cursor/drop position
     insertRange.deleteContents()
     
-    const div = document.createElement('div')
-    div.innerHTML = insight
-    const fragment = document.createDocumentFragment()
+    // Create a temporary div to parse the HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
     
-    while (div.firstChild) {
-      fragment.appendChild(div.firstChild)
+    // Create a document fragment to insert
+    const fragment = document.createDocumentFragment()
+    while (tempDiv.firstChild) {
+      fragment.appendChild(tempDiv.firstChild)
     }
     
+    // Insert the fragment at the range
     insertRange.insertNode(fragment)
+    
+    // Move cursor to end of inserted content
     insertRange.collapse(false)
     selection.removeAllRanges()
     selection.addRange(insertRange)
-    
-    // Insert at cursor position
-    const selection = window.getSelection()
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0)
-      range.deleteContents()
-      const textNode = document.createTextNode(insight)
-      range.insertNode(textNode)
-      range.setStartAfter(textNode)
-      range.collapse(true)
-      selection.removeAllRanges()
-      selection.addRange(range)
-    }
-    editorContent.value = editorRef.value.innerHTML
   } else {
-    // Append to end if no selection
-    const textNode = document.createTextNode(insight)
-    editorRef.value.appendChild(textNode)
+    // If no cursor position, append to end
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
+    while (tempDiv.firstChild) {
+      editorRef.value.appendChild(tempDiv.firstChild)
+    }
+    
     // Move cursor to end
-    const range = document.createRange()
+    const newRange = document.createRange()
     const sel = window.getSelection()
-    range.selectNodeContents(editorRef.value)
-    range.collapse(false)
+    newRange.selectNodeContents(editorRef.value)
+    newRange.collapse(false)
     sel.removeAllRanges()
-    sel.addRange(range)
-    editorContent.value = editorRef.value.innerHTML
+    sel.addRange(newRange)
   }
+  
+  // Update the content
+  editorContent.value = editorRef.value.innerHTML
+}
+
+// Convert simple markdown to HTML
+const convertMarkdownToHTML = (markdown) => {
+  let html = markdown
+  
+  // Convert headers (# Header -> <h1>Header</h1>)
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+  
+  // Convert bold (**text** -> <strong>text</strong>)
+  html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+  
+  // Convert bullet points (- item -> <li>item</li>)
+  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>')
+  
+  // Wrap consecutive <li> items in <ul>
+  html = html.replace(/(<li>.*<\/li>\n?)+/gim, '<ul>$&</ul>')
+  
+  // Convert line breaks to <br> or <p>
+  // Split by double newlines for paragraphs
+  const paragraphs = html.split('\n\n')
+  html = paragraphs
+    .map(p => {
+      p = p.trim()
+      if (!p) return ''
+      // If it's already an HTML tag, don't wrap it
+      if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<li')) {
+        return p
+      }
+      // Otherwise wrap in paragraph
+      return `<p>${p.replace(/\n/g, '<br>')}</p>`
+    })
+    .filter(p => p)
+    .join('\n')
+  
+  return html
 }
 
 const handleEditorInput = () => {
@@ -1029,308 +1090,51 @@ const generateMockBubbles = () => {
       return []
     }
     
+    
     if (props.activeAgent === 'FUNDAMENTAL_AGENT') {
-      // Create mock data for Income Statement, Balance Sheet, and Cash Flow
-      const createEncodedOutput = (period, agent, analysis, bullets) => {
-        return btoa(JSON.stringify({
-          analysis,
-          bullet_points: bullets,
-          period,
-          agent,
-          timestamp: now.toISOString(),
-          ticker: props.ticker
-        }))
-      }
-      
+      // Placeholder bubble - real analysis happens when dragged to editor
       return [
         {
-          id: `income-${props.ticker}-${now.getTime()}`,
-          type: 'INCOME_ANALYST_AGENT',
+          id: `financial-statements-${props.ticker}-${now.getTime()}`,
+          type: 'FUNDAMENTAL_AGENT',
           category: 'FINANCIAL',
-          title: 'INCOME STATEMENT',
+          title: 'FINANCIAL STATEMENTS',
           timestamp: now,
           data: {
             Annually: {
-              data_metrics: {
-                'total revenue': '100.38B',
-                'cost of revenue': '79.38B',
-                'gross profit': '21.46B',
-                'operating expense': '9.02B',
-                'net income': '15.00B',
-                'ebitda': '14.80B'
-              },
+              data_metrics: {},
               insights: {
-                analysis: 'Tesla demonstrates strong revenue growth with total revenue reaching $100.38B annually. The company maintains healthy gross margins at 21.4%, indicating efficient cost management. Operating expenses are well-controlled at $9.02B, contributing to robust EBITDA of $14.80B. Net income of $15.00B reflects strong profitability and operational efficiency.',
-                bullet_points: [
-                  'Total revenue reached $100.38B, showing strong growth trajectory',
-                  'Gross profit margin at 21.4% indicates healthy pricing power',
-                  'Operating expenses well-managed at $9.02B',
-                  'EBITDA of $14.80B demonstrates strong operational cash generation',
-                  'Net income of $15.00B reflects efficient capital allocation'
-                ],
-                encoded_output: createEncodedOutput(
-                  'annual',
-                  'INCOME_ANALYST_AGENT',
-                  'Tesla demonstrates strong revenue growth with total revenue reaching $100.38B annually. The company maintains healthy gross margins at 21.4%, indicating efficient cost management. Operating expenses are well-controlled at $9.02B, contributing to robust EBITDA of $14.80B. Net income of $15.00B reflects strong profitability and operational efficiency.',
-                  [
-                    'Total revenue reached $100.38B, showing strong growth trajectory',
-                    'Gross profit margin at 21.4% indicates healthy pricing power',
-                    'Operating expenses well-managed at $9.02B',
-                    'EBITDA of $14.80B demonstrates strong operational cash generation',
-                    'Net income of $15.00B reflects efficient capital allocation'
-                  ]
-                )
+                analysis: `Click to analyze ${props.ticker}'s comprehensive financial statements`,
+                bullet_points: ['Drag to editor for AI-powered analysis'],
+                encoded_output: btoa(JSON.stringify({
+                  analysis: `Analyzing ${props.ticker}...`,
+                  bullet_points: ['Loading financial data...'],
+                  period: 'annual',
+                  agent: 'FUNDAMENTAL_AGENT',
+                  ticker: props.ticker
+                }))
               }
             },
             Quarterly: {
-              data_metrics: {
-                'total revenue': '25.17B',
-                'cost of revenue': '19.85B',
-                'gross profit': '5.32B',
-                'operating expense': '2.26B',
-                'net income': '3.75B',
-                'ebitda': '3.70B'
-              },
+              data_metrics: {},
               insights: {
-                analysis: 'Tesla\'s quarterly performance shows consistent revenue generation with $25.17B in the latest quarter. Gross profit of $5.32B represents a 21.1% margin, maintaining strong profitability. Operating expenses of $2.26B are well-contained, supporting quarterly EBITDA of $3.70B. Net income of $3.75B indicates strong quarterly earnings momentum.',
-                bullet_points: [
-                  'Quarterly revenue of $25.17B shows consistent growth',
-                  'Gross profit margin maintained at 21.1%',
-                  'Operating expenses controlled at $2.26B per quarter',
-                  'Quarterly EBITDA of $3.70B demonstrates operational strength',
-                  'Net income of $3.75B reflects strong quarterly profitability'
-                ],
-                encoded_output: createEncodedOutput(
-                  'quarterly',
-                  'INCOME_ANALYST_AGENT',
-                  'Tesla\'s quarterly performance shows consistent revenue generation with $25.17B in the latest quarter. Gross profit of $5.32B represents a 21.1% margin, maintaining strong profitability. Operating expenses of $2.26B are well-contained, supporting quarterly EBITDA of $3.70B. Net income of $3.75B indicates strong quarterly earnings momentum.',
-                  [
-                    'Quarterly revenue of $25.17B shows consistent growth',
-                    'Gross profit margin maintained at 21.1%',
-                    'Operating expenses controlled at $2.26B per quarter',
-                    'Quarterly EBITDA of $3.70B demonstrates operational strength',
-                    'Net income of $3.75B reflects strong quarterly profitability'
-                  ]
-                )
-              }
-            }
-          }
-        },
-        {
-          id: `balance-${props.ticker}-${now.getTime()}`,
-          type: 'BALANCE_ANALYST_AGENT',
-          category: 'FINANCIAL',
-          title: 'BALANCE SHEET',
-          timestamp: now,
-          data: {
-            Annually: {
-              data_metrics: {
-                'total assets': '106.62B',
-                'total liabilities': '28.69B',
-                'total equity': '77.93B',
-                'cash & equivalents': '29.09B',
-                'total debt': '9.57B',
-                'current ratio': '1.95'
-              },
-              insights: {
-                analysis: 'Tesla maintains a strong balance sheet with total assets of $106.62B. The company has a healthy equity position of $77.93B, representing 73% of total assets. Cash and equivalents of $29.09B provide significant liquidity. Total debt of $9.57B is manageable relative to equity, and the current ratio of 1.95 indicates strong short-term liquidity.',
-                bullet_points: [
-                  'Total assets of $106.62B demonstrate strong financial position',
-                  'Equity of $77.93B represents 73% of total assets',
-                  'Cash and equivalents of $29.09B provide strong liquidity',
-                  'Total debt of $9.57B is well-managed',
-                  'Current ratio of 1.95 indicates strong short-term liquidity'
-                ],
-                encoded_output: createEncodedOutput(
-                  'annual',
-                  'BALANCE_ANALYST_AGENT',
-                  'Tesla maintains a strong balance sheet with total assets of $106.62B. The company has a healthy equity position of $77.93B, representing 73% of total assets. Cash and equivalents of $29.09B provide significant liquidity. Total debt of $9.57B is manageable relative to equity, and the current ratio of 1.95 indicates strong short-term liquidity.',
-                  [
-                    'Total assets of $106.62B demonstrate strong financial position',
-                    'Equity of $77.93B represents 73% of total assets',
-                    'Cash and equivalents of $29.09B provide strong liquidity',
-                    'Total debt of $9.57B is well-managed',
-                    'Current ratio of 1.95 indicates strong short-term liquidity'
-                  ]
-                )
-              }
-            },
-            Quarterly: {
-              data_metrics: {
-                'total assets': '106.62B',
-                'total liabilities': '28.69B',
-                'total equity': '77.93B',
-                'cash & equivalents': '29.09B',
-                'total debt': '9.57B',
-                'current ratio': '1.95'
-              },
-              insights: {
-                analysis: 'Tesla\'s quarterly balance sheet shows consistent strength with total assets of $106.62B. The company maintains a solid equity position of $77.93B. Cash and equivalents of $29.09B provide ample liquidity for operations and growth. The current ratio of 1.95 indicates strong short-term financial flexibility.',
-                bullet_points: [
-                  'Quarterly assets remain strong at $106.62B',
-                  'Equity position stable at $77.93B',
-                  'Cash position of $29.09B supports operations',
-                  'Debt levels manageable at $9.57B',
-                  'Current ratio of 1.95 shows healthy liquidity'
-                ],
-                encoded_output: createEncodedOutput(
-                  'quarterly',
-                  'BALANCE_ANALYST_AGENT',
-                  'Tesla\'s quarterly balance sheet shows consistent strength with total assets of $106.62B. The company maintains a solid equity position of $77.93B. Cash and equivalents of $29.09B provide ample liquidity for operations and growth. The current ratio of 1.95 indicates strong short-term financial flexibility.',
-                  [
-                    'Quarterly assets remain strong at $106.62B',
-                    'Equity position stable at $77.93B',
-                    'Cash position of $29.09B supports operations',
-                    'Debt levels manageable at $9.57B',
-                    'Current ratio of 1.95 shows healthy liquidity'
-                  ]
-                )
-              }
-            }
-          }
-        },
-        {
-          id: `cashflow-${props.ticker}-${now.getTime()}`,
-          type: 'CASHFLOW_ANALYST_AGENT',
-          category: 'FINANCIAL',
-          title: 'CASH FLOW',
-          timestamp: now,
-          data: {
-            Annually: {
-              data_metrics: {
-                'free cash flow': '3.58B',
-                'capital expenditure': '-11.34B',
-                'issuance of debt': '5.74B',
-                'repayment of debt': '-2.88B',
-                'end cash position': '17.04B',
-                'changes in cash': '-0.01B'
-              },
-              insights: {
-                analysis: 'Tesla demonstrates strong cash generation capabilities with free cash flow of $3.58B annually. Capital expenditures of $11.34B reflect significant investment in growth and capacity expansion. The company issued $5.74B in debt while repaying $2.88B, showing active capital management. The ending cash position of $17.04B provides substantial liquidity for future investments and operations.',
-                bullet_points: [
-                  'Free cash flow of $3.58B demonstrates strong cash generation',
-                  'Capital expenditures of $11.34B indicate growth investments',
-                  'Debt issuance of $5.74B supports strategic initiatives',
-                  'Debt repayment of $2.88B shows active capital management',
-                  'Ending cash position of $17.04B provides strong liquidity'
-                ],
-                encoded_output: createEncodedOutput(
-                  'annual',
-                  'CASHFLOW_ANALYST_AGENT',
-                  'Tesla demonstrates strong cash generation capabilities with free cash flow of $3.58B annually. Capital expenditures of $11.34B reflect significant investment in growth and capacity expansion. The company issued $5.74B in debt while repaying $2.88B, showing active capital management. The ending cash position of $17.04B provides substantial liquidity for future investments and operations.',
-                  [
-                    'Free cash flow of $3.58B demonstrates strong cash generation',
-                    'Capital expenditures of $11.34B indicate growth investments',
-                    'Debt issuance of $5.74B supports strategic initiatives',
-                    'Debt repayment of $2.88B shows active capital management',
-                    'Ending cash position of $17.04B provides strong liquidity'
-                  ]
-                )
-              }
-            },
-            Quarterly: {
-              data_metrics: {
-                'free cash flow': '3.99B',
-                'capital expenditure': '-2.25B',
-                'issuance of debt': '1.18B',
-                'repayment of debt': '-0.69B',
-                'end cash position': '19.58B',
-                'changes in cash': '-0.01B'
-              },
-              insights: {
-                analysis: 'Tesla\'s quarterly cash flow shows robust performance with free cash flow of $3.99B in the latest quarter. Capital expenditures of $2.25B reflect ongoing investment in production capacity and technology. The company issued $1.18B in debt while repaying $0.69B, maintaining balanced capital structure. The ending cash position of $19.58B demonstrates strong quarterly liquidity.',
-                bullet_points: [
-                  'Quarterly free cash flow of $3.99B shows strong cash generation',
-                  'Capital expenditures of $2.25B support growth initiatives',
-                  'Debt issuance of $1.18B provides capital flexibility',
-                  'Debt repayment of $0.69B maintains balanced leverage',
-                  'Ending cash position of $19.58B indicates strong liquidity'
-                ],
-                encoded_output: createEncodedOutput(
-                  'quarterly',
-                  'CASHFLOW_ANALYST_AGENT',
-                  'Tesla\'s quarterly cash flow shows robust performance with free cash flow of $3.99B in the latest quarter. Capital expenditures of $2.25B reflect ongoing investment in production capacity and technology. The company issued $1.18B in debt while repaying $0.69B, maintaining balanced capital structure. The ending cash position of $19.58B demonstrates strong quarterly liquidity.',
-                  [
-                    'Quarterly free cash flow of $3.99B shows strong cash generation',
-                    'Capital expenditures of $2.25B support growth initiatives',
-                    'Debt issuance of $1.18B provides capital flexibility',
-                    'Debt repayment of $0.69B maintains balanced leverage',
-                    'Ending cash position of $19.58B indicates strong liquidity'
-                  ]
-                )
+                analysis: `Click to analyze ${props.ticker}'s comprehensive financial statements`,
+                bullet_points: ['Drag to editor for AI-powered analysis'],
+                encoded_output: btoa(JSON.stringify({
+                  analysis: `Analyzing ${props.ticker}...`,
+                  bullet_points: ['Loading financial data...'],
+                  period: 'quarterly',
+                  agent: 'FUNDAMENTAL_AGENT',
+                  ticker: props.ticker
+                }))
               }
             }
           }
         }
       ]
-    } else if (props.activeAgent === 'TECHNICAL_ANALYST_AGENT') {
-      const createEncodedOutput = (agent, analysis, bullets) => {
-        return btoa(JSON.stringify({ analysis, bullet_points: bullets, period: 'current', agent, ticker: props.ticker }))
-      }
-      
-      return [
-        {
-          id: `macd-${props.ticker}-${now.getTime()}`,
-          type: 'TECHNICAL_ANALYST_AGENT',
-          category: 'TECHNICAL',
-          title: 'MACD',
-          timestamp: now,
-          data: {
-            data_metrics: {
-              'macd line': '2.45',
-              'signal line': '1.85',
-              'histogram': '0.60',
-              'trend': 'Bullish'
-            },
-            insights: {
-              analysis: 'MACD indicator shows bullish momentum with MACD line at 2.45 above signal line at 1.85. The positive histogram of 0.60 indicates strengthening upward momentum.',
-              bullet_points: ['MACD line above signal line indicates bullish trend', 'Positive histogram shows increasing momentum', 'Current reading suggests continued upward movement'],
-              encoded_output: createEncodedOutput('TECHNICAL_ANALYST_AGENT', 'MACD indicator shows bullish momentum with MACD line at 2.45 above signal line at 1.85. The positive histogram of 0.60 indicates strengthening upward momentum.', ['MACD line above signal line indicates bullish trend', 'Positive histogram shows increasing momentum', 'Current reading suggests continued upward movement'])
-            }
-          }
-        },
-        {
-          id: `trending-${props.ticker}-${now.getTime()}`,
-          type: 'TECHNICAL_ANALYST_AGENT',
-          category: 'TECHNICAL',
-          title: 'TRENDING',
-          timestamp: now,
-          data: {
-            data_metrics: {
-              'trend direction': 'Uptrend',
-              'trend strength': 'Strong',
-              'support level': '240.00',
-              'resistance level': '260.00'
-            },
-            insights: {
-              analysis: 'Tesla is in a strong uptrend with clear support at $240.00 and resistance at $260.00. The trend strength is strong, indicating sustained buying pressure.',
-              bullet_points: ['Strong uptrend confirmed', 'Support level at $240.00', 'Resistance level at $260.00', 'Sustained buying pressure'],
-              encoded_output: createEncodedOutput('TECHNICAL_ANALYST_AGENT', 'Tesla is in a strong uptrend with clear support at $240.00 and resistance at $260.00. The trend strength is strong, indicating sustained buying pressure.', ['Strong uptrend confirmed', 'Support level at $240.00', 'Resistance level at $260.00', 'Sustained buying pressure'])
-            }
-          }
-        },
-        {
-          id: `rsi-${props.ticker}-${now.getTime()}`,
-          type: 'TECHNICAL_ANALYST_AGENT',
-          category: 'TECHNICAL',
-          title: 'RSI',
-          timestamp: now,
-          data: {
-            data_metrics: {
-              'rsi': '58.5',
-              'rsi status': 'Neutral',
-              'overbought threshold': '70',
-              'oversold threshold': '30'
-            },
-            insights: {
-              analysis: 'RSI reading of 58.5 indicates neutral momentum, neither overbought nor oversold. The indicator suggests the stock has room to move in either direction.',
-              bullet_points: ['RSI at 58.5 indicates neutral momentum', 'Not in overbought or oversold territory', 'Room for movement in either direction'],
-              encoded_output: createEncodedOutput('TECHNICAL_ANALYST_AGENT', 'RSI reading of 58.5 indicates neutral momentum, neither overbought nor oversold. The indicator suggests the stock has room to move in either direction.', ['RSI at 58.5 indicates neutral momentum', 'Not in overbought or oversold territory', 'Room for movement in either direction'])
-            }
-          }
-        }
-      ]
-    } else if (props.activeAgent === 'INSIDE_TRADING_ANALYST_AGENT') {
+    }
+    
+    if (props.activeAgent === 'INSIDE_TRADING_ANALYST_AGENT') {
       const createEncodedOutput = (agent, analysis, bullets) => {
         return btoa(JSON.stringify({ analysis, bullet_points: bullets, period: 'current', agent, ticker: props.ticker }))
       }
@@ -1707,11 +1511,25 @@ const getValueClass = (value) => {
 
 // Check if bubble is a financial statement (Income, Balance, Cash Flow)
 const isFinancialStatementBubble = (bubble) => {
-  const financialTypes = ['INCOME_ANALYST_AGENT', 'BALANCE_ANALYST_AGENT', 'CASHFLOW_ANALYST_AGENT']
-  return financialTypes.includes(bubble.type) || 
-         bubble.title === 'INCOME STATEMENT' || 
-         bubble.title === 'BALANCE SHEET' || 
-         bubble.title === 'CASH FLOW'
+  if (!bubble || !bubble.title) return false
+  const title = bubble.title.toUpperCase()
+  const type = bubble.type ? bubble.type.toUpperCase() : ''
+  
+  // Financial statements (including merged bubble)
+  const isFinancial = title.includes('INCOME STATEMENT') || 
+                     title.includes('BALANCE SHEET') || 
+                     title.includes('CASH FLOW') ||
+                     title.includes('FINANCIAL STATEMENTS')
+  
+  // Other agents that should hide data tables
+  const isOtherAgent = type.includes('INSIDE_TRADING') ||
+                       type.includes('INSIDER') ||
+                       type.includes('OPTION') ||
+                       type.includes('POLYMARKET') ||
+                       type.includes('BOND') ||
+                       type.includes('ECONOMICS')
+  
+  return isFinancial || isOtherAgent
 }
 
 // Check if bubble has period data (Annually/Quarterly structure)
@@ -2022,9 +1840,75 @@ const auditReport = () => {
 }
 
 const refreshData = async () => {
-  // Refresh mock data (just regenerate)
-  console.log('Refreshing mock data')
-  fetchDataBubbles()
+  console.log('Refreshing data for agent:', props.activeAgent)
+  
+  // For FUNDAMENTAL_AGENT, fetch real analysis from backend
+  if (props.activeAgent === 'FUNDAMENTAL_AGENT' && tickerInput.value) {
+    try {
+      isLoading.value = true
+      
+      // Update the ticker prop with the input value
+      const ticker = tickerInput.value.trim().toUpperCase()
+      emit('update:ticker', ticker)
+      
+      console.log(`Fetching financial analysis for ${ticker}...`)
+      
+      // Add timestamp to override cache
+      const timestamp = Date.now()
+      
+      // Fetch both annual and quarterly analysis
+      const [annualResponse, quarterlyResponse] = await Promise.all([
+        fetch(`http://localhost:8000/api/research/financial-analysis/${ticker}?period=annual&_t=${timestamp}`, {
+          cache: 'no-cache'
+        }),
+        fetch(`http://localhost:8000/api/research/financial-analysis/${ticker}?period=quarterly&_t=${timestamp}`, {
+          cache: 'no-cache'
+        })
+      ])
+      
+      const annualData = await annualResponse.json()
+      const quarterlyData = await quarterlyResponse.json()
+      
+      if (annualData.success && quarterlyData.success) {
+        console.log('Financial analysis fetched successfully')
+        
+        // Update the bubble with real data
+        const now = new Date()
+        dataBubbles.value = [
+          {
+            id: `financial-statements-${ticker}-${now.getTime()}`,
+            type: 'FUNDAMENTAL_AGENT',
+            category: 'FINANCIAL',
+            title: 'FINANCIAL STATEMENTS',
+            timestamp: now,
+            data: {
+              Annually: {
+                data_metrics: {},
+                insights: annualData.data
+              },
+              Quarterly: {
+                data_metrics: {},
+                insights: quarterlyData.data
+              }
+            }
+          }
+        ]
+      } else {
+        console.error('Failed to fetch financial analysis:', annualData.error || quarterlyData.error)
+        // Fall back to placeholder
+        fetchDataBubbles()
+      }
+    } catch (error) {
+      console.error('Error fetching financial analysis:', error)
+      // Fall back to placeholder
+      fetchDataBubbles()
+    } finally {
+      isLoading.value = false
+    }
+  } else {
+    // For other agents, use mock data
+    fetchDataBubbles()
+  }
 }
 
 // Chatbox functions for Research agent
@@ -2652,11 +2536,34 @@ onMounted(() => {
   color: #737373;
 }
 
+.ticker-stream-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85em;
+  color: var(--accent-color, #f59e0b);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.ticker-stream-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-color, #f59e0b);
+  box-shadow: 0 0 0 2px var(--accent-glow, rgba(245, 158, 11, 0.2));
+}
+
+.ticker-stream-input::placeholder {
+  color: #737373;
+}
+
 .refresh-btn {
-  background: #3498db;
+  background: #f59e0b;
   border: none;
   border-radius: 6px;
-  color: white;
+  color: #000000;
   cursor: pointer;
   padding: 4px;
   transition: all 0.2s;
@@ -2666,18 +2573,18 @@ onMounted(() => {
 }
 
 .refresh-btn:hover {
-  background: #2980b9;
-  color: white;
+  background: #fbbf24;
+  color: #000000;
   transform: rotate(180deg);
 }
 
 .research-edit-view.market-mode .refresh-btn {
-  background: #3498db;
+  background: #22d3ee;
 }
 
 .research-edit-view.market-mode .refresh-btn:hover {
-  background: #2980b9;
-  color: white;
+  background: #38bdf8;
+  color: #000000;
 }
 
 /* Data Bubbles */
@@ -2983,6 +2890,31 @@ onMounted(() => {
 .chat-send-btn:active {
   transform: scale(0.98);
 }
+
+.chat-s.refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-btn .spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 
 /* Sidebar Footer */
 .sidebar-footer {

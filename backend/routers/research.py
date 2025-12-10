@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import hashlib
 import json
+import base64
 
 load_dotenv()
 
@@ -171,19 +172,14 @@ def clean_json_response(content: str) -> str:
 COMPANY_AGENTS = {
     "FUNDAMENTAL_AGENT": {
         "name": "Fundamental Agent",
-        "focus": "Core Fundamentals (Income Statement, Balance Sheet, Cash Flow)",
-        "sub_agents": {
-            "INCOME_ANALYST_AGENT": "Income Analyst Agent",
-            "BALANCE_ANALYST_AGENT": "Balance Analyst Agent",
-            "CASHFLOW_ANALYST_AGENT": "Cashflow Analyst Agent"
-        },
-        "tone": "Analytical, data-driven, precise"
+        "focus": "Core Fundamentals (Comprehensive Financial Statements)",
+        "sub_agents": {},
+        "tone": "Direct, sharp, practical, and unsentimental"
     },
     "TRADING_AGENT": {
         "name": "Trading Agent",
-        "focus": "Trading Data (Technical Indicators, Options, Insider Trading)",
+        "focus": "Trading Data (Options, Insider Trading)",
         "sub_agents": {
-            "TECHNICAL_ANALYST_AGENT": "Technical Analyst Agent",
             "OPTION_ANALYST_AGENT": "Option Analyst Agent",
             "INSIDE_TRADING_ANALYST_AGENT": "Inside Trading Analyst Agent"
         },
@@ -368,8 +364,6 @@ def determine_sub_agent(agent_config: Dict, bubble_type: str) -> tuple:
             "cashflow_analyst": "CASHFLOW_ANALYST_AGENT",
             "cashflow": "CASHFLOW_ANALYST_AGENT",
             "cash_flow": "CASHFLOW_ANALYST_AGENT",
-            "technical_analyst": "TECHNICAL_ANALYST_AGENT",
-            "technical": "TECHNICAL_ANALYST_AGENT",
             "option_analyst": "OPTION_ANALYST_AGENT",
             "options": "OPTION_ANALYST_AGENT",
             "inside_trading_analyst": "INSIDE_TRADING_ANALYST_AGENT",
@@ -442,16 +436,71 @@ You must output structured markdown with:
 Always be precise, analytical, and use professional financial terminology."""
 
 
-def build_technical_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
-    """Build system message for Technical Analyst Agent."""
-    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) specializing in technical analysis.
+def build_fundamental_agent_system_message(agent_config: Dict, sub_agent_name: str) -> str:
+    """Build system message for Fundamental Agent (merged financial statements)."""
+    return f"""You are a {sub_agent_name} (specialized {agent_config['name']}) analyzing comprehensive financial statements.
 Your tone is {agent_config['tone']}.
-You excel at analyzing technical indicators (RSI, MACD, Moving Averages), price trends, volume patterns, and market sentiment.
-You must output structured markdown with:
-1. A markdown table summarizing key technical indicators
-2. A comprehensive analysis paragraph (200-300 words) covering price trends, momentum, and market signals
-3. 5-10 bullet points with critical insights about trading signals and market outlook
-Always be precise, technical, and use professional trading terminology."""
+
+Analyze the company's income statement, balance sheet, and cash flow statement using the financial tables I provide.
+Deliver the analysis with the following requirements:
+
+**Tone & Style**
+- Be direct, sharp, practical, and unsentimental.
+- Add quick, clever humor when appropriate.
+- Think like a forward-looking financial analyst who isn't afraid to call out the obvious.
+- Get to the point fast; no corporate-speak or filler.
+
+**Analysis Requirements**
+
+1. Income Statement
+- Identify the revenue trajectory and whether the business has actually scaled.
+- Evaluate gross margin and determine whether the business is operational versus pre-commercial.
+- Break down operating expenses (R&D, SG&A).
+- Highlight operating income, EBITDA, normalized EBITDA, and net income.
+- Comment on any unusual items that distort real performance.
+- Call out dilution via share count if relevant.
+
+2. Cash Flow Statement
+- Assess operating cash flow trends and whether the core business generates or burns cash.
+- Evaluate investing cash flows, especially security sales or acquisitions.
+- Evaluate financing cash flows, including equity raises, debt issuance, stock-based comp.
+- Call out the company's dependence on capital markets if applicable.
+- Interpret free cash flow and overall burn.
+
+3. Balance Sheet
+- Summarize assets with emphasis on cash, short-term investments, and non-current assets.
+- Highlight changes in goodwill, intangibles, or any acquisition signals.
+- Identify liabilities: debt levels, derivative liabilities, deferred items.
+- Evaluate equity structure, retained earnings trends, and impacts of dilution.
+- Assess solvency, liquidity ratios, and leverage.
+
+4. Cross-Statement Synthesis
+Provide a blunt, integrated interpretation:
+- Is the business financially healthy or just well-funded?
+- Is the company scaling revenue fast enough to justify spend?
+- Is the cash runway safe, risky, or unsustainable?
+- Is shareholder dilution severe?
+- What are the biggest red flags?
+- What are the biggest strengths?
+
+**Output Formatting**
+Use this structure in your response:
+
+# 1. Income Statement Analysis
+[Your analysis]
+
+# 2. Cash Flow Analysis
+[Your analysis]
+
+# 3. Balance Sheet Analysis
+[Your analysis]
+
+# 4. Combined Interpretation
+[The blunt, bottom-line truth]
+
+# 5. Optional Follow-Up Insights
+(Suggest forecasting, ratio-building, or scenario modeling if helpful)
+"""
 
 
 def build_option_analyst_system_message(agent_config: Dict, sub_agent_name: str) -> str:
@@ -549,10 +598,7 @@ Always be precise, professional, and actionable."""
 def build_agent_system_message(sub_agent_key: str, agent_config: Dict, sub_agent_name: str) -> str:
     """Route to agent-specific system message builder."""
     builders = {
-        "INCOME_ANALYST_AGENT": build_income_analyst_system_message,
-        "BALANCE_ANALYST_AGENT": build_balance_analyst_system_message,
-        "CASHFLOW_ANALYST_AGENT": build_cashflow_analyst_system_message,
-        "TECHNICAL_ANALYST_AGENT": build_technical_analyst_system_message,
+        "FUNDAMENTAL_AGENT": build_fundamental_agent_system_message,
         "OPTION_ANALYST_AGENT": build_option_analyst_system_message,
         "INSIDE_TRADING_ANALYST_AGENT": build_insider_trading_analyst_system_message,
         "BOND_ANALYST_AGENT": build_bond_analyst_system_message,
@@ -785,7 +831,7 @@ async def process_financial_statement_data(
                 
                 print(f"[STEP 5.14] process_financial_statement_data: Adding Annually to result_data")
                 result_data["Annually"] = {
-                    "data_metrics": annual_analyzed.get("data_metrics", {}),
+                    "data_metrics": {},  # Return empty dict - data tables hidden in frontend
                     "insights": annual_insights  # Contains analysis, bullet_points, and encoded_output
                 }
                 data_metrics_keys = list(annual_analyzed.get('data_metrics', {}).keys())
@@ -887,7 +933,7 @@ async def process_financial_statement_data(
                 
                 print(f"[STEP 6.14] process_financial_statement_data: Adding Quarterly to result_data")
                 result_data["Quarterly"] = {
-                    "data_metrics": quarterly_analyzed.get("data_metrics", {}),
+                    "data_metrics": {},  # Return empty dict - data tables hidden in frontend
                     "insights": quarterly_insights  # Contains analysis, bullet_points, and encoded_output
                 }
                 data_metrics_keys = list(quarterly_analyzed.get('data_metrics', {}).keys())
@@ -954,17 +1000,21 @@ async def collect_data_for_agent(agent_id: str, sub_agent_key: str, ticker: Opti
     """Collect fresh data based on agent type and sub-agent."""
     try:
         if agent_id == "FUNDAMENTAL_AGENT":
-            if sub_agent_key == "INCOME_ANALYST_AGENT":
-                return await collect_income_statement_data(ticker) if ticker else {}
-            elif sub_agent_key == "BALANCE_ANALYST_AGENT":
-                return await collect_balance_sheet_data(ticker) if ticker else {}
-            elif sub_agent_key == "CASHFLOW_ANALYST_AGENT":
-                return await collect_cashflow_data(ticker) if ticker else {}
+            # Collect all three financial statements for merged analysis
+            if sub_agent_key == "FUNDAMENTAL_AGENT":
+                income_data = await collect_income_statement_data(ticker) if ticker else {}
+                balance_data = await collect_balance_sheet_data(ticker) if ticker else {}
+                cashflow_data = await collect_cashflow_data(ticker) if ticker else {}
+                
+                # Combine all three statements
+                return {
+                    "income_statement": income_data,
+                    "balance_sheet": balance_data,
+                    "cash_flow": cashflow_data
+                }
         
         elif agent_id == "TRADING_AGENT":
-            if sub_agent_key == "TECHNICAL_ANALYST_AGENT":
-                return await collect_technical_indicator_data(ticker) if ticker else {}
-            elif sub_agent_key == "OPTION_ANALYST_AGENT":
+            if sub_agent_key == "OPTION_ANALYST_AGENT":
                 return await collect_options_chain_data(ticker) if ticker else {}
             elif sub_agent_key == "INSIDE_TRADING_ANALYST_AGENT":
                 return await collect_insider_trading_data(ticker) if ticker else {}
@@ -1160,7 +1210,7 @@ def build_cashflow_analyst_interpretation_prompt(
     return prompt
 
 
-def build_technical_analyst_interpretation_prompt(
+def build_fundamental_agent_interpretation_prompt(
     raw_data: Dict[str, Any],
     agent_config: Dict,
     sub_agent_name: str,
@@ -1168,44 +1218,84 @@ def build_technical_analyst_interpretation_prompt(
     context: str,
     original_bubble: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Build interpretation prompt for Technical Analyst Agent."""
+    """Build interpretation prompt for Fundamental Agent (merged financial statements)."""
     ticker_context = f"for {ticker}" if ticker else "for the market"
     
-    existing_analysis = ""
-    if original_bubble:
-        existing_insights = original_bubble.get("data", {}).get("insights", {})
-        if isinstance(existing_insights, dict):
-            existing_analysis = existing_insights.get("analysis", "")
+    # Extract the three financial statements from raw_data
+    income_data = raw_data.get("income_statement", {})
+    balance_data = raw_data.get("balance_sheet", {})
+    cashflow_data = raw_data.get("cash_flow", {})
     
-    prompt = f"""As a {sub_agent_name} (specialized {agent_config['name']}), examine, analyze, and interpret the following technical indicator data {ticker_context}:
+    prompt = f"""Analyze the company's income statement, balance sheet, and cash flow statement using the financial tables I provide below.
 
-        **Raw Data:**
-        {str(raw_data)[:3000]}
+**Income Statement Data {ticker_context}:**
+{str(income_data)[:3000]}
 
-        """
-    if existing_analysis:
-        prompt += f"**Previous Analysis Context:**\n{existing_analysis[:300]}...\n\n"
-    
-    if context:
-        prompt += f"**Current Report Context:**\n{context[:500]}...\n\n"
-    
-    prompt += """**Your Task:**
-                1. Extract key technical indicators from the data (RSI, MACD, Moving Averages, Volume)
-                2. Create a markdown table with the key technical indicators
-                3. Write a comprehensive analysis paragraph (200-300 words) that:
-                - Analyzes price trends and momentum signals
-                - Evaluates technical indicator readings and their significance
-                - Assesses volume patterns and market participation
-                - Discusses support/resistance levels and trend direction
-                - Identifies potential entry/exit signals
-                4. Provide 5-10 bullet points with:
-                - Critical technical insights and signals
-                - Notable patterns or formations
-                - Risk factors or bearish signals
-                - Opportunities or bullish signals
-                - Trading implications and outlook
+**Balance Sheet Data {ticker_context}:**
+{str(balance_data)[:3000]}
 
-        Output your analysis in clean markdown format."""
+**Cash Flow Statement Data {ticker_context}:**
+{str(cashflow_data)[:3000]}
+
+Deliver the analysis with the following requirements:
+
+**Tone & Style**
+- Be direct, sharp, practical, and unsentimental.
+- Add quick, clever humor when appropriate.
+- Think like a forward-looking financial analyst who isn't afraid to call out the obvious.
+- Get to the point fast; no corporate-speak or filler.
+
+**Analysis Requirements**
+
+1. Income Statement
+- Identify the revenue trajectory and whether the business has actually scaled.
+- Evaluate gross margin and determine whether the business is operational versus pre-commercial.
+- Break down operating expenses (R&D, SG&A).
+- Highlight operating income, EBITDA, normalized EBITDA, and net income.
+- Comment on any unusual items that distort real performance.
+- Call out dilution via share count if relevant.
+
+2. Cash Flow Statement
+- Assess operating cash flow trends and whether the core business generates or burns cash.
+- Evaluate investing cash flows, especially security sales or acquisitions.
+- Evaluate financing cash flows, including equity raises, debt issuance, stock-based comp.
+- Call out the company's dependence on capital markets if applicable.
+- Interpret free cash flow and overall burn.
+
+3. Balance Sheet
+- Summarize assets with emphasis on cash, short-term investments, and non-current assets.
+- Highlight changes in goodwill, intangibles, or any acquisition signals.
+- Identify liabilities: debt levels, derivative liabilities, deferred items.
+- Evaluate equity structure, retained earnings trends, and impacts of dilution.
+- Assess solvency, liquidity ratios, and leverage.
+
+4. Cross-Statement Synthesis
+Provide a blunt, integrated interpretation:
+- Is the business financially healthy or just well-funded?
+- Is the company scaling revenue fast enough to justify spend?
+- Is the cash runway safe, risky, or unsustainable?
+- Is shareholder dilution severe?
+- What are the biggest red flags?
+- What are the biggest strengths?
+
+**Output Formatting**
+Use this structure in your response:
+
+# 1. Income Statement Analysis
+[Your analysis]
+
+# 2. Cash Flow Analysis
+[Your analysis]
+
+# 3. Balance Sheet Analysis
+[Your analysis]
+
+# 4. Combined Interpretation
+[The blunt, bottom-line truth]
+
+# 5. Optional Follow-Up Insights
+(Suggest forecasting, ratio-building, or scenario modeling if helpful)
+"""
     
     return prompt
 
@@ -1609,10 +1699,7 @@ def build_agent_interpretation_prompt(
 ) -> str:
     """Route to agent-specific interpretation prompt builder."""
     builders = {
-        "INCOME_ANALYST_AGENT": build_income_analyst_interpretation_prompt,
-        "BALANCE_ANALYST_AGENT": build_balance_analyst_interpretation_prompt,
-        "CASHFLOW_ANALYST_AGENT": build_cashflow_analyst_interpretation_prompt,
-        "TECHNICAL_ANALYST_AGENT": build_technical_analyst_interpretation_prompt,
+        "FUNDAMENTAL_AGENT": build_fundamental_agent_interpretation_prompt,
         "OPTION_ANALYST_AGENT": build_option_analyst_interpretation_prompt,
         "INSIDE_TRADING_ANALYST_AGENT": build_insider_trading_analyst_interpretation_prompt,
         "BOND_ANALYST_AGENT": build_bond_analyst_interpretation_prompt,
@@ -1750,7 +1837,6 @@ async def process_data_with_agent(raw_data: Dict, agent_id: str, sub_agent_key: 
         
         # Determine title based on agent type
         title_map = {
-            "TECHNICAL_ANALYST_AGENT": "TECHNICAL ANALYSIS",
             "OPTION_ANALYST_AGENT": "OPTIONS ANALYSIS",
             "INSIDE_TRADING_ANALYST_AGENT": "INSIDER TRADING",
             "csuite": "C-SUITE EXECUTIVES",
@@ -1801,6 +1887,102 @@ def get_icon_for_type(data_type: str) -> str:
         "cpi": "📊"
     }
     return icon_map.get(data_type, "📊")
+
+
+@router.get("/financial-analysis/{ticker}")
+async def get_financial_analysis(ticker: str, period: str = "annual"):
+    """Fetch and analyze comprehensive financial statements for a ticker."""
+    try:
+        print(f"[FINANCIAL_ANALYSIS] Fetching financial analysis for {ticker}, period: {period}")
+        
+        # Collect all three financial statements
+        income_data = await collect_income_statement_data(ticker)
+        balance_data = await collect_balance_sheet_data(ticker)
+        cashflow_data = await collect_cashflow_data(ticker)
+        
+        # Combine all three statements
+        combined_data = {
+            "income_statement": income_data,
+            "balance_sheet": balance_data,
+            "cash_flow": cashflow_data
+        }
+        
+        print(f"[FINANCIAL_ANALYSIS] Data collected, building prompt...")
+        
+        # Get agent config
+        agent_config = COMPANY_AGENTS.get("FUNDAMENTAL_AGENT", {})
+        sub_agent_name = "Fundamental Agent"
+        
+        # Build interpretation prompt
+        prompt = build_fundamental_agent_interpretation_prompt(
+            combined_data,
+            agent_config,
+            sub_agent_name,
+            ticker,
+            f"{period} financial analysis",
+            None
+        )
+        
+        print(f"[FINANCIAL_ANALYSIS] Calling AI for analysis...")
+        
+        # Call OpenAI API
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": build_fundamental_agent_system_message(agent_config, sub_agent_name)},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        analysis_text = response.choices[0].message.content
+        
+        print(f"[FINANCIAL_ANALYSIS] AI analysis complete, length: {len(analysis_text)}")
+        
+        # Extract bullet points from analysis (look for lines starting with - or •)
+        bullet_points = []
+        for line in analysis_text.split('\n'):
+            line = line.strip()
+            if line.startswith('-') or line.startswith('•') or line.startswith('*'):
+                bullet_points.append(line.lstrip('-•* '))
+        
+        # If no bullet points found, create some from the analysis
+        if not bullet_points:
+            bullet_points = [
+                "Comprehensive financial analysis completed",
+                "Review all three statements for complete picture",
+                f"Analysis based on {period} data"
+            ]
+        
+        # Create encoded output
+        encoded_output = base64.b64encode(json.dumps({
+            "analysis": analysis_text,
+            "bullet_points": bullet_points[:10],  # Limit to 10
+            "period": period,
+            "agent": "FUNDAMENTAL_AGENT",
+            "ticker": ticker,
+            "timestamp": datetime.now().isoformat()
+        }).encode()).decode()
+        
+        return {
+            "success": True,
+            "data": {
+                "analysis": analysis_text,
+                "bullet_points": bullet_points[:10],
+                "encoded_output": encoded_output,
+                "period": period
+            }
+        }
+        
+    except Exception as e:
+        print(f"[FINANCIAL_ANALYSIS] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.get("/company-data/{ticker}")

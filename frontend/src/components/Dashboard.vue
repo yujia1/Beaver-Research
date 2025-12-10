@@ -2671,7 +2671,7 @@ const fetchCommodityData = async () => {
     for (const [category, seriesList] of Object.entries(commoditySeriesMap)) {
       allPromises[category] = Promise.all(
         seriesList.map(seriesId => 
-          fetch(`/api/internal/macro/series/${seriesId}?timeframe=monthly`)
+          fetch(`http://localhost:8000/api/internal/macro/series/${seriesId}?timeframe=monthly`)
             .then(res => res.json())
         )
       );
