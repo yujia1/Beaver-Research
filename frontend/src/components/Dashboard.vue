@@ -1465,16 +1465,16 @@ const fetchShortInterestData = async (page = null) => {
     let endpoint = '';
     switch (activeShortInterestCategory.value) {
       case 'most-shorted':
-        endpoint = '/api/short-interest/most-shorted';
+        endpoint = 'http://localhost:8000/api/short-interest/most-shorted';
         break;
       case 'largest-increase':
-        endpoint = '/api/short-interest/largest-increase';
+        endpoint = 'http://localhost:8000/api/short-interest/largest-increase';
         break;
       case 'largest-decrease':
-        endpoint = '/api/short-interest/largest-decrease';
+        endpoint = 'http://localhost:8000/api/short-interest/largest-decrease';
         break;
       default:
-        endpoint = '/api/short-interest/most-shorted';
+        endpoint = 'http://localhost:8000/api/short-interest/most-shorted';
     }
 
     // Add page parameter if specified
