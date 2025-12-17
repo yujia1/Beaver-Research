@@ -139,7 +139,12 @@
                                 <div class="card-content">
                                     <p class="value">{{ item.current_value?.toFixed(3) }}%</p>
                                     <p class="date">{{ item.current_date }}</p>
-                                    <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    <p class="desc">
+                                        {{ item.description || '&nbsp;' }}
+                                        <span v-if="getBondDailyChange(item)" :class="getBondDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                            {{ getBondDailyChange(item) >= 0 ? '+' : '' }}{{ getBondDailyChange(item).toFixed(2) }}%
+                                        </span>
+                                    </p>
                                     
                                     <div class="card-timeframe-selector">
                                         <button 
@@ -175,7 +180,12 @@
                                 <div class="card-content">
                                     <p class="value">{{ item.current_value?.toFixed(3) }} bps</p>
                                     <p class="date">{{ item.current_date }}</p>
-                                    <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    <p class="desc">
+                                        {{ item.description || '&nbsp;' }}
+                                        <span v-if="getBondDailyChange(item)" :class="getBondDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                            {{ getBondDailyChange(item) >= 0 ? '+' : '' }}{{ getBondDailyChange(item).toFixed(2) }}%
+                                        </span>
+                                    </p>
                                     
                                     <div class="card-timeframe-selector">
                                         <button 
@@ -211,7 +221,12 @@
                                 <div class="card-content">
                                     <p class="value">{{ item.current_value?.toFixed(3) }}%</p>
                                     <p class="date">{{ item.current_date }}</p>
-                                    <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    <p class="desc">
+                                        {{ item.description || '&nbsp;' }}
+                                        <span v-if="getBondDailyChange(item)" :class="getBondDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                            {{ getBondDailyChange(item) >= 0 ? '+' : '' }}{{ getBondDailyChange(item).toFixed(2) }}%
+                                        </span>
+                                    </p>
                                     
                                     <div class="card-timeframe-selector">
                                         <button 
@@ -247,7 +262,12 @@
                                 <div class="card-content">
                                     <p class="value">{{ item.current_value?.toFixed(3) }}%</p>
                                     <p class="date">{{ item.current_date }}</p>
-                                    <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    <p class="desc">
+                                        {{ item.description || '&nbsp;' }}
+                                        <span v-if="getBondDailyChange(item)" :class="getBondDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                            {{ getBondDailyChange(item) >= 0 ? '+' : '' }}{{ getBondDailyChange(item).toFixed(2) }}%
+                                        </span>
+                                    </p>
                                     
                                     <div class="card-timeframe-selector">
                                         <button 
@@ -283,7 +303,12 @@
                                 <div class="card-content">
                                     <p class="value">{{ item.current_value?.toFixed(2) }} bps</p>
                                     <p class="date">{{ item.current_date }}</p>
-                                    <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    <p class="desc">
+                                        {{ item.description || '&nbsp;' }}
+                                        <span v-if="getBondDailyChange(item)" :class="getBondDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                            {{ getBondDailyChange(item) >= 0 ? '+' : '' }}{{ getBondDailyChange(item).toFixed(2) }}%
+                                        </span>
+                                    </p>
                                     
                                     <div class="card-timeframe-selector">
                                         <button 
@@ -319,7 +344,12 @@
                                 <div class="card-content">
                                     <p class="value">{{ item.current_value?.toFixed(3) }}%</p>
                                     <p class="date">{{ item.current_date }}</p>
-                                    <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                    <p class="desc">
+                                        {{ item.description || '&nbsp;' }}
+                                        <span v-if="getBondDailyChange(item)" :class="getBondDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                            {{ getBondDailyChange(item) >= 0 ? '+' : '' }}{{ getBondDailyChange(item).toFixed(2) }}%
+                                        </span>
+                                    </p>
                                     
                                     <div class="card-timeframe-selector">
                                         <button 
@@ -657,7 +687,12 @@
                                 <h3>{{ item.indicator }}</h3>
                                 <p class="value">{{ item.value ? item.value.toFixed(4) : 'N/A' }}</p>
                                 <p class="date">{{ item.date }}</p>
-                                <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                <p class="desc">
+                                    {{ item.description || '&nbsp;' }}
+                                    <span v-if="getCurrencyDailyChange(item)" :class="getCurrencyDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                        {{ getCurrencyDailyChange(item) >= 0 ? '+' : '' }}{{ getCurrencyDailyChange(item).toFixed(2) }}%
+                                    </span>
+                                </p>
                                 
                                 <!-- Per-graph Timeframe Selector -->
                                 <div class="card-timeframe-selector">
@@ -728,7 +763,12 @@
                                         <h3>{{ item.indicator }}</h3>
                                         <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
                                         <p class="date">{{ item.date }}</p>
-                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
                                         
                                         <!-- Per-graph Timeframe Selector -->
                                         <div class="card-timeframe-selector">
@@ -766,7 +806,12 @@
                                         <h3>{{ item.indicator }}</h3>
                                         <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
                                         <p class="date">{{ item.date }}</p>
-                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
                                         
                                         <!-- Per-graph Timeframe Selector -->
                                         <div class="card-timeframe-selector">
@@ -804,7 +849,12 @@
                                         <h3>{{ item.indicator }}</h3>
                                         <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
                                         <p class="date">{{ item.date }}</p>
-                                        <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
                                         
                                         <!-- Per-graph Timeframe Selector -->
                                         <div class="card-timeframe-selector">
@@ -2249,6 +2299,60 @@ const getEconomicChartData = (item) => {
 
 // Calculate daily change percentage for crypto
 const getCryptoDailyChange = (item) => {
+    if (!item.history || item.history.length < 2) {
+        return null;
+    }
+    
+    const sortedHistory = [...item.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const currentPrice = sortedHistory[sortedHistory.length - 1]?.value;
+    const previousPrice = sortedHistory[sortedHistory.length - 2]?.value;
+    
+    if (!currentPrice || !previousPrice || previousPrice === 0) {
+        return null;
+    }
+    
+    const change = ((currentPrice - previousPrice) / previousPrice) * 100;
+    return change;
+}
+
+// Calculate daily change percentage for currency
+const getCurrencyDailyChange = (item) => {
+    if (!item.history || item.history.length < 2) {
+        return null;
+    }
+    
+    const sortedHistory = [...item.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const currentPrice = sortedHistory[sortedHistory.length - 1]?.value;
+    const previousPrice = sortedHistory[sortedHistory.length - 2]?.value;
+    
+    if (!currentPrice || !previousPrice || previousPrice === 0) {
+        return null;
+    }
+    
+    const change = ((currentPrice - previousPrice) / previousPrice) * 100;
+    return change;
+}
+
+// Calculate daily change percentage for commodity
+const getCommodityDailyChange = (item) => {
+    if (!item.history || item.history.length < 2) {
+        return null;
+    }
+    
+    const sortedHistory = [...item.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const currentPrice = sortedHistory[sortedHistory.length - 1]?.value;
+    const previousPrice = sortedHistory[sortedHistory.length - 2]?.value;
+    
+    if (!currentPrice || !previousPrice || previousPrice === 0) {
+        return null;
+    }
+    
+    const change = ((currentPrice - previousPrice) / previousPrice) * 100;
+    return change;
+}
+
+// Calculate daily change percentage for bond
+const getBondDailyChange = (item) => {
     if (!item.history || item.history.length < 2) {
         return null;
     }

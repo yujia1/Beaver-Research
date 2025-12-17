@@ -56,9 +56,9 @@ fred_indicators = [
         "chart_type": "line"
     },
     {
-        "indicator": "Consumer Spending (PCE)",
-        "series_id": "PCE",
-        "description": "Personal Consumption Expenditures ($B)",
+        "indicator": "Personal Consumption Expenditures Price Index",
+        "series_id": "PCECTPI",  # Using PCECTPI - will need YoY % calculation
+        "description": "PCE Price Index (YoY %)",
         "category": "Macro",
         "chart_type": "line"
     },
@@ -81,6 +81,20 @@ fred_indicators = [
         "series_id": "STLFSI4",
         "description": "St. Louis Fed Financial Stress Index",
         "category": "Financial",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Non-Farm Payrolls",
+        "series_id": "PAYEMS",
+        "description": "All Employees: Total Nonfarm (Thousands)",
+        "category": "Labor",
+        "chart_type": "line"
+    },
+    {
+        "indicator": "Wage Growth",
+        "series_id": "CES0500000003",
+        "description": "Average Hourly Earnings (YoY %)",
+        "category": "Labor",
         "chart_type": "line"
     },
 
@@ -861,10 +875,11 @@ async def get_macro_data(timeframe: str = "monthly"):
 
         # Filter to only Economic indicators (exclude Currency and Commodity)
         # Only include: Consumer Price Index (CPI), Unemployment Rate, Initial Jobless Claims,
-        # Consumer Spending (PCE), Manufacturing Output, Bank Lending, Housing Permits,
-        # Revolving Credit, Charge-Off Rates, Delinquencies, Consumer Credit Growth
-        allowed_economic_series = ['CPIAUCSL', 'UNRATE', 'ICSA', 'PCE', 'IPMAN', 'TOTLL', 'PERMIT', 
-                                   'REVOLSL', 'CORCCACBS', 'DRCCLACBS', 'TOTALSL']
+        # PCE Price Index, Manufacturing Output, Bank Lending, Housing Permits,
+        # Revolving Credit, Charge-Off Rates, Delinquencies, Consumer Credit Growth,
+        # Non-Farm Payrolls, Wage Growth
+        allowed_economic_series = ['CPIAUCSL', 'UNRATE', 'ICSA', 'PCECTPI', 'IPMAN', 'TOTLL', 'PERMIT', 
+                                   'REVOLSL', 'CORCCACBS', 'DRCCLACBS', 'TOTALSL', 'PAYEMS', 'CES0500000003']
         economic_indicators = [
             cfg for cfg in fred_indicators 
             if cfg["series_id"] in allowed_economic_series
@@ -876,14 +891,14 @@ async def get_macro_data(timeframe: str = "monthly"):
         def fetch_single_indicator(cfg):
             """Fetch a single indicator with error handling"""
             try:
-                # Special handling for CPI - use BLS API instead of FRED
+                # Special handling for CPI - use BLS API with YoY calculation
                 if cfg["series_id"] == "CPIAUCSL":
                     history = fetch_bls_cpi(start_date)
-                # Special handling for Consumer Credit Growth - calculate YoY percentage change
-                elif cfg["series_id"] == "TOTALSL":
+                # Special handling for series that need YoY percentage calculation
+                elif cfg["series_id"] in ["TOTALSL", "PCECTPI"]:
                     history = fetch_fred_series(cfg["series_id"], start_date)
                     if history and len(history) > 0:
-                        # Calculate YoY percentage change for consumer credit
+                        # Calculate YoY percentage change
                         import pandas as pd
                         from datetime import datetime
                         

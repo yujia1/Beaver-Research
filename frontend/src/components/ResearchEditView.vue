@@ -267,7 +267,7 @@
               </div>
             </div>
             
-            <div class="bubble-data" v-if="!isFinancialStatementBubble(bubble)">
+            <div class="bubble-data" v-if="!shouldHideBubbleData(bubble)">
               <template v-if="isFinancialStatementBubble(bubble) && hasPeriodData(bubble)">
                 <!-- Financial statement with period data - HIDDEN -->
                 <div
@@ -601,7 +601,6 @@ const handleDrop = async (event) => {
   
   // IMPORTANT: Only allow drops on the editor element
   if (!editorRef.value || !editorRef.value.contains(event.target)) {
-    console.log('Drop ignored - not on editor')
     draggedBubble.value = null
     return
   }
@@ -685,34 +684,47 @@ const insertInsight = (insight, range) => {
     insertRange = selection.getRangeAt(0)
   }
   
+  // Make sure we're working within the editor
   if (insertRange) {
-    // Insert at the cursor/drop position
-    insertRange.deleteContents()
+    // Check if the range is actually inside the editor
+    const rangeContainer = insertRange.commonAncestorContainer
+    const isInEditor = editorRef.value.contains(rangeContainer.nodeType === Node.TEXT_NODE ? rangeContainer.parentNode : rangeContainer)
     
-    // Create a temporary div to parse the HTML
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
-    
-    // Create a document fragment to insert
-    const fragment = document.createDocumentFragment()
-    while (tempDiv.firstChild) {
-      fragment.appendChild(tempDiv.firstChild)
+    if (!isInEditor) {
+      insertRange = null
     }
-    
-    // Insert the fragment at the range
-    insertRange.insertNode(fragment)
-    
-    // Move cursor to end of inserted content
-    insertRange.collapse(false)
-    selection.removeAllRanges()
-    selection.addRange(insertRange)
+  }
+  
+  if (insertRange) {
+    // Insert at the cursor/drop position within editor
+    try {
+      insertRange.deleteContents()
+      
+      // Create a wrapper div to hold the content
+      const wrapper = document.createElement('div')
+      wrapper.innerHTML = htmlContent
+      
+      // Insert each child node
+      const fragment = document.createDocumentFragment()
+      while (wrapper.firstChild) {
+        fragment.appendChild(wrapper.firstChild)
+      }
+      
+      insertRange.insertNode(fragment)
+      
+      // Move cursor to end of inserted content
+      insertRange.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(insertRange)
+    } catch (error) {
+      console.error('Error inserting at range:', error)
+      // Fallback to append
+      editorRef.value.innerHTML += htmlContent
+    }
   } else {
-    // If no cursor position, append to end
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
-    while (tempDiv.firstChild) {
-      editorRef.value.appendChild(tempDiv.firstChild)
-    }
+    // Append to end of editor
+    console.log('Appending to end of editor')
+    editorRef.value.innerHTML += htmlContent
     
     // Move cursor to end
     const newRange = document.createRange()
@@ -725,6 +737,7 @@ const insertInsight = (insight, range) => {
   
   // Update the content
   editorContent.value = editorRef.value.innerHTML
+  console.log('Content inserted, editor HTML length:', editorRef.value.innerHTML.length)
 }
 
 // Convert simple markdown to HTML
@@ -1511,25 +1524,25 @@ const getValueClass = (value) => {
 
 // Check if bubble is a financial statement (Income, Balance, Cash Flow)
 const isFinancialStatementBubble = (bubble) => {
-  if (!bubble || !bubble.title) return false
-  const title = bubble.title.toUpperCase()
-  const type = bubble.type ? bubble.type.toUpperCase() : ''
-  
-  // Financial statements (including merged bubble)
-  const isFinancial = title.includes('INCOME STATEMENT') || 
-                     title.includes('BALANCE SHEET') || 
-                     title.includes('CASH FLOW') ||
-                     title.includes('FINANCIAL STATEMENTS')
-  
-  // Other agents that should hide data tables
-  const isOtherAgent = type.includes('INSIDE_TRADING') ||
-                       type.includes('INSIDER') ||
-                       type.includes('OPTION') ||
-                       type.includes('POLYMARKET') ||
-                       type.includes('BOND') ||
-                       type.includes('ECONOMICS')
-  
-  return isFinancial || isOtherAgent
+  if (!bubble || !bubble.type) return false
+  // Only FUNDAMENTAL_AGENT should have period toggles (Annually/Quarterly)
+  // Other agents (INSIDER, OPTION, POLYMARKET, BOND, ECONOMICS) don't need them
+  return bubble.type === 'FUNDAMENTAL_AGENT'
+}
+
+// Check if bubble should hide its data metrics
+const shouldHideBubbleData = (bubble) => {
+  if (!bubble || !bubble.type) return false
+  // These agents should not show data metrics in the bubble
+  const hideDataAgents = [
+    'INSIDE_TRADING_ANALYST_AGENT',  // INSIDER agent
+    'OPTION_ANALYST_AGENT',           // OPTION agent
+    'POLYMARKET_AGENT',               // POLYMARKET agent
+    'BOND_AGENT',                     // BOND agent
+    'ECONOMICS_AGENT',                // ECONOMICS agent
+    'FUNDAMENTAL_AGENT'               // FUNDAMENTAL agent (financial statements)
+  ]
+  return hideDataAgents.includes(bubble.type)
 }
 
 // Check if bubble has period data (Annually/Quarterly structure)
