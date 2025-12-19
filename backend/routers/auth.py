@@ -65,6 +65,21 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
 
+class PermissionUpdate(BaseModel):
+    role: str
+    resource: str
+    can_access: bool
+
+class PermissionResponse(BaseModel):
+    id: int
+    role: str
+    resource: str
+    can_access: bool
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
 # Password hashing
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
@@ -581,11 +596,117 @@ async def update_payment_status(
     if payment_data.has_paid and not user.payment_date:
         user.payment_date = datetime.utcnow()
     
-    db.commit()
-    db.refresh(user)
-    
     return {
         "message": "Payment status updated successfully",
         "user": UserResponse.model_validate(user)
     }
+
+# Permission Management Endpoints
+
+@router.get("/permissions", response_model=List[PermissionResponse])
+async def get_permissions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get all permissions (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can view permissions"
+        )
+    return db.query(models.RolePermission).all()
+
+@router.post("/permissions", response_model=PermissionResponse)
+async def update_permission(
+    permission_data: PermissionUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update or create a permission rule (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can manage permissions"
+        )
+    
+    permission = db.query(models.RolePermission).filter(
+        models.RolePermission.role == permission_data.role,
+        models.RolePermission.resource == permission_data.resource
+    ).first()
+    
+    if permission:
+        permission.can_access = permission_data.can_access
+        permission.updated_at = datetime.utcnow()
+    else:
+        permission = models.RolePermission(
+            role=permission_data.role,
+            resource=permission_data.resource,
+            can_access=permission_data.can_access
+        )
+        db.add(permission)
+    
+    try:
+        db.commit()
+        db.refresh(permission)
+        return permission
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating permission: {str(e)}"
+        )
+
+@router.get("/my-permissions", response_model=List[str])
+async def get_my_permissions(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get list of resources the current user can access"""
+    # Admin gets access to everything by default
+    if current_user.role == "admin":
+        return ["/research", "/alphatrade", "/report", "/investment", "/short-interest"]
+    
+    # Fetch permissions for user's role
+    params = db.query(models.RolePermission).filter(
+        models.RolePermission.role == current_user.role,
+        models.RolePermission.can_access == True
+    ).all()
+    
+    allowed_resources = [p.resource for p in params]
+    return allowed_resources
+
+@router.post("/initialize-permissions")
+async def initialize_permissions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Initialize default permissions if empty (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+        
+    count = db.query(models.RolePermission).count()
+    if count > 0:
+        return {"message": "Permissions already initialized", "count": count}
+        
+    resources = ["/research", "/alphatrade", "/report", "/investment"]
+    roles = ["creator", "contributor", "user"]
+    
+    # Default Policy:
+    # Creator: Access to everything
+    # Contributor: Access to everything
+    # User: Access to everything (start open, let admin restrict)
+    
+    added = 0
+    for role in roles:
+        for resource in resources:
+            perm = models.RolePermission(
+                role=role,
+                resource=resource,
+                can_access=True
+            )
+            db.add(perm)
+            added += 1
+            
+    db.commit()
+    return {"message": "Initialized default permissions", "added": added}
 

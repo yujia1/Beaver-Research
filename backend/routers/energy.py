@@ -282,3 +282,69 @@ async def get_energy_prices(timeframe: str = "days"):
     except Exception as e:
         print(f"Error fetching energy prices: {e}")
         return []
+
+@router.get("/series/{symbol}")
+async def get_energy_series(symbol: str, timeframe: str = "monthly"):
+    """
+    Get individual energy series data (Oil or Natural Gas).
+    Symbol: CL=F (Crude Oil), NG=F (Natural Gas)
+    """
+    period_map = {
+        "days": "1mo",
+        "weekly": "3mo",
+        "monthly": "1y",
+        "yearly": "5y",
+        "5y": "max" 
+    }
+    interval_map = {
+        "days": "1d",
+        "weekly": "1d",
+        "monthly": "1wk",
+        "yearly": "1mo",
+        "5y": "1mo"
+    }
+    
+    period = period_map.get(timeframe, "1y")
+    interval = interval_map.get(timeframe, "1wk")
+    
+    try:
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period=period, interval=interval)
+        
+        if hist.empty:
+             return {"error": "No data found"}
+             
+        history = []
+        for date, row in hist.iterrows():
+            history.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "value": round(row['Close'], 2),
+                "volume": int(row.get('Volume', 0))
+            })
+            
+        # Current info
+        current_value = history[-1]['value'] if history else 0
+        prev_value = history[-2]['value'] if len(history) > 1 else current_value
+        change = current_value - prev_value
+        change_percent = (change / prev_value * 100) if prev_value != 0 else 0
+        
+        info = ticker.info # This might be slow or fail, use with caution. Alternatively reuse hist data.
+        name_map = {
+            "CL=F": "Crude Oil",
+            "NG=F": "Natural Gas"
+        }
+        name = name_map.get(symbol, symbol)
+
+        return {
+            "symbol": symbol,
+            "indicator": name,
+            "value": round(current_value, 2),
+            "currency": "USD",
+            "change": round(change, 2),
+            "change_percent": round(change_percent, 2),
+            "history": history
+        }
+        
+    except Exception as e:
+        print(f"Error fetching energy series {symbol}: {e}")
+        return {"error": str(e)}

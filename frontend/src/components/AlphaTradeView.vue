@@ -17,67 +17,159 @@ const hypotheticalAdjustment = ref({}) // Track hypothetical price adjustment pe
 const draggedIndex = ref(null)
 const dragOverIndex = ref(null)
 
-// Fundamental analysis questions
+// Fundamental analysis questions organized by category
 const fundamentalQuestions = [
+  // FUNDAMENTAL SECTION
   {
     id: 1,
+    category: 'FUNDAMENTAL',
     title: 'INCOME STATEMENT',
     subtitle: 'ARE EARNINGS REAL? HUNT FOR MARGIN COMPRESSION AND ADJUSTED-EBITDA GYMNASTICS.',
     placeholder: 'Enter findings...'
   },
   {
     id: 2,
+    category: 'FUNDAMENTAL',
     title: 'CASH FLOW STATEMENT',
     subtitle: 'IF EARNINGS ARE REAL, CASH SHOWS UP. CHECK FOR NEGATIVE FCF AND OPEX CAPITALIZATION.',
     placeholder: 'Enter findings...'
   },
   {
     id: 3,
+    category: 'FUNDAMENTAL',
     title: 'WORKING CAPITAL',
     subtitle: 'AR GROWTH > REVENUE GROWTH? INVENTORY PILING? SUPPLIERS LATE? RED FLAGS.',
     placeholder: 'Enter findings...'
   },
   {
     id: 4,
+    category: 'FUNDAMENTAL',
     title: 'BALANCE SHEET',
     subtitle: 'SURVIVABILITY MATH: HOW LONG CAN THEY LIVE WITHOUT CAPITAL MARKETS? CHECK BURN.',
     placeholder: 'Enter findings...'
   },
   {
     id: 5,
+    category: 'FUNDAMENTAL',
     title: 'CAPEX VS REALITY',
     subtitle: 'CAPEX UP, REVENUE DOWN? EMPIRE BUILDING OR OVERBUILDING DETECTED.',
     placeholder: 'Enter findings...'
   },
   {
     id: 6,
+    category: 'FUNDAMENTAL',
     title: 'ACCOUNTING GAMES',
     subtitle: 'TRUST NO ONE. SOFTWARE COSTS CAPITALIZED? AUDITORS QUITTING? AGGRESSIVE RECOGNITION?',
     placeholder: 'Enter findings...'
   },
   {
     id: 7,
+    category: 'FUNDAMENTAL',
     title: 'MANAGEMENT BEHAVIOR',
     subtitle: 'CEO TALKS VISION VS NUMBERS? CFO TURNOVER? INSIDER SELLING PATTERNS?',
     placeholder: 'Enter findings...'
   },
   {
     id: 8,
+    category: 'FUNDAMENTAL',
     title: 'VALUATION',
     subtitle: 'HIGH MULTIPLE + SLOWING GROWTH + WEAK CASH FLOW = AIR POCKET TERRITORY.',
     placeholder: 'Enter findings...'
   },
   {
     id: 9,
+    category: 'FUNDAMENTAL',
     title: 'CATALYST CHECKLIST',
     subtitle: 'NO CATALYST = NO SHORT. EARNINGS MISSES NEED HELP? EXPIRATIONS? LOAD THE GUN.',
     placeholder: 'Enter findings...'
   },
   {
     id: 10,
+    category: 'FUNDAMENTAL',
     title: 'POSITION SIZING',
     subtitle: 'ASSUME YOU ARE EARLY. SHORTS ARE TACTICALLY SIZED. NEVER BE STUBBORN.',
     placeholder: 'Enter findings...'
+  },
+  
+  // TIMING SECTION
+  {
+    id: 101,
+    category: 'TIMING',
+    title: '🗓️ EARNINGS',
+    subtitle: 'Whisper numbers > guidance? Sell-side raising targets late? "This quarter doesn\'t matter" talk?',
+    placeholder: 'Expectations high + fundamentals weak + narrative stretched = setup...'
+  },
+  {
+    id: 102,
+    category: 'TIMING',
+    title: '💰 LIQUIDITY EVENTS',
+    subtitle: 'Lock-up expirations, secondary offerings, ATM programs, convertible issuance',
+    placeholder: 'New supply hits market. Price must absorb shares. Mechanical sellers...'
+  },
+  {
+    id: 103,
+    category: 'TIMING',
+    title: '🧾 BALANCE-SHEET DEADLINES',
+    subtitle: 'Debt maturities, covenant tests, refinancing windows',
+    placeholder: 'Cash tight + markets hostile = equity crushed. The wall they can\'t avoid...'
+  },
+  {
+    id: 104,
+    category: 'TIMING',
+    title: '🏛️ REGULATORY / LEGAL EVENTS',
+    subtitle: 'FDA decisions, NRC approvals, DOJ/SEC investigations',
+    placeholder: 'Market prices hope. Regulators price rules. Short when optimism > probability...'
+  },
+  {
+    id: 105,
+    category: 'TIMING',
+    title: '🌎 MACRO REGIME SHIFTS',
+    subtitle: 'Rates rising, liquidity tightening, risk-off rotation',
+    placeholder: 'Speculative names break first. Don\'t short junk in a liquidity flood...'
+  },
+  
+  // STRUCTURE SECTION
+  {
+    id: 201,
+    category: 'STRUCTURE',
+    title: '🚩 OWNERSHIP STRUCTURE',
+    subtitle: 'Retail-heavy, momentum funds, thematic ETFs vs long-only institutions, strategic holders',
+    placeholder: 'Who panics first? Fragile holders don\'t average down, don\'t defend price...'
+  },
+  {
+    id: 202,
+    category: 'STRUCTURE',
+    title: '📊 FLOAT & SUPPLY',
+    subtitle: 'Lock-up shares becoming free, ATM dilution drip, SBC increasing float quietly',
+    placeholder: 'Low float + hype = squeeze risk. High float + forced sellers = downside velocity...'
+  },
+  {
+    id: 203,
+    category: 'STRUCTURE',
+    title: '📈 PRICE STRUCTURE',
+    subtitle: 'Lower highs, failed breakouts, gap fills, heavy-volume down days',
+    placeholder: 'Signs of damage. Big money exiting, not entering...'
+  },
+  {
+    id: 204,
+    category: 'STRUCTURE',
+    title: '🎯 OPTIONS STRUCTURE',
+    subtitle: 'Heavy put ownership vs call-heavy OI, dealer gamma positioning',
+    placeholder: 'Dealers long gamma = danger. Call-heavy + retail chasing = sweet spot...'
+  },
+  {
+    id: 205,
+    category: 'STRUCTURE',
+    title: '⚡ SHORT INTEREST',
+    subtitle: 'SI %, trend direction, volume expansion',
+    placeholder: 'Fuel for squeezes or accelerant for crashes? When support breaks, shorts press...'
+  },
+  {
+    id: 206,
+    category: 'STRUCTURE',
+    title: '💸 BORROW STRUCTURE',
+    subtitle: 'Borrow cost, recall risk, availability',
+    placeholder: 'Bad borrow turns timing risk into forced exit risk...'
   }
 ]
 
@@ -855,38 +947,118 @@ const handleDragEnd = () => {
               <p class="rule-text">"Bad companies can stay expensive longer than you can stay solvent. Fundamentals tell me what to short; timing + structure tell me when."</p>
             </div>
 
-            <div class="analysis-grid">
-              <div v-for="question in fundamentalQuestions" :key="question.id" class="analysis-card">
-                <div class="card-header">
-                  <div class="card-title-section">
-                    <h4 class="card-number">{{ question.id }}.</h4>
-                    <div>
-                      <h4 class="card-title">{{ question.title }}</h4>
-                      <p class="card-subtitle">{{ question.subtitle }}</p>
+            <!-- FUNDAMENTAL SECTION -->
+            <div class="analysis-section">
+              <h3 class="section-header">A) FUNDAMENTAL</h3>
+              <div class="analysis-grid">
+                <div v-for="question in fundamentalQuestions.filter(q => q.category === 'FUNDAMENTAL')" :key="question.id" class="analysis-card">
+                  <div class="card-header">
+                    <div class="card-title-section">
+                      <h4 class="card-number">{{ question.id }}.</h4>
+                      <div>
+                        <h4 class="card-title">{{ question.title }}</h4>
+                        <p class="card-subtitle">{{ question.subtitle }}</p>
+                      </div>
+                    </div>
+                    <div class="score-buttons">
+                      <button 
+                        v-for="score in [1, 2, 3, 4, 5]" 
+                        :key="score"
+                        class="score-btn"
+                        :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
+                        @click.stop="setQuestionScore(position.ticker, question.id, score)"
+                        :title="`Score: ${score}`"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  <div class="score-buttons">
-                    <button 
-                      v-for="score in [1, 2, 3, 4, 5]" 
-                      :key="score"
-                      class="score-btn"
-                      :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
-                      @click.stop="setQuestionScore(position.ticker, question.id, score)"
-                      :title="`Score: ${score}`"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                        <circle cx="12" cy="12" r="10"></circle>
-                      </svg>
-                    </button>
-                  </div>
+                  <textarea 
+                    :value="getFundamentalAnalysis(position.ticker, question.id)"
+                    @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
+                    :placeholder="question.placeholder"
+                    class="analysis-input"
+                    rows="2"
+                  ></textarea>
                 </div>
-                <textarea 
-                  :value="getFundamentalAnalysis(position.ticker, question.id)"
-                  @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
-                  :placeholder="question.placeholder"
-                  class="analysis-input"
-                  rows="2"
-                ></textarea>
+              </div>
+            </div>
+
+            <!-- TIMING SECTION -->
+            <div class="analysis-section">
+              <h3 class="section-header">B) TIMING</h3>
+              <div class="analysis-grid">
+                <div v-for="question in fundamentalQuestions.filter(q => q.category === 'TIMING')" :key="question.id" class="analysis-card">
+                  <div class="card-header">
+                    <div class="card-title-section">
+                      <div>
+                        <h4 class="card-title">{{ question.title }}</h4>
+                        <p class="card-subtitle">{{ question.subtitle }}</p>
+                      </div>
+                    </div>
+                    <div class="score-buttons">
+                      <button 
+                        v-for="score in [1, 2, 3, 4, 5]" 
+                        :key="score"
+                        class="score-btn"
+                        :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
+                        @click.stop="setQuestionScore(position.ticker, question.id, score)"
+                        :title="`Score: ${score}`"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <textarea 
+                    :value="getFundamentalAnalysis(position.ticker, question.id)"
+                    @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
+                    :placeholder="question.placeholder"
+                    class="analysis-input"
+                    rows="2"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- STRUCTURE SECTION -->
+            <div class="analysis-section">
+              <h3 class="section-header">C) STRUCTURE</h3>
+              <div class="analysis-grid">
+                <div v-for="question in fundamentalQuestions.filter(q => q.category === 'STRUCTURE')" :key="question.id" class="analysis-card">
+                  <div class="card-header">
+                    <div class="card-title-section">
+                      <div>
+                        <h4 class="card-title">{{ question.title }}</h4>
+                        <p class="card-subtitle">{{ question.subtitle }}</p>
+                      </div>
+                    </div>
+                    <div class="score-buttons">
+                      <button 
+                        v-for="score in [1, 2, 3, 4, 5]" 
+                        :key="score"
+                        class="score-btn"
+                        :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
+                        @click.stop="setQuestionScore(position.ticker, question.id, score)"
+                        :title="`Score: ${score}`"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <textarea 
+                    :value="getFundamentalAnalysis(position.ticker, question.id)"
+                    @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
+                    :placeholder="question.placeholder"
+                    class="analysis-input"
+                    rows="2"
+                  ></textarea>
+                </div>
               </div>
             </div>
           </div>
@@ -1554,6 +1726,22 @@ const handleDragEnd = () => {
   gap: 1.5rem;
 }
 
+/* Analysis Section Styles */
+.analysis-section {
+  margin-bottom: 3rem;
+}
+
+.section-header {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 3px solid #000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 .analysis-card {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -1820,3 +2008,19 @@ const handleDragEnd = () => {
   font-size: 0.875rem;
 }
 </style>
+
+/* Analysis Section Styles */
+.analysis-section {
+  margin-bottom: 3rem;
+}
+
+.section-header {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 3px solid #000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

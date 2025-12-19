@@ -34,19 +34,19 @@ const router = createRouter({
       path: '/investment',
       name: 'investment',
       component: TimelineView,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: false } // Controlled dynamically
     },
     {
       path: '/research',
       name: 'research',
       component: ResearchView,
-      meta: { requiresAuth: true, requiresAdminOrCreator: true }
+      meta: { requiresAuth: true } // Controlled dynamically
     },
     {
       path: '/short-interest',
       name: 'short-interest',
       component: ShortInterestView,
-      meta: { requiresAuth: true, requiresAdminOrCreator: true }
+      meta: { requiresAuth: true } // Controlled dynamically
     },
     {
       path: '/report',
@@ -64,110 +64,139 @@ const router = createRouter({
       path: '/alphatrade',
       name: 'alphatrade',
       component: AlphaTradeView,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: false } // Controlled dynamically
     }
   ]
 })
+
+// Helper to check permission
+async function checkPermission(user, resource) {
+  // Admin always has access
+  if (user.role === 'admin') return true
+
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch('http://localhost:8000/api/auth/my-permissions', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.ok) {
+      const allowedResources = await response.json()
+      return allowedResources.includes(resource)
+    }
+    return false
+  } catch (e) {
+    console.error('Error checking permission:', e)
+    return false
+  }
+}
 
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('access_token')
   const requiresAuth = to.meta.requiresAuth !== false
   const requiresAdmin = to.meta.requiresAdmin === true
-  const requiresAdminOrCreator = to.meta.requiresAdminOrCreator === true
   const requiresPayment = to.meta.requiresPayment === true
 
+  // Public routes that don't need permission checks specific to roles (login, signup, dashboard)
+  // Note: dashboard (/) is always public
+  const publicRoutes = ['/login', '/signup', '/']
+  if (publicRoutes.includes(to.path)) {
+    if (to.path !== '/' && token && !requiresAuth) {
+      next('/')
+    } else {
+      next()
+    }
+    return
+  }
+
   if (requiresAuth && !token) {
-    // Redirect to login if route requires auth and user is not authenticated
     next('/login')
     return
   }
 
-  // Check admin requirement
-  if (requiresAdmin && token) {
+  // Get user info
+  let user = null
+  if (token) {
     try {
       const userStr = localStorage.getItem('user')
-      if (userStr) {
-        const user = JSON.parse(userStr)
-        if (user.role !== 'admin') {
-          next('/')
-          return
-        }
-      } else {
-        // Fetch user info if not in localStorage
-        const response = await fetch('http://localhost:8000/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        if (response.ok) {
-          const user = await response.json()
-          localStorage.setItem('user', JSON.stringify(user))
-          if (user.role !== 'admin') {
-            next('/')
-            return
-          }
-        } else {
-          next('/login')
-          return
-        }
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error)
-      next('/')
-      return
-    }
-  }
-
-  // Check admin or creator requirement
-  if (requiresAdminOrCreator && token) {
-    try {
-      const userStr = localStorage.getItem('user')
-      let user = null
       if (userStr) {
         user = JSON.parse(userStr)
       } else {
-        // Fetch user info if not in localStorage
         const response = await fetch('http://localhost:8000/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
           user = await response.json()
           localStorage.setItem('user', JSON.stringify(user))
-        } else {
-          next('/login')
-          return
         }
       }
+    } catch (e) {
+      console.error('Error getting user:', e)
+    }
+  }
 
-      // Check if user has admin or creator role
-      if (user && user.role !== 'admin' && user.role !== 'creator') {
-        next('/')
-        return
-      }
-    } catch (error) {
-      console.error('Error checking admin/creator status:', error)
+  // Check admin requirement
+  if (requiresAdmin) {
+    if (!user || user.role !== 'admin') {
       next('/')
       return
     }
   }
 
-  // Check payment requirement - allow route but component will handle payment gate
-  // This allows the component to show PaymentGate UI instead of redirecting
+  // Check dynamic permissions for protected resources
+  // Only check for specific routes that are managed
+  const managedRoutes = ['/research', '/alphatrade', '/report', '/investment', '/short-interest']
+  if (managedRoutes.includes(to.path)) {
+    // If user is not logged in but route is managed (some might be public-facing but restricted)
+    // For now, if it requiresAuth, we handled it above.
+
+    // If we have a user, check permission
+    if (user) {
+      const hasAccess = await checkPermission(user, to.path)
+      if (!hasAccess) {
+        // Creating a smoother UX: if access denied, redirect home with a query param?
+        // or just redirect home
+        console.warn(`Access denied to ${to.path} for role ${user.role}`)
+        next('/')
+        return
+      }
+    } else {
+      // No user, but trying to access managed route.
+      // If the route strictly requires auth, we already redirected.
+      // If it doesn't strictly require auth (like Report/Investment might not in some configs),
+      // we might need to check if "public" access is allowed?
+      // For now, simpler approach: if it is a managed route, we enforce the check via backend.
+      // Since the backend returns permissions for a USER, unauthenticated users have no permissions.
+      // EXCEPTION: If the business logic says "User" role means "Public" too? 
+      // Current implementation assumes logic applies to Logged In users or specific roles.
+      // Unauthenticated users -> treat as no role?
+
+      // Let's assume managed routes require at least being logged in to check permissions properly,
+      // OR if they are public, we explicitly allow them in the backend logic?
+      // The current requirement says "grant different user type to different access".
+      // Implies logged in users.
+
+      if (to.meta.requiresAuth === false) {
+        // It's technically public, but we want to restrict it? 
+        // If we really want to restrict /alphatrade which calls itself public metadata currently...
+        // We should probably default to enforcing auth for these if we want to manage them.
+        // OR we just redirect to login if we can't verify permission.
+        next('/login')
+        return
+      }
+    }
+  }
+
+  // Check payment requirement
   if (requiresPayment && !token) {
-    // If payment required but no token, redirect to login
     next('/login')
     return
   }
 
-  if (!requiresAuth && token && (to.path === '/login' || to.path === '/signup')) {
-    // Redirect to home if user is already logged in and tries to access login/signup
-    next('/')
-  } else {
-    next()
-  }
+  next()
 })
 
 export default router

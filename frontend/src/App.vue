@@ -11,32 +11,49 @@ const menuItems = computed(() => {
       path: '/', 
       name: 'Market', 
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>' 
-    },
-    { 
-      path: '/investment', 
-      name: 'Investment', 
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' 
-    },
-    { 
-      path: '/report', 
-      name: 'Report', 
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' 
-    },
-    { 
-      path: '/alphatrade', 
-      name: 'AlphaTrade', 
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
     }
   ]
   
-  // Add Research link only for admin or creator users
-  if (user.value && (user.value.role === 'admin' || user.value.role === 'creator')) {
-    items.push({
-      path: '/research',
-      name: 'Research',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
-    })
+  // Base items that might be restricted
+  const investmentItem = { 
+    path: '/investment', 
+    name: 'Investment', 
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' 
   }
+  
+  const reportItem = { 
+    path: '/report', 
+    name: 'Report', 
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' 
+  }
+  
+  const alphaTradeItem = { 
+    path: '/alphatrade', 
+    name: 'AlphaTrade', 
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
+  }
+  
+  const researchItem = {
+    path: '/research',
+    name: 'Research',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
+  }
+
+  // Check permissions
+  if (user.value && user.value.role === 'admin') {
+      // Admin gets everything
+      items.push(investmentItem)
+      items.push(reportItem)
+      items.push(alphaTradeItem)
+      items.push(researchItem)
+  } else {
+      // Check specific permissions
+      if (hasAccess('/investment')) items.push(investmentItem)
+      if (hasAccess('/report')) items.push(reportItem)
+      if (hasAccess('/alphatrade')) items.push(alphaTradeItem)
+      if (hasAccess('/research')) items.push(researchItem)
+  }
+
   
   // Add Admin link only for admin users
   if (user.value && user.value.role === 'admin') {
@@ -49,6 +66,19 @@ const menuItems = computed(() => {
   
   return items
 })
+
+const allowedResources = ref([])
+
+const hasAccess = (resource) => {
+    // If not logged in, maybe show if it's considered public? 
+    // But requirement is about access management. 
+    // If we have an empty allowedResources list and are logged in, it means NO access.
+    // If we are NOT logged in, we default to showing nothing or everything?
+    // Let's hide if not explicitly allowed for now to be safe, except public default behavior.
+    if (!isAuthenticated.value) return true // Show by default for public, let router guard block
+    
+    return allowedResources.value.includes(resource)
+}
 
 const user = ref(null)
 const isAuthenticated = ref(!!localStorage.getItem('access_token'))
@@ -83,6 +113,22 @@ const getUserInfo = async () => {
   }
 }
 
+const fetchPermissions = async () => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    try {
+        const response = await fetch('http://localhost:8000/api/auth/my-permissions', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+            allowedResources.value = await response.json()
+        }
+    } catch (e) {
+        console.error('Error fetching permissions:', e)
+    }
+}
+
 const logout = (e) => {
   // Prevent navigation if event is provided
   if (e) {
@@ -97,10 +143,10 @@ const logout = (e) => {
 
 const getRoleBadgeColor = (role) => {
   const colors = {
-    admin: '#e74c3c',
-    creator: '#3498db',
-    contributor: '#9b59b6',
-    user: '#95a5a6'
+    admin: '#000000',
+    creator: '#262626',
+    contributor: '#525252',
+    user: '#737373'
   }
   return colors[role] || colors.user
 }
@@ -127,8 +173,10 @@ const updateUserState = () => {
 
 onMounted(() => {
   updateUserState()
+  updateUserState()
   if (isAuthenticated.value) {
     getUserInfo()
+    fetchPermissions()
   }
   
   // Listen for storage changes (when login happens in another component)
@@ -140,6 +188,7 @@ onMounted(() => {
     updateUserState()
     if (isAuthenticated.value) {
       getUserInfo()
+      fetchPermissions()
     }
   }
   window.addEventListener('user-logged-in', handleLoginEvent)
@@ -158,6 +207,7 @@ watch(() => route.path, () => {
     updateUserState()
     if (isAuthenticated.value && !user.value) {
       getUserInfo()
+      fetchPermissions()
     }
   }, 100)
 }, { immediate: false })
@@ -168,6 +218,7 @@ watch(isAuthenticated, (newVal) => {
     updateUserState()
     if (!user.value) {
       getUserInfo()
+      fetchPermissions()
     }
   } else {
     user.value = null
@@ -223,7 +274,7 @@ setInterval(() => {
         <div v-if="user" class="user-info">
           <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
           <div class="user-details">
-            <div class="username">{{ user.username }}</div>
+            <!-- <div class="username">{{ user.username }}</div> -->
           </div>
         </div>
         <div v-else class="user-info">
@@ -296,27 +347,29 @@ nav {
   display: flex;
   align-items: center;
   padding: 0.8rem 0; /* Vertical padding only, horizontal handled by children */
-  color: #000000;
+  color: #666666; /* Default text color gray */
   text-decoration: none;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600; /* Bolder text */
   border-left: 3px solid transparent;
   transition: all 0.2s ease;
   white-space: nowrap;
   height: 50px; /* Fixed height for consistency */
+  text-transform: uppercase; /* Uppercase for AlphaTrade style */
+  letter-spacing: 0.5px;
 }
 
 .nav-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-left-color: #3498db;
+  background-color: #f5f5f5;
+  border-left-color: #000000;
   color: #000000;
 }
 
 .nav-item.router-link-exact-active {
   color: #000000;
-  background-color: rgba(52, 152, 219, 0.1);
-  border-left-color: #3498db;
-  font-weight: 600;
+  background-color: #f0f0f0;
+  border-left-color: #000000;
+  font-weight: 700;
 }
 
 .icon-wrapper {
@@ -379,7 +432,7 @@ nav {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #3498db;
+  background-color: #000000; /* Black background */
   color: white;
   display: flex;
   align-items: center;
@@ -426,22 +479,24 @@ nav {
   width: calc(100% - 28px);
   margin: 0 14px;
   padding: 8px 12px;
-  background-color: #e74c3c;
+  background-color: #000000; /* Black background */
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9em;
-  font-weight: 500;
+  font-weight: 600; /* Bolder */
   transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  text-transform: uppercase; /* Uppercase */
+  letter-spacing: 0.5px;
 }
 
 .logout-btn:hover {
-  background-color: #c0392b;
+  background-color: #333333; /* Dark gray hover */
 }
 
 .logout-icon {
@@ -469,20 +524,21 @@ nav {
 
 .auth-link {
   padding: 8px 14px;
-  color: #3498db;
+  color: #000000;
   text-decoration: none;
   font-size: 0.9em;
-  font-weight: 500;
+  font-weight: 600;
   transition: background-color 0.2s;
   border-radius: 4px;
   margin: 0 8px;
   display: flex;
   align-items: center;
   gap: 8px;
+  text-transform: uppercase;
 }
 
 .auth-link:hover {
-  background-color: rgba(52, 152, 219, 0.1);
+  background-color: #f5f5f5;
 }
 
 .auth-icon {

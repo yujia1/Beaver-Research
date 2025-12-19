@@ -31,6 +31,12 @@
       >
         Health Management
       </button>      
+      <button 
+        :class="{ active: activeTab === 'access' }"
+        @click="activeTab = 'access'; loadPermissions()"
+      >
+        Access Management
+      </button>
     </div>
 
     <!-- User Management Tab -->
@@ -267,6 +273,59 @@
       </div>
     </div>
 
+    <!-- Access Management Tab -->
+    <div v-if="activeTab === 'access'">
+      <div v-if="loadingPermissions" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading permissions...</p>
+      </div>
+
+      <div v-else-if="permissionsError" class="error-container">
+        <p class="error-message">{{ permissionsError }}</p>
+        <button @click="loadPermissions" class="retry-button">Retry</button>
+        <button @click="initializePermissions" class="action-button verify" style="margin-left: 10px;">Initialize Defaults</button>
+      </div>
+
+      <div v-else class="admin-content">
+        <div class="access-section">
+          <h2>Access Management</h2>
+          <p class="subtitle">Control which roles can access specific application routes</p>
+          
+          <div class="permissions-matrix">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Resource / Route</th>
+                  <th v-for="role in roles" :key="role">{{ role.charAt(0).toUpperCase() + role.slice(1) }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="resource in resourceTypes" :key="resource">
+                  <td class="resource-name">{{ resource }}</td>
+                  <td v-for="role in roles" :key="role" class="permission-cell">
+                    <label class="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        :checked="getPermission(role, resource)"
+                        @change="updatePermission(role, resource, $event.target.checked)"
+                        :disabled="role === 'admin'"
+                      >
+                      <span class="slider round"></span>
+                    </label>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="permission-legend">
+            <p><small>* Admin role always has full access to all resources.</small></p>
+            <p><small>* Changes take effect immediately but users may need to refresh for navigation updates.</small></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Report Management Tab -->
     <div v-if="activeTab === 'reports'">
       <div v-if="loadingReports" class="loading-container">
@@ -415,6 +474,7 @@ const databaseHealth = ref({ status: 'unknown', message: '' })
 const minioHealth = ref({ status: 'unknown', message: '' })
 
 // Batch Management State
+
 const batchJobs = ref({
   filing13f: {
     status: 'idle', // idle, running, success, error
@@ -424,6 +484,13 @@ const batchJobs = ref({
     error: null
   }
 })
+
+// Access Management State
+const permissions = ref([])
+const loadingPermissions = ref(false)
+const permissionsError = ref('')
+const roles = ['admin', 'creator', 'contributor', 'user']
+const resourceTypes = ['/research', '/alphatrade', '/report', '/investment', '/short-interest']
 
 // Message State
 const message = ref('')
@@ -806,12 +873,125 @@ const checkHealth = async () => {
         message: 'MinIO storage error'
       }
     }
+
   } catch (err) {
-    console.error('Error checking health:', err)
+    console.error('Error checking system health:', err)
   } finally {
     checkingHealth.value = false
   }
 }
+
+// Access Management Functions
+const loadPermissions = async () => {
+  loadingPermissions.value = true
+  permissionsError.value = ''
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    const response = await fetch('http://localhost:8000/api/auth/permissions', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to load permissions')
+    }
+
+    permissions.value = await response.json()
+    
+    // If empty, suggest initialization
+    if (permissions.value.length === 0) {
+        permissionsError.value = 'No permissions found. Please initialize defaults.'
+    }
+  } catch (err) {
+    console.error('Error loading permissions:', err)
+    permissionsError.value = 'Failed to load permissions. Please try again.'
+  } finally {
+    loadingPermissions.value = false
+  }
+}
+
+const initializePermissions = async () => {
+    try {
+        const token = localStorage.getItem('access_token')
+        const response = await fetch('http://localhost:8000/api/auth/initialize-permissions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        
+        if (response.ok) {
+            await loadPermissions()
+            message.value = 'Default permissions initialized'
+            messageType.value = 'success'
+            setTimeout(() => { message.value = '' }, 3000)
+        }
+    } catch (err) {
+        console.error('Error initializing permissions:', err)
+        permissionsError.value = 'Failed to initialize permissions'
+    }
+}
+
+const getPermission = (role, resource) => {
+    if (role === 'admin') return true
+    
+    const perm = permissions.value.find(p => p.role === role && p.resource === resource)
+    return perm ? perm.can_access : false
+}
+
+const updatePermission = async (role, resource, canAccess) => {
+    try {
+        const token = localStorage.getItem('access_token')
+        const response = await fetch('http://localhost:8000/api/auth/permissions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                role,
+                resource,
+                can_access: canAccess
+            })
+        })
+
+        if (!response.ok) {
+            throw new Error('Failed to update permission')
+        }
+        
+        const updatedPerm = await response.json()
+        
+        // Update local state
+        const index = permissions.value.findIndex(p => p.role === role && p.resource === resource)
+        if (index !== -1) {
+            permissions.value[index] = updatedPerm
+        } else {
+            permissions.value.push(updatedPerm)
+        }
+        
+        message.value = `Permission updated for ${role} on ${resource}`
+        messageType.value = 'success'
+        setTimeout(() => { message.value = '' }, 2000)
+        
+    } catch (err) {
+        console.error('Error updating permission:', err)
+        message.value = 'Failed to update permission'
+        messageType.value = 'error'
+        setTimeout(() => { message.value = '' }, 3000)
+        
+        // Revert UI change by reloading
+        await loadPermissions()
+    }
+}
+
+
 
 // Batch Management Functions
 let pollingInterval = null
@@ -1697,6 +1877,108 @@ onMounted(() => {
   .modal-content {
     padding: 1.5rem;
   }
+}
+
+/* Access Management Styles */
+.access-section {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.permissions-matrix {
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+.permissions-matrix .users-table {
+    width: 100%;
+}
+
+.permissions-matrix th, 
+.permissions-matrix td {
+    text-align: center;
+}
+
+.permissions-matrix .resource-name {
+    text-align: left;
+    font-weight: 500;
+}
+
+.permission-cell {
+    padding: 10px;
+}
+
+.permission-legend {
+    margin-top: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+input:disabled + .slider {
+    background-color: #e0e0e0;
+    cursor: not-allowed;
 }
 </style>
 

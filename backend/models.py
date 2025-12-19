@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -16,6 +16,21 @@ class User(Base):
     payment_transaction_id = Column(String, nullable=True)  # PayPal transaction ID
     payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class RolePermission(Base):
+    """Store permissions for each role accessing different resources"""
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String, nullable=False, index=True)  # admin, creator, contributor, user
+    resource = Column(String, nullable=False)  # /research, /alphatrade, /report, /investment
+    can_access = Column(Boolean, default=False, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Unique constraint to prevent duplicate rules
+    __table_args__ = (
+        UniqueConstraint('role', 'resource', name='uix_role_resource'),
+    )
 
 class Event(Base):
     __tablename__ = "events"
@@ -62,3 +77,65 @@ class Filing13F(Base):
     total_value = Column(Integer, nullable=True)  # Total value in USD (cents)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class SavedReport(Base):
+    __tablename__ = "saved_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String, index=True)
+    report_content = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# AlphaTrade Models
+class AlphaTradePosition(Base):
+    __tablename__ = "alphatrade_positions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    ticker = Column(String, index=True, nullable=False)
+    sector = Column(String, nullable=True)
+    current_price = Column(Float, nullable=False)
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("User", backref="alphatrade_positions")
+    lots = relationship("AlphaTradeLot", back_populates="position", cascade="all, delete-orphan")
+    fundamental_analysis = relationship("AlphaTradeFundamentalAnalysis", back_populates="position", cascade="all, delete-orphan")
+
+    # Unique constraint: one position per ticker per user
+    __table_args__ = (
+        UniqueConstraint('user_id', 'ticker', name='uix_user_ticker'),
+    )
+
+
+class AlphaTradeLot(Base):
+    __tablename__ = "alphatrade_lots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    position_id = Column(Integer, ForeignKey("alphatrade_positions.id"), nullable=False)
+    purchase_date = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    cost_per_share = Column(Float, nullable=False)
+    side = Column(String, nullable=False)  # 'LONG' or 'SHORT'
+    link = Column(String, nullable=True)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationship
+    position = relationship("AlphaTradePosition", back_populates="lots")
+
+
+class AlphaTradeFundamentalAnalysis(Base):
+    __tablename__ = "alphatrade_fundamental_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    position_id = Column(Integer, ForeignKey("alphatrade_positions.id"), nullable=False)
+    question_id = Column(Integer, nullable=False)
+    answer = Column(Text, nullable=True)
+    score = Column(Integer, nullable=True)  # 1-5
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationship
+    position = relationship("AlphaTradePosition", back_populates="fundamental_analysis")

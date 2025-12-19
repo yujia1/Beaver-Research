@@ -59,19 +59,13 @@
                 >
                     Commodity
                 </button>
+
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'crypto' }"
                     @click="activeTab = 'crypto'"
                 >
                     Crypto
-                </button>
-                <button 
-                    class="tab-btn" 
-                    :class="{ active: activeTab === 'energy' }"
-                    @click="activeTab = 'energy'"
-                >
-                    Energy
                 </button>
                 <button 
                     class="tab-btn" 
@@ -744,6 +738,12 @@
                     >
                         Industrial
                     </button>
+                    <button 
+                        :class="{ active: activeCommodityCategory === 'energy' }"
+                        @click="activeCommodityCategory = 'energy'"
+                    >
+                        Energy
+                    </button>
                 </div>
 
                 <div class="commodity-data">
@@ -845,6 +845,49 @@
                         <div v-if="activeCommodityCategory === 'industrial'" class="category-section">
                             <div class="indicators">
                                 <div v-for="item in commodityIndicators.industrial" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in commodityTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: item.selectedTimeframe === tf.value }"
+                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>No history data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Energy Section -->
+                        <div v-if="activeCommodityCategory === 'energy'" class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in commodityIndicators.energy" :key="item.indicator" class="indicator-card">
                                     <div class="card-content">
                                         <h3>{{ item.indicator }}</h3>
                                         <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
@@ -1144,100 +1187,7 @@
                 </div>
             </div>
 
-            <!-- Energy Tab Content -->
-            <div v-if="activeTab === 'energy'" class="tab-content energy-tab-content">
-                <div v-if="energyLoading" class="loading-state">
-                    <div class="loading-spinner"></div>
-                    <p>Loading Energy Data...</p>
-                </div>
-                <div v-else-if="energyError" class="error-state">
-                    <p class="error-message">{{ energyError }}</p>
-                </div>
-                <div v-else class="energy-layout">
-                    <!-- Main Content Area -->
-                    <div class="main-content">
-                        <!-- Energy Prices (Line) -->
-                        <div class="card full-width">
-                            <h3>Energy Prices</h3>
-                            
-                            <div class="timeframe-selector">
-                                <button 
-                                    v-for="tf in priceTimeframes" 
-                                    :key="tf.value" 
-                                    :class="{ active: selectedPriceTimeframe === tf.value }"
-                                    @click="changePriceTimeframe(tf.value)"
-                                >
-                                    {{ tf.label }}
-                                </button>
-                            </div>
 
-                            <div class="chart-container">
-                                <Line :data="priceData" :options="priceChartOptions" />
-                            </div>
-                        </div>
-
-                        <!-- Energy Data Sources Table -->
-                        <div class="card">
-                            <h3>Energy Data Sources</h3>
-                            <table class="liquidity-table">
-                                <thead>
-                                    <tr>
-                                        <th>Source ID</th>
-                                        <th>Description</th>
-                                        <th>URL</th>
-                                        <th>Data Type / Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Nuclear regulatory commission</td>
-                                        <td>NRC public document & docket search (ADAMS) — used to check case status for applications like Oklo</td>
-                                        <td><a href="https://adams-search.nrc.gov/" target="_blank" rel="noopener noreferrer">https://adams-search.nrc.gov/</a></td>
-                                        <td>Regulatory / licensing case status</td>
-                                    </tr>
-                                    <tr>
-                                        <td>EIA electricity data</td>
-                                        <td>U.S. electricity generation, consumption, retail sales, price, capacity (all sectors)</td>
-                                        <td><a href="https://www.eia.gov/electricity/data/browser/" target="_blank" rel="noopener noreferrer">https://www.eia.gov/electricity/data/browser/</a></td>
-                                        <td>Electricity generation & consumption (all sectors)</td>
-                                    </tr>
-                                    <tr>
-                                        <td>EIA electric power monthly</td>
-                                        <td>Detailed monthly generation mix, consumption by sector, prices, fuel mix</td>
-                                        <td><a href="https://www.eia.gov/electricity/monthly/" target="_blank" rel="noopener noreferrer">https://www.eia.gov/electricity/monthly/</a></td>
-                                        <td>Generation mix, consumption, sector breakdown</td>
-                                    </tr>
-                                    <tr>
-                                        <td>U.S. electricity supply & generation</td>
-                                        <td>Aggregated U.S. electricity supply & generation metadata (private dataset)</td>
-                                        <td><a href="https://www.gridinfo.com/united-states" target="_blank" rel="noopener noreferrer">https://www.gridinfo.com/united-states</a></td>
-                                        <td>Supplementary electricity supply data</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Right Sidebar -->
-                    <div class="sidebar">
-                        <!-- Generation Mix (Doughnut) -->
-                        <div class="card">
-                            <h3>Generation by Fuel Type</h3>
-                            <div class="chart-container">
-                                <Doughnut :data="generationData" :options="pieOptions" />
-                            </div>
-                        </div>
-
-                        <!-- Consumption by Sector (Pie) -->
-                        <div class="card">
-                            <h3>Consumption by Sector</h3>
-                            <div class="chart-container">
-                                <Pie :data="consumptionData" :options="pieOptions" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1345,7 +1295,8 @@ const activeCommodityCategory = ref('metals');
 const commodityIndicators = ref({
   metals: [],
   agricultural: [],
-  industrial: []
+  industrial: [],
+  energy: []
 });
 const commodityLoading = ref(false);
 const commodityError = ref(null);
@@ -1360,7 +1311,8 @@ const commodityTimeframes = [
 const commoditySeriesMap = {
   metals: ['GOLDAMGBD228NLBM', 'PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
   agricultural: ['PSOYBUSDM', 'PCOFFUSDM', 'PSUGAR', 'PCORNUSDM'],
-  industrial: ['PZINC', 'PALUMINUM']
+  industrial: ['PZINC', 'PALUMINUM'],
+  energy: ['POILBREUSDM', 'PNRGINDEXM']
 };
 
 // Crypto Tab State
@@ -1605,24 +1557,8 @@ const formatShortInterestDate = (dateString) => {
   }
 };
 
-// Energy Tab State (from EnergyView)
-const energyLoading = ref(true);
-const energyError = ref(null);
-const generation = ref([]);
-const consumption = ref([]);
-const gridData = ref({});
-const prices = ref([]);
 
-const selectedEnergyTimeframe = ref('realtime');
-const energyTimeframes = [
-    { label: 'Real-time', value: 'realtime' },
-    { label: 'Days', value: 'days' },
-    { label: 'Monthly', value: 'monthly' },
-    { label: 'Yearly', value: 'yearly' },
-    { label: '5 Years', value: '5y' }
-];
 
-const selectedPriceTimeframe = ref('days');
 const priceTimeframes = [
     { label: 'Days', value: 'days' },
     { label: 'Weekly', value: 'weekly' },
@@ -1630,6 +1566,8 @@ const priceTimeframes = [
     { label: 'Yearly', value: 'yearly' },
     { label: '5 Years', value: '5y' }
 ];
+
+
 
 // Market indices data
 const indices = ref([
@@ -1741,7 +1679,6 @@ const updateData = async () => {
     bondLoading.value = true;
     economicLoading.value = true;
     fedLoading.value = true;
-    energyLoading.value = true;
     currencyLoading.value = true;
     commodityLoading.value = true;
     cryptoLoading.value = true;
@@ -1751,8 +1688,6 @@ const updateData = async () => {
     clearCacheByKey('bond_data_monthly');
     clearCacheByKey('macro_data_monthly');
     clearCacheByKey('fed_data_monthly');
-    clearCacheByKey('energy_generation');
-    clearCacheByKey('energy_consumption');
     clearCacheByKey('crypto_data_daily');
     clearCacheByKey('commodity_data_monthly');
     clearCacheByKey('currency_data_monthly');
@@ -1767,7 +1702,6 @@ const updateData = async () => {
             updateBondData(),
             updateEconomicData(),
             updateFedData(),
-            updateEnergyData(),
             updateCommodityData(),
             updateCurrencyData(),
             updateCryptoData()
@@ -2043,137 +1977,9 @@ const demandCurveData = computed(() => {
     };
 });
 
-const priceData = computed(() => ({
-    labels: prices.value.map(i => i.date),
-    datasets: [
-        {
-            label: 'Oil Price ($)',
-            data: prices.value.map(i => i.oil),
-            borderColor: '#e74c3c',
-            backgroundColor: '#e74c3c',
-            tension: 0.1,
-            yAxisID: 'y'
-        },
-        {
-            label: 'Natural Gas ($)',
-            data: prices.value.map(i => i.gas),
-            borderColor: '#f1c40f',
-            backgroundColor: '#f1c40f',
-            tension: 0.1,
-            yAxisID: 'y1'
-        }
-    ]
-}));
 
-const priceChartOptions = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  scales: {
-      y: { 
-          type: 'linear',
-          display: true,
-          position: 'left',
-          ticks: { color: '#e74c3c' }, 
-          grid: { color: 'rgba(0, 0, 0, 0.1)' },
-          title: { display: true, text: 'Oil ($)', color: '#e74c3c' }
-      },
-      y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          ticks: { color: '#f1c40f' },
-          grid: { drawOnChartArea: false },
-          title: { display: true, text: 'Gas ($)', color: '#f1c40f' }
-      },
-      x: { ticks: { color: '#666666' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } }
-  },
-  plugins: {
-      legend: { labels: { color: '#000000' } }
-  }
-}));
 
-const fetchGridData = async (timeframe) => {
-    try {
-        const res = await fetch(`http://localhost:8000/api/energy/grid?timeframe=${timeframe}`);
-        if (!res.ok) throw new Error("Failed to fetch grid data");
-        gridData.value = await res.json();
-    } catch (err) {
-        console.error(err);
-    }
-};
 
-const fetchPriceData = async (timeframe) => {
-    try {
-        const res = await fetch(`http://localhost:8000/api/energy/prices?timeframe=${timeframe}`);
-        if (!res.ok) throw new Error("Failed to fetch price data");
-        prices.value = await res.json();
-    } catch (err) {
-        console.error(err);
-    }
-};
-
-const changeEnergyTimeframe = (timeframe) => {
-    selectedEnergyTimeframe.value = timeframe;
-    fetchGridData(timeframe);
-};
-
-const changePriceTimeframe = (timeframe) => {
-    selectedPriceTimeframe.value = timeframe;
-    fetchPriceData(timeframe);
-};
-
-const fetchEnergyData = async () => {
-    // Check daily cache first
-    const cachedGeneration = getDailyCache('energy_generation');
-    const cachedConsumption = getDailyCache('energy_consumption');
-    
-    if (cachedGeneration && cachedConsumption) {
-        console.log('Using cached energy data');
-        generation.value = cachedGeneration;
-        consumption.value = cachedConsumption;
-        
-        // Still fetch grid and price data with their timeframes
-        await fetchGridData(selectedEnergyTimeframe.value);
-        await fetchPriceData(selectedPriceTimeframe.value);
-        
-        energyLoading.value = false;
-        return;
-    }
-    
-    try {
-        const [genRes, conRes] = await Promise.all([
-            fetch('http://localhost:8000/api/energy/generation'),
-            fetch('http://localhost:8000/api/energy/consumption')
-        ]);
-
-        if (!genRes.ok || !conRes.ok) throw new Error("Failed to fetch energy data");
-
-        const genData = await genRes.json();
-        const conData = await conRes.json();
-        
-        generation.value = genData;
-        consumption.value = conData;
-        
-        // Cache the data
-        setDailyCache('energy_generation', genData);
-        setDailyCache('energy_consumption', conData);
-        
-        // Fetch initial data
-        await fetchGridData(selectedEnergyTimeframe.value);
-        await fetchPriceData(selectedPriceTimeframe.value);
-
-    } catch (err) {
-        energyError.value = err.message;
-    } finally {
-        energyLoading.value = false;
-    }
-};
-
-const updateEnergyData = async () => {
-    clearCacheByKey('energy_generation');
-    clearCacheByKey('energy_consumption');
-    await fetchEnergyData();
-};
 
 // Economic Chart Options
 const economicChartOptions = {
@@ -3049,9 +2855,6 @@ onMounted(() => {
     
     // Fetch Fed data when Fed tab might be accessed
     fetchFedData();
-    
-    // Fetch energy data when energy tab might be accessed
-    fetchEnergyData();
     
     // Fetch currency data when currency tab might be accessed
     fetchCurrencyData();
