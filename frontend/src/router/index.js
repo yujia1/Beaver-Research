@@ -7,6 +7,7 @@ import ResearchView from '../components/ResearchView.vue'
 import AdminView from '../components/AdminView.vue'
 import ReportView from '../components/ReportView.vue'
 import ShortInterestView from '../components/ShortInterestView.vue'
+import AlphaTradeView from '../components/AlphaTradeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +59,12 @@ const router = createRouter({
       name: 'admin',
       component: AdminView,
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/alphatrade',
+      name: 'alphatrade',
+      component: AlphaTradeView,
+      meta: { requiresAuth: false }
     }
   ]
 })
@@ -69,13 +76,13 @@ router.beforeEach(async (to, from, next) => {
   const requiresAdmin = to.meta.requiresAdmin === true
   const requiresAdminOrCreator = to.meta.requiresAdminOrCreator === true
   const requiresPayment = to.meta.requiresPayment === true
-  
+
   if (requiresAuth && !token) {
     // Redirect to login if route requires auth and user is not authenticated
     next('/login')
     return
   }
-  
+
   // Check admin requirement
   if (requiresAdmin && token) {
     try {
@@ -111,7 +118,7 @@ router.beforeEach(async (to, from, next) => {
       return
     }
   }
-  
+
   // Check admin or creator requirement
   if (requiresAdminOrCreator && token) {
     try {
@@ -134,7 +141,7 @@ router.beforeEach(async (to, from, next) => {
           return
         }
       }
-      
+
       // Check if user has admin or creator role
       if (user && user.role !== 'admin' && user.role !== 'creator') {
         next('/')
@@ -146,7 +153,7 @@ router.beforeEach(async (to, from, next) => {
       return
     }
   }
-  
+
   // Check payment requirement - allow route but component will handle payment gate
   // This allows the component to show PaymentGate UI instead of redirecting
   if (requiresPayment && !token) {
@@ -154,7 +161,7 @@ router.beforeEach(async (to, from, next) => {
     next('/login')
     return
   }
-  
+
   if (!requiresAuth && token && (to.path === '/login' || to.path === '/signup')) {
     // Redirect to home if user is already logged in and tries to access login/signup
     next('/')
