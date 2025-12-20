@@ -171,11 +171,13 @@ async def publish_research_report(
         }
         folder_name = folder_map.get(report_type, "Daily")
         
-        # For market reports, don't include ticker in path
-        if report_type == "market":
-            file_path = f"{folder_name}/{date_str}/{report_uuid}.pdf"
-        else:
-            file_path = f"{folder_name}/{ticker}/{date_str}/{report_uuid}.pdf"
+        # Use report_name for filename, sanitize it
+        safe_report_name = report_name.strip() if report_name and report_name.strip() else f"{ticker} - {date_str}"
+        # Remove invalid filename characters
+        safe_report_name = "".join(c for c in safe_report_name if c.isalnum() or c in (' ', '-', '_')).strip()
+        
+        # Create file path: folder/report-name-uuid.pdf
+        file_path = f"{folder_name}/{safe_report_name}-{report_uuid}.pdf"
         
         # Ensure bucket exists
         ensure_bucket_exists()
