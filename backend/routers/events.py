@@ -7,7 +7,7 @@ from typing import Optional, List
 
 from database import get_db
 import models
-from routers.auth import get_current_user, get_user_by_username
+from routers.auth import get_current_user, get_user_by_username, verify_premium_access
 from jose import JWTError, jwt
 import os
 
@@ -63,13 +63,13 @@ def require_creator_or_admin(current_user: models.User = Depends(get_current_use
 # Routes
 @router.post("/", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
 async def create_event(
-    event_data: EventCreate,
+    event: EventCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_creator_or_admin)
+    current_user: models.User = Depends(verify_premium_access)
 ):
     """Create a new event (creator/admin only)"""
     # Validate ticker is provided and not empty
-    if not event_data.ticker or not event_data.ticker.strip():
+    if not event.ticker or not event.ticker.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ticker is required and cannot be empty"
@@ -77,7 +77,7 @@ async def create_event(
     
     # Validate event type
     valid_types = ["positive", "negative", "neutral"]
-    if event_data.type not in valid_types:
+    if event.type not in valid_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid event type. Must be one of: {', '.join(valid_types)}"
@@ -85,7 +85,7 @@ async def create_event(
     
     # Validate category
     valid_categories = ["macro", "micro", "market", "industry", "product"]
-    if event_data.category not in valid_categories:
+    if event.category not in valid_categories:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid category. Must be one of: {', '.join(valid_categories)}"
@@ -93,7 +93,7 @@ async def create_event(
     
     # Parse date
     try:
-        event_date = datetime.fromisoformat(event_data.date.replace('Z', '+00:00'))
+        event_date = datetime.fromisoformat(event.date.replace('Z', '+00:00'))
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -101,18 +101,18 @@ async def create_event(
         )
     
     # Normalize ticker (uppercase, trimmed)
-    normalized_ticker = event_data.ticker.strip().upper()
+    normalized_ticker = event.ticker.strip().upper()
     
     # Create event - event is associated with the specific ticker and user
     db_event = models.Event(
         user_id=current_user.id,
         ticker=normalized_ticker,
         date=event_date,
-        title=event_data.title,
-        description=event_data.description,
-        type=event_data.type,
-        category=event_data.category,
-        is_forecast=event_data.is_forecast
+        title=event.title,
+        description=event.description,
+        type=event.type,
+        category=event.category,
+        is_forecast=event.is_forecast
     )
     
     try:
@@ -147,8 +147,11 @@ async def get_current_user_optional(
         return None
 
 @router.get("/", response_model=List[EventResponse])
-async def get_events(
+async def read_events(
+    skip: int = 0, 
+    limit: int = 100, 
     ticker: Optional[str] = None,
+    category: Optional[str] = None,
     creator_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_optional)

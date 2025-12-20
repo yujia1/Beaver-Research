@@ -12,7 +12,7 @@ from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
-from routers.auth import get_current_user
+from routers.auth import get_current_user, verify_premium_access
 import models
 
 # Token verification for query parameter (for iframe access)
@@ -106,12 +106,19 @@ def create_report(report: ReportCreate, db: Session = Depends(get_db)):
     return db_report
 
 @router.get("/", response_model=List[ReportSummary])
-def list_reports(db: Session = Depends(get_db)):
+async def get_reports(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(verify_premium_access)
+):
     reports = db.query(Report).order_by(Report.created_at.desc()).all()
     return reports
 
 @router.get("/{report_id}", response_model=ReportResponse)
-def get_report(report_id: int, db: Session = Depends(get_db)):
+async def get_report(
+    report_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(verify_premium_access)
+):
     report = db.query(Report).filter(Report.id == report_id).first()
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")

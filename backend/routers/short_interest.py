@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Depends, Query
+from routers.auth import verify_premium_access
+import models
 from typing import List, Dict, Optional
 import requests
 from bs4 import BeautifulSoup
@@ -202,6 +204,107 @@ def get_total_pages(url: str) -> int:
         return 20
     except:
         return 20  # Default fallback
+
+@router.get("/data")
+async def get_short_interest_data(
+    ticker: Optional[str] = None,
+    category: Optional[str] = None,
+    limit: int = 100,
+    page: int = 1,
+    current_user: models.User = Depends(verify_premium_access)
+):
+    """
+    Scrape Benzinga's short interest data based on category or ticker.
+    Requires premium access.
+    """
+    if not category and not ticker:
+        raise HTTPException(
+            status_code=400,
+            detail="Either 'category' or 'ticker' must be provided."
+        )
+
+    base_url = "https://www.benzinga.com/short-interest/"
+    if category == "most-shorted":
+        base_url += "most-shorted"
+    elif category == "largest-increase":
+        base_url += "largest-increase"
+    elif category == "largest-decrease":
+        base_url += "largest-decrease"
+    elif ticker:
+        # Benzinga doesn't have a direct short interest page per ticker that's easily scrapable in this format
+        # This would require a different scraping approach or a different source.
+        # For now, we'll indicate it's not supported by this endpoint's current scraping logic.
+        raise HTTPException(
+            status_code=400,
+            detail="Scraping by individual ticker is not supported by this endpoint's current implementation."
+        )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid category. Choose from 'most-shorted', 'largest-increase', 'largest-decrease'."
+        )
+
+    try:
+        all_rows = []
+        
+        # For premium users, we can potentially scrape more pages or all pages
+        # For simplicity, let's assume `limit` and `page` apply to the results after scraping
+        # and we'll scrape all available pages up to a reasonable max.
+        
+        # Determine total pages to scrape (can be optimized later)
+        # For now, we'll use the existing logic of scraping until empty or duplicate
+        
+        seen_symbols = set()
+        page_num = 1
+        max_pages_to_scrape = 20 # A reasonable cap for scraping all pages
+        
+        while page_num <= max_pages_to_scrape:
+            try:
+                rows = scrape_page(base_url, page_num)
+                if not rows:
+                    break
+                
+                current_symbols = {row.get('symbol') for row in rows if row.get('symbol')}
+                if current_symbols and current_symbols.issubset(seen_symbols):
+                    break
+                
+                all_rows.extend(rows)
+                seen_symbols.update(current_symbols)
+                time.sleep(0.5) # Be respectful
+                page_num += 1
+            except Exception as e:
+                print(f"Error scraping page {page_num}: {e}")
+                if all_rows: # If we have some data, stop on error
+                    break
+                page_num += 1
+                continue
+        
+        # Apply limit and page to the collected data
+        start_index = (page - 1) * limit
+        end_index = start_index + limit
+        paginated_rows = all_rows[start_index:end_index]
+
+        return {
+            "data": paginated_rows,
+            "total_rows_available": len(all_rows),
+            "current_page_rows": len(paginated_rows),
+            "page": page,
+            "limit": limit,
+            "updated_at": datetime.utcnow().isoformat(),
+            "source": "Benzinga",
+            "category": category
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch data from Benzinga: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error parsing short interest data: {str(e)}"
+        )
 
 @router.get("/most-shorted")
 async def get_most_shorted_stocks(page: Optional[int] = None):

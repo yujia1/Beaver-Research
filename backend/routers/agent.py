@@ -7,7 +7,7 @@ import openai
 import os
 from datetime import datetime, timedelta
 import hashlib
-from routers.auth import get_current_user
+from routers.auth import get_current_user, verify_premium_access
 import models
 
 router = APIRouter()
@@ -71,7 +71,10 @@ class CompanyAnalysisRequest(BaseModel):
     sector: str
 
 @router.post("/generate_report")
-async def generate_report(request: ReportRequest):
+async def generate_report(
+    request: ReportRequest, 
+    current_user: models.User = Depends(verify_premium_access)
+):
     """
     Generate a report using the AI agent.
     """
@@ -106,7 +109,7 @@ async def get_10k_chunks(ticker: str):
 @router.post("/analyze_company")
 async def analyze_company(
     request: CompanyAnalysisRequest,
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(verify_premium_access)
 ):
     """
     Generate a comprehensive forensic business analysis based on the latest 10-K filing.
@@ -115,12 +118,7 @@ async def analyze_company(
     
     Requires user to have paid for Research access.
     """
-    # Check if user has paid
-    if not hasattr(current_user, 'has_paid') or not current_user.has_paid:
-        raise HTTPException(
-            status_code=403,
-            detail="Payment required. Please verify your payment to access Company Overview & Industry Analysis generation."
-        )
+    # Check if user has paid is now handled by verify_premium_access dependency
     try:
         # Check cache first
         cached_report = get_cached_analysis(request.ticker, "company_overview")
@@ -328,7 +326,10 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze_operating_drivers")
-async def analyze_operating_drivers(request: CompanyAnalysisRequest):
+async def analyze_operating_drivers(
+    request: CompanyAnalysisRequest,
+    current_user: models.User = Depends(verify_premium_access)
+):
     """
     Generate sector-specific operating drivers analysis.
     Uses caching to avoid redundant API calls.
@@ -413,7 +414,10 @@ async def analyze_operating_drivers(request: CompanyAnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze_notes_disclosures")
-async def analyze_notes_disclosures(request: CompanyAnalysisRequest):
+async def analyze_notes_disclosures(
+    request: CompanyAnalysisRequest,
+    current_user: models.User = Depends(verify_premium_access)
+):
     """
     Generate analysis of accounting policies, segment reporting, and risk factors.
     Uses caching to avoid redundant API calls.
@@ -506,7 +510,10 @@ async def analyze_notes_disclosures(request: CompanyAnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze_capital_structure")
-async def analyze_capital_structure(request: CompanyAnalysisRequest):
+async def analyze_capital_structure(
+    request: CompanyAnalysisRequest,
+    current_user: models.User = Depends(verify_premium_access)
+):
     """
     Generate comprehensive cash flow analysis based on financial statements.
     Uses caching to avoid redundant API calls.

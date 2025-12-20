@@ -207,7 +207,28 @@ def require_role(allowed_roles: List[str]):
                 detail=f"Access denied. Required roles: {', '.join(allowed_roles)}"
             )
         return current_user
+        return current_user
     return role_checker
+
+async def verify_premium_access(current_user: models.User = Depends(get_current_user)):
+    """
+    Dependency to verify if user has premium access.
+    Access is granted if:
+    1. User has 'admin' or 'creator' role
+    2. User has 'has_paid' = True
+    """
+    # Admins and Creators always have access
+    if current_user.role in ["admin", "creator"]:
+        return current_user
+    
+    # Check payment status
+    if not current_user.has_paid:
+        print(f"Access denied for user {current_user.username}: Payment required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Premium access required. Please verify your payment to access this feature."
+        )
+    return current_user
 
 # Routes
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -519,6 +540,7 @@ async def get_payment_status(current_user: models.User = Depends(get_current_use
     """Get current user's payment status"""
     return {
         "has_paid": current_user.has_paid if hasattr(current_user, 'has_paid') else False,
+        "role": current_user.role,
         "payment_date": current_user.payment_date.isoformat() if hasattr(current_user, 'payment_date') and current_user.payment_date else None,
         "transaction_id": current_user.payment_transaction_id if hasattr(current_user, 'payment_transaction_id') else None
     }

@@ -53,7 +53,12 @@ const checkPaymentStatus = async () => {
     
     if (response.ok) {
       const status = await response.json()
-      hasPaid.value = status.has_paid || false
+      // Grant access if paid OR if user is admin/creator
+      if (status.role === 'admin' || status.role === 'creator') {
+        hasPaid.value = true
+      } else {
+        hasPaid.value = status.has_paid || false
+      }
     } else if (response.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('access_token')
