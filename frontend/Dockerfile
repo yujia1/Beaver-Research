@@ -10,5 +10,10 @@ RUN npm run build
 FROM nginx:stable-alpine as production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# Use Railway's PORT environment variable
+ENV PORT=8080
+EXPOSE ${PORT}
+
+# Start nginx on the PORT specified by Railway
+CMD sed -i "s/listen 80;/listen ${PORT};/g" /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"
