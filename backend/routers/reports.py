@@ -44,9 +44,15 @@ MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
 
 # Initialize MinIO client
 def get_minio_client():
+    # Check if endpoint already has protocol
+    if MINIO_ENDPOINT.startswith('http://') or MINIO_ENDPOINT.startswith('https://'):
+        endpoint_url = MINIO_ENDPOINT
+    else:
+        endpoint_url = f"{'https' if MINIO_USE_SSL else 'http'}://{MINIO_ENDPOINT}"
+    
     return boto3.client(
         's3',
-        endpoint_url=f"{'https' if MINIO_USE_SSL else 'http'}://{MINIO_ENDPOINT}",
+        endpoint_url=endpoint_url,
         aws_access_key_id=MINIO_ACCESS_KEY,
         aws_secret_access_key=MINIO_SECRET_KEY,
         config=Config(signature_version='s3v4'),
