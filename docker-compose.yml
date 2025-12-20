@@ -34,6 +34,9 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=reports
       - MINIO_USE_SSL=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
     env_file:
       - .env # Load environment variables from .env file
     depends_on:
@@ -41,6 +44,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - beaver_network
@@ -78,10 +83,29 @@ services:
     networks:
       - beaver_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: beaver_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - beaver_network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
 volumes:
   postgres_data:
     driver: local
   minio_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

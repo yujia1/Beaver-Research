@@ -23,4 +23,6 @@ APScheduler
 lxml
 alembic
 slowapi
+redis==5.0.1
+hiredis==2.3.2
 

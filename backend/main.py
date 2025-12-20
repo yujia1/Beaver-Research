@@ -47,6 +47,7 @@ from routers import (
     filing_13f, 
     short_interest,
     alphatrade,
+    whale_watching,
     admin_db
 )
 from database import engine, SessionLocal, check_db_connection
@@ -180,6 +181,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(research.router, prefix="/api/research", tags=["Research"])
 app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filings"])
 app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
+app.include_router(whale_watching.router, prefix="/api/whale-watching", tags=["Whale Watching"])
 app.include_router(alphatrade.router, prefix="/api/alphatrade", tags=["AlphaTrade"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 

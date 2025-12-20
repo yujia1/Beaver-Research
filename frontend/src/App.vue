@@ -39,6 +39,12 @@ const menuItems = computed(() => {
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
   }
 
+  const whaleWatchingItem = {
+    path: '/whale-watching',
+    name: 'Whale Watching',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16s9-15 20-4C11 23 2 8 2 8"></path></svg>'
+  }
+
   // Check permissions
   if (user.value && user.value.role === 'admin') {
       // Admin gets everything
@@ -46,12 +52,14 @@ const menuItems = computed(() => {
       items.push(reportItem)
       items.push(alphaTradeItem)
       items.push(researchItem)
+      items.push(whaleWatchingItem)
   } else {
       // Check specific permissions
       if (hasAccess('/investment')) items.push(investmentItem)
       if (hasAccess('/report')) items.push(reportItem)
       if (hasAccess('/alphatrade')) items.push(alphaTradeItem)
       if (hasAccess('/research')) items.push(researchItem)
+      if (hasAccess('/whale-watching')) items.push(whaleWatchingItem)
   }
 
   
