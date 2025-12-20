@@ -1,8 +1,11 @@
 <script setup>
-
-import API_BASE_URL from '@/config/api.js'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { ref, computed, onMounted, watch } from 'vue'
+
+// API Base URL - runtime detection
+const API_BASE_URL = window.location.hostname.includes('railway.app') 
+  ? 'https://beaver-research-backend-production.up.railway.app'
+  : 'http://localhost:8000'
 
 const router = useRouter()
 const route = useRoute()
