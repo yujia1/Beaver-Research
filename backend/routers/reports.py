@@ -273,40 +273,54 @@ async def get_reports_from_minio(
                 if 'Contents' in page:
                     for obj in page['Contents']:
                         try:
-                            # Extract ticker, date, and UUID from path
-                            # For market: Market/{date}/{uuid}.pdf (3 parts)
-                            # For others: {folder}/{ticker}/{date}/{uuid}.pdf (4 parts)
+                            # New structure: {folder}/{report-name}-{uuid}.pdf
+                            # Example: Market/GOLD-test-4bc6319b-54cd-4fc0-8c50-d981b9be65f4.pdf
                             parts = obj['Key'].split('/')
-                            if report_type == "market" and len(parts) >= 3:
-                                # Market reports: Market/{date}/{uuid}.pdf
-                                date = parts[1]
-                                ticker = "MARKET"  # Use MARKET as ticker for market reports
-                                uuid_from_filename = parts[2].replace('.pdf', '')
-                            elif len(parts) >= 4:
-                                # Other reports: {folder}/{ticker}/{date}/{uuid}.pdf
-                                ticker = parts[1]
-                                date = parts[2]
-                                uuid_from_filename = parts[3].replace('.pdf', '')
-                            else:
-                                continue  # Skip invalid paths
-                            
-                            # Check for duplicates by UUID
-                            if uuid_from_filename in seen_uuids:
-                                continue
-                            seen_uuids.add(uuid_from_filename)
-                            
-                            # Get file metadata (last modified time)
-                            last_modified = obj.get('LastModified', datetime.utcnow())
-                            
-                            reports.append({
-                                "id": uuid_from_filename,
-                                "ticker": ticker,
-                                "date": date,
-                                "created_at": last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified),
-                                "report_type": report_type,
-                                "uuid": uuid_from_filename,
-                                "file_path": obj['Key']
-                            })
+                            if len(parts) >= 2:
+                                folder = parts[0]
+                                filename = parts[1]
+                                
+                                # Extract report name and UUID from filename
+                                # Format: report-name-uuid.pdf
+                                if filename.endswith('.pdf'):
+                                    filename_without_ext = filename[:-4]  # Remove .pdf
+                                    
+                                    # Find the last occurrence of UUID pattern (last 36 chars before .pdf)
+                                    # UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars)
+                                    if len(filename_without_ext) > 36:
+                                        # Extract UUID (last 36 characters)
+                                        uuid_from_filename = filename_without_ext[-36:]
+                                        # Extract report name (everything before the last dash and UUID)
+                                        report_name = filename_without_ext[:-37]  # Remove -uuid
+                                        
+                                        # Use report name as ticker for display
+                                        ticker = report_name if report_name else "UNKNOWN"
+                                    else:
+                                        # Fallback for old format or short names
+                                        uuid_from_filename = filename_without_ext
+                                        ticker = "UNKNOWN"
+                                    
+                                    # Check for duplicates by UUID
+                                    if uuid_from_filename in seen_uuids:
+                                        continue
+                                    seen_uuids.add(uuid_from_filename)
+                                    
+                                    # Get file metadata (last modified time)
+                                    last_modified = obj.get('LastModified', datetime.utcnow())
+                                    
+                                    # Use last modified date as the report date
+                                    date = last_modified.strftime("%Y-%m-%d") if hasattr(last_modified, 'strftime') else "Unknown"
+                                    
+                                    reports.append({
+                                        "id": uuid_from_filename,
+                                        "ticker": ticker,
+                                        "date": date,
+                                        "created_at": last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified),
+                                        "report_type": report_type,
+                                        "uuid": uuid_from_filename,
+                                        "file_path": obj['Key'],
+                                        "report_name": ticker
+                                    })
                         except Exception as e:
                             print(f"Error reading object {obj['Key']}: {e}")
                             continue
@@ -347,15 +361,30 @@ async def get_pdf_from_minio(
         }
         folder_name = folder_map.get(report_type, "Daily")
         
-        # Construct file path
-        if report_type == "market":
-            file_path = f"{folder_name}/{date}/{uuid}.pdf"
-        else:
-            file_path = f"{folder_name}/{ticker}/{date}/{uuid}.pdf"
-        
-        # Get PDF from MinIO
+        # New structure: {folder}/{report-name}-{uuid}.pdf
+        # We need to search for the file with this UUID
         client = get_minio_client()
+        
         try:
+            # List all files in the folder
+            prefix = f"{folder_name}/"
+            response = client.list_objects_v2(Bucket=MINIO_BUCKET, Prefix=prefix)
+            
+            file_path = None
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    # Check if this file contains the UUID
+                    if uuid in obj['Key']:
+                        file_path = obj['Key']
+                        break
+            
+            if not file_path:
+                raise HTTPException(
+                    status_code=404,
+                    detail="PDF not found"
+                )
+            
+            # Get PDF from MinIO
             obj_response = client.get_object(Bucket=MINIO_BUCKET, Key=file_path)
             pdf_content = obj_response['Body'].read()
             
