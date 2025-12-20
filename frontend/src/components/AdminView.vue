@@ -345,6 +345,67 @@
       </div>
 
       <div v-else class="admin-content">
+        <!-- Upload Report Section -->
+        <div class="upload-section">
+          <h3>Upload New Report</h3>
+          <div class="upload-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Report Title *</label>
+                <input
+                  v-model="uploadReportTitle"
+                  type="text"
+                  placeholder="e.g., Gold Market Analysis"
+                  class="form-input"
+                />
+              </div>
+              <div class="form-group">
+                <label>Ticker</label>
+                <input
+                  v-model="uploadReportTicker"
+                  type="text"
+                  placeholder="e.g., GLD (optional)"
+                  class="form-input"
+                />
+              </div>
+              <div class="form-group">
+                <label>Report Type *</label>
+                <select v-model="uploadReportType" class="form-input">
+                  <option value="">Select Type</option>
+                  <option value="daily">Daily</option>
+                  <option value="long">Long Position</option>
+                  <option value="short">Short Position</option>
+                  <option value="market">Market</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group file-upload-group">
+                <label>PDF File *</label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  @change="handleFileSelect"
+                  class="file-input"
+                  ref="fileInput"
+                />
+                <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+              </div>
+              <div class="form-group upload-button-group">
+                <button
+                  @click="uploadReport"
+                  :disabled="!canUpload || uploadingReport"
+                  class="upload-button"
+                >
+                  {{ uploadingReport ? 'Uploading...' : 'Upload Report' }}
+                </button>
+              </div>
+            </div>
+            <div v-if="uploadError" class="error-message">{{ uploadError }}</div>
+            <div v-if="uploadSuccess" class="success-message">{{ uploadSuccess }}</div>
+          </div>
+        </div>
+
         <div class="filters-section">
           <input
             v-model="reportSearchQuery"
@@ -531,6 +592,20 @@ const reportTypeFilter = ref('')
 const deletingReportId = ref(null)
 const reportToDelete = ref(null)
 const showDeleteReportConfirm = ref(false)
+
+// Upload Report State
+const uploadReportTitle = ref('')
+const uploadReportTicker = ref('')
+const uploadReportType = ref('')
+const selectedFile = ref(null)
+const uploadingReport = ref(false)
+const uploadError = ref('')
+const uploadSuccess = ref('')
+const fileInput = ref(null)
+
+const canUpload = computed(() => {
+  return uploadReportTitle.value.trim() && uploadReportType.value && selectedFile.value
+})
 
 // Health Management State
 const checkingHealth = ref(false)
@@ -925,6 +1000,77 @@ const deleteReport = async () => {
   } finally {
     deletingReportId.value = null
     setTimeout(() => { message.value = '' }, 3000)
+  }
+}
+
+// Upload Report Functions
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file && file.type === 'application/pdf') {
+    selectedFile.value = file
+    uploadError.value = ''
+  } else {
+    selectedFile.value = null
+    uploadError.value = 'Please select a valid PDF file'
+  }
+}
+
+const uploadReport = async () => {
+  if (!canUpload.value) return
+  
+  uploadingReport.value = true
+  uploadError.value = ''
+  uploadSuccess.value = ''
+  
+  try {
+    const formData = new FormData()
+    formData.append('pdf_file', selectedFile.value)
+    formData.append('report_name', uploadReportTitle.value.trim())
+    formData.append('ticker', uploadReportTicker.value.trim() || 'GENERAL')
+    formData.append('report_type', uploadReportType.value)
+    
+    const token = localStorage.getItem('access_token')
+    const API_BASE_URL = window.location.hostname.includes('railway.app') 
+      ? 'https://beaver-research-backend-production.up.railway.app'
+      : 'http://localhost:8000'
+    
+    const response = await fetch(`${API_BASE_URL}/api/reports/publish`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to upload report')
+    }
+    
+    const result = await response.json()
+    uploadSuccess.value = `Report "${uploadReportTitle.value}" uploaded successfully!`
+    
+    // Reset form
+    uploadReportTitle.value = ''
+    uploadReportTicker.value = ''
+    uploadReportType.value = ''
+    selectedFile.value = null
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+    
+    // Reload reports
+    await loadReports()
+    
+    // Clear success message after 5 seconds
+    setTimeout(() => {
+      uploadSuccess.value = ''
+    }, 5000)
+  } catch (err) {
+    console.error('Error uploading report:', err)
+    uploadError.value = err.message || 'Failed to upload report'
+  } finally {
+    uploadingReport.value = false
   }
 }
 
@@ -1359,6 +1505,117 @@ onMounted(() => {
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Upload Section */
+.upload-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f5f9ff;
+  border: 2px solid #3498db;
+  border-radius: 8px;
+}
+
+.upload-section h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
+.form-input {
+  padding: 0.75rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.file-upload-group {
+  flex: 2;
+}
+
+.file-input {
+  padding: 0.5rem;
+  border: 2px dashed #3498db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.file-name {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #e8f4f8;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.upload-button-group {
+  display: flex;
+  align-items: flex-end;
+}
+
+.upload-button {
+  padding: 0.75rem 2rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.upload-button:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.upload-button:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.success-message {
+  padding: 0.75rem;
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  margin-top: 0.5rem;
 }
 
 /* Filters */
