@@ -31,45 +31,64 @@ const refreshData = async () => {
 </script>
 
 <style scoped>
+/* Page Layout - AlphaTrade Style */
 .dashboard {
-  padding: 20px;
+  font-family: 'Inter', sans-serif;
   max-width: 1600px;
   margin: 0 auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  min-height: 100vh;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 2rem;
+  border-bottom: 3px solid #000;
+  padding-bottom: 1rem;
 }
 
 .page-header h1 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .update-btn {
-  padding: 0.5rem 1.5rem;
-  background-color: #42b983;
+  padding: 0.75rem 1.5rem;
+  background-color: #000000;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.2s;
+  font-size: 0.875rem;
+}
+
+.update-btn:hover {
+  background-color: #333333;
 }
 
 .update-btn:disabled {
-  background-color: #a8d5c2;
+  background-color: #cccccc;
   cursor: not-allowed;
 }
 
 .loading {
   text-align: center;
-  padding: 2rem;
-  color: #666;
-  font-size: 1.2rem;
+  padding: 3rem;
+  color: #666666;
+  font-style: italic;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 </style>

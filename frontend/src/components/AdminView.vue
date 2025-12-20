@@ -12,6 +12,12 @@
         @click="activeTab = 'users'"
       >
         User Management
+      </button>     
+      <button 
+        :class="{ active: activeTab === 'access' }"
+        @click="activeTab = 'access'; loadPermissions()"
+      >
+        Access Management
       </button>
       <button 
         :class="{ active: activeTab === 'reports' }"
@@ -30,12 +36,12 @@
         @click="activeTab = 'health'"
       >
         Health Management
-      </button>      
+      </button> 
       <button 
-        :class="{ active: activeTab === 'access' }"
-        @click="activeTab = 'access'; loadPermissions()"
+        :class="{ active: activeTab === 'database' }"
+        @click="activeTab = 'database'; loadTables()"
       >
-        Access Management
+        Database Management
       </button>
     </div>
 
@@ -400,6 +406,63 @@
       </div>
     </div>
 
+    <!-- Database Management Tab -->
+    <div v-if="activeTab === 'database'">
+      <div v-if="loadingTables" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading database tables...</p>
+      </div>
+
+      <div v-else-if="tablesError" class="error-container">
+        <p class="error-message">{{ tablesError }}</p>
+        <button @click="loadTables" class="retry-button">Retry</button>
+      </div>
+
+      <div v-else class="admin-content">
+        <div class="database-section">
+          <h2>Database Management</h2>
+          <p class="subtitle">Inspect database tables and data</p>
+          
+          <div class="table-selector">
+            <label>Select Table:</label>
+            <select v-model="selectedTable" @change="loadTableData">
+              <option value="" disabled>Select a table</option>
+              <option v-for="table in tables" :key="table" :value="table">{{ table }}</option>
+            </select>
+            <button @click="loadTableData" class="action-button verify" :disabled="!selectedTable || loadingTableData">
+              {{ loadingTableData ? 'Loading...' : 'Refresh Data' }}
+            </button>
+          </div>
+          
+          <div v-if="tableData" class="data-view">
+             <div class="table-info">
+               <span><strong>Total Rows:</strong> {{ tableData.total_count }}</span>
+               <span><strong>Showing:</strong> {{ tableData.rows.length }} rows</span>
+             </div>
+             
+             <div class="users-table-container db-table-container">
+               <table class="users-table">
+                 <thead>
+                   <tr>
+                     <th v-for="col in tableData.columns" :key="col">{{ col }}</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr v-for="(row, idx) in tableData.rows" :key="idx">
+                     <td v-for="col in tableData.columns" :key="col">{{ row[col] }}</td>
+                   </tr>
+                 </tbody>
+               </table>
+             </div>
+             
+             <div v-if="tableData.rows.length === 0" class="no-results">
+                <p>No data found in this table.</p>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="message" :class="['message', messageType]">
       {{ message }}
     </div>
@@ -484,6 +547,14 @@ const batchJobs = ref({
     error: null
   }
 })
+
+// Database Management State
+const tables = ref([])
+const loadingTables = ref(false)
+const tablesError = ref('')
+const selectedTable = ref('')
+const tableData = ref(null)
+const loadingTableData = ref(false)
 
 // Access Management State
 const permissions = ref([])
@@ -636,6 +707,52 @@ const togglePaymentStatus = async (user) => {
     }, 5000)
   } finally {
     updatingUserId.value = null
+  }
+}
+
+
+
+const loadTables = async () => {
+  loadingTables.value = true
+  tablesError.value = ''
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch('http://localhost:8000/api/admin/db/tables', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    if (!response.ok) throw new Error('Failed to load tables')
+    tables.value = await response.json()
+  } catch (err) {
+    console.error('Error loading tables:', err)
+    tablesError.value = 'Failed to load tables'
+  } finally {
+    loadingTables.value = false
+  }
+}
+
+const loadTableData = async () => {
+  if (!selectedTable.value) return
+  
+  loadingTableData.value = true
+  tableData.value = null
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`http://localhost:8000/api/admin/db/table/${selectedTable.value}?limit=100`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    if (!response.ok) throw new Error('Failed to load table data')
+    tableData.value = await response.json()
+  } catch (err) {
+    console.error('Error loading table data:', err)
+    message.value = 'Failed to load table data'
+    messageType.value = 'error'
+    setTimeout(() => { message.value = '' }, 3000)
+  } finally {
+    loadingTableData.value = false
   }
 }
 
@@ -1189,365 +1306,230 @@ onMounted(() => {
   font-weight: 500;
   transition: all 0.2s;
   border-bottom: 3px solid transparent;
-}
-
-.category-tabs button.active {
-  color: #000000;
-  border-bottom-color: #3498db;
-  background: rgba(52, 152, 219, 0.1);
-  font-weight: 600;
+  white-space: nowrap;
 }
 
 .category-tabs button:hover {
-  color: #000000;
-  background: rgba(0, 0, 0, 0.05);
+  background: #ebebeb;
+  color: #000;
 }
 
-.admin-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.5rem;
+.category-tabs button.active {
+  background: #fff;
+  color: #000;
+  border-bottom-color: #000;
 }
 
-.subtitle {
-  color: #666666;
-  font-size: 1rem;
-}
-
-.loading-container,
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  gap: 1rem;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e5e5;
-  border-top-color: #000000;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.error-message {
-  color: #dc2626;
-  font-size: 1rem;
-}
-
-.retry-button {
-  padding: 0.5rem 1rem;
-  background: #000000;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.retry-button:hover {
-  background: #333333;
-}
-
+/* Content Sections */
 .admin-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  background: #fff;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .stats-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
-  background: #f5f5f5;
-  padding: 1.5rem;
-  border-radius: 8px;
-  text-align: center;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px; /* Sharper corners */
+  padding: 1.25rem;
+  background: #fafafa;
+  transition: box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.5rem;
+  color: #000;
+  margin-bottom: 0.25rem;
 }
 
 .stat-label {
-  color: #666666;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+/* Filters */
 .filters-section {
   display: flex;
   gap: 1rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  padding: 1rem;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
 }
 
-.search-input,
-.filter-select {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-  background: #ffffff;
-  color: #000000;
+.search-input, .filter-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #000;
 }
 
-.search-input {
-  flex: 1;
-  min-width: 250px;
-}
-
-.filter-select {
-  min-width: 150px;
-}
-
-.search-input:focus,
-.filter-select:focus {
+.search-input:focus, .filter-select:focus {
   outline: none;
-  border-color: #000000;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  border-color: #000;
 }
 
+/* Tables matching AlphaTrade lots-table */
 .users-table-container {
   overflow-x: auto;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
 }
 
 .users-table {
   width: 100%;
   border-collapse: collapse;
-  background: #ffffff;
-}
-
-.users-table thead {
-  background: #f5f5f5;
+  font-size: 0.875rem;
 }
 
 .users-table th {
-  padding: 1rem;
   text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.6875rem;
   font-weight: 600;
-  color: #000000;
-  border-bottom: 2px solid #e5e5e5;
-  font-size: 0.875rem;
+  color: #666;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e0e0e0;
+  background: #fafafa;
 }
 
 .users-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #e5e5e5;
-  color: #000000;
-  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
 }
 
 .user-row:hover {
-  background: #f9f9f9;
+  background: #f5f5f5;
 }
 
-.report-details {
-  color: #666666;
-  font-size: 0.9em;
-  margin: 0.5rem 0;
-}
-
+/* Badges */
 .role-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.role-admin {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.role-creator {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.role-contributor {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.role-user {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.role-daily,
-.role-long,
-.role-short,
-.role-market,
-.role-research {
-  background: #3498db;
-  color: #ffffff;
-}
+.role-admin { background: #000; color: #fff; }
+.role-creator { background: #e0e0e0; color: #000; }
+.role-user { background: #f5f5f5; color: #666; border: 1px solid #e0e0e0; }
 
 .payment-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
-.payment-badge.paid {
-  background: #d1fae5;
-  color: #065f46;
-}
+.payment-badge.paid { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.payment-badge.unpaid { color: #666; background: rgba(0, 0, 0, 0.05); }
 
-.payment-badge.unpaid {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.transaction-id {
-  font-family: monospace;
-  font-size: 0.75rem;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.payment-date,
-.created-date {
-  font-size: 0.75rem;
-  color: #666666;
-}
-
-.actions-cell {
-  white-space: nowrap;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
+/* Buttons */
 .action-button {
-  padding: 0.5rem 1rem;
+  padding: 0.375rem 0.75rem;
   border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
 }
 
 .action-button.verify {
-  background: #10b981;
-  color: #ffffff;
+  background: #fff;
+  border-color: #000;
+  color: #000;
 }
 
-.action-button.verify:hover:not(:disabled) {
-  background: #059669;
+.action-button.verify:hover {
+  background: #000;
+  color: #fff;
 }
 
 .action-button.unverify {
-  background: #ef4444;
-  color: #ffffff;
+  background: #fff;
+  border-color: #d0d0d0;
+  color: #666;
 }
 
-.action-button.unverify:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.action-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.action-button.unverify:hover {
+  border-color: #666;
+  color: #000;
 }
 
 .action-button.delete {
-  background: #dc2626;
-  color: #ffffff;
+  background: #fff;
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
-.action-button.delete:hover:not(:disabled) {
-  background: #b91c1c;
-}
-
-.no-results {
-  text-align: center;
-  padding: 3rem;
-  color: #666666;
-}
-
-.message {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-}
-
-.message.success {
-  background: #10b981;
-  color: #ffffff;
-}
-
-.message.error {
+.action-button.delete:hover {
   background: #ef4444;
-  color: #ffffff;
+  color: #fff;
 }
 
-.modal-overlay {
-  position: fixed;
+/* Switches for Access Control - sharper */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
+  background-color: #e0e0e0;
+  transition: .4s;
+  border-radius: 20px; /* Keep somewhat rounded for mechanic implication, but cleaner colors */
 }
 
-.modal-content {
-  background: #ffffff;
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.modal-content h2 {
-  margin: 0 0 1rem 0;
-  color: #000000;
-  font-size: 1.5rem;
-  font-weight: 700;
+input:checked + .slider {
+  background-color: #000; /* Black for active */
 }
 
-.modal-content p {
-  margin: 0.5rem 0;
-  color: #000000;
-  line-height: 1.5;
+input:checked + .slider:before {
+  transform: translateX(20px);
 }
 
 .modal-content strong {

@@ -6,7 +6,22 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from routers import internal, external, agent, energy, sec, bond, reports, auth, events, research, filing_13f, short_interest, alphatrade
+from routers import (
+    agent, 
+    energy, 
+    sec, 
+    bond, 
+    reports, 
+    internal, 
+    external, 
+    auth, 
+    events, 
+    research, 
+    filing_13f, 
+    short_interest,
+    alphatrade,
+    admin_db
+)
 from database import engine, SessionLocal
 import models
 import bcrypt
@@ -127,6 +142,7 @@ app.include_router(research.router, prefix="/api/research", tags=["Research"])
 app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filings"])
 app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
 app.include_router(alphatrade.router, prefix="/api/alphatrade", tags=["AlphaTrade"])
+app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 
 @app.get("/")
 def read_root():

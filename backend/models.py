@@ -32,23 +32,7 @@ class RolePermission(Base):
         UniqueConstraint('role', 'resource', name='uix_role_resource'),
     )
 
-class Event(Base):
-    __tablename__ = "events"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    ticker = Column(String, nullable=False, index=True)
-    date = Column(DateTime(timezone=True), nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text)
-    type = Column(String, nullable=False)  # positive, negative, neutral
-    category = Column(String, nullable=False)  # macro, micro, market, industry, product
-    is_forecast = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    # Relationship
-    user = relationship("User", backref="events")
 
 class Report(Base):
     __tablename__ = "reports"

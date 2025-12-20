@@ -56,42 +56,14 @@
       </div>
     </div>
 
-    <!-- Key Events Section -->
+    <!-- Key Events Section Removed -->
     <div class="events-card">
       <div class="events-header">
-        <h2>Key Logs</h2>
-        <div class="events-header-controls">
-          <!-- Creator Selector -->
-          <div v-if="activeTab === 'events'" class="creator-selector">
-            <label for="creator-select">View Events By:</label>
-            <select 
-              id="creator-select" 
-              v-model="selectedCreatorId" 
-              @change="onCreatorChange"
-              class="creator-select"
-            >
-              <option 
-                v-for="creator in creators" 
-                :key="creator.id" 
-                :value="creator.id"
-              >
-                {{ creator.username }} ({{ creator.role }})
-              </option>
-            </select>
-          </div>
-          <button v-if="activeTab === 'events' && isCreator" class="add-event-btn" @click="showAddEventForm = true">Add Event</button>
-        </div>
+        <h2>Company Data</h2>
       </div>
 
       <!-- Tab Selector -->
       <div class="tab-selector">
-        <button 
-          class="tab-btn" 
-          :class="{ active: activeTab === 'events' }"
-          @click="activeTab = 'events'"
-        >
-          Events
-        </button>
         <button 
           class="tab-btn" 
           :class="{ active: activeTab === 'company' }"
@@ -106,162 +78,6 @@
         >
           PolyMarket
         </button>
-      </div>
-
-      <!-- Events Tab Content -->
-      <div v-if="activeTab === 'events'" class="tab-content">
-        <div class="legend">
-          <div class="legend-item">
-            <span class="legend-dot positive"></span>
-            <span>Positive Event</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot negative"></span>
-            <span>Negative Event</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot neutral"></span>
-            <span>Neutral Event</span>
-          </div>
-        </div>
-
-        <!-- Event Filters -->
-        <div class="event-filters">
-        <div class="filter-section">
-          <span class="filter-label">Filter by type:</span>
-          <div class="filter-buttons">
-            <button 
-              class="filter-btn" 
-              :class="{ active: eventFilters.positive }"
-              @click="eventFilters.positive = !eventFilters.positive"
-            >
-              <span class="filter-dot positive"></span>
-              Positive
-            </button>
-            <button 
-              class="filter-btn" 
-              :class="{ active: eventFilters.negative }"
-              @click="eventFilters.negative = !eventFilters.negative"
-            >
-              <span class="filter-dot negative"></span>
-              Negative
-            </button>
-            <button 
-              class="filter-btn" 
-              :class="{ active: eventFilters.neutral }"
-              @click="eventFilters.neutral = !eventFilters.neutral"
-            >
-              <span class="filter-dot neutral"></span>
-              Neutral
-            </button>
-          </div>
-        </div>
-        <div class="filter-section">
-          <span class="filter-label">Filter by category:</span>
-          <div class="filter-buttons">
-            <button 
-              class="filter-btn category-btn" 
-              :class="{ active: categoryFilters.macro }"
-              @click="categoryFilters.macro = !categoryFilters.macro"
-            >
-              Macro
-            </button>
-            <button 
-              class="filter-btn category-btn" 
-              :class="{ active: categoryFilters.micro }"
-              @click="categoryFilters.micro = !categoryFilters.micro"
-            >
-              Micro
-            </button>
-            <button 
-              class="filter-btn category-btn" 
-              :class="{ active: categoryFilters.market }"
-              @click="categoryFilters.market = !categoryFilters.market"
-            >
-              Market
-            </button>
-            <button 
-              class="filter-btn category-btn" 
-              :class="{ active: categoryFilters.industry }"
-              @click="categoryFilters.industry = !categoryFilters.industry"
-            >
-              Industry
-            </button>
-            <button 
-              class="filter-btn category-btn" 
-              :class="{ active: categoryFilters.product }"
-              @click="categoryFilters.product = !categoryFilters.product"
-            >
-              Product
-            </button>
-          </div>
-        </div>
-        <div class="filter-section">
-          <span class="filter-label">Filter by status:</span>
-          <div class="filter-buttons">
-            <button 
-              class="filter-btn status-btn" 
-              :class="{ active: forecastFilters.actual }"
-              @click="forecastFilters.actual = !forecastFilters.actual"
-            >
-              Actual Events
-            </button>
-            <button 
-              class="filter-btn status-btn" 
-              :class="{ active: forecastFilters.forecast }"
-              @click="forecastFilters.forecast = !forecastFilters.forecast"
-            >
-              Forecast Events
-            </button>
-          </div>
-        </div>
-        <button 
-          class="filter-btn clear-all" 
-          @click="clearFilters"
-        >
-          Show All
-        </button>
-      </div>
-
-      <div class="events-list">
-        <div 
-          v-for="event in filteredEvents" 
-          :key="event.id" 
-          class="event-item"
-          :class="event.type"
-          @mouseenter="highlightEvent(event)"
-          @mouseleave="unhighlightEvent"
-        >
-          <span class="event-dot" :class="[event.type, { forecast: event.isForecast }]"></span>
-          <div class="event-content" :class="{ forecast: event.isForecast }">
-            <div class="event-header">
-              <h3 class="event-title">
-                {{ event.title }}
-                <span v-if="event.isForecast" class="forecast-badge">Forecast</span>
-              </h3>
-              <div class="event-header-right">
-                <span class="event-category-badge" :class="event.category">{{ getCategoryLabel(event.category) }}</span>
-                <button 
-                  v-if="isCreator && user && event.user_id === user.id" 
-                  @click="deleteEvent(event.id)"
-                  class="delete-event-btn"
-                  title="Delete event"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-            <p class="event-date">{{ formatDate(event.date) }}</p>
-            <p class="event-description">{{ event.description }}</p>
-          </div>
-        </div>
-        <div v-if="filteredEvents.length === 0 && events.length > 0" class="no-events">
-          <p>No events match the selected filters.</p>
-        </div>
-        <div v-if="events.length === 0" class="no-events">
-          <p>No events added yet. Click "Add Event" to create one.</p>
-        </div>
-      </div>
       </div>
 
       <!-- Company Basic Tab Content (Micro Economics) -->
@@ -1046,12 +862,7 @@ const releasesSortOrder = ref('desc')
 // Holders view
 const holdersView = ref('all')
 
-// Event filters - default: neutral selected, positive and negative deselected
-const eventFilters = ref({
-  positive: false,
-  negative: false,
-  neutral: true
-})
+
 
 // Category filters
 const categoryFilters = ref({
@@ -1062,20 +873,9 @@ const categoryFilters = ref({
   product: true
 })
 
-// Forecast filters
-const forecastFilters = ref({
-  actual: true,
-  forecast: true
-})
 
-const newEvent = ref({
-  date: '',
-  title: '',
-  description: '',
-  type: 'neutral',
-  category: 'market',
-  isForecast: false
-})
+
+// Events state removed
 
 const stockData = ref([]) // Populated with real data from API
 
@@ -1184,86 +984,6 @@ const chartData = computed(() => {
   
   const prices = dataToUse.map(d => d.price)
   
-  // Create event marker datasets
-  // For each event type, create an array where most values are null
-  // and only event dates have the price value
-  // Note: Forecast events are NOT shown on the chart, only actual events
-  const createEventDataset = (eventType, color) => {
-    const data = new Array(dataToUse.length).fill(null)
-    // Only include events that match type and category filters
-    // Exclude forecast events from chart
-    if (!eventFilters.value[eventType]) {
-      return data
-    }
-    
-    // Use filtered events (by selected creator) for chart
-    filteredEventsForChart.value.forEach(event => {
-      // Only show actual events on chart, skip forecast events
-      if (event.isForecast) {
-        return
-      }
-      
-      const matchesForecast = forecastFilters.value.actual
-      if (event.type === eventType && 
-          categoryFilters.value[event.category] && 
-          matchesForecast) {
-        // Parse event date - handle both string and Date object
-        let eventDate
-        if (typeof event.date === 'string') {
-          eventDate = new Date(event.date + 'T00:00:00')
-        } else {
-          eventDate = new Date(event.date)
-        }
-        eventDate.setHours(0, 0, 0, 0)
-        
-        // Find the closest trading day in filtered data
-        let closestIndex = -1
-        let minDiff = Infinity
-        
-        dataToUse.forEach((d, index) => {
-          // Handle both Date objects and date strings
-          let dDate
-          if (d.date instanceof Date) {
-            dDate = new Date(d.date)
-          } else {
-            dDate = new Date(d.date)
-          }
-          dDate.setHours(0, 0, 0, 0)
-          const diff = Math.abs(dDate.getTime() - eventDate.getTime())
-          // First try to find within 5 days
-          if (diff < minDiff && diff <= 5 * 24 * 60 * 60 * 1000) {
-            minDiff = diff
-            closestIndex = index
-          }
-        })
-        
-        // If no match found within 5 days, find the closest date overall
-        if (closestIndex === -1 && dataToUse.length > 0) {
-          minDiff = Infinity
-          dataToUse.forEach((d, index) => {
-            let dDate
-            if (d.date instanceof Date) {
-              dDate = new Date(d.date)
-            } else {
-              dDate = new Date(d.date)
-            }
-            dDate.setHours(0, 0, 0, 0)
-            const diff = Math.abs(dDate.getTime() - eventDate.getTime())
-            if (diff < minDiff) {
-              minDiff = diff
-              closestIndex = index
-            }
-          })
-        }
-        
-        if (closestIndex !== -1 && closestIndex < dataToUse.length) {
-          data[closestIndex] = dataToUse[closestIndex].price
-        }
-      }
-    })
-    return data
-  }
-  
   const datasets = [
     {
       label: 'Stock Price',
@@ -1277,109 +997,11 @@ const chartData = computed(() => {
     }
   ]
   
-  // Add event marker datasets (only actual events, forecast events are not shown on chart)
-  const positiveData = createEventDataset('positive', '#42b983')
-  const negativeData = createEventDataset('negative', '#e74c3c')
-  const neutralData = createEventDataset('neutral', '#95a5a6')
-  
-  // Actual events only
-  if (positiveData.some(v => v !== null)) {
-    datasets.push({
-      label: 'Positive Events',
-      data: positiveData,
-      backgroundColor: '#42b983',
-      borderColor: '#42b983',
-      pointRadius: 6,
-      pointHoverRadius: 8,
-      showLine: false,
-      pointStyle: 'circle'
-    })
-  }
-  
-  if (negativeData.some(v => v !== null)) {
-    datasets.push({
-      label: 'Negative Events',
-      data: negativeData,
-      backgroundColor: '#e74c3c',
-      borderColor: '#e74c3c',
-      pointRadius: 6,
-      pointHoverRadius: 8,
-      showLine: false,
-      pointStyle: 'circle'
-    })
-  }
-  
-  if (neutralData.some(v => v !== null)) {
-    datasets.push({
-      label: 'Neutral Events',
-      data: neutralData,
-      backgroundColor: '#95a5a6',
-      borderColor: '#95a5a6',
-      pointRadius: 6,
-      pointHoverRadius: 8,
-      showLine: false,
-      pointStyle: 'circle'
-    })
-  }
-  
   return {
     labels,
     datasets
   }
 })
-
-const chartOptions = computed(() => {
-  const dataToUse = filteredStockData.value
-  
-  // Create a mapping of event data points (only for filtered actual events, forecast events excluded)
-  const eventMap = new Map()
-  // Use filtered events (by selected creator) for chart
-  filteredEventsForChart.value.forEach(event => {
-    // Skip forecast events - they don't appear on chart
-    if (event.isForecast) {
-      return
-    }
-    
-    // Only include actual events that match type, category, and forecast filters
-    const matchesForecast = forecastFilters.value.actual
-    if (!eventFilters.value[event.type] || !categoryFilters.value[event.category] || !matchesForecast) {
-      return
-    }
-    
-    const eventDate = new Date(event.date + 'T00:00:00')
-    eventDate.setHours(0, 0, 0, 0)
-    
-    // Find the closest trading day in filtered data
-    let closestIndex = -1
-    let minDiff = Infinity
-    
-    dataToUse.forEach((d, index) => {
-      const dDate = new Date(d.date)
-      dDate.setHours(0, 0, 0, 0)
-      const diff = Math.abs(dDate.getTime() - eventDate.getTime())
-      if (diff < minDiff && diff <= 5 * 24 * 60 * 60 * 1000) { // Within 5 days
-        minDiff = diff
-        closestIndex = index
-      }
-    })
-    
-    // If no match found within 5 days, find the closest overall
-    if (closestIndex === -1 && dataToUse.length > 0) {
-      dataToUse.forEach((d, index) => {
-        const dDate = new Date(d.date)
-        dDate.setHours(0, 0, 0, 0)
-        const diff = Math.abs(dDate.getTime() - eventDate.getTime())
-        if (diff < minDiff) {
-          minDiff = diff
-          closestIndex = index
-        }
-      })
-    }
-    
-    if (closestIndex !== -1) {
-      eventMap.set(closestIndex, event)
-    }
-  })
 
   return {
     responsive: true,
@@ -1409,36 +1031,10 @@ const chartOptions = computed(() => {
           label: function(context) {
             if (context.datasetIndex === 0) {
               return `Price: $${context.parsed.y.toFixed(2)}`
-            } else {
-              // This is an event marker
-              const dataIndex = context.dataIndex
-              const event = eventMap.get(dataIndex)
-              if (event) {
-                return [
-                  event.title,
-                  formatDate(event.date),
-                  event.description
-                ]
-              }
             }
             return null
           },
           labelColor: function(context) {
-            if (context.datasetIndex > 0) {
-              const dataIndex = context.dataIndex
-              const event = eventMap.get(dataIndex)
-              if (event) {
-                const colors = {
-                  positive: '#42b983',
-                  negative: '#e74c3c',
-                  neutral: '#95a5a6'
-                }
-                return {
-                  borderColor: colors[event.type] || '#95a5a6',
-                  backgroundColor: colors[event.type] || '#95a5a6'
-                }
-              }
-            }
             return {
               borderColor: '#3498db',
               backgroundColor: '#3498db'
@@ -1479,82 +1075,7 @@ const chartOptions = computed(() => {
   }
 })
 
-// Function to check if an event should be converted from forecast to actual
-const updateForecastEvents = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  let hasChanges = false
-  
-  events.value.forEach(event => {
-    if (event.isForecast) {
-      const eventDate = new Date(event.date)
-      eventDate.setHours(0, 0, 0, 0)
-      
-      // If current date has passed the event date, convert to actual
-      if (today >= eventDate) {
-        event.isForecast = false
-        hasChanges = true
-      }
-    }
-  })
-  
-  return hasChanges
-}
 
-// Watch for date changes and update forecast events
-const checkForecastEvents = () => {
-  const changed = updateForecastEvents()
-  if (changed) {
-    // Force reactivity update
-    events.value = [...events.value]
-  }
-}
-
-// Check forecast events periodically (every minute)
-let forecastCheckInterval = null
-
-const sortedEvents = computed(() => {
-  return [...events.value].sort((a, b) => new Date(a.date) - new Date(b.date))
-})
-
-const filteredEvents = computed(() => {
-  return sortedEvents.value.filter(event => {
-    const matchesType = eventFilters.value[event.type]
-    const matchesCategory = categoryFilters.value[event.category]
-    const matchesForecast = event.isForecast ? forecastFilters.value.forecast : forecastFilters.value.actual
-    return matchesType && matchesCategory && matchesForecast
-  })
-})
-
-const clearFilters = () => {
-  eventFilters.value = {
-    positive: false,
-    negative: false,
-    neutral: true
-  }
-  categoryFilters.value = {
-    macro: true,
-    micro: true,
-    market: true,
-    industry: true,
-    product: true
-  }
-  forecastFilters.value = {
-    actual: true,
-    forecast: true
-  }
-}
-
-const getCategoryLabel = (category) => {
-  const labels = {
-    macro: 'Macro',
-    micro: 'Micro',
-    market: 'Market',
-    industry: 'Industry',
-    product: 'Product'
-  }
-  return labels[category] || category
-}
 
 const maxDate = computed(() => {
   return new Date().toISOString().split('T')[0]
@@ -1705,15 +1226,13 @@ watch(selectedStock, (newStock, oldStock) => {
     todayChangePercent.value = 0
     referenceDate.value = ''
     stockData.value = []
-    events.value = []
+
     companyData.value = null
     return
   }
   
   // Fetch events for the new ticker
-  if (selectedStock.value) {
-    fetchEvents()
-  }
+// Events logic removed
   
   // Always fetch company data if on company tab when stock changes
   // This ensures Key Logs (Company Basic) always uses the same ticker as Stock Price Timeline
@@ -1849,226 +1368,7 @@ const renderMarkdown = (text) => {
   return marked(text)
 }
 
-// Fetch creators from API
-const fetchCreators = async () => {
-  loadingCreators.value = true
-  try {
-    const response = await fetch('http://localhost:8000/api/auth/creators')
-    if (response.ok) {
-      creators.value = await response.json()
-      // Set the first creator as default selection
-      if (creators.value.length > 0 && selectedCreatorId.value === null) {
-        selectedCreatorId.value = creators.value[0].id
-        // Fetch events for the default creator only if a stock is selected
-        if (selectedStock.value) {
-          fetchEvents()
-        }
-      }
-    } else {
-      console.error('Failed to fetch creators:', response.statusText)
-    }
-  } catch (err) {
-    console.error('Error fetching creators:', err)
-  } finally {
-    loadingCreators.value = false
-  }
-}
 
-// Fetch events from API
-const fetchEvents = async () => {
-  if (!selectedStock.value) return
-  
-  loadingEvents.value = true
-  try {
-    const token = localStorage.getItem('access_token')
-    const headers = {
-      'Content-Type': 'application/json'
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-    
-    // Build query string with ticker and creator_id (required)
-    let url = `http://localhost:8000/api/events/?ticker=${selectedStock.value}`
-    if (selectedCreatorId.value !== null) {
-      url += `&creator_id=${selectedCreatorId.value}`
-    } else {
-      // If no creator selected, don't fetch events
-      loadingEvents.value = false
-      events.value = []
-      return
-    }
-    
-    const response = await fetch(url, {
-      headers
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      // Convert API response to frontend format
-      events.value = data.map(event => ({
-        id: event.id,
-        user_id: event.user_id, // Store user_id for filtering
-        date: event.date.split('T')[0], // Extract date part
-        title: event.title,
-        description: event.description || '',
-        type: event.type,
-        category: event.category,
-        isForecast: event.is_forecast
-      }))
-    } else {
-      console.error('Failed to fetch events:', response.statusText)
-    }
-  } catch (err) {
-    console.error('Error fetching events:', err)
-  } finally {
-    loadingEvents.value = false
-  }
-}
-
-// Handle creator selection change
-const onCreatorChange = () => {
-  fetchEvents()
-}
-
-// Delete event function
-const deleteEvent = async (eventId) => {
-  if (!confirm('Are you sure you want to delete this event?')) {
-    return
-  }
-  
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    alert('Please login to delete events')
-    return
-  }
-  
-  try {
-    const response = await fetch(`http://localhost:8000/api/events/${eventId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    
-    if (response.ok || response.status === 204) {
-      // Remove event from local list
-      events.value = events.value.filter(event => event.id !== eventId)
-      // Force reactivity update
-      events.value = [...events.value]
-      // Update chart to reflect the deletion
-      updateChart()
-      alert('Event deleted successfully')
-    } else {
-      const errorData = await response.json().catch(() => ({ detail: 'Failed to delete event' }))
-      alert(`Failed to delete event: ${errorData.detail || 'Unknown error'}`)
-    }
-  } catch (err) {
-    console.error('Error deleting event:', err)
-    alert('Error deleting event. Please try again.')
-  }
-}
-
-const addEvent = async () => {
-  if (!newEvent.value.date || !newEvent.value.title || !newEvent.value.description) {
-    alert('Please fill in all required fields')
-    return
-  }
-  
-  // Validate ticker is selected
-  if (!selectedStock.value || !selectedStock.value.trim()) {
-    alert('Please select a stock ticker before adding an event')
-    return
-  }
-  
-  if (!isCreator.value) {
-    alert('Only creators can add events')
-    return
-  }
-  
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    alert('Please login to add events')
-    return
-  }
-  
-  try {
-    const response = await fetch('http://localhost:8000/api/events/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        ticker: selectedStock.value.toUpperCase().trim(),
-        date: newEvent.value.date,
-        title: newEvent.value.title,
-        description: newEvent.value.description,
-        type: newEvent.value.type,
-        category: newEvent.value.category,
-        is_forecast: newEvent.value.isForecast || false
-      })
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      // Add new event to list with user_id from current user
-      const newEventData = {
-        id: data.id,
-        user_id: data.user_id || user.value?.id,
-        date: data.date.split('T')[0],
-        title: data.title,
-        description: data.description || '',
-        type: data.type,
-        category: data.category,
-        isForecast: data.is_forecast
-      }
-      
-      events.value.push(newEventData)
-      
-      // Force reactivity update
-      events.value = [...events.value]
-      
-      // Reset form
-      newEvent.value = {
-        date: '',
-        title: '',
-        description: '',
-        type: 'neutral',
-        category: 'market',
-        isForecast: false
-      }
-      
-      showAddEventForm.value = false
-    } else {
-      const errorData = await response.json()
-      alert(errorData.detail || 'Failed to create event')
-    }
-  } catch (err) {
-    console.error('Error creating event:', err)
-    alert('Error creating event. Please try again.')
-  }
-}
-
-const closeAddEventForm = () => {
-  showAddEventForm.value = false
-  newEvent.value = {
-    date: '',
-    title: '',
-    description: '',
-    type: 'neutral',
-    category: 'market',
-    isForecast: false
-  }
-}
-
-const highlightEvent = (event) => {
-  highlightedEventId.value = event.id
-}
-
-const unhighlightEvent = () => {
-  highlightedEventId.value = null
-}
 
 // Micro Economics functions
 const calculateRevenueGrowth = () => {
@@ -3283,14 +2583,8 @@ onMounted(() => {
   fetchCreators()
   // Initial check for forecast events (only if stock is selected)
   if (selectedStock.value) {
-    checkForecastEvents()
-  }
-  // Set up periodic check (every minute)
-  forecastCheckInterval = setInterval(() => {
-    if (selectedStock.value) {
-      checkForecastEvents()
-    }
-  }, 60000) // Check every minute
+
+
   
   // Only load data if a stock is selected
   if (selectedStock.value) {
@@ -3316,32 +2610,38 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Page Layout - AlphaTrade Style */
 .timeline-view {
-  padding: 20px 20px 20px 0;
-  max-width: 1800px;
+  font-family: 'Inter', sans-serif;
+  max-width: 1600px;
   margin: 0 auto;
-  background: #ffffff;
-  min-height: 100vh;
+  padding: 2rem;
+  background-color: #ffffff;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 30px;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  border-bottom: 3px solid #000;
+  padding-bottom: 1rem;
 }
 
 .page-header h1 {
-  margin: 0 0 5px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
   color: #000000;
-  font-size: 2em;
-  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .subtitle {
   color: #666666;
   margin: 0;
-  font-size: 0.95em;
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 .price-info {
@@ -3351,179 +2651,219 @@ onUnmounted(() => {
 .current-price-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 5px;
+  gap: 1rem;
   justify-content: flex-end;
 }
 
 .current-price {
-  font-size: 2em;
-  font-weight: bold;
+  font-size: 2.5rem;
+  font-weight: 700;
   color: #000000;
+  line-height: 1;
 }
 
 .today-change {
-  font-size: 1.2em;
+  font-size: 1.125rem;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
 
 .today-change.positive {
-  color: #42b983;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .today-change.negative {
-  color: #e74c3c;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .price-change {
-  font-size: 1em;
+  font-size: 0.875rem;
+  color: #666666;
+  margin-top: 0.5rem;
   font-weight: 500;
 }
 
-.price-change.positive {
-  color: #42b983;
-}
-
-.price-change.negative {
-  color: #e74c3c;
-}
-
+/* Stock Selector */
 .stock-selector {
-  margin-bottom: 20px;
   display: flex;
+  gap: 1rem;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  background: #fafafa;
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
 }
 
 .stock-selector label {
+  font-weight: 600;
   color: #000000;
-  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
 }
 
 .stock-selector input {
-  flex: 1;
-  min-width: 200px;
-  padding: 10px 15px;
-  background: #ffffff;
+  padding: 0.75rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 300px;
+  font-weight: 500;
   color: #000000;
-  border: 1px solid #cccccc;
-  border-radius: 6px;
-  font-size: 1em;
 }
 
 .stock-selector input:focus {
   outline: none;
-  border-color: #3498db;
-}
-
-.stock-selector input::placeholder {
-  color: #999999;
+  border-color: #000000;
 }
 
 .stock-selector button {
-  padding: 10px 20px;
-  background: #3498db;
+  padding: 0.75rem 1.5rem;
+  background-color: #000000;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 1em;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.2s;
 }
 
-.stock-selector button:hover:not(:disabled) {
-  background: #2980b9;
+.stock-selector button:hover {
+  background-color: #333333;
 }
 
 .stock-selector button:disabled {
-  opacity: 0.6;
+  background-color: #cccccc;
   cursor: not-allowed;
 }
 
-.loading-indicator {
-  color: #3498db;
-  font-size: 0.9em;
-  margin-left: 10px;
-}
-
-.stock-error {
-  color: #e74c3c;
-  font-size: 0.9em;
-  margin-left: 10px;
-  padding: 5px 10px;
-  background: rgba(231, 76, 60, 0.1);
-  border-radius: 4px;
-}
-
-.stock-selector select {
-  background: #2c3e50;
-  color: #fff;
-  border: 1px solid #34495e;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 1em;
-  cursor: pointer;
-}
-
-.stock-selector select:hover {
-  border-color: #42b983;
-}
-
+/* Chart Card */
 .chart-card {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .chart-header {
-  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .chart-header h2 {
-  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: #000000;
-  font-size: 1.3em;
-  font-weight: 600;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+/* Updated Timeframe Selector */
 .timeframe-selector {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 2px;
 }
 
 .timeframe-selector button {
-  padding: 6px 14px;
-  border: 1px solid #cccccc;
-  background: #ffffff;
-  color: #000000;
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: #666666;
   cursor: pointer;
-  font-size: 0.9em;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 2px;
   transition: all 0.2s;
 }
 
-.timeframe-selector button:hover {
-  border-color: #3498db;
-  background: #f0f8ff;
+.timeframe-selector button.active {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.timeframe-selector button.active {
-  border-color: #3498db;
-  background: #3498db;
-  color: #fff;
+/* Events Card */
+.events-card {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0; 
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.events-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.events-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tab Selector - AlphaTrade Style */
+.tab-selector {
+  display: flex;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 1.5rem;
+}
+
+.tab-btn {
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-btn:hover {
+  background: #ebebeb;
+  color: #000;
+}
+
+.tab-btn.active {
+  background: #fff;
+  color: #000;
+  border-bottom-color: #000;
+  margin-bottom: -1px; /* Overlap border */
+  border-left: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
+  border-top: 3px solid transparent; 
+}
+
+.tab-content {
+  padding: 2rem;
 }
 
 .chart-container {

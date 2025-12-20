@@ -90,21 +90,20 @@ onMounted(() => {
   width: 100%;
   position: relative;
   overflow: hidden;
+  background-color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  color: #000000;
 }
 
-/* Theme Colors */
+/* Theme Colors - Adjusted for light mode financial terminal look */
 .research-view.company-mode {
-  --accent-color: #f59e0b; /* Amber-500 */
-  --accent-glow: rgba(245, 158, 11, 0.3);
+  --accent-color: #000000;
+  --accent-glow: rgba(0, 0, 0, 0.1);
 }
 
 .research-view.market-mode {
-  --accent-color: #22d3ee; /* Cyan-400 */
-  --accent-glow: rgba(34, 211, 238, 0.3);
-}
-
-.research-view {
-  background: linear-gradient(135deg, #0c0a09 0%, #1c1917 100%); /* Stone-950/900 */
+  --accent-color: #3498db;
+  --accent-glow: rgba(52, 152, 219, 0.1);
 }
 
 .loading-container {
@@ -114,18 +113,21 @@ onMounted(() => {
   justify-content: center;
   min-height: 100vh;
   gap: 1rem;
+  background: #ffffff;
 }
 
 .loading-container p {
-  color: #a8a29e;
-  font-size: 1rem;
+  color: #666666;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #f59e0b;
+  border: 3px solid #f0f0f0;
+  border-top-color: #000000;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
