@@ -1,3 +1,5 @@
-// Global API Base URL Configuration
-// This will be used by all components
-window.API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Runtime API configuration
+// This file is replaced at runtime with the actual backend URL
+window.API_CONFIG = {
+    baseURL: import.meta.env.VITE_API_URL || window.location.origin.replace('frontend', 'backend').replace(':5173', ':8000')
+}
