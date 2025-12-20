@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -7,6 +8,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     define: {
       // Replace process.env with import.meta.env for Vite
       'process.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'http://localhost:8000'),
