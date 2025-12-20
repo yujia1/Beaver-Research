@@ -62,7 +62,7 @@ const handleLogin = async () => {
   error.value = null
   
   try {
-    const response = await fetch('${API_BASE_URL}/api/auth/login', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ const handleLogin = async () => {
     
     // Fetch user info to get role
     try {
-      const userResponse = await fetch('${API_BASE_URL}/api/auth/me', {
+      const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${data.access_token}`
         }

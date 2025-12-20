@@ -1128,16 +1128,16 @@ const fetchShortInterestData = async (page = null) => {
     let endpoint = '';
     switch (activeShortInterestCategory.value) {
       case 'most-shorted':
-        endpoint = '${API_BASE_URL}/api/short-interest/most-shorted';
+        endpoint = `${API_BASE_URL}/api/short-interest/most-shorted`;
         break;
       case 'largest-increase':
-        endpoint = '${API_BASE_URL}/api/short-interest/largest-increase';
+        endpoint = `${API_BASE_URL}/api/short-interest/largest-increase`;
         break;
       case 'largest-decrease':
-        endpoint = '${API_BASE_URL}/api/short-interest/largest-decrease';
+        endpoint = `${API_BASE_URL}/api/short-interest/largest-decrease`;
         break;
       default:
-        endpoint = '${API_BASE_URL}/api/short-interest/most-shorted';
+        endpoint = `${API_BASE_URL}/api/short-interest/most-shorted`;
     }
 
     // Add page parameter if specified
@@ -2084,7 +2084,7 @@ const fetchCryptoData = async () => {
   
   try {
     // Fetch data WITH history (like Bond/Economic tabs) - default timeframe is 'daily'
-    const response = await fetch('${API_BASE_URL}/api/internal/crypto/all?timeframe=daily');
+    const response = await fetch(`${API_BASE_URL}/api/internal/crypto/all?timeframe=daily`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[ERROR] Backend returned error:', response.status, errorText);

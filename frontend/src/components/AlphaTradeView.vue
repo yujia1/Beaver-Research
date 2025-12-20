@@ -201,7 +201,7 @@ const fetchStockPrices = async () => {
   loading.value = true
   try {
     const tickers = positions.value.map(p => p.ticker)
-    const response = await fetch('${API_BASE_URL}/api/alphatrade/stock-prices', {
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-prices`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -213,7 +213,7 @@ const checkPaymentStatus = async () => {
   }
   
   try {
-    const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/payment-status`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -289,16 +289,16 @@ const fetchReports = async () => {
         
         // Fetch reports from MinIO for each category
         const [dailyResponse, marketResponse, longResponse, shortResponse] = await Promise.all([
-            fetch('${API_BASE_URL}/api/reports/minio/daily', {
+            fetch(`${API_BASE_URL}/api/reports/minio/daily`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('${API_BASE_URL}/api/reports/minio/market', {
+            fetch(`${API_BASE_URL}/api/reports/minio/market`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('${API_BASE_URL}/api/reports/minio/long', {
+            fetch(`${API_BASE_URL}/api/reports/minio/long`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('${API_BASE_URL}/api/reports/minio/short', {
+            fetch(`${API_BASE_URL}/api/reports/minio/short`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
         ]);

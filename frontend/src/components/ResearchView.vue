@@ -47,7 +47,7 @@ const checkPaymentStatus = async () => {
   }
   
   try {
-    const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/payment-status`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

@@ -177,7 +177,7 @@ const fetchSummary = async () => {
       return
     }
 
-    const response = await fetch('${API_BASE_URL}/api/whale-watching/summary', {
+    const response = await fetch(`${API_BASE_URL}/api/whale-watching/summary`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

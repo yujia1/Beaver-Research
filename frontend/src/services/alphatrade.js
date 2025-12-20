@@ -1,5 +1,5 @@
 // AlphaTrade API Service
-const API_BASE = '${API_BASE_URL}/api/alphatrade'
+const API_BASE = `${API_BASE_URL}/api/alphatrade`
 
 export const alphaTradeAPI = {
     // Positions

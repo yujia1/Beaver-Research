@@ -1663,7 +1663,7 @@ const checkPaymentStatus = async () => {
   }
   
   try {
-    const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/payment-status`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1729,7 +1729,7 @@ const generateAnalysis = async () => {
   
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch('${API_BASE_URL}/api/agent/analyze_company', {
+    const response = await fetch(`${API_BASE_URL}/api/agent/analyze_company`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -2534,7 +2534,7 @@ const fetchUserInfo = async () => {
   }
   
   try {
-    const response = await fetch('${API_BASE_URL}/api/auth/me', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

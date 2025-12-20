@@ -291,8 +291,8 @@ const fetchData = async () => {
     
     try {
         const [genRes, conRes] = await Promise.all([
-            fetch('${API_BASE_URL}/api/energy/generation'),
-            fetch('${API_BASE_URL}/api/energy/consumption')
+            fetch(`${API_BASE_URL}/api/energy/generation`),
+            fetch(`${API_BASE_URL}/api/energy/consumption`)
         ]);
 
         if (!genRes.ok || !conRes.ok) throw new Error("Failed to fetch energy data");

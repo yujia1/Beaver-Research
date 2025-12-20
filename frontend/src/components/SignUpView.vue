@@ -151,7 +151,7 @@ const handleSignup = async () => {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
     
-    const response = await fetch('${API_BASE_URL}/api/auth/signup', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

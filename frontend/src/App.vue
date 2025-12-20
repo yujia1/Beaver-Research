@@ -101,7 +101,7 @@ const getUserInfo = async () => {
   }
   
   try {
-    const response = await fetch('${API_BASE_URL}/api/auth/me', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -128,7 +128,7 @@ const fetchPermissions = async () => {
     if (!token) return
 
     try {
-        const response = await fetch('${API_BASE_URL}/api/auth/my-permissions', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {

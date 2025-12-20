@@ -635,7 +635,7 @@ const loadUsers = async () => {
       return
     }
 
-    const response = await fetch('${API_BASE_URL}/api/auth/users', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/users`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -669,7 +669,7 @@ const togglePaymentStatus = async (user) => {
     const token = localStorage.getItem('access_token')
     const newStatus = !user.has_paid
 
-    const response = await fetch('${API_BASE_URL}/api/auth/update-payment-status', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/update-payment-status`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -720,7 +720,7 @@ const loadTables = async () => {
   
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch('${API_BASE_URL}/api/admin/db/tables', {
+    const response = await fetch(`${API_BASE_URL}/api/admin/db/tables`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     
@@ -856,7 +856,7 @@ const loadReports = async () => {
       return
     }
 
-    const response = await fetch('${API_BASE_URL}/api/reports/', {
+    const response = await fetch(`${API_BASE_URL}/api/reports/`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -941,7 +941,7 @@ const checkHealth = async () => {
 
     // Check backend API
     try {
-      const backendResponse = await fetch('${API_BASE_URL}/', {
+      const backendResponse = await fetch(`${API_BASE_URL}/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -959,7 +959,7 @@ const checkHealth = async () => {
 
     // Check database (via a simple API call)
     try {
-      const dbResponse = await fetch('${API_BASE_URL}/api/auth/users', {
+      const dbResponse = await fetch(`${API_BASE_URL}/api/auth/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -977,7 +977,7 @@ const checkHealth = async () => {
 
     // Check MinIO (via reports endpoint which uses MinIO)
     try {
-      const minioResponse = await fetch('${API_BASE_URL}/api/reports/', {
+      const minioResponse = await fetch(`${API_BASE_URL}/api/reports/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -1012,7 +1012,7 @@ const loadPermissions = async () => {
       return
     }
 
-    const response = await fetch('${API_BASE_URL}/api/auth/permissions', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/permissions`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1039,7 +1039,7 @@ const loadPermissions = async () => {
 const initializePermissions = async () => {
     try {
         const token = localStorage.getItem('access_token')
-        const response = await fetch('${API_BASE_URL}/api/auth/initialize-permissions', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/initialize-permissions`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -1068,7 +1068,7 @@ const getPermission = (role, resource) => {
 const updatePermission = async (role, resource, canAccess) => {
     try {
         const token = localStorage.getItem('access_token')
-        const response = await fetch('${API_BASE_URL}/api/auth/permissions', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/permissions`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,

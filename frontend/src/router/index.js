@@ -76,7 +76,7 @@ async function checkPermission(user, resource) {
 
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch('${API_BASE_URL}/api/auth/my-permissions', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -125,7 +125,7 @@ router.beforeEach(async (to, from, next) => {
       if (userStr) {
         user = JSON.parse(userStr)
       } else {
-        const response = await fetch('${API_BASE_URL}/api/auth/me', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {

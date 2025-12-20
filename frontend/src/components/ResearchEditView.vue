@@ -1293,7 +1293,7 @@ const confirmPublish = async () => {
     formData.append('report_type', selectedReportType.value)
     formData.append('report_name', reportName.value || 'Untitled Report')
     
-    const response = await fetch('${API_BASE_URL}/api/reports/publish', {
+    const response = await fetch(`${API_BASE_URL}/api/reports/publish`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
