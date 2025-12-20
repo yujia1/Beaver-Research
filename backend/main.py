@@ -71,7 +71,7 @@ def init_default_users():
                 "role": "admin"
             },
             {
-                "username": "yjia0405@gmail.com",
+                "username": "yjia0406@gmail.com",
                 "email": "yjia0406@gmail.com",
                 "password": "yjia0406",
                 "role": "creator"
