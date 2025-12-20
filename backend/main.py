@@ -65,15 +65,15 @@ def init_default_users():
     try:
         default_users = [
             {
-                "username": "admin@gmail.com",
-                "email": "admin@gmail.com",
-                "password": "admin123",
+                "username": "yjia0405@gmail.com",
+                "email": "yjia0405@gmail.com",
+                "password": "Itsucks2020.",
                 "role": "admin"
             },
             {
-                "username": "creator@gmail.com",
-                "email": "creator@gmail.com",
-                "password": "creator123",
+                "username": "yjia0405@gmail.com",
+                "email": "yjia0406@gmail.com",
+                "password": "yjia0406",
                 "role": "creator"
             },
             {

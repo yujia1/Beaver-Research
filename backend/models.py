@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Float, UniqueConstraint
+from sqlalchemy import Column, Integer, BigInteger, String, Text, DateTime, Boolean, ForeignKey, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -58,7 +58,7 @@ class Filing13F(Base):
     is_amended = Column(Boolean, default=False, nullable=False)
     minio_path = Column(String, nullable=True)  # Path to CSV in MinIO
     holdings_count = Column(Integer, nullable=True)
-    total_value = Column(Integer, nullable=True)  # Total value in USD (cents)
+    total_value = Column(BigInteger, nullable=True)  # Total value in USD
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
