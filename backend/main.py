@@ -159,6 +159,7 @@ origins = [
     "http://localhost:8080",
     "http://localhost:80",  # Docker frontend (nginx)
     "http://frontend:80",  # Docker internal network
+    "https://beaver-research-frontend-production.up.railway.app",  # Railway production frontend
 ]
 
 app.add_middleware(
