@@ -1,6 +1,6 @@
 <script setup>
-import API_BASE_URL from '@/config/api.js'
 
+import API_BASE_URL from '@/config/api.js'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { ref, computed, onMounted, watch } from 'vue'
 
