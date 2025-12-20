@@ -851,7 +851,7 @@ class MicroData(BaseModel):
 async def get_macro_data(timeframe: str = "monthly"):
     """
     Fetch macro economic data.
-    Includes 8 key indicators with historical data (Mocked for now).
+    Includes 8 key indicators with historical data.
     Timeframe options: daily, weekly, monthly, yearly
     """
     try:

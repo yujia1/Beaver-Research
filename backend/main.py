@@ -1,10 +1,38 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 import os
+import logging
+import json
+from datetime import datetime
+
+# Configure structured logging
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+        }
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_data)
+
+# Setup logging
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
+logger.info("Environment variables loaded")
 
 from routers import (
     agent, 
@@ -15,14 +43,13 @@ from routers import (
     internal, 
     external, 
     auth, 
-    events, 
     research, 
     filing_13f, 
     short_interest,
     alphatrade,
     admin_db
 )
-from database import engine, SessionLocal
+from database import engine, SessionLocal, check_db_connection
 import models
 import bcrypt
 from services.scheduler_13f import setup_13f_scheduler
@@ -109,7 +136,20 @@ init_default_users()
 # Setup 13F filing scheduler
 scheduler = setup_13f_scheduler()
 
-app = FastAPI(title="Financial Dashboard Agent")
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(
+    title="Financial Dashboard Agent",
+    description="Production-ready financial research platform",
+    version="1.0.0"
+)
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+logger.info("FastAPI application initialized")
 
 # CORS configuration
 origins = [
@@ -130,7 +170,6 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(events.router, prefix="/api/events", tags=["Events"])
 app.include_router(internal.router, prefix="/api/internal", tags=["Internal Data"])
 app.include_router(external.router, prefix="/api/external", tags=["External Data"])
 app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
@@ -147,3 +186,47 @@ app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Mana
 @app.get("/")
 def read_root():
     return {"message": "Financial Dashboard Agent API is running"}
+
+@app.get("/health")
+@limiter.limit("60/minute")
+async def health_check(request: Request):
+    """Comprehensive health check endpoint for monitoring"""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "beaver-research-api",
+        "version": "1.0.0"
+    }
+    
+    # Check database connectivity
+    try:
+        db_healthy = check_db_connection()
+        health_status["database"] = "healthy" if db_healthy else "unhealthy"
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        health_status["database"] = "unhealthy"
+        health_status["status"] = "degraded"
+    
+    # Check scheduler status
+    try:
+        health_status["scheduler"] = "running" if scheduler.running else "stopped"
+    except Exception as e:
+        logger.error(f"Scheduler health check failed: {e}")
+        health_status["scheduler"] = "unknown"
+    
+    # Return appropriate status code
+    status_code = 200 if health_status["status"] == "healthy" else 503
+    return JSONResponse(content=health_status, status_code=status_code)
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Kubernetes readiness probe endpoint"""
+    db_healthy = check_db_connection()
+    if db_healthy:
+        return {"status": "ready"}
+    return JSONResponse(content={"status": "not ready"}, status_code=503)
+
+@app.get("/health/live")
+async def liveness_check():
+    """Kubernetes liveness probe endpoint"""
+    return {"status": "alive"}

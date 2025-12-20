@@ -57,6 +57,10 @@ def get_openai_client():
 
 
 from services.research_engine import ResearchEngine, COMPANY_AGENTS, MARKET_AGENTS
+from routers.research_helpers import (
+    build_fundamental_agent_system_message,
+    build_fundamental_agent_interpretation_prompt
+)
 
 
 class InterpretRequest(BaseModel):

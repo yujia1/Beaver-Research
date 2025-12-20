@@ -21,3 +21,6 @@ py-clob-client
 boto3
 APScheduler
 lxml
+alembic
+slowapi
+

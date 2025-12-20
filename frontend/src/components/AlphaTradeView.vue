@@ -173,49 +173,7 @@ const fundamentalQuestions = [
   }
 ]
 
-// Mock data for development - will be replaced with API calls
-const mockPositions = [
-  {
-    ticker: 'AAPL',
-    companyName: 'Apple Inc.',
-    sector: 'TECHNOLOGY',
-    currentPrice: 185.92,
-    lots: [
-      {
-        id: 1,
-        purchaseDate: '2023-11-01',
-        quantity: 6,
-        costPerShare: 145.00,
-        note: 'Initial core entry',
-        link: 'https://example.com/trade1'
-      },
-      {
-        id: 2,
-        purchaseDate: '2023-11-20',
-        quantity: 4,
-        costPerShare: 161.40,
-        note: 'Adding on breakout',
-        link: ''
-      }
-    ]
-  },
-  {
-    ticker: 'NVDA',
-    companyName: 'NVIDIA Corporation',
-    sector: 'TECHNOLOGY',
-    currentPrice: 820.30,
-    lots: [
-      {
-        id: 3,
-        purchaseDate: '2023-10-15',
-        quantity: 15,
-        costPerShare: 450.00,
-        note: 'AI momentum play',
-        link: ''
-      }
-    ]
-  }
-]
+
 
 onMounted(() => {
   // Load positions from localStorage or API
@@ -225,7 +183,7 @@ onMounted(() => {
     // Fetch current prices for all positions
     fetchStockPrices()
   } else {
-    positions.value = mockPositions
+    // Start with empty positions - no mock data
     savePositions()
     fetchStockPrices()
   }

@@ -143,12 +143,7 @@ const activeCategory = ref('long');
 const reportContents = ref({});
 const loadingReportsById = ref({}); // Track loading state per report
 
-// Mock data removed - using only API data from MinIO
-const mockDailyReports = []
 
-const mockLongReports = []
-
-const mockShortReports = []
 
 // Categories for tabs
 const categories = [
@@ -160,12 +155,11 @@ const categories = [
 
 // Filtered reports by category
 const longReports = computed(() => {
-    // Combine API reports with mock data
     const apiLongReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase().includes('long')
     );
     // Sort by date, newest first
-    return [...mockLongReports, ...apiLongReports].sort((a, b) => {
+    return apiLongReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
         const dateB = new Date(b.created_at || b.date || b.timestamp || 0);
         return dateB - dateA;
@@ -173,12 +167,11 @@ const longReports = computed(() => {
 });
 
 const shortReports = computed(() => {
-    // Combine API reports with mock data
     const apiShortReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase().includes('short')
     );
     // Sort by date, newest first
-    return [...mockShortReports, ...apiShortReports].sort((a, b) => {
+    return apiShortReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
         const dateB = new Date(b.created_at || b.date || b.timestamp || 0);
         return dateB - dateA;
@@ -186,12 +179,11 @@ const shortReports = computed(() => {
 });
 
 const dailyReports = computed(() => {
-    // Combine API reports with mock data
     const apiDailyReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase().includes('daily')
     );
     // Sort by date, newest first
-    return [...mockDailyReports, ...apiDailyReports].sort((a, b) => {
+    return apiDailyReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
         const dateB = new Date(b.created_at || b.date || b.timestamp || 0);
         return dateB - dateA;

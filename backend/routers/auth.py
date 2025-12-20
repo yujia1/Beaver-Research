@@ -538,8 +538,11 @@ class PaymentVerificationRequest(BaseModel):
 @router.get("/payment-status")
 async def get_payment_status(current_user: models.User = Depends(get_current_user)):
     """Get current user's payment status"""
+    # Admins always have paid status
+    has_paid = True if current_user.role == "admin" else (current_user.has_paid if hasattr(current_user, 'has_paid') else False)
+    
     return {
-        "has_paid": current_user.has_paid if hasattr(current_user, 'has_paid') else False,
+        "has_paid": has_paid,
         "role": current_user.role,
         "payment_date": current_user.payment_date.isoformat() if hasattr(current_user, 'payment_date') and current_user.payment_date else None,
         "transaction_id": current_user.payment_transaction_id if hasattr(current_user, 'payment_transaction_id') else None
@@ -617,6 +620,9 @@ async def update_payment_status(
         user.payment_transaction_id = payment_data.transaction_id
     if payment_data.has_paid and not user.payment_date:
         user.payment_date = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(user)
     
     return {
         "message": "Payment status updated successfully",

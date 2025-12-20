@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: beaver-research
+  labels:
+    name: beaver-research
+    environment: production

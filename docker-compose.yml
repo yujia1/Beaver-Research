@@ -1,4 +1,24 @@
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: beaver_postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=beaver_research
+      - POSTGRES_USER=beaver_user
+      - POSTGRES_PASSWORD=beaver_password_change_in_production
+    restart: unless-stopped
+    networks:
+      - beaver_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U beaver_user -d beaver_research" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ./backend
     container_name: beaver_backend
@@ -6,28 +26,36 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - backend_db:/app/data  # Persist SQLite database
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=sqlite:////app/data/financial_agent.db
+      - DATABASE_URL=postgresql://beaver_user:beaver_password_change_in_production@postgres:5432/beaver_research
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=reports
       - MINIO_USE_SSL=false
     env_file:
-      - .env  # Load environment variables from .env file
+      - .env # Load environment variables from .env file
     depends_on:
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
     restart: unless-stopped
     networks:
       - beaver_network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
     build: ./frontend
     container_name: beaver_frontend
     ports:
-      - "5173:80"  # Changed from 80 to 5173 to match dev server port
+      - "5173:80" # Changed from 80 to 5173 to match dev server port
     depends_on:
       - backend
     restart: unless-stopped
@@ -38,8 +66,8 @@ services:
     image: minio/minio:latest
     container_name: beaver_minio
     ports:
-      - "9000:9000"  # MinIO API
-      - "9001:9001"  # MinIO Console
+      - "9000:9000" # MinIO API
+      - "9001:9001" # MinIO Console
     volumes:
       - minio_data:/data
     environment:
@@ -51,7 +79,7 @@ services:
       - beaver_network
 
 volumes:
-  backend_db:
+  postgres_data:
     driver: local
   minio_data:
     driver: local

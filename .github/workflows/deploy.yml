@@ -1,0 +1,119 @@
+name: CD - Deploy to Kubernetes
+
+on:
+  workflow_run:
+    workflows: ["CI - Build and Test"]
+    types:
+      - completed
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/frontend
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.yourdomain.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --name beaver-research-staging --region us-east-1
+    
+    - name: Deploy to Kubernetes
+      run: |
+        # Update image tags
+        kubectl set image deployment/backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:main-${{ github.sha }} -n beaver-research
+        kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:main-${{ github.sha }} -n beaver-research
+        
+        # Wait for rollout
+        kubectl rollout status deployment/backend -n beaver-research --timeout=5m
+        kubectl rollout status deployment/frontend -n beaver-research --timeout=5m
+    
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n beaver-research
+        kubectl get services -n beaver-research
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://yourdomain.com
+    needs: []  # Can add staging deployment as prerequisite
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --name beaver-research-production --region us-east-1
+    
+    - name: Create backup
+      run: |
+        # Backup current deployment
+        kubectl get deployment backend -n beaver-research -o yaml > backup-backend-$(date +%Y%m%d-%H%M%S).yaml
+        kubectl get deployment frontend -n beaver-research -o yaml > backup-frontend-$(date +%Y%m%d-%H%M%S).yaml
+    
+    - name: Deploy to Kubernetes
+      run: |
+        # Update image tags
+        kubectl set image deployment/backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:main-${{ github.sha }} -n beaver-research
+        kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:main-${{ github.sha }} -n beaver-research
+        
+        # Wait for rollout
+        kubectl rollout status deployment/backend -n beaver-research --timeout=10m
+        kubectl rollout status deployment/frontend -n beaver-research --timeout=10m
+    
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n beaver-research
+        kubectl get services -n beaver-research
+        
+        # Health check
+        BACKEND_URL=$(kubectl get ingress beaver-research-ingress -n beaver-research -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        curl -f https://${BACKEND_URL}/health || exit 1
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Deployment failed! Rolling back..."
+        kubectl rollout undo deployment/backend -n beaver-research
+        kubectl rollout undo deployment/frontend -n beaver-research

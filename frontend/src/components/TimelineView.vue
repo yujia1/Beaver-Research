@@ -52,7 +52,7 @@
         </div>
       </div>
       <div class="chart-container">
-        <Line :key="`chart-${events.length}-${selectedCreatorId}-${eventFilters.positive}-${eventFilters.negative}-${eventFilters.neutral}-${categoryFilters.macro}-${categoryFilters.micro}-${categoryFilters.market}-${categoryFilters.industry}-${categoryFilters.product}-${forecastFilters.actual}-${selectedTimePeriod}`" :data="chartData" :options="chartOptions" />
+        <Line :key="`chart-${events.length}-${selectedCreatorId}-${categoryFilters.macro}-${categoryFilters.micro}-${categoryFilters.market}-${categoryFilters.industry}-${categoryFilters.product}-${selectedTimePeriod}`" :data="chartData" :options="chartOptions" />
       </div>
     </div>
 
@@ -1003,6 +1003,8 @@ const chartData = computed(() => {
   }
 })
 
+
+const chartOptions = computed(() => {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -2579,13 +2581,7 @@ onMounted(() => {
     checkPaymentStatus()
   })
   
-  // Fetch creators list (will auto-select first creator, but won't fetch events until stock is selected)
-  fetchCreators()
-  // Initial check for forecast events (only if stock is selected)
-  if (selectedStock.value) {
 
-
-  
   // Only load data if a stock is selected
   if (selectedStock.value) {
     loadStockData()
@@ -2601,12 +2597,7 @@ watch(selectedTimePeriod, () => {
 })
 
 
-// Cleanup interval on unmount
-onUnmounted(() => {
-  if (forecastCheckInterval) {
-    clearInterval(forecastCheckInterval)
-  }
-})
+
 </script>
 
 <style scoped>

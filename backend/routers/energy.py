@@ -161,11 +161,13 @@ async def get_grid_status(timeframe: str = "realtime"):
                          })
              except Exception as e:
                  print(f"Error fetching FRED data: {e}")
-                 # Fallback to mock will happen if demand_data is empty
 
-        # If demand_data is empty (e.g. timeframe not supported by real fetch or fetch failed), fall back to mock logic
+        # If demand_data is empty, return error response
         if not demand_data:
-             return await get_mock_grid_status(timeframe)
+             raise HTTPException(
+                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                 detail=f"Unable to fetch grid data for timeframe: {timeframe}"
+             )
 
         return {
             "capacity": 35000, # NYISO approx capacity
@@ -175,47 +177,15 @@ async def get_grid_status(timeframe: str = "realtime"):
             "hourly_demand": demand_data
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error fetching grid status: {e}")
-        return await get_mock_grid_status(timeframe)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Grid status service unavailable: {str(e)}"
+        )
 
-async def get_mock_grid_status(timeframe):
-    today = datetime.datetime.now()
-    demand_data = []
-    
-    if timeframe == "realtime":
-        for i in range(24):
-            time_str = (today - datetime.timedelta(hours=24-i)).strftime("%H:00")
-            demand = 30000 + random.randint(-1000, 1000)
-            demand_data.append({"time": time_str, "demand": demand})
-            
-    elif timeframe == "days":
-        for i in range(30):
-            date_str = (today - datetime.timedelta(days=30-i)).strftime("%m-%d")
-            demand = 30000 + random.randint(-2000, 2000)
-            demand_data.append({"time": date_str, "demand": demand})
-            
-    elif timeframe == "monthly":
-        for i in range(12):
-            date_str = (today - datetime.timedelta(days=365-i*30)).strftime("%Y-%m")
-            demand = 30000 + random.randint(-3000, 3000)
-            demand_data.append({"time": date_str, "demand": demand})
-            
-    elif timeframe in ["yearly", "5y"]:
-        years = 5 if timeframe == "5y" else 1
-        points = 12 * years
-        for i in range(points):
-            date_str = (today - datetime.timedelta(days=365*years - i*30)).strftime("%Y-%m")
-            demand = 30000 + random.randint(-4000, 4000)
-            demand_data.append({"time": date_str, "demand": demand})
-
-    return {
-        "capacity": 55000,
-        "current_demand": 30000,
-        "outages": 120,
-        "reliability": 99.98,
-        "hourly_demand": demand_data
-    }
 
 @router.get("/prices")
 async def get_energy_prices(timeframe: str = "days"):
