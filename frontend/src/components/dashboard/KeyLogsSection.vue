@@ -906,6 +906,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, onMounted, computed, watch } from 'vue';
 import IndicesSection from './IndicesSection.vue';
 import BondMarketSection from './BondMarketSection.vue';
@@ -1126,16 +1128,16 @@ const fetchShortInterestData = async (page = null) => {
     let endpoint = '';
     switch (activeShortInterestCategory.value) {
       case 'most-shorted':
-        endpoint = 'http://localhost:8000/api/short-interest/most-shorted';
+        endpoint = '${API_BASE_URL}/api/short-interest/most-shorted';
         break;
       case 'largest-increase':
-        endpoint = 'http://localhost:8000/api/short-interest/largest-increase';
+        endpoint = '${API_BASE_URL}/api/short-interest/largest-increase';
         break;
       case 'largest-decrease':
-        endpoint = 'http://localhost:8000/api/short-interest/largest-decrease';
+        endpoint = '${API_BASE_URL}/api/short-interest/largest-decrease';
         break;
       default:
-        endpoint = 'http://localhost:8000/api/short-interest/most-shorted';
+        endpoint = '${API_BASE_URL}/api/short-interest/most-shorted';
     }
 
     // Add page parameter if specified
@@ -1773,7 +1775,7 @@ const fetchEconomicData = async () => {
   
   try {
     // Initial fetch of all data with default 'monthly' (1Y) timeframe
-    const response = await fetch(`http://localhost:8000/api/internal/macro?timeframe=monthly`);
+    const response = await fetch(`${API_BASE_URL}/api/internal/macro?timeframe=monthly`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -1816,7 +1818,7 @@ const fetchFedData = async () => {
   
   try {
     // Fetch macro data and filter for FedWatch Tool
-    const response = await fetch(`http://localhost:8000/api/internal/macro?timeframe=monthly`);
+    const response = await fetch(`${API_BASE_URL}/api/internal/macro?timeframe=monthly`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -1873,7 +1875,7 @@ const fetchCurrencyData = async () => {
     // Fetch currency series
     const currencySeries = ['DEXUSEU', 'DEXJPUS', 'DEXCHUS'];
     const promises = currencySeries.map(seriesId => 
-      fetch(`http://localhost:8000/api/internal/macro/series/${seriesId}?timeframe=monthly`)
+      fetch(`${API_BASE_URL}/api/internal/macro/series/${seriesId}?timeframe=monthly`)
         .then(res => res.json())
     );
     
@@ -1915,7 +1917,7 @@ const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
-    const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+    const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -1988,7 +1990,7 @@ const fetchCommodityData = async () => {
     for (const [category, seriesList] of Object.entries(commoditySeriesMap)) {
       allPromises[category] = Promise.all(
         seriesList.map(seriesId => 
-          fetch(`http://localhost:8000/api/internal/macro/series/${seriesId}?timeframe=monthly`)
+          fetch(`${API_BASE_URL}/api/internal/macro/series/${seriesId}?timeframe=monthly`)
             .then(res => res.json())
         )
       );
@@ -2035,7 +2037,7 @@ const updateCommodityIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
-    const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+    const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -2082,7 +2084,7 @@ const fetchCryptoData = async () => {
   
   try {
     // Fetch data WITH history (like Bond/Economic tabs) - default timeframe is 'daily'
-    const response = await fetch('http://localhost:8000/api/internal/crypto/all?timeframe=daily');
+    const response = await fetch('${API_BASE_URL}/api/internal/crypto/all?timeframe=daily');
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[ERROR] Backend returned error:', response.status, errorText);
@@ -2146,7 +2148,7 @@ const updateCryptoIndicatorTimeframe = async (item, timeframe) => {
   
   try {
     // Fetch history data from crypto endpoint (like Bond/Economic tabs)
-    const historyResponse = await fetch(`http://localhost:8000/api/internal/crypto/${item.series_id}/history?period=${timeframe}`);
+    const historyResponse = await fetch(`${API_BASE_URL}/api/internal/crypto/${item.series_id}/history?period=${timeframe}`);
     if (!historyResponse.ok) throw new Error('Failed to fetch crypto history');
     
     const historyData = await historyResponse.json();
@@ -2189,7 +2191,7 @@ const updateFedIndicatorTimeframe = async (item, timeframe) => {
     }
     
     try {
-        const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+        const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
         if (!response.ok) throw new Error('Failed to fetch data');
         const data = await response.json();
         
@@ -2228,7 +2230,7 @@ const updateIndicatorTimeframe = async (item, timeframe) => {
     }
 
     try {
-        const response = await fetch(`http://localhost:8000/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+        const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
         if (!response.ok) throw new Error('Failed to fetch series');
         const data = await response.json();
         

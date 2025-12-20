@@ -684,6 +684,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import {
@@ -1109,7 +1111,7 @@ const loadStockData = async () => {
     }
     const period = periodMap[selectedTimePeriod.value] || '2y'
     
-    const response = await fetch(`http://localhost:8000/api/internal/stock/${selectedStock.value.toUpperCase()}/history?period=${period}`)
+    const response = await fetch(`${API_BASE_URL}/api/internal/stock/${selectedStock.value.toUpperCase()}/history?period=${period}`)
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch stock data' }))
@@ -1168,7 +1170,7 @@ const fetchCompanyData = async () => {
   analysisReport.value = null
   
   try {
-    const response = await fetch(`http://localhost:8000/api/internal/micro/${selectedStock.value.toUpperCase()}`)
+    const response = await fetch(`${API_BASE_URL}/api/internal/micro/${selectedStock.value.toUpperCase()}`)
     if (!response.ok) throw new Error('Failed to fetch company data')
     companyData.value = await response.json()
     
@@ -1199,7 +1201,7 @@ const fetch10KChunks = async () => {
   tenKError.value = null
   
   try {
-    const response = await fetch(`http://localhost:8000/api/agent/10k/${selectedStock.value.toUpperCase()}`)
+    const response = await fetch(`${API_BASE_URL}/api/agent/10k/${selectedStock.value.toUpperCase()}`)
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch 10-K' }))
       throw new Error(errorData.detail || 'Failed to fetch 10-K')
@@ -1661,7 +1663,7 @@ const checkPaymentStatus = async () => {
   }
   
   try {
-    const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+    const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1727,7 +1729,7 @@ const generateAnalysis = async () => {
   
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch('http://localhost:8000/api/agent/analyze_company', {
+    const response = await fetch('${API_BASE_URL}/api/agent/analyze_company', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -2055,7 +2057,7 @@ const fetchPolyMarketData = async () => {
   polyMarketError.value = null
   
   try {
-    const response = await fetch(`http://localhost:8000/api/internal/polymarket/${selectedStock.value.toUpperCase()}`)
+    const response = await fetch(`${API_BASE_URL}/api/internal/polymarket/${selectedStock.value.toUpperCase()}`)
     if (!response.ok) {
       throw new Error('Failed to fetch PolyMarket data')
     }
@@ -2532,7 +2534,7 @@ const fetchUserInfo = async () => {
   }
   
   try {
-    const response = await fetch('http://localhost:8000/api/auth/me', {
+    const response = await fetch('${API_BASE_URL}/api/auth/me', {
       headers: {
         'Authorization': `Bearer ${token}`
       }

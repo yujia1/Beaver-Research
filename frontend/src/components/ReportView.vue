@@ -122,6 +122,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { marked } from 'marked';
 import { useRouter } from 'vue-router';
@@ -211,7 +213,7 @@ const checkPaymentStatus = async () => {
   }
   
   try {
-    const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+    const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -287,16 +289,16 @@ const fetchReports = async () => {
         
         // Fetch reports from MinIO for each category
         const [dailyResponse, marketResponse, longResponse, shortResponse] = await Promise.all([
-            fetch('http://localhost:8000/api/reports/minio/daily', {
+            fetch('${API_BASE_URL}/api/reports/minio/daily', {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('http://localhost:8000/api/reports/minio/market', {
+            fetch('${API_BASE_URL}/api/reports/minio/market', {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('http://localhost:8000/api/reports/minio/long', {
+            fetch('${API_BASE_URL}/api/reports/minio/long', {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('http://localhost:8000/api/reports/minio/short', {
+            fetch('${API_BASE_URL}/api/reports/minio/short', {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
         ]);
@@ -367,7 +369,7 @@ const getReportPdfUrl = (savedReportSummary) => {
     const encodedUuid = encodeURIComponent(uuid);
     const encodedReportType = encodeURIComponent(reportType);
     
-    return `http://localhost:8000/api/reports/minio/pdf/${encodedReportType}/${encodedTicker}/${encodedDate}/${encodedUuid}?token=${encodeURIComponent(token)}`;
+    return `${API_BASE_URL}/api/reports/minio/pdf/${encodedReportType}/${encodedTicker}/${encodedDate}/${encodedUuid}?token=${encodeURIComponent(token)}`;
 };
 
 const formatDate = (dateString) => {

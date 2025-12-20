@@ -17,6 +17,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, onMounted } from 'vue';
 import {
   Chart as ChartJS,
@@ -122,7 +124,7 @@ const fetchIndices = async () => {
     
     // Fetch fresh data if no cache
     try {
-        const response = await fetch('http://localhost:8000/api/internal/indices');
+        const response = await fetch('${API_BASE_URL}/api/internal/indices');
         if (!response.ok) throw new Error('Failed to fetch indices');
         const data = await response.json();
         indices.value = data;

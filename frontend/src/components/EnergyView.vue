@@ -81,6 +81,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, onMounted, computed } from 'vue';
 import {
   Chart as ChartJS,
@@ -241,7 +243,7 @@ const priceChartOptions = computed(() => ({
 
 const fetchGridData = async (timeframe) => {
     try {
-        const res = await fetch(`http://localhost:8000/api/energy/grid?timeframe=${timeframe}`);
+        const res = await fetch(`${API_BASE_URL}/api/energy/grid?timeframe=${timeframe}`);
         if (!res.ok) throw new Error("Failed to fetch grid data");
         gridData.value = await res.json();
     } catch (err) {
@@ -251,7 +253,7 @@ const fetchGridData = async (timeframe) => {
 
 const fetchPriceData = async (timeframe) => {
     try {
-        const res = await fetch(`http://localhost:8000/api/energy/prices?timeframe=${timeframe}`);
+        const res = await fetch(`${API_BASE_URL}/api/energy/prices?timeframe=${timeframe}`);
         if (!res.ok) throw new Error("Failed to fetch price data");
         prices.value = await res.json();
     } catch (err) {
@@ -289,8 +291,8 @@ const fetchData = async () => {
     
     try {
         const [genRes, conRes] = await Promise.all([
-            fetch('http://localhost:8000/api/energy/generation'),
-            fetch('http://localhost:8000/api/energy/consumption')
+            fetch('${API_BASE_URL}/api/energy/generation'),
+            fetch('${API_BASE_URL}/api/energy/consumption')
         ]);
 
         if (!genRes.ok || !conRes.ok) throw new Error("Failed to fetch energy data");

@@ -131,6 +131,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, onMounted } from 'vue'
 
 const loading = ref(true)
@@ -175,7 +177,7 @@ const fetchSummary = async () => {
       return
     }
 
-    const response = await fetch('http://localhost:8000/api/whale-watching/summary', {
+    const response = await fetch('${API_BASE_URL}/api/whale-watching/summary', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -212,7 +214,7 @@ const fetchAlerts = async () => {
     if (filters.value.severity) params.append('severity', filters.value.severity)
     params.append('limit', '50')
 
-    const url = `http://localhost:8000/api/whale-watching/alerts?${params.toString()}`
+    const url = `${API_BASE_URL}/api/whale-watching/alerts?${params.toString()}`
     
     const response = await fetch(url, {
       headers: {

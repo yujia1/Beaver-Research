@@ -1,4 +1,6 @@
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, computed, onMounted } from 'vue'
 import AddTradeLotModal from './AddTradeLotModal.vue'
 import EditTradeLotModal from './EditTradeLotModal.vue'
@@ -199,7 +201,7 @@ const fetchStockPrices = async () => {
   loading.value = true
   try {
     const tickers = positions.value.map(p => p.ticker)
-    const response = await fetch('http://localhost:8000/api/alphatrade/stock-prices', {
+    const response = await fetch('${API_BASE_URL}/api/alphatrade/stock-prices', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -231,7 +233,7 @@ const fetchStockPrices = async () => {
 
 const fetchSingleStockPrice = async (ticker) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/alphatrade/stock-price/${ticker}`)
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-price/${ticker}`)
     
     if (response.ok) {
       const data = await response.json()

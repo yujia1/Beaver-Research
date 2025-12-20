@@ -18,6 +18,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ResearchEditView from './ResearchEditView.vue'
@@ -45,7 +47,7 @@ const checkPaymentStatus = async () => {
   }
   
   try {
-    const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+    const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
       headers: {
         'Authorization': `Bearer ${token}`
       }

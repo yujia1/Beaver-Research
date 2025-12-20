@@ -390,6 +390,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDailyCache, setDailyCache } from '../utils/dailyCache.js'
@@ -898,7 +900,7 @@ const handlePaste = async (event) => {
 // Data interpretation
 const interpretData = async (bubble, context) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/research/process?data-agent=${props.activeAgent}`, {
+    const response = await fetch(`${API_BASE_URL}/api/research/process?data-agent=${props.activeAgent}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -983,7 +985,7 @@ const fetchDataBubbles = async () => {
   // Fetch real data from backend API
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch(`http://localhost:8000/api/research/data-bubbles?view_mode=${props.viewMode}&agent=${props.activeAgent}&ticker=${props.ticker || ''}`, {
+    const response = await fetch(`${API_BASE_URL}/api/research/data-bubbles?view_mode=${props.viewMode}&agent=${props.activeAgent}&ticker=${props.ticker || ''}`, {
       headers: {
         'Authorization': `Bearer ${token || ''}`
       }
@@ -1291,7 +1293,7 @@ const confirmPublish = async () => {
     formData.append('report_type', selectedReportType.value)
     formData.append('report_name', reportName.value || 'Untitled Report')
     
-    const response = await fetch('http://localhost:8000/api/reports/publish', {
+    const response = await fetch('${API_BASE_URL}/api/reports/publish', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -1379,10 +1381,10 @@ const refreshData = async () => {
       
       // Fetch both annual and quarterly analysis
       const [annualResponse, quarterlyResponse] = await Promise.all([
-        fetch(`http://localhost:8000/api/research/financial-analysis/${ticker}?period=annual&_t=${timestamp}`, {
+        fetch(`${API_BASE_URL}/api/research/financial-analysis/${ticker}?period=annual&_t=${timestamp}`, {
           cache: 'no-cache'
         }),
-        fetch(`http://localhost:8000/api/research/financial-analysis/${ticker}?period=quarterly&_t=${timestamp}`, {
+        fetch(`${API_BASE_URL}/api/research/financial-analysis/${ticker}?period=quarterly&_t=${timestamp}`, {
           cache: 'no-cache'
         })
       ])

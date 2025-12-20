@@ -652,6 +652,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, onMounted, onActivated, nextTick, watch, computed } from 'vue';
 import { marked } from 'marked';
 import {
@@ -768,7 +770,7 @@ const fetchData = async () => {
   capitalReport.value = null;
   
   try {
-    const response = await fetch(`http://localhost:8000/api/internal/micro/${ticker.value}`);
+    const response = await fetch(`${API_BASE_URL}/api/internal/micro/${ticker.value}`);
     if (!response.ok) throw new Error('Failed to fetch data');
     data.value = await response.json();
   } catch (err) {
@@ -794,7 +796,7 @@ watch([data, activeTab, financialPeriod], async ([newData, newTab, newPeriod]) =
 const saveReport = async (title, content, type) => {
     if (!data.value) return;
     try {
-        await fetch('http://localhost:8000/api/reports/', {
+        await fetch('${API_BASE_URL}/api/reports/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -888,7 +890,7 @@ const checkPaymentStatus = async () => {
     }
     
     try {
-        const response = await fetch('http://localhost:8000/api/auth/payment-status', {
+        const response = await fetch('${API_BASE_URL}/api/auth/payment-status', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -917,7 +919,7 @@ const generateAnalysis = async () => {
     
     try {
         const token = localStorage.getItem('access_token')
-        const response = await fetch('http://localhost:8000/api/agent/analyze_company', {
+        const response = await fetch('${API_BASE_URL}/api/agent/analyze_company', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -952,7 +954,7 @@ const generateNotesAnalysis = async () => {
     if (!data.value) return;
     analyzingNotes.value = true;
     try {
-        const response = await fetch('http://localhost:8000/api/agent/analyze_notes_disclosures', {
+        const response = await fetch('${API_BASE_URL}/api/agent/analyze_notes_disclosures', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -978,7 +980,7 @@ const generateDriversAnalysis = async () => {
     if (!data.value) return;
     analyzingDrivers.value = true;
     try {
-        const response = await fetch('http://localhost:8000/api/agent/analyze_operating_drivers', {
+        const response = await fetch('${API_BASE_URL}/api/agent/analyze_operating_drivers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1004,7 +1006,7 @@ const generateCapitalAnalysis = async () => {
     if (!data.value) return;
     analyzingCapital.value = true;
     try {
-        const response = await fetch('http://localhost:8000/api/agent/analyze_capital_structure', {
+        const response = await fetch('${API_BASE_URL}/api/agent/analyze_capital_structure', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

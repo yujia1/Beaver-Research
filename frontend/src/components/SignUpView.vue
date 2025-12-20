@@ -74,6 +74,8 @@
 </template>
 
 <script setup>
+import API_BASE_URL from '@/config/api.js'
+
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -149,7 +151,7 @@ const handleSignup = async () => {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
     
-    const response = await fetch('http://localhost:8000/api/auth/signup', {
+    const response = await fetch('${API_BASE_URL}/api/auth/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -184,9 +186,9 @@ const handleSignup = async () => {
     }, 2000)
   } catch (err) {
     if (err.name === 'AbortError') {
-      error.value = 'Request timed out. Please check if the backend server is running on http://localhost:8000'
+      error.value = 'Request timed out. Please check if the backend server is running on ${API_BASE_URL}'
     } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-      error.value = 'Cannot connect to server. Please ensure the backend is running on http://localhost:8000'
+      error.value = 'Cannot connect to server. Please ensure the backend is running on ${API_BASE_URL}'
     } else {
       error.value = err.message || 'An error occurred during signup'
     }
