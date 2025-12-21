@@ -2,6 +2,7 @@
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AddTradeLotModal from './AddTradeLotModal.vue'
 import EditTradeLotModal from './EditTradeLotModal.vue'
 
@@ -20,160 +21,163 @@ const draggedIndex = ref(null)
 const dragOverIndex = ref(null)
 
 // Fundamental analysis questions organized by category
-const fundamentalQuestions = [
+const { t } = useI18n()
+
+// Fundamental analysis questions organized by category
+const fundamentalQuestions = computed(() => [
   // FUNDAMENTAL SECTION
   {
     id: 1,
     category: 'FUNDAMENTAL',
-    title: 'INCOME STATEMENT',
-    subtitle: 'ARE EARNINGS REAL? HUNT FOR MARGIN COMPRESSION AND ADJUSTED-EBITDA GYMNASTICS.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.income_statement.title'),
+    subtitle: t('alphatrade.questions.income_statement.subtitle'),
+    placeholder: t('alphatrade.questions.income_statement.placeholder')
   },
   {
     id: 2,
     category: 'FUNDAMENTAL',
-    title: 'CASH FLOW STATEMENT',
-    subtitle: 'IF EARNINGS ARE REAL, CASH SHOWS UP. CHECK FOR NEGATIVE FCF AND OPEX CAPITALIZATION.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.cash_flow.title'),
+    subtitle: t('alphatrade.questions.cash_flow.subtitle'),
+    placeholder: t('alphatrade.questions.cash_flow.placeholder')
   },
   {
     id: 3,
     category: 'FUNDAMENTAL',
-    title: 'WORKING CAPITAL',
-    subtitle: 'AR GROWTH > REVENUE GROWTH? INVENTORY PILING? SUPPLIERS LATE? RED FLAGS.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.working_capital.title'),
+    subtitle: t('alphatrade.questions.working_capital.subtitle'),
+    placeholder: t('alphatrade.questions.working_capital.placeholder')
   },
   {
     id: 4,
     category: 'FUNDAMENTAL',
-    title: 'BALANCE SHEET',
-    subtitle: 'SURVIVABILITY MATH: HOW LONG CAN THEY LIVE WITHOUT CAPITAL MARKETS? CHECK BURN.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.balance_sheet.title'),
+    subtitle: t('alphatrade.questions.balance_sheet.subtitle'),
+    placeholder: t('alphatrade.questions.balance_sheet.placeholder')
   },
   {
     id: 5,
     category: 'FUNDAMENTAL',
-    title: 'CAPEX VS REALITY',
-    subtitle: 'CAPEX UP, REVENUE DOWN? EMPIRE BUILDING OR OVERBUILDING DETECTED.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.capex.title'),
+    subtitle: t('alphatrade.questions.capex.subtitle'),
+    placeholder: t('alphatrade.questions.capex.placeholder')
   },
   {
     id: 6,
     category: 'FUNDAMENTAL',
-    title: 'ACCOUNTING GAMES',
-    subtitle: 'TRUST NO ONE. SOFTWARE COSTS CAPITALIZED? AUDITORS QUITTING? AGGRESSIVE RECOGNITION?',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.accounting.title'),
+    subtitle: t('alphatrade.questions.accounting.subtitle'),
+    placeholder: t('alphatrade.questions.accounting.placeholder')
   },
   {
     id: 7,
     category: 'FUNDAMENTAL',
-    title: 'MANAGEMENT BEHAVIOR',
-    subtitle: 'CEO TALKS VISION VS NUMBERS? CFO TURNOVER? INSIDER SELLING PATTERNS?',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.management.title'),
+    subtitle: t('alphatrade.questions.management.subtitle'),
+    placeholder: t('alphatrade.questions.management.placeholder')
   },
   {
     id: 8,
     category: 'FUNDAMENTAL',
-    title: 'VALUATION',
-    subtitle: 'HIGH MULTIPLE + SLOWING GROWTH + WEAK CASH FLOW = AIR POCKET TERRITORY.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.valuation.title'),
+    subtitle: t('alphatrade.questions.valuation.subtitle'),
+    placeholder: t('alphatrade.questions.valuation.placeholder')
   },
   {
     id: 9,
     category: 'FUNDAMENTAL',
-    title: 'CATALYST CHECKLIST',
-    subtitle: 'NO CATALYST = NO SHORT. EARNINGS MISSES NEED HELP? EXPIRATIONS? LOAD THE GUN.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.catalyst.title'),
+    subtitle: t('alphatrade.questions.catalyst.subtitle'),
+    placeholder: t('alphatrade.questions.catalyst.placeholder')
   },
   {
     id: 10,
     category: 'FUNDAMENTAL',
-    title: 'POSITION SIZING',
-    subtitle: 'ASSUME YOU ARE EARLY. SHORTS ARE TACTICALLY SIZED. NEVER BE STUBBORN.',
-    placeholder: 'Enter findings...'
+    title: t('alphatrade.questions.sizing.title'),
+    subtitle: t('alphatrade.questions.sizing.subtitle'),
+    placeholder: t('alphatrade.questions.sizing.placeholder')
   },
   
   // TIMING SECTION
   {
     id: 101,
     category: 'TIMING',
-    title: '🗓️ EARNINGS',
-    subtitle: 'Whisper numbers > guidance? Sell-side raising targets late? "This quarter doesn\'t matter" talk?',
-    placeholder: 'Expectations high + fundamentals weak + narrative stretched = setup...'
+    title: t('alphatrade.questions.earnings.title'),
+    subtitle: t('alphatrade.questions.earnings.subtitle'),
+    placeholder: t('alphatrade.questions.earnings.placeholder')
   },
   {
     id: 102,
     category: 'TIMING',
-    title: '💰 LIQUIDITY EVENTS',
-    subtitle: 'Lock-up expirations, secondary offerings, ATM programs, convertible issuance',
-    placeholder: 'New supply hits market. Price must absorb shares. Mechanical sellers...'
+    title: t('alphatrade.questions.liquidity.title'),
+    subtitle: t('alphatrade.questions.liquidity.subtitle'),
+    placeholder: t('alphatrade.questions.liquidity.placeholder')
   },
   {
     id: 103,
     category: 'TIMING',
-    title: '🧾 BALANCE-SHEET DEADLINES',
-    subtitle: 'Debt maturities, covenant tests, refinancing windows',
-    placeholder: 'Cash tight + markets hostile = equity crushed. The wall they can\'t avoid...'
+    title: t('alphatrade.questions.balance_sheet_deadlines.title'),
+    subtitle: t('alphatrade.questions.balance_sheet_deadlines.subtitle'),
+    placeholder: t('alphatrade.questions.balance_sheet_deadlines.placeholder')
   },
   {
     id: 104,
     category: 'TIMING',
-    title: '🏛️ REGULATORY / LEGAL EVENTS',
-    subtitle: 'FDA decisions, NRC approvals, DOJ/SEC investigations',
-    placeholder: 'Market prices hope. Regulators price rules. Short when optimism > probability...'
+    title: t('alphatrade.questions.regulatory.title'),
+    subtitle: t('alphatrade.questions.regulatory.subtitle'),
+    placeholder: t('alphatrade.questions.regulatory.placeholder')
   },
   {
     id: 105,
     category: 'TIMING',
-    title: '🌎 MACRO REGIME SHIFTS',
-    subtitle: 'Rates rising, liquidity tightening, risk-off rotation',
-    placeholder: 'Speculative names break first. Don\'t short junk in a liquidity flood...'
+    title: t('alphatrade.questions.macro.title'),
+    subtitle: t('alphatrade.questions.macro.subtitle'),
+    placeholder: t('alphatrade.questions.macro.placeholder')
   },
   
   // STRUCTURE SECTION
   {
     id: 201,
     category: 'STRUCTURE',
-    title: '🚩 OWNERSHIP STRUCTURE',
-    subtitle: 'Retail-heavy, momentum funds, thematic ETFs vs long-only institutions, strategic holders',
-    placeholder: 'Who panics first? Fragile holders don\'t average down, don\'t defend price...'
+    title: t('alphatrade.questions.ownership.title'),
+    subtitle: t('alphatrade.questions.ownership.subtitle'),
+    placeholder: t('alphatrade.questions.ownership.placeholder')
   },
   {
     id: 202,
     category: 'STRUCTURE',
-    title: '📊 FLOAT & SUPPLY',
-    subtitle: 'Lock-up shares becoming free, ATM dilution drip, SBC increasing float quietly',
-    placeholder: 'Low float + hype = squeeze risk. High float + forced sellers = downside velocity...'
+    title: t('alphatrade.questions.float.title'),
+    subtitle: t('alphatrade.questions.float.subtitle'),
+    placeholder: t('alphatrade.questions.float.placeholder')
   },
   {
     id: 203,
     category: 'STRUCTURE',
-    title: '📈 PRICE STRUCTURE',
-    subtitle: 'Lower highs, failed breakouts, gap fills, heavy-volume down days',
-    placeholder: 'Signs of damage. Big money exiting, not entering...'
+    title: t('alphatrade.questions.price_structure.title'),
+    subtitle: t('alphatrade.questions.price_structure.subtitle'),
+    placeholder: t('alphatrade.questions.price_structure.placeholder')
   },
   {
     id: 204,
     category: 'STRUCTURE',
-    title: '🎯 OPTIONS STRUCTURE',
-    subtitle: 'Heavy put ownership vs call-heavy OI, dealer gamma positioning',
-    placeholder: 'Dealers long gamma = danger. Call-heavy + retail chasing = sweet spot...'
+    title: t('alphatrade.questions.options.title'),
+    subtitle: t('alphatrade.questions.options.subtitle'),
+    placeholder: t('alphatrade.questions.options.placeholder')
   },
   {
     id: 205,
     category: 'STRUCTURE',
-    title: '⚡ SHORT INTEREST',
-    subtitle: 'SI %, trend direction, volume expansion',
-    placeholder: 'Fuel for squeezes or accelerant for crashes? When support breaks, shorts press...'
+    title: t('alphatrade.questions.short_interest.title'),
+    subtitle: t('alphatrade.questions.short_interest.subtitle'),
+    placeholder: t('alphatrade.questions.short_interest.placeholder')
   },
   {
     id: 206,
     category: 'STRUCTURE',
-    title: '💸 BORROW STRUCTURE',
-    subtitle: 'Borrow cost, recall risk, availability',
-    placeholder: 'Bad borrow turns timing risk into forced exit risk...'
+    title: t('alphatrade.questions.borrow.title'),
+    subtitle: t('alphatrade.questions.borrow.subtitle'),
+    placeholder: t('alphatrade.questions.borrow.placeholder')
   }
-]
+])
 
 
 
@@ -636,12 +640,12 @@ const handleDragEnd = () => {
   <div class="alphatrade-container">
     <div class="header">
       <div class="header-left">
-        <h1 class="title">INVENTORY & FUNDAMENTALS</h1>
-        <p class="subtitle">QUANTITATIVE SHORT/LONG FRAMEWORK</p>
+        <h1 class="title">{{ t('alphatrade.title') }}</h1>
+        <p class="subtitle">{{ t('alphatrade.subtitle') }}</p>
       </div>
       <button class="add-lot-btn" @click="showAddLotModal = true">
         <span class="btn-icon">+</span>
-        <span class="btn-text">New Execution</span>
+        <span class="btn-text">{{ t('alphatrade.new_execution') }}</span>
       </button>
     </div>
 
@@ -653,7 +657,7 @@ const handleDragEnd = () => {
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
-          <span class="card-label">TOTAL VALUE</span>
+          <span class="card-label">{{ t('alphatrade.total_value') }}</span>
         </div>
         <div class="card-value">{{ formatCurrency(portfolioTotals.totalValue) }}</div>
       </div>
@@ -664,7 +668,7 @@ const handleDragEnd = () => {
             <line x1="12" y1="1" x2="12" y2="23"></line>
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
           </svg>
-          <span class="card-label">TOTAL COST</span>
+          <span class="card-label">{{ t('alphatrade.total_cost') }}</span>
         </div>
         <div class="card-value">{{ formatCurrency(portfolioTotals.totalCost) }}</div>
       </div>
@@ -675,7 +679,7 @@ const handleDragEnd = () => {
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <polyline points="19 12 12 19 5 12"></polyline>
           </svg>
-          <span class="card-label">UNREALIZED P/L</span>
+          <span class="card-label">{{ t('alphatrade.unrealized_pl') }}</span>
         </div>
         <div class="card-value" :class="{ positive: portfolioTotals.unrealizedPL >= 0, negative: portfolioTotals.unrealizedPL < 0 }">
           {{ formatCurrency(portfolioTotals.unrealizedPL) }}
@@ -688,7 +692,7 @@ const handleDragEnd = () => {
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
             <polyline points="17 6 23 6 23 12"></polyline>
           </svg>
-          <span class="card-label">TOTAL RETURN</span>
+          <span class="card-label">{{ t('alphatrade.total_return') }}</span>
         </div>
         <div class="card-value">{{ formatPercent(portfolioTotals.totalReturn) }}</div>
       </div>
@@ -696,11 +700,11 @@ const handleDragEnd = () => {
 
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <p>Loading positions...</p>
+      <p>{{ t('alphatrade.loading') }}</p>
     </div>
 
     <div v-else-if="positions.length === 0" class="empty-state">
-      <p>No positions yet. Click "Add Trade Lot" to get started.</p>
+      <p>{{ t('alphatrade.empty_state') }}</p>
     </div>
 
     <div v-else class="positions-list">
@@ -743,15 +747,15 @@ const handleDragEnd = () => {
           
           <div class="position-metrics">
             <div class="metric">
-              <span class="metric-label">MARKET PRICE</span>
+              <span class="metric-label">{{ t('alphatrade.market_price') }}</span>
               <span class="metric-value">{{ formatCurrency(position.currentPrice) }}</span>
             </div>
             <div class="metric">
-              <span class="metric-label">VALUATION</span>
+              <span class="metric-label">{{ t('alphatrade.valuation') }}</span>
               <span class="metric-value">{{ formatCurrency(calculatePositionMetrics(position).marketValue) }}</span>
             </div>
             <div class="metric">
-              <span class="metric-label">UNREALIZED P/L</span>
+              <span class="metric-label">{{ t('alphatrade.unrealized_pl') }}</span>
               <span 
                 class="metric-value pl-value" 
                 :class="{ positive: calculatePositionMetrics(position).unrealizedPL >= 0, negative: calculatePositionMetrics(position).unrealizedPL < 0 }"
@@ -764,7 +768,7 @@ const handleDragEnd = () => {
           <button 
             class="delete-position-btn" 
             @click.stop="deletePosition(position.ticker)"
-            title="Delete Position"
+            :title="t('alphatrade.delete_position')"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
@@ -806,7 +810,7 @@ const handleDragEnd = () => {
                 <path d="M14 14h7v7h-7z"></path>
                 <path d="M3 14h7v7H3z"></path>
               </svg>
-              LOT INVENTORY
+              {{ t('alphatrade.tabs.lot_inventory') }}
             </button>
             <button 
               class="tab-btn" 
@@ -820,7 +824,7 @@ const handleDragEnd = () => {
                 <line x1="16" y1="17" x2="8" y2="17"></line>
                 <polyline points="10 9 9 9 8 9"></polyline>
               </svg>
-              FUNDAMENTAL ANALYSIS
+              {{ t('alphatrade.tabs.fundamental_analysis') }}
             </button>
             <button 
               class="tab-btn" 
@@ -830,7 +834,7 @@ const handleDragEnd = () => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
               </svg>
-              SCENARIO ANALYSIS
+              {{ t('alphatrade.tabs.scenario_analysis') }}
             </button>
           </div>
 
@@ -839,16 +843,16 @@ const handleDragEnd = () => {
             <table class="lots-table">
               <thead>
                 <tr>
-                  <th>PURCHASE DATE</th>
-                  <th>QTY</th>
-                  <th>PRICE</th>
-                  <th>COST</th>
-                  <th>EQUITY (NOW)</th>
-                  <th>COST VAL</th>
-                  <th>P/L</th>
-                  <th>%</th>
-                  <th>NOTE</th>
-                  <th>ACTIONS</th>
+                  <th>{{ t('alphatrade.lot_table.purchase_date') }}</th>
+                  <th>{{ t('alphatrade.lot_table.qty') }}</th>
+                  <th>{{ t('alphatrade.lot_table.price') }}</th>
+                  <th>{{ t('alphatrade.lot_table.cost') }}</th>
+                  <th>{{ t('alphatrade.lot_table.equity_now') }}</th>
+                  <th>{{ t('alphatrade.lot_table.cost_val') }}</th>
+                  <th>{{ t('alphatrade.lot_table.pl') }}</th>
+                  <th>{{ t('alphatrade.lot_table.pct') }}</th>
+                  <th>{{ t('alphatrade.lot_table.note') }}</th>
+                  <th>{{ t('alphatrade.lot_table.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -907,7 +911,7 @@ const handleDragEnd = () => {
                   </td>
                 </tr>
                 <tr class="total-row">
-                  <td><strong>TOTAL STATS</strong></td>
+                  <td><strong>{{ t('alphatrade.lot_table.total_stats') }}</strong></td>
                   <td><strong>{{ calculatePositionMetrics(position).totalQuantity }}</strong></td>
                   <td><strong>{{ formatCurrency(position.currentPrice) }}</strong></td>
                   <td><strong>{{ formatCurrency(calculatePositionMetrics(position).averageCost) }}</strong></td>
@@ -933,13 +937,13 @@ const handleDragEnd = () => {
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
-              <span class="rule-title">THE GOLDEN RULE (ZERO)</span>
-              <p class="rule-text">"Bad companies can stay expensive longer than you can stay solvent. Fundamentals tell me what to short; timing + structure tell me when."</p>
+              <span class="rule-title">{{ t('alphatrade.fundamental.golden_rule_title') }}</span>
+              <p class="rule-text">{{ t('alphatrade.fundamental.golden_rule_text') }}</p>
             </div>
 
             <!-- FUNDAMENTAL SECTION -->
             <div class="analysis-section">
-              <h3 class="section-header">A) FUNDAMENTAL</h3>
+              <h3 class="section-header">{{ t('alphatrade.fundamental.section_fundamental') }}</h3>
               <div class="analysis-grid">
                 <div v-for="question in fundamentalQuestions.filter(q => q.category === 'FUNDAMENTAL')" :key="question.id" class="analysis-card">
                   <div class="card-header">
@@ -978,7 +982,7 @@ const handleDragEnd = () => {
 
             <!-- TIMING SECTION -->
             <div class="analysis-section">
-              <h3 class="section-header">B) TIMING</h3>
+              <h3 class="section-header">{{ t('alphatrade.fundamental.section_timing') }}</h3>
               <div class="analysis-grid">
                 <div v-for="question in fundamentalQuestions.filter(q => q.category === 'TIMING')" :key="question.id" class="analysis-card">
                   <div class="card-header">
@@ -1016,7 +1020,7 @@ const handleDragEnd = () => {
 
             <!-- STRUCTURE SECTION -->
             <div class="analysis-section">
-              <h3 class="section-header">C) STRUCTURE</h3>
+              <h3 class="section-header">{{ t('alphatrade.fundamental.section_structure') }}</h3>
               <div class="analysis-grid">
                 <div v-for="question in fundamentalQuestions.filter(q => q.category === 'STRUCTURE')" :key="question.id" class="analysis-card">
                   <div class="card-header">
@@ -1060,7 +1064,7 @@ const handleDragEnd = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                 </svg>
-                <span>HYPOTHETICAL TARGET PRICE</span>
+                <span>{{ t('alphatrade.scenario.hypothetical_target') }}</span>
               </div>
               <div class="current-price-display">{{ formatCurrency(getHypotheticalPrice(position.ticker)) }}</div>
             </div>
@@ -1071,7 +1075,7 @@ const handleDragEnd = () => {
                 <button class="pct-btn negative" @click.stop="setHypotheticalAdjustment(position.ticker, -50)" :class="{ active: getHypotheticalAdjustment(position.ticker) === -50 }">-50%</button>
                 <button class="pct-btn negative" @click.stop="setHypotheticalAdjustment(position.ticker, -20)" :class="{ active: getHypotheticalAdjustment(position.ticker) === -20 }">-20%</button>
                 <button class="pct-btn negative" @click.stop="setHypotheticalAdjustment(position.ticker, -10)" :class="{ active: getHypotheticalAdjustment(position.ticker) === -10 }">-10%</button>
-                <button class="pct-btn reset" @click.stop="setHypotheticalAdjustment(position.ticker, 0)" :class="{ active: getHypotheticalAdjustment(position.ticker) === 0 }">RESET</button>
+                <button class="pct-btn reset" @click.stop="setHypotheticalAdjustment(position.ticker, 0)" :class="{ active: getHypotheticalAdjustment(position.ticker) === 0 }">{{ t('alphatrade.scenario.reset') }}</button>
                 <button class="pct-btn positive" @click.stop="setHypotheticalAdjustment(position.ticker, 10)" :class="{ active: getHypotheticalAdjustment(position.ticker) === 10 }">+10%</button>
                 <button class="pct-btn positive" @click.stop="setHypotheticalAdjustment(position.ticker, 20)" :class="{ active: getHypotheticalAdjustment(position.ticker) === 20 }">+20%</button>
                 <button class="pct-btn positive" @click.stop="setHypotheticalAdjustment(position.ticker, 50)" :class="{ active: getHypotheticalAdjustment(position.ticker) === 50 }">+50%</button>
@@ -1084,9 +1088,9 @@ const handleDragEnd = () => {
                   <div class="slider-thumb" :style="{ left: `${((getHypotheticalAdjustment(position.ticker) + 100) / 200) * 100}%` }"></div>
                 </div>
                 <div class="slider-labels">
-                  <span class="label-left">-100% CRASH</span>
-                  <span class="label-center">CURRENT ({{ formatCurrency(position.currentPrice) }})</span>
-                  <span class="label-right">+100% MOON</span>
+                  <span class="label-left">{{ t('alphatrade.scenario.crash') }}</span>
+                  <span class="label-center">{{ t('alphatrade.scenario.current') }} ({{ formatCurrency(position.currentPrice) }})</span>
+                  <span class="label-right">{{ t('alphatrade.scenario.moon') }}</span>
                 </div>
               </div>
             </div>
@@ -1094,13 +1098,13 @@ const handleDragEnd = () => {
             <table class="lots-table scenario-table">
               <thead>
                 <tr>
-                  <th>LOT</th>
-                  <th>QTY</th>
-                  <th>COST (AVG)</th>
-                  <th>HYPOTHETICAL EQUITY</th>
-                  <th>HYPOTHETICAL P/L</th>
-                  <th>HYPO ROI</th>
-                  <th>CURRENT DELTA</th>
+                  <th>{{ t('alphatrade.scenario.table.lot') }}</th>
+                  <th>{{ t('alphatrade.scenario.table.qty') }}</th>
+                  <th>{{ t('alphatrade.scenario.table.cost_avg') }}</th>
+                  <th>{{ t('alphatrade.scenario.table.hypo_equity') }}</th>
+                  <th>{{ t('alphatrade.scenario.table.hypo_pl') }}</th>
+                  <th>{{ t('alphatrade.scenario.table.hypo_roi') }}</th>
+                  <th>{{ t('alphatrade.scenario.table.current_delta') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1120,7 +1124,7 @@ const handleDragEnd = () => {
                   </td>
                 </tr>
                 <tr class="total-row">
-                  <td><strong>HYPO TOTAL</strong></td>
+                  <td><strong>{{ t('alphatrade.scenario.table.hypo_total') }}</strong></td>
                   <td><strong>{{ position.lots.reduce((sum, lot) => sum + lot.quantity, 0) }}</strong></td>
                   <td><strong>{{ formatCurrency(position.lots.reduce((sum, lot) => sum + (lot.quantity * lot.costPerShare), 0) / position.lots.reduce((sum, lot) => sum + lot.quantity, 0)) }}</strong></td>
                   <td><strong>{{ formatCurrency(position.lots.reduce((sum, lot) => sum + calculateHypotheticalLotMetrics(lot, getHypotheticalPrice(position.ticker)).hypotheticalValue, 0)) }}</strong></td>

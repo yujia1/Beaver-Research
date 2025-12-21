@@ -2,8 +2,8 @@
   <div class="timeline-view">
     <div class="page-header">
       <div>
-        <h1>Stock Price Timeline</h1>
-        <p class="subtitle">Track stock price movements and key events over time</p>
+        <h1>{{ t('investment.title') }}</h1>
+        <p class="subtitle">{{ t('investment.subtitle') }}</p>
       </div>
       <div class="price-info" v-if="selectedStock">
         <div class="current-price-wrapper">
@@ -17,29 +17,29 @@
         </div>
       </div>
       <div v-else class="price-info">
-        <div class="current-price" style="color: #999999;">No Stock Selected</div>
+        <div class="current-price" style="color: #999999;">{{ t('investment.no_stock') }}</div>
       </div>
     </div>
 
     <!-- Stock Selection -->
     <div class="stock-selector">
-      <label for="stock-search">Search Stock:</label>
+      <label for="stock-search">{{ t('investment.search_label') }}</label>
       <input 
         id="stock-search" 
         v-model="stockSearchInput" 
         type="text" 
-        placeholder="Enter ticker symbol (e.g., TSLA, AAPL, MSFT)"
+        :placeholder="t('investment.search_placeholder')"
         @keyup.enter="searchStock"
       />
-      <button @click="searchStock" :disabled="loadingStock">Search</button>
-      <div v-if="loadingStock" class="loading-indicator">Loading...</div>
+      <button @click="searchStock" :disabled="loadingStock">{{ t('investment.search_button') }}</button>
+      <div v-if="loadingStock" class="loading-indicator">{{ t('investment.loading') }}</div>
       <div v-if="stockError" class="stock-error">{{ stockError }}</div>
     </div>
 
     <!-- Chart Section -->
     <div class="chart-card">
       <div class="chart-header">
-        <h2>{{ selectedStock || 'No Stock Selected' }} - {{ timelineYear }} Price Timeline</h2>
+        <h2>{{ selectedStock || t('investment.no_stock') }} - {{ timelineYear }} {{ t('investment.price_timeline') }}</h2>
         <div class="timeframe-selector">
           <button 
             v-for="period in timePeriods" 
@@ -59,7 +59,7 @@
     <!-- Key Events Section Removed -->
     <div class="events-card">
       <div class="events-header">
-        <h2>Company Data</h2>
+        <h2>{{ t('investment.tabs.company_basic') }}</h2>
       </div>
 
       <!-- Tab Selector -->
@@ -69,21 +69,21 @@
           :class="{ active: activeTab === 'company' }"
           @click="activeTab = 'company'"
         >
-          Company Basic
+          {{ t('investment.tabs.company_basic') }}
         </button>
         <button 
           class="tab-btn" 
           :class="{ active: activeTab === 'productivity' }"
           @click="activeTab = 'productivity'"
         >
-          PolyMarket
+          {{ t('investment.tabs.polymarket') }}
         </button>
       </div>
 
       <!-- Company Basic Tab Content (Micro Economics) -->
       <div v-if="activeTab === 'company'" class="tab-content">
         <div class="company-basic-content">
-          <div v-if="loadingCompany" class="loading">Loading Company Data...</div>
+          <div v-if="loadingCompany" class="loading">{{ t('investment.loading') }}</div>
           <div v-else-if="companyError" class="error">{{ companyError }}</div>
           
           <div v-else-if="companyData" class="company-data">
@@ -97,13 +97,13 @@
 
             <!-- Micro Economics Tabs -->
             <div class="micro-tabs">
-              <button :class="{ active: microTab === 'overview' }" @click="microTab = 'overview'">Overview</button>
-              <button :class="{ active: microTab === 'financials' }" @click="microTab = 'financials'">Financial Statements</button>
-              <button :class="{ active: microTab === 'ratios' }" @click="microTab = 'ratios'">Ratios</button>
-              <button :class="{ active: microTab === 'filings' }" @click="microTab = 'filings'">Filings</button>
-              <button :class="{ active: microTab === 'release' }" @click="microTab = 'release'">Release</button>
-              <button :class="{ active: microTab === 'holders' }" @click="microTab = 'holders'">Holders</button>
-              <button :class="{ active: microTab === 'trading' }" @click="microTab = 'trading'">Trading</button>
+              <button :class="{ active: microTab === 'overview' }" @click="microTab = 'overview'">{{ t('investment.micro_tabs.overview') }}</button>
+              <button :class="{ active: microTab === 'financials' }" @click="microTab = 'financials'">{{ t('investment.micro_tabs.financials') }}</button>
+              <button :class="{ active: microTab === 'ratios' }" @click="microTab = 'ratios'">{{ t('investment.micro_tabs.ratios') }}</button>
+              <button :class="{ active: microTab === 'filings' }" @click="microTab = 'filings'">{{ t('investment.micro_tabs.filings') }}</button>
+              <button :class="{ active: microTab === 'release' }" @click="microTab = 'release'">{{ t('investment.micro_tabs.release') }}</button>
+              <button :class="{ active: microTab === 'holders' }" @click="microTab = 'holders'">{{ t('investment.micro_tabs.holders') }}</button>
+              <button :class="{ active: microTab === 'trading' }" @click="microTab = 'trading'">{{ t('investment.micro_tabs.trading') }}</button>
             </div>
 
             <!-- Micro Tab Content -->
@@ -114,32 +114,32 @@
                   <!-- Left Side: Latest 10K -->
                   <div class="tenk-section">
                     <div class="section-header">
-                      <h4>Latest 10K</h4>
+                      <h4>{{ t('investment.overview.latest_10k') }}</h4>
                       <button @click="fetch10KChunks" :disabled="loading10K" class="refresh-btn">
-                        {{ loading10K ? 'Loading...' : 'Refresh' }}
+                        {{ loading10K ? t('investment.loading') : t('investment.overview.refresh') }}
                       </button>
                     </div>
                     
-                    <div v-if="loading10K" class="loading">Loading 10-K filing...</div>
+                    <div v-if="loading10K" class="loading">{{ t('investment.overview.loading_10k') }}</div>
                     <div v-else-if="tenKError" class="error">{{ tenKError }}</div>
                     <div v-else-if="tenKChunks" class="tenk-content">
                       <div class="tenk-full-html" v-html="tenKChunks"></div>
                     </div>
-                    <div v-else class="no-data">No 10-K data available. Click Refresh to load.</div>
+                    <div v-else class="no-data">{{ t('investment.overview.no_data_10k') }}</div>
                   </div>
                   
                   <!-- Right Side: Company Overview & Industry Analysis -->
                   <div class="analysis-section-wrapper">
                     <div class="analysis-report-section">
                       <div class="section-header">
-                        <h4>Company Overview & Deep Dive Analysis</h4>
+                        <h4>{{ t('investment.overview.company_overview') }}</h4>
                         <button @click="generateAllAnalyses" :disabled="analyzing || !hasPaid" class="refresh-btn" :class="{ 'disabled': !hasPaid }">
-                          {{ analyzing ? 'Generating...' : (!hasPaid ? '🔒 Payment Required - Generate' : 'Generate') }}
+                          {{ analyzing ? t('investment.overview.generating') : (!hasPaid ? t('investment.overview.payment_required') : t('investment.overview.generate')) }}
                         </button>
                       </div>
                       
                       <p v-if="!hasPaid && !checkingPayment" class="payment-notice">
-                        Payment required to generate analysis. <a href="/research" style="color: #3498db; text-decoration: underline;">Visit Research page to complete payment</a>
+                        {{ t('investment.overview.payment_notice') }} <a href="/research" style="color: #3498db; text-decoration: underline;">{{ t('investment.overview.payment_link') }}</a>
                       </p>
                       
                       <div v-if="analyzing" class="progress-indicator">
@@ -150,7 +150,7 @@
                         <div class="analysis-html-content" v-html="renderMarkdown(analysisReport)"></div>
                       </div>
                       <div v-else class="no-data">
-                        <p>No analysis available. Click "Generate" to create a Company Overview & Deep dive Analysis.</p>
+                        <p>{{ t('investment.overview.no_data_analysis') || 'No analysis available. Click "Generate" to create a Company Overview & Deep dive Analysis.' }}</p>
                       </div>
                     </div>
                   </div>
@@ -160,58 +160,58 @@
               <!-- Financial Statements Tab -->
               <div v-if="microTab === 'financials'" class="micro-tab-pane">
                 <div class="financials-header">
-                  <h4>Financial Statements Overview</h4>
+                  <h4>{{ t('investment.financials.header') }}</h4>
                   <div class="period-selector">
-                    <button :class="{ active: financialPeriod === 'annual' }" @click="financialPeriod = 'annual'">Annual</button>
-                    <button :class="{ active: financialPeriod === 'quarterly' }" @click="financialPeriod = 'quarterly'">Quarterly</button>
+                    <button :class="{ active: financialPeriod === 'annual' }" @click="financialPeriod = 'annual'">{{ t('investment.financials.annual') }}</button>
+                    <button :class="{ active: financialPeriod === 'quarterly' }" @click="financialPeriod = 'quarterly'">{{ t('investment.financials.quarterly') }}</button>
                   </div>
                 </div>
                 
-                <h5>LTM Snapshot</h5>
+                <h5>{{ t('investment.financials.ltm_snapshot') }}</h5>
                 <div class="financial-summary">
                   <div class="summary-card">
-                    <div class="summary-label">Revenue (LTM)</div>
+                    <div class="summary-label">{{ t('investment.financials.revenue_ltm') }}</div>
                     <div class="summary-value">{{ formatFinancialNumber(getFinancialValue('income', 'Total Revenue', 'ltm')) }}</div>
                     <div class="summary-change" :class="getRevenueGrowthClass()">{{ calculateRevenueGrowth() }}% YoY</div>
                   </div>
                   <div class="summary-card">
-                    <div class="summary-label">Net Income (LTM)</div>
+                    <div class="summary-label">{{ t('investment.financials.net_income_ltm') }}</div>
                     <div class="summary-value">{{ formatFinancialNumber(getFinancialValue('income', 'Net Income', 'ltm')) }}</div>
                   </div>
                   <div class="summary-card">
-                    <div class="summary-label">Total Assets</div>
+                    <div class="summary-label">{{ t('investment.financials.total_assets') }}</div>
                     <div class="summary-value">{{ formatFinancialNumber(getFinancialValue('balance', 'Total Assets', 'ltm')) }}</div>
                   </div>
                   <div class="summary-card">
-                    <div class="summary-label">Free Cash Flow (LTM)</div>
+                    <div class="summary-label">{{ t('investment.financials.fcf_ltm') }}</div>
                     <div class="summary-value">{{ formatFinancialNumber(getFinancialValue('cashflow', 'Free Cash Flow', 'ltm')) }}</div>
                   </div>
                 </div>
 
                 <div class="charts-row">
                   <div class="chart-section">
-                    <h5>Revenue & Profitability Trends ({{ financialPeriod === 'annual' ? 'Annual' : 'Quarterly' }})</h5>
+                    <h5>{{ t('investment.financials.trends_chart') }} ({{ financialPeriod === 'annual' ? t('investment.financials.annual') : t('investment.financials.quarterly') }})</h5>
                     <div class="chart-container">
                       <canvas ref="revenueProfitChart"></canvas>
                     </div>
                   </div>
 
                   <div class="chart-section">
-                    <h5>Cash Flow Analysis ({{ financialPeriod === 'annual' ? 'Annual' : 'Quarterly' }})</h5>
+                    <h5>{{ t('investment.financials.cashflow_chart') }} ({{ financialPeriod === 'annual' ? t('investment.financials.annual') : t('investment.financials.quarterly') }})</h5>
                     <div class="chart-container">
                       <canvas ref="cashflowChart"></canvas>
                     </div>
                   </div>
 
                   <div class="chart-section">
-                    <h5>Balance Sheet Composition (Latest)</h5>
+                    <h5>{{ t('investment.financials.balance_composition') }}</h5>
                     <div class="balance-composition">
                       <div class="composition-chart">
-                        <h6>Assets</h6>
+                        <h6>{{ t('investment.financials.assets') }}</h6>
                         <canvas ref="assetsChart"></canvas>
                       </div>
                       <div class="composition-chart">
-                        <h6>Liabilities & Equity</h6>
+                        <h6>{{ t('investment.financials.liabilities_equity') }}</h6>
                         <canvas ref="liabilitiesChart"></canvas>
                       </div>
                     </div>
@@ -220,7 +220,7 @@
 
                 <div class="detailed-tables">
                   <details>
-                    <summary><strong>Income Statement ({{ financialPeriod === 'annual' ? 'Annual' : 'Quarterly' }})</strong></summary>
+                    <summary><strong>{{ t('investment.financials.income_statement') }} ({{ financialPeriod === 'annual' ? t('investment.financials.annual') : t('investment.financials.quarterly') }})</strong></summary>
                     <div class="table-container">
                       <table v-if="getFinancialYears('income', financialPeriod).length > 0">
                         <thead>
@@ -256,7 +256,7 @@
                   </details>
 
                   <details>
-                    <summary><strong>Balance Sheet ({{ financialPeriod === 'annual' ? 'Annual' : 'Quarterly' }})</strong></summary>
+                    <summary><strong>{{ t('investment.financials.balance_sheet') }} ({{ financialPeriod === 'annual' ? t('investment.financials.annual') : t('investment.financials.quarterly') }})</strong></summary>
                     <div class="table-container">
                       <table v-if="getFinancialYears('balance', financialPeriod).length > 0">
                         <thead>
@@ -292,7 +292,7 @@
                   </details>
 
                   <details>
-                    <summary><strong>Cash Flow Statement ({{ financialPeriod === 'annual' ? 'Annual' : 'Quarterly' }})</strong></summary>
+                    <summary><strong>{{ t('investment.financials.cashflow_statement') }} ({{ financialPeriod === 'annual' ? t('investment.financials.annual') : t('investment.financials.quarterly') }})</strong></summary>
                     <div class="table-container">
                       <table v-if="getFinancialYears('cashflow', financialPeriod).length > 0">
                         <thead>
@@ -333,60 +333,60 @@
               <div v-if="microTab === 'ratios'" class="micro-tab-pane">
                 <div class="ratios-grid">
                   <div class="ratio-card">
-                    <h5>Profitability</h5>
-                    <p>Gross Margin: {{ formatPercentMicro(companyData.ratios?.profitability?.grossMargins) }}</p>
-                    <p>Operating Margin: {{ formatPercentMicro(companyData.ratios?.profitability?.operatingMargins) }}</p>
-                    <p>EBITDA Margin: {{ formatPercentMicro(companyData.ratios?.profitability?.ebitdaMargins) }}</p>
-                    <p>Net Margin: {{ formatPercentMicro(companyData.ratios?.profitability?.netMargin) }}</p>
-                    <p>ROA: {{ formatPercentMicro(companyData.ratios?.profitability?.returnOnAssets) }}</p>
-                    <p>ROE: {{ formatPercentMicro(companyData.ratios?.profitability?.returnOnEquity) }}</p>
-                    <p>ROIC: {{ formatPercentMicro(companyData.ratios?.profitability?.returnOnInvestedCapital) }}</p>
-                    <p>FCF Yield: {{ formatPercentMicro(companyData.ratios?.profitability?.fcfYield) }}</p>
+                    <h5>{{ t('investment.ratios.profitability') }}</h5>
+                    <p>{{ t('investment.ratios.gross_margin') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.grossMargins) }}</p>
+                    <p>{{ t('investment.ratios.operating_margin') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.operatingMargins) }}</p>
+                    <p>{{ t('investment.ratios.ebitda_margin') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.ebitdaMargins) }}</p>
+                    <p>{{ t('investment.ratios.net_margin') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.netMargin) }}</p>
+                    <p>{{ t('investment.ratios.roa') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.returnOnAssets) }}</p>
+                    <p>{{ t('investment.ratios.roe') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.returnOnEquity) }}</p>
+                    <p>{{ t('investment.ratios.roic') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.returnOnInvestedCapital) }}</p>
+                    <p>{{ t('investment.ratios.fcf_yield') }}: {{ formatPercentMicro(companyData.ratios?.profitability?.fcfYield) }}</p>
                   </div>
                   <div class="ratio-card">
-                    <h5>Liquidity & Solvency</h5>
-                    <p>Current Ratio: {{ formatRatioMicro(companyData.ratios?.liquidity?.currentRatio) }}</p>
-                    <p>Quick Ratio: {{ formatRatioMicro(companyData.ratios?.liquidity?.quickRatio) }}</p>
-                    <p>Debt/Equity: {{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEquity) }}</p>
-                    <p>Debt/EBITDA: {{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEbitda) }}</p>
-                    <p>Interest Coverage: {{ formatRatioMicro(companyData.ratios?.liquidity?.interestCoverage) }}</p>
+                    <h5>{{ t('investment.ratios.liquidity_solvency') }}</h5>
+                    <p>{{ t('investment.ratios.current_ratio') }}: {{ formatRatioMicro(companyData.ratios?.liquidity?.currentRatio) }}</p>
+                    <p>{{ t('investment.ratios.quick_ratio') }}: {{ formatRatioMicro(companyData.ratios?.liquidity?.quickRatio) }}</p>
+                    <p>{{ t('investment.ratios.debt_equity') }}: {{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEquity) }}</p>
+                    <p>{{ t('investment.ratios.debt_ebitda') }}: {{ formatRatioMicro(companyData.ratios?.liquidity?.debtToEbitda) }}</p>
+                    <p>{{ t('investment.ratios.interest_coverage') }}: {{ formatRatioMicro(companyData.ratios?.liquidity?.interestCoverage) }}</p>
                   </div>
                   <div class="ratio-card">
-                    <h5>Efficiency</h5>
-                    <p>Inventory Turnover: {{ formatRatioMicro(companyData.ratios?.efficiency?.inventoryTurnover) }}</p>
-                    <p>Days Sales Outstanding: {{ formatDaysMicro(companyData.ratios?.efficiency?.daysSalesOutstanding) }}</p>
-                    <p>Days Payable Outstanding: {{ formatDaysMicro(companyData.ratios?.efficiency?.daysPayableOutstanding) }}</p>
-                    <p>Asset Turnover: {{ formatRatioMicro(companyData.ratios?.efficiency?.assetTurnover) }}</p>
-                    <p>Working Capital: {{ formatNumberMicro(companyData.ratios?.efficiency?.workingCapital) }}</p>
+                    <h5>{{ t('investment.ratios.efficiency') }}</h5>
+                    <p>{{ t('investment.ratios.inventory_turnover') }}: {{ formatRatioMicro(companyData.ratios?.efficiency?.inventoryTurnover) }}</p>
+                    <p>{{ t('investment.ratios.dso') }}: {{ formatDaysMicro(companyData.ratios?.efficiency?.daysSalesOutstanding) }}</p>
+                    <p>{{ t('investment.ratios.dpo') }}: {{ formatDaysMicro(companyData.ratios?.efficiency?.daysPayableOutstanding) }}</p>
+                    <p>{{ t('investment.ratios.asset_turnover') }}: {{ formatRatioMicro(companyData.ratios?.efficiency?.assetTurnover) }}</p>
+                    <p>{{ t('investment.ratios.working_capital') }}: {{ formatNumberMicro(companyData.ratios?.efficiency?.workingCapital) }}</p>
                   </div>
                   <div class="ratio-card">
-                    <h5>Valuation</h5>
-                    <p>P/E (Trailing): {{ formatRatioMicro(companyData.ratios?.valuation?.trailingPE) }}</p>
-                    <p>P/E (Forward): {{ formatRatioMicro(companyData.ratios?.valuation?.forwardPE) }}</p>
-                    <p>P/B: {{ formatRatioMicro(companyData.ratios?.valuation?.priceToBook) }}</p>
-                    <p>EV/EBITDA: {{ formatRatioMicro(companyData.ratios?.valuation?.enterpriseToEbitda) }}</p>
-                    <p>P/S: {{ formatRatioMicro(companyData.ratios?.valuation?.priceToSales) }}</p>
-                    <p>EV/Revenue: {{ formatRatioMicro(companyData.ratios?.valuation?.evToRevenue) }}</p>
+                    <h5>{{ t('investment.ratios.valuation') }}</h5>
+                    <p>{{ t('investment.ratios.pe_trailing') }}: {{ formatRatioMicro(companyData.ratios?.valuation?.trailingPE) }}</p>
+                    <p>{{ t('investment.ratios.pe_forward') }}: {{ formatRatioMicro(companyData.ratios?.valuation?.forwardPE) }}</p>
+                    <p>{{ t('investment.ratios.pb') }}: {{ formatRatioMicro(companyData.ratios?.valuation?.priceToBook) }}</p>
+                    <p>{{ t('investment.ratios.ev_ebitda') }}: {{ formatRatioMicro(companyData.ratios?.valuation?.enterpriseToEbitda) }}</p>
+                    <p>{{ t('investment.ratios.ps') }}: {{ formatRatioMicro(companyData.ratios?.valuation?.priceToSales) }}</p>
+                    <p>{{ t('investment.ratios.ev_revenue') }}: {{ formatRatioMicro(companyData.ratios?.valuation?.evToRevenue) }}</p>
                   </div>
                 </div>
               </div>
 
               <!-- Filings Tab -->
               <div v-if="microTab === 'filings'" class="micro-tab-pane">
-                <h4>SEC Filings</h4>
+                <h4>{{ t('investment.filings.header') }}</h4>
                 <div v-if="companyData.filings && companyData.filings.length > 0" class="filings-container">
                   <table class="filings-table">
                     <thead>
                       <tr>
                         <th @click="sortFilings('type')" class="sortable">
-                          Filing Type 
+                          {{ t('investment.filings.type') }} 
                           <span class="sort-icon">{{ getSortIcon('type') }}</span>
                         </th>
                         <th @click="sortFilings('date')" class="sortable">
-                          Date 
+                          {{ t('investment.filings.date') }} 
                           <span class="sort-icon">{{ getSortIcon('date') }}</span>
                         </th>
-                        <th>SEC Link</th>
+                        <th>{{ t('investment.filings.link') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -395,33 +395,33 @@
                         <td class="filing-date">{{ formatFilingDate(filing.date) }}</td>
                         <td class="filing-link">
                           <a :href="filing.link" target="_blank" rel="noopener noreferrer">
-                            View on SEC.gov →
+                            {{ t('investment.filings.view') }} →
                           </a>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-                <div v-else class="no-data">No SEC filings data available</div>
+                <div v-else class="no-data">{{ t('investment.filings.no_data') }}</div>
               </div>
 
               <!-- Release Tab (Key Logs) -->
               <div v-if="microTab === 'release'" class="micro-tab-pane">
-                <h4>Key Logs - Releases</h4>
+                <h4>{{ t('investment.releases.header') }}</h4>
                 <div v-if="companyData.releases && companyData.releases.length > 0" class="filings-container">
                   <table class="filings-table">
                     <thead>
                       <tr>
                         <th @click="sortReleases('type')" class="sortable">
-                          Release Type 
+                          {{ t('investment.releases.type') }} 
                           <span class="sort-icon">{{ getReleaseSortIcon('type') }}</span>
                         </th>
                         <th @click="sortReleases('date')" class="sortable">
-                          Date 
+                          {{ t('investment.releases.date') }} 
                           <span class="sort-icon">{{ getReleaseSortIcon('date') }}</span>
                         </th>
-                        <th>Title</th>
-                        <th>Link</th>
+                        <th>{{ t('investment.releases.title') }}</th>
+                        <th>{{ t('investment.releases.link') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -431,7 +431,7 @@
                         <td class="filing-title">{{ release.title || release.headline || 'N/A' }}</td>
                         <td class="filing-link">
                           <a v-if="release.link" :href="release.link" target="_blank" rel="noopener noreferrer">
-                            View Release →
+                            {{ t('investment.releases.view') }} →
                           </a>
                           <span v-else class="no-link">N/A</span>
                         </td>
@@ -439,31 +439,31 @@
                     </tbody>
                   </table>
                 </div>
-                <div v-else class="no-data">release data will be available soon</div>
+                <div v-else class="no-data">{{ t('investment.releases.no_data') }}</div>
               </div>
 
               <!-- Holders Tab -->
               <div v-if="microTab === 'holders'" class="micro-tab-pane">
-                <h4>Trade Log</h4>
+                <h4>{{ t('investment.holders.title') }}</h4>
                 
                 <div class="trade-log-tabs">
-                  <button :class="{ active: holdersView === 'all' }" @click="holdersView = 'all'">All</button>
-                  <button :class="{ active: holdersView === 'institutions' }" @click="handleInstitutionsClick">Institutions</button>
-                  <button :class="{ active: holdersView === 'insider' }" @click="holdersView = 'insider'">Insider</button>
+                  <button :class="{ active: holdersView === 'all' }" @click="holdersView = 'all'">{{ t('investment.holders.all') }}</button>
+                  <button :class="{ active: holdersView === 'institutions' }" @click="handleInstitutionsClick">{{ t('investment.holders.institutions') }}</button>
+                  <button :class="{ active: holdersView === 'insider' }" @click="holdersView = 'insider'">{{ t('investment.holders.insider') }}</button>
                 </div>
 
                 <div v-if="holdersView === 'insider' || holdersView === 'all'" class="trade-log-container">
-                  <h5 v-if="holdersView === 'all'" class="section-heading">Insider Transactions</h5>
+                  <h5 v-if="holdersView === 'all'" class="section-heading">{{ t('investment.holders.insider_header') }}</h5>
                   <table class="trade-log-table" v-if="getInsiderTransactions().length > 0">
                     <thead>
                       <tr>
-                        <th>DATE</th>
-                        <th>ACTION</th>
-                        <th>SHARE</th>
-                        <th>SHARE VALUE</th>
-                        <th>HOLDING</th>
-                        <th>PARTY</th>
-                        <th>INSIDER</th>
+                        <th>{{ t('investment.holders.date') }}</th>
+                        <th>{{ t('investment.holders.action') }}</th>
+                        <th>{{ t('investment.holders.share') }}</th>
+                        <th>{{ t('investment.holders.share_value') }}</th>
+                        <th>{{ t('investment.holders.holding') }}</th>
+                        <th>{{ t('investment.holders.party') }}</th>
+                        <th>{{ t('investment.holders.insider_col') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -480,22 +480,22 @@
                       </tr>
                     </tbody>
                   </table>
-                  <div v-else class="no-data">No insider transaction data available</div>
+                  <div v-else class="no-data">{{ t('investment.holders.no_insider_data') }}</div>
                 </div>
 
                 <div v-if="holdersView === 'institutions' || holdersView === 'all'" class="trade-log-container">
-                  <h5 v-if="holdersView === 'all'" class="section-heading">Institutional Holders</h5>
-                  <div v-if="loadingInstitutionalHolders" class="loading">Loading institutional holders...</div>
+                  <h5 v-if="holdersView === 'all'" class="section-heading">{{ t('investment.holders.institutional_header') }}</h5>
+                  <div v-if="loadingInstitutionalHolders" class="loading">{{ t('investment.holders.loading_institutions') }}</div>
                   <table v-else-if="getInstitutionalHolders().length > 0" class="trade-log-table">
                     <thead>
                       <tr>
-                        <th>DATE REPORTED</th>
-                        <th>HOLDER</th>
-                        <th>SHARES</th>
-                        <th>VALUE</th>
-                        <th>% HELD</th>
-                        <th>ACTION</th>
-                        <th>% CHANGE</th>
+                        <th>{{ t('investment.holders.date_reported') }}</th>
+                        <th>{{ t('investment.holders.holder') }}</th>
+                        <th>{{ t('investment.holders.share') }}</th>
+                        <th>{{ t('investment.holders.share_value') }}</th>
+                        <th>{{ t('investment.holders.pct_held') }}</th>
+                        <th>{{ t('investment.holders.action') }}</th>
+                        <th>{{ t('investment.holders.pct_change') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -514,7 +514,7 @@
                       </tr>
                     </tbody>
                   </table>
-                  <div v-else class="no-data">No institutional holder data available</div>
+                  <div v-else class="no-data">{{ t('investment.holders.no_institutional_data') }}</div>
                 </div>
               </div>
 
@@ -522,31 +522,31 @@
               <div v-if="microTab === 'trading'" class="micro-tab-pane">
                 <div class="ratios-grid">
                   <div class="ratio-card">
-                    <h5>Short Interest</h5>
-                    <p>Short Ratio: {{ companyData.trading?.shortRatio }}</p>
-                    <p>Short % of Float: {{ formatPercentMicro(companyData.trading?.shortPercentOfFloat) }}</p>
-                    <p>Shares Short: {{ formatNumberMicro(companyData.trading?.sharesShort) }}</p>
+                    <h5>{{ t('investment.trading.short_interest') }}</h5>
+                    <p>{{ t('investment.trading.short_ratio') }}: {{ companyData.trading?.shortRatio }}</p>
+                    <p>{{ t('investment.trading.short_pct_float') }}: {{ formatPercentMicro(companyData.trading?.shortPercentOfFloat) }}</p>
+                    <p>{{ t('investment.trading.shares_short') }}: {{ formatNumberMicro(companyData.trading?.sharesShort) }}</p>
                   </div>
                   <div class="ratio-card">
-                    <h5>Volume & Price</h5>
-                    <p>Avg Volume: {{ formatNumberMicro(companyData.trading?.averageVolume) }}</p>
-                    <p>52W High: ${{ companyData.trading?.fiftyTwoWeekHigh }}</p>
-                    <p>52W Low: ${{ companyData.trading?.fiftyTwoWeekLow }}</p>
-                    <p>Beta: {{ companyData.trading?.beta }}</p>
-                    <p>Put/Call Ratio: {{ getPutCallRatio() }}</p>
+                    <h5>{{ t('investment.trading.volume_price') }}</h5>
+                    <p>{{ t('investment.trading.avg_volume') }}: {{ formatNumberMicro(companyData.trading?.averageVolume) }}</p>
+                    <p>{{ t('investment.trading.high_52w') }}: ${{ companyData.trading?.fiftyTwoWeekHigh }}</p>
+                    <p>{{ t('investment.trading.low_52w') }}: ${{ companyData.trading?.fiftyTwoWeekLow }}</p>
+                    <p>{{ t('investment.trading.beta') }}: {{ companyData.trading?.beta }}</p>
+                    <p>{{ t('investment.trading.put_call_ratio') }}: {{ getPutCallRatio() }}</p>
                   </div>
                 </div>
                 
                 <div v-if="companyData.trading?.options && companyData.trading.options.length > 0" class="options-charts-container">
                   <div class="options-chart-section">
-                    <h5>Total Volume & Open Interest by Expiry Date</h5>
+                    <h5>{{ t('investment.trading.options_volume') }}</h5>
                     <div class="chart-container">
                       <canvas ref="optionsVolumeChart"></canvas>
                     </div>
                   </div>
                   
                   <div class="options-chart-section">
-                    <h5>Calls & Puts Volume by Expiry Date</h5>
+                    <h5>{{ t('investment.trading.options_calls_puts') }}</h5>
                     <div class="chart-container">
                       <canvas ref="optionsCallsPutsChart"></canvas>
                     </div>
@@ -564,21 +564,21 @@
       <!-- PolyMarket Tab Content -->
       <div v-if="activeTab === 'productivity'" class="tab-content productivity-tab-content">
         <div v-if="!selectedStock" class="empty-deck">
-          <p>Please select a stock ticker to view PolyMarket data.</p>
+          <p>{{ t('investment.polymarket.placeholder') }}</p>
         </div>
         <div v-else class="content-section">
           <div v-if="loadingPolyMarket" class="loading-state">
-            <p>Loading PolyMarket data...</p>
+            <p>{{ t('investment.polymarket.loading') }}</p>
           </div>
           <div v-else-if="polyMarketError" class="error-message">
             <p>{{ polyMarketError }}</p>
           </div>
           <div v-else-if="polyMarketData" class="polymarket-content">
             <div v-if="polyMarketData.is_real_data === false" class="polymarket-warning">
-              <strong>Note:</strong> No PolyMarket data available for {{ selectedStock }}. Displaying estimated fallback data based on current stock price. These odds are based on monte carlo simulation&normal distribution for trading decisions.
+              <strong>{{ t('investment.polymarket.note') }}</strong> {{ t('investment.polymarket.warning', { stock: selectedStock }) }}
             </div>
             <div class="polymarket-header">
-              <h3>📊 PolyMarket - {{ selectedStock }}</h3>
+              <h3>📊 {{ t('investment.polymarket.title') }} - {{ selectedStock }}</h3>
               <p class="polymarket-question">{{ polyMarketData.question }}</p>
             </div>
             <div class="polymarket-chart-container">
@@ -588,8 +588,8 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Price Target</th>
-                    <th>Odds</th>
+                    <th>{{ t('investment.polymarket.price_target') }}</th>
+                    <th>{{ t('investment.polymarket.odds') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -687,6 +687,7 @@
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import {
   Chart as ChartJS,
@@ -734,15 +735,17 @@ const todayChangePercent = ref(0) // Today's percentage change
 const loadingStock = ref(false)
 const stockError = ref(null)
 
+const { t } = useI18n()
+
 // Time period selector
 const selectedTimePeriod = ref('daily')
-const timePeriods = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' },
-  { label: 'Monthly', value: 'monthly' },
-  { label: 'Yearly', value: 'yearly' },
-  { label: 'Max', value: 'max' }
-]
+const timePeriods = computed(() => [
+  { label: t('investment.timeframes.daily'), value: 'daily' },
+  { label: t('investment.timeframes.weekly'), value: 'weekly' },
+  { label: t('investment.timeframes.monthly'), value: 'monthly' },
+  { label: t('investment.timeframes.yearly'), value: 'yearly' },
+  { label: t('investment.timeframes.max'), value: 'max' }
+])
 
 // User info and role check
 const user = ref(null)

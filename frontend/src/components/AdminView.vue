@@ -1,8 +1,8 @@
 <template>
   <div class="admin-view">
     <div class="admin-header">
-      <h1>Admin Panel</h1>
-      <p class="subtitle">Manage users and reports</p>
+      <h1>{{ t('admin.header.title') }}</h1>
+      <p class="subtitle">{{ t('admin.header.subtitle') }}</p>
     </div>
 
     <!-- Tabs -->
@@ -11,37 +11,37 @@
         :class="{ active: activeTab === 'users' }"
         @click="activeTab = 'users'"
       >
-        User Management
+        {{ t('admin.tabs.users') }}
       </button>     
       <button 
         :class="{ active: activeTab === 'access' }"
         @click="activeTab = 'access'; loadPermissions()"
       >
-        Access Management
+        {{ t('admin.tabs.access') }}
       </button>
       <button 
         :class="{ active: activeTab === 'reports' }"
         @click="activeTab = 'reports'"
       >
-        Report Management
+        {{ t('admin.tabs.reports') }}
       </button>
       <button 
         :class="{ active: activeTab === 'batch' }"
         @click="activeTab = 'batch'"
       >
-        Batch Management
+        {{ t('admin.tabs.batch') }}
       </button>
       <button 
         :class="{ active: activeTab === 'health' }"
         @click="activeTab = 'health'"
       >
-        Health Management
+        {{ t('admin.tabs.health') }}
       </button> 
       <button 
         :class="{ active: activeTab === 'database' }"
         @click="activeTab = 'database'; loadTables()"
       >
-        Database Management
+        {{ t('admin.tabs.database') }}
       </button>
     </div>
 
@@ -49,27 +49,27 @@
     <div v-if="activeTab === 'users'">
       <div v-if="loading" class="loading-container">
         <div class="loading-spinner"></div>
-        <p>Loading users...</p>
+        <p>{{ t('admin.users.loading') }}</p>
       </div>
 
       <div v-else-if="error" class="error-container">
         <p class="error-message">{{ error }}</p>
-        <button @click="loadUsers" class="retry-button">Retry</button>
+        <button @click="loadUsers" class="retry-button">{{ t('admin.errors.retry') }}</button>
       </div>
 
       <div v-else class="admin-content">
       <div class="stats-section">
         <div class="stat-card">
           <div class="stat-value">{{ users.length }}</div>
-          <div class="stat-label">Total Users</div>
+          <div class="stat-label">{{ t('admin.users.stats.total') }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-value">{{ paidUsersCount }}</div>
-          <div class="stat-label">Paid Users</div>
+          <div class="stat-label">{{ t('admin.users.stats.paid') }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-value">{{ unpaidUsersCount }}</div>
-          <div class="stat-label">Unpaid Users</div>
+          <div class="stat-label">{{ t('admin.users.stats.unpaid') }}</div>
         </div>
       </div>
 
@@ -77,20 +77,20 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search by username or email..."
+          :placeholder="t('admin.users.filters.search_placeholder')"
           class="search-input"
         />
         <select v-model="roleFilter" class="filter-select">
-          <option value="">All Roles</option>
+          <option value="">{{ t('admin.users.filters.all_roles') }}</option>
           <option value="admin">Admin</option>
           <option value="creator">Creator</option>
           <option value="contributor">Contributor</option>
           <option value="user">User</option>
         </select>
         <select v-model="paymentFilter" class="filter-select">
-          <option value="">All Payment Status</option>
-          <option value="paid">Paid</option>
-          <option value="unpaid">Unpaid</option>
+          <option value="">{{ t('admin.users.filters.all_payment') }}</option>
+          <option value="paid">{{ t('admin.users.filters.paid') }}</option>
+          <option value="unpaid">{{ t('admin.users.filters.unpaid') }}</option>
         </select>
       </div>
 
@@ -98,15 +98,15 @@
         <table class="users-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Payment Status</th>
-              <th>Transaction ID</th>
-              <th>Payment Date</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th>{{ t('admin.users.table.id') }}</th>
+              <th>{{ t('admin.users.table.username') }}</th>
+              <th>{{ t('admin.users.table.email') }}</th>
+              <th>{{ t('admin.users.table.role') }}</th>
+              <th>{{ t('admin.users.table.payment_status') }}</th>
+              <th>{{ t('admin.users.table.transaction_id') }}</th>
+              <th>{{ t('admin.users.table.payment_date') }}</th>
+              <th>{{ t('admin.users.table.created') }}</th>
+              <th>{{ t('admin.users.table.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -121,7 +121,7 @@
               </td>
               <td>
                 <span :class="['payment-badge', user.has_paid ? 'paid' : 'unpaid']">
-                  {{ user.has_paid ? '✓ Paid' : '✗ Unpaid' }}
+                  {{ user.has_paid ? t('admin.users.badges.paid') : t('admin.users.badges.unpaid') }}
                 </span>
               </td>
               <td class="transaction-id">
@@ -140,15 +140,15 @@
                     :class="['action-button', user.has_paid ? 'unverify' : 'verify']"
                     :disabled="updatingUserId === user.id"
                   >
-                    {{ updatingUserId === user.id ? 'Updating...' : (user.has_paid ? 'Unverify' : 'Verify Payment') }}
+                    {{ updatingUserId === user.id ? t('admin.users.actions.updating') : (user.has_paid ? t('admin.users.actions.unverify') : t('admin.users.actions.verify')) }}
                   </button>
                   <button
                     @click="confirmDelete(user)"
                     class="action-button delete"
                     :disabled="deletingUserId === user.id || isCurrentUser(user)"
-                    :title="isCurrentUser(user) ? 'Cannot delete your own account' : 'Delete user'"
+                    :title="isCurrentUser(user) ? t('admin.users.tooltips.cannot_delete_self') : t('admin.users.tooltips.delete_user')"
                   >
-                    {{ deletingUserId === user.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingUserId === user.id ? t('admin.users.actions.deleting') : t('admin.users.actions.delete') }}
                   </button>
                 </div>
               </td>
@@ -158,7 +158,7 @@
       </div>
 
       <div v-if="filteredUsers.length === 0" class="no-results">
-        <p>No users found matching your filters.</p>
+        <p>{{ t('admin.users.no_results') }}</p>
       </div>
       </div>
     </div>
@@ -167,33 +167,33 @@
     <div v-if="activeTab === 'health'">
       <div class="admin-content">
         <div class="health-section">
-          <h2>System Health</h2>
-          <p class="subtitle">Monitor system status and services</p>
+          <h2>{{ t('admin.health.title') }}</h2>
+          <p class="subtitle">{{ t('admin.health.subtitle') }}</p>
           
           <div class="health-cards">
             <div class="health-card">
-              <h3>Backend API</h3>
+              <h3>{{ t('admin.health.backend') }}</h3>
               <div class="health-status" :class="backendHealth.status">
                 <span class="status-indicator"></span>
-                <span>{{ backendHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
+                <span>{{ backendHealth.status === 'healthy' ? t('admin.health.status.healthy') : t('admin.health.status.unhealthy') }}</span>
               </div>
               <p v-if="backendHealth.message" class="health-message">{{ backendHealth.message }}</p>
             </div>
             
             <div class="health-card">
-              <h3>Database</h3>
+              <h3>{{ t('admin.health.database') }}</h3>
               <div class="health-status" :class="databaseHealth.status">
                 <span class="status-indicator"></span>
-                <span>{{ databaseHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
+                <span>{{ databaseHealth.status === 'healthy' ? t('admin.health.status.healthy') : t('admin.health.status.unhealthy') }}</span>
               </div>
               <p v-if="databaseHealth.message" class="health-message">{{ databaseHealth.message }}</p>
             </div>
             
             <div class="health-card">
-              <h3>S3 Storage</h3>
+              <h3>{{ t('admin.health.s3') }}</h3>
               <div class="health-status" :class="minioHealth.status">
                 <span class="status-indicator"></span>
-                <span>{{ minioHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
+                <span>{{ minioHealth.status === 'healthy' ? t('admin.health.status.healthy') : t('admin.health.status.unhealthy') }}</span>
               </div>
               <p v-if="minioHealth.message" class="health-message">{{ minioHealth.message }}</p>
             </div>
@@ -201,7 +201,7 @@
           
           <div class="health-actions">
             <button @click="checkHealth" class="action-button verify" :disabled="checkingHealth">
-              {{ checkingHealth ? 'Checking...' : 'Refresh Health Status' }}
+              {{ checkingHealth ? t('admin.health.actions.checking') : t('admin.health.actions.refresh') }}
             </button>
           </div>
         </div>
@@ -212,38 +212,38 @@
     <div v-if="activeTab === 'batch'">
       <div class="admin-content">
         <div class="batch-section">
-          <h2>Batch Job Management</h2>
-          <p class="subtitle">Trigger and monitor batch processing jobs</p>
+          <h2>{{ t('admin.batch.title') }}</h2>
+          <p class="subtitle">{{ t('admin.batch.subtitle') }}</p>
           
           <div class="batch-jobs">
             <!-- 13F Filing Processing Job -->
             <div class="batch-job-card">
               <div class="batch-job-header">
-                <h3>13F Filing Processing</h3>
+                <h3>{{ t('admin.batch.filing_13f.title') }}</h3>
                 <span class="job-status" :class="batchJobs.filing13f.status">
-                  {{ batchJobs.filing13f.status === 'running' ? 'Running...' : batchJobs.filing13f.status === 'success' ? 'Completed' : batchJobs.filing13f.status === 'error' ? 'Failed' : 'Ready' }}
+                  {{ batchJobs.filing13f.status === 'running' ? t('admin.batch.filing_13f.status.running') : batchJobs.filing13f.status === 'success' ? t('admin.batch.filing_13f.status.completed') : batchJobs.filing13f.status === 'error' ? t('admin.batch.filing_13f.status.failed') : t('admin.batch.filing_13f.status.ready') }}
                 </span>
               </div>
               <p class="job-description">
-                Process 13F institutional holdings filings from SEC EDGAR. Fetches, parses, and stores holdings data with CUSIP-to-ticker mapping.
+                {{ t('admin.batch.filing_13f.description') }}
               </p>
               
               <div class="job-options">
                 <div class="option-group">
                   <label>
                     <input type="checkbox" v-model="batchJobs.filing13f.forceReprocess" />
-                    Force Reprocess (reprocess already processed filings)
+                    {{ t('admin.batch.filing_13f.force_reprocess') }}
                   </label>
                 </div>
                 <div class="option-group">
-                  <label>Quarters (leave empty for all):</label>
+                  <label>{{ t('admin.batch.filing_13f.quarters_label') }}</label>
                   <input 
                     type="text" 
                     v-model="batchJobs.filing13f.quarters" 
-                    placeholder="e.g., 2025-Q3,2025-Q4"
+                    :placeholder="t('admin.batch.filing_13f.quarters_placeholder')"
                     class="quarters-input"
                   />
-                  <small>Comma-separated list of quarters (e.g., 2025-Q3,2025-Q4)</small>
+                  <small>{{ t('admin.batch.filing_13f.quarters_help') }}</small>
                 </div>
               </div>
               
@@ -253,23 +253,23 @@
                   class="action-button verify"
                   :disabled="batchJobs.filing13f.status === 'running'"
                 >
-                  {{ batchJobs.filing13f.status === 'running' ? 'Processing...' : 'Process 13F Filings' }}
+                  {{ batchJobs.filing13f.status === 'running' ? t('admin.batch.filing_13f.processing_btn') : t('admin.batch.filing_13f.process_btn') }}
                 </button>
               </div>
               
               <div v-if="batchJobs.filing13f.result" class="job-result">
-                <h4>Last Run Result:</h4>
+                <h4>{{ t('admin.batch.filing_13f.result.title') }}</h4>
                 <div class="result-details">
-                  <p><strong>Total Filings:</strong> {{ batchJobs.filing13f.result.total_filings || 0 }}</p>
-                  <p><strong>Processed:</strong> {{ batchJobs.filing13f.result.processed || 0 }}</p>
-                  <p><strong>Skipped:</strong> {{ batchJobs.filing13f.result.skipped || 0 }}</p>
-                  <p><strong>Errors:</strong> {{ batchJobs.filing13f.result.errors || 0 }}</p>
-                  <p v-if="batchJobs.filing13f.result.quarters"><strong>Quarters:</strong> {{ batchJobs.filing13f.result.quarters.join(', ') }}</p>
+                  <p><strong>{{ t('admin.batch.filing_13f.result.total') }}</strong> {{ batchJobs.filing13f.result.total_filings || 0 }}</p>
+                  <p><strong>{{ t('admin.batch.filing_13f.result.processed') }}</strong> {{ batchJobs.filing13f.result.processed || 0 }}</p>
+                  <p><strong>{{ t('admin.batch.filing_13f.result.skipped') }}</strong> {{ batchJobs.filing13f.result.skipped || 0 }}</p>
+                  <p><strong>{{ t('admin.batch.filing_13f.result.errors') }}</strong> {{ batchJobs.filing13f.result.errors || 0 }}</p>
+                  <p v-if="batchJobs.filing13f.result.quarters"><strong>{{ t('admin.batch.filing_13f.result.quarters') }}</strong> {{ batchJobs.filing13f.result.quarters.join(', ') }}</p>
                 </div>
               </div>
               
               <div v-if="batchJobs.filing13f.error" class="job-error">
-                <strong>Error:</strong> {{ batchJobs.filing13f.error }}
+                <strong>{{ t('admin.batch.filing_13f.error') }}</strong> {{ batchJobs.filing13f.error }}
               </div>
             </div>
             
@@ -283,25 +283,25 @@
     <div v-if="activeTab === 'access'">
       <div v-if="loadingPermissions" class="loading-container">
         <div class="loading-spinner"></div>
-        <p>Loading permissions...</p>
+        <p>{{ t('admin.access.loading') }}</p>
       </div>
 
       <div v-else-if="permissionsError" class="error-container">
         <p class="error-message">{{ permissionsError }}</p>
-        <button @click="loadPermissions" class="retry-button">Retry</button>
-        <button @click="initializePermissions" class="action-button verify" style="margin-left: 10px;">Initialize Defaults</button>
+        <button @click="loadPermissions" class="retry-button">{{ t('admin.errors.retry') }}</button>
+        <button @click="initializePermissions" class="action-button verify" style="margin-left: 10px;">{{ t('admin.access.actions.initialize') }}</button>
       </div>
 
       <div v-else class="admin-content">
         <div class="access-section">
-          <h2>Access Management</h2>
-          <p class="subtitle">Control which roles can access specific application routes</p>
+          <h2>{{ t('admin.access.title') }}</h2>
+          <p class="subtitle">{{ t('admin.access.subtitle') }}</p>
           
           <div class="permissions-matrix">
             <table class="users-table">
               <thead>
                 <tr>
-                  <th>Resource / Route</th>
+                  <th>{{ t('admin.access.table.resource') }}</th>
                   <th v-for="role in roles" :key="role">{{ role.charAt(0).toUpperCase() + role.slice(1) }}</th>
                 </tr>
               </thead>
@@ -325,8 +325,8 @@
           </div>
           
           <div class="permission-legend">
-            <p><small>* Admin role always has full access to all resources.</small></p>
-            <p><small>* Changes take effect immediately but users may need to refresh for navigation updates.</small></p>
+            <p><small>{{ t('admin.access.legend.admin') }}</small></p>
+            <p><small>{{ t('admin.access.legend.refresh') }}</small></p>
           </div>
         </div>
       </div>
@@ -336,52 +336,52 @@
     <div v-if="activeTab === 'reports'">
       <div v-if="loadingReports" class="loading-container">
         <div class="loading-spinner"></div>
-        <p>Loading reports...</p>
+        <p>{{ t('admin.reports.loading') }}</p>
       </div>
 
       <div v-else-if="reportsError" class="error-container">
         <p class="error-message">{{ reportsError }}</p>
-        <button @click="loadReports" class="retry-button">Retry</button>
+        <button @click="loadReports" class="retry-button">{{ t('admin.errors.retry') }}</button>
       </div>
 
       <div v-else class="admin-content">
         <!-- Upload Report Section -->
         <div class="upload-section">
-          <h3>Upload New Report</h3>
+          <h3>{{ t('admin.reports.upload.title') }}</h3>
           <div class="upload-form">
             <div class="form-row">
               <div class="form-group">
-                <label>Report Title *</label>
+                <label>{{ t('admin.reports.upload.report_title') }}</label>
                 <input
                   v-model="uploadReportTitle"
                   type="text"
-                  placeholder="e.g., Gold Market Analysis"
+                  :placeholder="t('admin.reports.upload.report_title_placeholder')"
                   class="form-input"
                 />
               </div>
               <div class="form-group">
-                <label>Ticker</label>
+                <label>{{ t('admin.reports.upload.ticker') }}</label>
                 <input
                   v-model="uploadReportTicker"
                   type="text"
-                  placeholder="e.g., GLD (optional)"
+                  :placeholder="t('admin.reports.upload.ticker_placeholder')"
                   class="form-input"
                 />
               </div>
               <div class="form-group">
-                <label>Report Type *</label>
+                <label>{{ t('admin.reports.upload.type') }}</label>
                 <select v-model="uploadReportType" class="form-input">
-                  <option value="">Select Type</option>
-                  <option value="daily">Daily</option>
-                  <option value="long">Long Position</option>
-                  <option value="short">Short Position</option>
-                  <option value="market">Market</option>
+                  <option value="">{{ t('admin.reports.upload.select_type') }}</option>
+                  <option value="daily">{{ t('report_types.daily') }}</option>
+                  <option value="long">{{ t('report_types.long') }}</option>
+                  <option value="short">{{ t('report_types.short') }}</option>
+                  <option value="market">{{ t('report_types.market') }}</option>
                 </select>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group file-upload-group">
-                <label>PDF File *</label>
+                <label>{{ t('admin.reports.upload.file') }}</label>
                 <input
                   type="file"
                   accept=".pdf"
@@ -397,7 +397,7 @@
                   :disabled="!canUpload || uploadingReport"
                   class="upload-button"
                 >
-                  {{ uploadingReport ? 'Uploading...' : 'Upload Report' }}
+                  {{ uploadingReport ? t('admin.reports.upload.btn_uploading') : t('admin.reports.upload.btn_upload') }}
                 </button>
               </div>
             </div>
@@ -410,15 +410,15 @@
           <input
             v-model="reportSearchQuery"
             type="text"
-            placeholder="Search by ticker or title..."
+            :placeholder="t('admin.reports.filters.search_placeholder')"
             class="search-input"
           />
           <select v-model="reportTypeFilter" class="filter-select">
-            <option value="">All Types</option>
-            <option value="daily">Daily</option>
-            <option value="long">Long Position</option>
-            <option value="short">Short Position</option>
-            <option value="research">Research</option>
+            <option value="">{{ t('admin.reports.filters.all_types') }}</option>
+            <option value="daily">{{ t('report_types.daily') }}</option>
+            <option value="long">{{ t('report_types.long') }}</option>
+            <option value="short">{{ t('report_types.short') }}</option>
+            <option value="research">{{ t('report_types.research') }}</option>
           </select>
         </div>
 
@@ -426,12 +426,12 @@
           <table class="users-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Ticker</th>
-                <th>Type</th>
-                <th>Created</th>
-                <th>Actions</th>
+                <th>{{ t('admin.users.table.id') }}</th>
+                <th>{{ t('admin.reports.table.title') }}</th>
+                <th>{{ t('admin.reports.table.ticker') }}</th>
+                <th>{{ t('admin.reports.table.type') }}</th>
+                <th>{{ t('admin.reports.table.created') }}</th>
+                <th>{{ t('admin.reports.table.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -453,7 +453,7 @@
                     class="action-button delete"
                     :disabled="deletingReportId === report.id"
                   >
-                    {{ deletingReportId === report.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingReportId === report.id ? t('admin.users.actions.deleting') : t('admin.users.actions.delete') }}
                   </button>
                 </td>
               </tr>
@@ -462,7 +462,7 @@
         </div>
 
         <div v-if="filteredReports.length === 0" class="no-results">
-          <p>No reports found matching your filters.</p>
+          <p>{{ t('admin.reports.no_results') }}</p>
         </div>
       </div>
     </div>
@@ -471,34 +471,34 @@
     <div v-if="activeTab === 'database'">
       <div v-if="loadingTables" class="loading-container">
         <div class="loading-spinner"></div>
-        <p>Loading database tables...</p>
+        <p>{{ t('admin.database.loading') }}</p>
       </div>
 
       <div v-else-if="tablesError" class="error-container">
         <p class="error-message">{{ tablesError }}</p>
-        <button @click="loadTables" class="retry-button">Retry</button>
+        <button @click="loadTables" class="retry-button">{{ t('admin.errors.retry') }}</button>
       </div>
 
       <div v-else class="admin-content">
         <div class="database-section">
-          <h2>Database Management</h2>
-          <p class="subtitle">Inspect database tables and data</p>
+          <h2>{{ t('admin.database.title') }}</h2>
+          <p class="subtitle">{{ t('admin.database.subtitle') }}</p>
           
           <div class="table-selector">
-            <label>Select Table:</label>
+            <label>{{ t('admin.database.select_table') }}</label>
             <select v-model="selectedTable" @change="loadTableData">
-              <option value="" disabled>Select a table</option>
+              <option value="" disabled>{{ t('admin.database.select_placeholder') }}</option>
               <option v-for="table in tables" :key="table" :value="table">{{ table }}</option>
             </select>
             <button @click="loadTableData" class="action-button verify" :disabled="!selectedTable || loadingTableData">
-              {{ loadingTableData ? 'Loading...' : 'Refresh Data' }}
+              {{ loadingTableData ? t('admin.database.loading_btn') : t('admin.database.refresh_btn') }}
             </button>
           </div>
           
           <div v-if="tableData" class="data-view">
              <div class="table-info">
-               <span><strong>Total Rows:</strong> {{ tableData.total_count }}</span>
-               <span><strong>Showing:</strong> {{ tableData.rows.length }} rows</span>
+               <span><strong>{{ t('admin.database.info.total') }}</strong> {{ tableData.total_count }}</span>
+               <span><strong>{{ t('admin.database.info.showing') }}</strong> {{ tableData.rows.length }} {{ t('admin.database.info.rows') }}</span>
              </div>
              
              <div class="users-table-container db-table-container">
@@ -517,7 +517,7 @@
              </div>
              
              <div v-if="tableData.rows.length === 0" class="no-results">
-                <p>No data found in this table.</p>
+                <p>{{ t('admin.database.no_results') }}</p>
              </div>
           </div>
         </div>
@@ -531,13 +531,13 @@
     <!-- Delete User Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
       <div class="modal-content" @click.stop>
-        <h2>Confirm Delete</h2>
-        <p>Are you sure you want to delete user <strong>{{ userToDelete?.username }}</strong> ({{ userToDelete?.email }})?</p>
-        <p class="warning-text">This action cannot be undone.</p>
+        <h2>{{ t('admin.modals.delete_user.title') }}</h2>
+        <p>{{ t('admin.modals.delete_user.message') }} <strong>{{ userToDelete?.username }}</strong> ({{ userToDelete?.email }})?</p>
+        <p class="warning-text">{{ t('admin.modals.delete_user.warning') }}</p>
         <div class="modal-actions">
-          <button @click="cancelDelete" class="modal-button cancel">Cancel</button>
+          <button @click="cancelDelete" class="modal-button cancel">{{ t('admin.modals.delete_user.cancel') }}</button>
           <button @click="deleteUser" class="modal-button delete-confirm" :disabled="deletingUserId !== null">
-            {{ deletingUserId !== null ? 'Deleting...' : 'Delete User' }}
+            {{ deletingUserId !== null ? t('admin.modals.delete_user.deleting') : t('admin.modals.delete_user.confirm') }}
           </button>
         </div>
       </div>
@@ -546,14 +546,14 @@
     <!-- Delete Report Confirmation Modal -->
     <div v-if="showDeleteReportConfirm" class="modal-overlay" @click="cancelDeleteReport">
       <div class="modal-content" @click.stop>
-        <h2>Confirm Delete Report</h2>
-        <p>Are you sure you want to delete report <strong>{{ reportToDelete?.title }}</strong>?</p>
-        <p v-if="reportToDelete?.ticker" class="report-details">Ticker: {{ reportToDelete.ticker }} | Type: {{ reportToDelete.report_type }}</p>
-        <p class="warning-text">This action cannot be undone.</p>
+        <h2>{{ t('admin.modals.delete_report.title') }}</h2>
+        <p>{{ t('admin.modals.delete_report.message') }} <strong>{{ reportToDelete?.title }}</strong>?</p>
+        <p v-if="reportToDelete?.ticker" class="report-details">{{ t('admin.modals.delete_report.ticker') }} {{ reportToDelete.ticker }} | {{ t('admin.modals.delete_report.type') }} {{ reportToDelete.report_type }}</p>
+        <p class="warning-text">{{ t('admin.modals.delete_report.warning') }}</p>
         <div class="modal-actions">
-          <button @click="cancelDeleteReport" class="modal-button cancel">Cancel</button>
+          <button @click="cancelDeleteReport" class="modal-button cancel">{{ t('admin.modals.delete_report.cancel') }}</button>
           <button @click="deleteReport" class="modal-button delete-confirm" :disabled="deletingReportId !== null">
-            {{ deletingReportId !== null ? 'Deleting...' : 'Delete Report' }}
+            {{ deletingReportId !== null ? t('admin.modals.delete_report.deleting') : t('admin.modals.delete_report.confirm') }}
           </button>
         </div>
       </div>
@@ -566,8 +566,10 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const activeTab = ref('users')
 
@@ -717,18 +719,18 @@ const loadUsers = async () => {
     })
 
     if (response.status === 403) {
-      error.value = 'Access denied. Admin privileges required.'
+      error.value = t('admin.errors.access_denied')
       return
     }
 
     if (!response.ok) {
-      throw new Error('Failed to load users')
+      throw new Error(t('admin.errors.load_users'))
     }
 
     users.value = await response.json()
   } catch (err) {
     console.error('Error loading users:', err)
-    error.value = 'Failed to load users. Please try again.'
+    error.value = t('admin.errors.load_users')
   } finally {
     loading.value = false
   }
@@ -759,7 +761,7 @@ const togglePaymentStatus = async (user) => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to update payment status')
+      throw new Error(errorData.detail || t('admin.errors.update_payment'))
     }
 
     // Update local state
@@ -768,7 +770,7 @@ const togglePaymentStatus = async (user) => {
       user.payment_date = new Date().toISOString()
     }
 
-    message.value = `Payment status updated successfully for ${user.username}`
+    message.value = t('admin.messages.payment_updated', { username: user.username })
     messageType.value = 'success'
 
     setTimeout(() => {
@@ -776,7 +778,7 @@ const togglePaymentStatus = async (user) => {
     }, 3000)
   } catch (err) {
     console.error('Error updating payment status:', err)
-    message.value = err.message || 'Failed to update payment status'
+    message.value = err.message || t('admin.errors.update_payment')
     messageType.value = 'error'
 
     setTimeout(() => {
@@ -799,11 +801,11 @@ const loadTables = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     
-    if (!response.ok) throw new Error('Failed to load tables')
+    if (!response.ok) throw new Error(t('admin.errors.load_tables'))
     tables.value = await response.json()
   } catch (err) {
     console.error('Error loading tables:', err)
-    tablesError.value = 'Failed to load tables'
+    tablesError.value = t('admin.errors.load_tables')
   } finally {
     loadingTables.value = false
   }
@@ -821,11 +823,11 @@ const loadTableData = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     
-    if (!response.ok) throw new Error('Failed to load table data')
+    if (!response.ok) throw new Error(t('admin.errors.load_table_data'))
     tableData.value = await response.json()
   } catch (err) {
     console.error('Error loading table data:', err)
-    message.value = 'Failed to load table data'
+    message.value = t('admin.errors.load_table_data')
     messageType.value = 'error'
     setTimeout(() => { message.value = '' }, 3000)
   } finally {
@@ -892,13 +894,13 @@ const deleteUser = async () => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to delete user')
+      throw new Error(errorData.detail || t('admin.errors.delete_user'))
     }
 
     // Remove user from local state
     users.value = users.value.filter(u => u.id !== userToDelete.value.id)
 
-    message.value = `User ${userToDelete.value.username} has been deleted successfully`
+    message.value = t('admin.messages.user_deleted', { username: userToDelete.value.username })
     messageType.value = 'success'
 
     // Close modal
@@ -909,7 +911,7 @@ const deleteUser = async () => {
     }, 3000)
   } catch (err) {
     console.error('Error deleting user:', err)
-    message.value = err.message || 'Failed to delete user'
+    message.value = err.message || t('admin.errors.delete_user')
     messageType.value = 'error'
 
     setTimeout(() => {
@@ -938,13 +940,13 @@ const loadReports = async () => {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to load reports')
+      throw new Error(t('admin.errors.load_reports'))
     }
 
     reports.value = await response.json()
   } catch (err) {
     console.error('Error loading reports:', err)
-    reportsError.value = 'Failed to load reports. Please try again.'
+    reportsError.value = t('admin.errors.load_reports')
   } finally {
     loadingReports.value = false
   }
@@ -977,10 +979,10 @@ const deleteReport = async () => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to delete report')
+      throw new Error(errorData.detail || t('admin.errors.delete_report'))
     }
 
-    message.value = `Report "${reportToDelete.value.title}" deleted successfully.`
+    message.value = t('admin.messages.report_deleted', { title: reportToDelete.value.title })
     messageType.value = 'success'
     
     // Dispatch event to notify ReportView to refresh
@@ -995,7 +997,7 @@ const deleteReport = async () => {
     cancelDeleteReport()
   } catch (err) {
     console.error('Error deleting report:', err)
-    message.value = err.message || 'Failed to delete report'
+    message.value = err.message || t('admin.errors.delete_report')
     messageType.value = 'error'
   } finally {
     deletingReportId.value = null
@@ -1011,7 +1013,7 @@ const handleFileSelect = (event) => {
     uploadError.value = ''
   } else {
     selectedFile.value = null
-    uploadError.value = 'Please select a valid PDF file'
+    uploadError.value = t('admin.errors.invalid_pdf')
   }
 }
 
@@ -1044,11 +1046,11 @@ const uploadReport = async () => {
     
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to upload report')
+      throw new Error(errorData.detail || t('admin.errors.upload_report'))
     }
     
     const result = await response.json()
-    uploadSuccess.value = `Report "${uploadReportTitle.value}" uploaded successfully!`
+    uploadSuccess.value = t('admin.messages.report_uploaded', { title: uploadReportTitle.value })
     
     // Reset form
     uploadReportTitle.value = ''
@@ -1068,7 +1070,7 @@ const uploadReport = async () => {
     }, 5000)
   } catch (err) {
     console.error('Error uploading report:', err)
-    uploadError.value = err.message || 'Failed to upload report'
+    uploadError.value = err.message || t('admin.errors.upload_report')
   } finally {
     uploadingReport.value = false
   }
@@ -1094,12 +1096,12 @@ const checkHealth = async () => {
       })
       backendHealth.value = {
         status: backendResponse.ok ? 'healthy' : 'unhealthy',
-        message: backendResponse.ok ? 'API is responding' : 'API is not responding'
+        message: backendResponse.ok ? t('admin.health.status.api_ok') : t('admin.health.status.api_error')
       }
     } catch (err) {
       backendHealth.value = {
         status: 'unhealthy',
-        message: 'Cannot reach backend API'
+        message: t('admin.health.status.api_error')
       }
     }
 
@@ -1112,12 +1114,12 @@ const checkHealth = async () => {
       })
       databaseHealth.value = {
         status: dbResponse.ok ? 'healthy' : 'unhealthy',
-        message: dbResponse.ok ? 'Database connection working' : 'Database connection failed'
+        message: dbResponse.ok ? t('admin.health.status.db_ok') : t('admin.health.status.db_error')
       }
     } catch (err) {
       databaseHealth.value = {
         status: 'unhealthy',
-        message: 'Database connection error'
+        message: t('admin.health.status.db_error')
       }
     }
 
@@ -1130,12 +1132,12 @@ const checkHealth = async () => {
       })
       minioHealth.value = {
         status: minioResponse.ok ? 'healthy' : 'unhealthy',
-        message: minioResponse.ok ? 'S3 storage accessible' : 'S3 storage error'
+        message: minioResponse.ok ? t('admin.health.status.s3_ok') : t('admin.health.status.s3_error')
       }
     } catch (err) {
       minioHealth.value = {
         status: 'unhealthy',
-        message: 'S3 storage error'
+        message: t('admin.health.status.s3_error')
       }
     }
 
@@ -1165,18 +1167,18 @@ const loadPermissions = async () => {
     })
 
     if (!response.ok) {
-        throw new Error('Failed to load permissions')
+        throw new Error(t('admin.errors.load_permissions'))
     }
 
     permissions.value = await response.json()
     
     // If empty, suggest initialization
     if (permissions.value.length === 0) {
-        permissionsError.value = 'No permissions found. Please initialize defaults.'
+        permissionsError.value = t('admin.access.messages.no_permissions')
     }
   } catch (err) {
     console.error('Error loading permissions:', err)
-    permissionsError.value = 'Failed to load permissions. Please try again.'
+    permissionsError.value = t('admin.errors.load_permissions')
   } finally {
     loadingPermissions.value = false
   }
@@ -1194,13 +1196,13 @@ const initializePermissions = async () => {
         
         if (response.ok) {
             await loadPermissions()
-            message.value = 'Default permissions initialized'
+            message.value = t('admin.access.messages.initialized')
             messageType.value = 'success'
             setTimeout(() => { message.value = '' }, 3000)
         }
     } catch (err) {
         console.error('Error initializing permissions:', err)
-        permissionsError.value = 'Failed to initialize permissions'
+        permissionsError.value = t('admin.errors.init_permissions')
     }
 }
 
@@ -1228,7 +1230,7 @@ const updatePermission = async (role, resource, canAccess) => {
         })
 
         if (!response.ok) {
-            throw new Error('Failed to update permission')
+            throw new Error(t('admin.errors.update_permission'))
         }
         
         const updatedPerm = await response.json()
@@ -1241,13 +1243,13 @@ const updatePermission = async (role, resource, canAccess) => {
             permissions.value.push(updatedPerm)
         }
         
-        message.value = `Permission updated for ${role} on ${resource}`
+        message.value = t('admin.access.messages.updated', { role: role, resource: resource })
         messageType.value = 'success'
         setTimeout(() => { message.value = '' }, 2000)
         
     } catch (err) {
         console.error('Error updating permission:', err)
-        message.value = 'Failed to update permission'
+        message.value = t('admin.errors.update_permission')
         messageType.value = 'error'
         setTimeout(() => { message.value = '' }, 3000)
         
@@ -1280,7 +1282,7 @@ const pollJobStatus = async (jobId) => {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to check job status')
+      throw new Error(t('admin.errors.check_job'))
     }
 
     const status = await response.json()
@@ -1297,7 +1299,7 @@ const pollJobStatus = async (jobId) => {
       batchJobs.value.filing13f.error = null
       
       const result = status.result
-      message.value = `13F processing completed: ${result.processed} processed, ${result.skipped} skipped`
+      message.value = t('admin.messages.processing_completed', { processed: result.processed, skipped: result.skipped })
       messageType.value = 'success'
       
       setTimeout(() => {
@@ -1311,10 +1313,10 @@ const pollJobStatus = async (jobId) => {
       }
       
       batchJobs.value.filing13f.status = 'error'
-      batchJobs.value.filing13f.error = status.error || 'Processing failed'
+      batchJobs.value.filing13f.error = status.error || t('admin.messages.processing_failed')
       batchJobs.value.filing13f.result = null
       
-      message.value = status.error || '13F processing failed'
+      message.value = status.error || t('admin.messages.processing_failed')
       messageType.value = 'error'
       
       setTimeout(() => {
@@ -1375,13 +1377,13 @@ const trigger13FProcessing = async () => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to trigger 13F processing')
+      throw new Error(errorData.detail || t('admin.errors.trigger_job'))
     }
 
     const result = await response.json()
     
     // Start polling for job status
-    message.value = result.message || '13F processing started...'
+    message.value = result.message || t('admin.messages.processing_started')
     messageType.value = 'info'
     
     // Poll every 2 seconds
@@ -1394,10 +1396,10 @@ const trigger13FProcessing = async () => {
     
   } catch (err) {
     console.error('Error triggering 13F processing:', err)
-    batchJobs.value.filing13f.error = err.message || 'Failed to trigger 13F processing'
+    batchJobs.value.filing13f.error = err.message || t('admin.errors.trigger_job')
     batchJobs.value.filing13f.status = 'error'
     
-    message.value = err.message || 'Failed to trigger 13F processing'
+    message.value = err.message || t('admin.errors.trigger_job')
     messageType.value = 'error'
     
     setTimeout(() => {

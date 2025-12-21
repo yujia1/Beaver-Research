@@ -3,20 +3,20 @@
     <PaymentGate v-if="!hasPaid && !loading" />
     <div v-else-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Checking access...</p>
+      <p>{{ t('reports_page.checking_access') }}</p>
     </div>
     <div v-else>
-    <h2>Reports</h2>
+    <h2>{{ t('reports_page.title') }}</h2>
     
       <!-- Ticker Filter -->
       <div class="filter-section">
         <input
           v-model="tickerFilter"
           type="text"
-          placeholder="Search by ticker (e.g., TSLA, GLD)..."
+          :placeholder="t('reports_page.filter.placeholder')"
           class="ticker-filter-input"
         />
-        <button v-if="tickerFilter" @click="tickerFilter = ''" class="clear-filter-btn">Clear</button>
+        <button v-if="tickerFilter" @click="tickerFilter = ''" class="clear-filter-btn">{{ t('reports_page.filter.clear') }}</button>
       </div>
     
       <div class="category-tabs">
@@ -32,15 +32,15 @@
             
       <div class="content-container">
           <div class="main-report-area">
-              <div v-if="loadingReports" class="loading">Loading reports...</div>
+              <div v-if="loadingReports" class="loading">{{ t('reports_page.loading') }}</div>
               <div v-else>
                 <!-- Long Position Reports -->
                 <div v-if="activeCategory === 'long'" class="report-category">
-                    <div v-if="longReports.length === 0" class="no-reports">No long position reports</div>
+                    <div v-if="longReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.long') }}</div>
                     <ul v-else class="report-list">
                         <li v-for="savedReport in longReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
-                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
@@ -61,15 +61,15 @@
             
                 <!-- Daily Reports -->
                 <div v-if="activeCategory === 'daily'" class="report-category">
-                    <div v-if="dailyReports.length === 0" class="no-reports">No daily reports</div>
+                    <div v-if="dailyReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.daily') }}</div>
                     <ul v-else class="report-list">
                         <li v-for="savedReport in dailyReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
-                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
-                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
+                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">{{ t('reports_page.loading_single') }}</div>
                                 <div v-else class="report-body" v-html="getReportContent(savedReport)"></div>
             </div>
                         </li>
@@ -78,15 +78,15 @@
 
                 <!-- Market Reports -->
                 <div v-if="activeCategory === 'market'" class="report-category">
-                    <div v-if="marketReports.length === 0" class="no-reports">No market reports</div>
+                    <div v-if="marketReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.market') }}</div>
                     <ul v-else class="report-list">
                         <li v-for="savedReport in marketReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
-                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
-                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
+                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">{{ t('reports_page.loading_single') }}</div>
                                 <div v-else class="report-body">
                                     <iframe 
                                         v-if="getReportPdfUrl(savedReport)" 
@@ -94,7 +94,7 @@
                                         class="pdf-viewer"
                                         frameborder="0"
                                     ></iframe>
-                                    <div v-else class="report-error">PDF not available</div>
+                                    <div v-else class="report-error">{{ t('reports_page.pdf_unavailable') }}</div>
                                 </div>
                             </div>
                         </li>
@@ -103,15 +103,15 @@
 
                 <!-- Short Position Reports -->
                 <div v-if="activeCategory === 'short'" class="report-category">
-                    <div v-if="shortReports.length === 0" class="no-reports">No short position reports</div>
+                    <div v-if="shortReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.short') }}</div>
             <ul v-else class="report-list">
                         <li v-for="savedReport in shortReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
-                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
-                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
+                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">{{ t('reports_page.loading_single') }}</div>
                                 <div v-else class="report-body">
                                     <iframe 
                                         v-if="getReportPdfUrl(savedReport)" 
@@ -119,7 +119,7 @@
                                         class="pdf-viewer"
                                         frameborder="0"
                                     ></iframe>
-                                    <div v-else class="report-error">PDF not available</div>
+                                    <div v-else class="report-error">{{ t('reports_page.pdf_unavailable') }}</div>
                                 </div>
                             </div>
                 </li>
@@ -138,9 +138,11 @@ import API_BASE_URL from '@/config/api.js'
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { marked } from 'marked';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import PaymentGate from './PaymentGate.vue';
 
 const router = useRouter();
+const { t, locale } = useI18n();
 
 // Payment State
 const hasPaid = ref(false);
@@ -160,12 +162,12 @@ const loadingReportsById = ref({}); // Track loading state per report
 
 
 // Categories for tabs
-const categories = [
-  { label: 'Market Report', value: 'market' },
-  { label: 'Daily Report', value: 'daily' },
-  { label: 'Long Position Report', value: 'long' },
-  { label: 'Short Position Report', value: 'short' }
-];
+const categories = computed(() => [
+  { label: t('reports_page.tabs.market'), value: 'market' },
+  { label: t('reports_page.tabs.daily'), value: 'daily' },
+  { label: t('reports_page.tabs.long'), value: 'long' },
+  { label: t('reports_page.tabs.short'), value: 'short' }
+]);
 
 // Filtered reports by category
 const longReports = computed(() => {

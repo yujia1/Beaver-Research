@@ -105,5 +105,694 @@
             "5y": "5Y",
             "max": "Max"
         }
+    },
+    "investment": {
+        "title": "Stock Price Timeline",
+        "subtitle": "Track stock price movements and key events over time",
+        "search_label": "Search Stock:",
+        "search_placeholder": "Enter ticker symbol (e.g., TSLA, AAPL, MSFT)",
+        "search_button": "Search",
+        "no_stock": "No Stock Selected",
+        "loading": "Loading...",
+        "price_timeline": "Price Timeline",
+        "timeframes": {
+            "daily": "Daily",
+            "weekly": "Weekly",
+            "monthly": "Monthly",
+            "yearly": "Yearly",
+            "max": "Max"
+        },
+        "tabs": {
+            "company_basic": "Company Basic",
+            "polymarket": "PolyMarket"
+        },
+        "micro_tabs": {
+            "overview": "Overview",
+            "financials": "Financial Statements",
+            "ratios": "Ratios",
+            "filings": "Filings",
+            "release": "Release",
+            "holders": "Holders",
+            "trading": "Trading"
+        },
+        "overview": {
+            "latest_10k": "Latest 10K",
+            "refresh": "Refresh",
+            "loading_10k": "Loading 10-K filing...",
+            "no_data_10k": "No 10-K data available. Click Refresh to load.",
+            "company_overview": "Company Overview & Deep Dive Analysis",
+            "generate": "Generate",
+            "generating": "Generating...",
+            "payment_required": "Payment Required - Generate",
+            "payment_notice": "Payment required to generate analysis.",
+            "payment_link": "Visit Research page to complete payment"
+        },
+        "financials": {
+            "header": "Financial Statements Overview",
+            "annual": "Annual",
+            "quarterly": "Quarterly",
+            "ltm_snapshot": "LTM Snapshot",
+            "revenue_ltm": "Revenue (LTM)",
+            "net_income_ltm": "Net Income (LTM)",
+            "total_assets": "Total Assets",
+            "fcf_ltm": "Free Cash Flow (LTM)",
+            "trends_chart": "Revenue & Profitability Trends",
+            "cashflow_chart": "Cash Flow Analysis",
+            "balance_composition": "Balance Sheet Composition (Latest)",
+            "assets": "Assets",
+            "liabilities_equity": "Liabilities & Equity",
+            "income_statement": "Income Statement",
+            "balance_sheet": "Balance Sheet",
+            "cashflow_statement": "Cash Flow Statement"
+        },
+        "ratios": {
+            "profitability": "Profitability",
+            "gross_margin": "Gross Margin",
+            "operating_margin": "Operating Margin",
+            "ebitda_margin": "EBITDA Margin",
+            "net_margin": "Net Margin",
+            "roa": "ROA",
+            "roe": "ROE",
+            "roic": "ROIC",
+            "fcf_yield": "FCF Yield",
+            "liquidity_solvency": "Liquidity & Solvency",
+            "current_ratio": "Current Ratio",
+            "quick_ratio": "Quick Ratio",
+            "debt_equity": "Debt/Equity",
+            "debt_ebitda": "Debt/EBITDA",
+            "interest_coverage": "Interest Coverage",
+            "efficiency": "Efficiency",
+            "inventory_turnover": "Inventory Turnover",
+            "dso": "Days Sales Outstanding",
+            "dpo": "Days Payable Outstanding",
+            "asset_turnover": "Asset Turnover",
+            "working_capital": "Working Capital",
+            "valuation": "Valuation",
+            "pe_trailing": "P/E (Trailing)",
+            "pe_forward": "P/E (Forward)",
+            "pb": "P/B",
+            "ev_ebitda": "EV/EBITDA",
+            "ps": "P/S",
+            "ev_revenue": "EV/Revenue"
+        },
+        "filings": {
+            "header": "SEC Filings",
+            "type": "Filing Type",
+            "date": "Date",
+            "link": "SEC Link",
+            "view": "View on SEC.gov",
+            "no_data": "No SEC filings data available"
+        },
+        "releases": {
+            "header": "Key Logs - Releases",
+            "type": "Release Type",
+            "date": "Date",
+            "title": "Title",
+            "link": "Link",
+            "view": "View Release",
+            "no_data": "release data will be available soon"
+        },
+        "holders": {
+            "title": "Trade Log",
+            "all": "All",
+            "institutions": "Institutions",
+            "insider": "Insider",
+            "insider_header": "Insider Transactions",
+            "institutional_header": "Institutional Holders",
+            "date": "DATE",
+            "action": "ACTION",
+            "share": "SHARE",
+            "share_value": "SHARE VALUE",
+            "holding": "HOLDING",
+            "party": "PARTY",
+            "insider_col": "INSIDER",
+            "date_reported": "DATE REPORTED",
+            "holder": "HOLDER",
+            "pct_held": "% HELD",
+            "pct_change": "% CHANGE",
+            "loading_institutions": "Loading institutional holders...",
+            "no_insider_data": "No insider transaction data available",
+            "no_institutional_data": "No institutional holder data available"
+        },
+        "trading": {
+            "short_interest": "Short Interest",
+            "short_ratio": "Short Ratio",
+            "short_pct_float": "Short % of Float",
+            "shares_short": "Shares Short",
+            "volume_price": "Volume & Price",
+            "avg_volume": "Avg Volume",
+            "high_52w": "52W High",
+            "low_52w": "52W Low",
+            "beta": "Beta",
+            "put_call_ratio": "Put/Call Ratio",
+            "options_volume": "Total Volume & Open Interest by Expiry Date",
+            "options_calls_puts": "Calls & Puts Volume by Expiry Date"
+        },
+        "polymarket": {
+            "placeholder": "Please select a stock ticker to view PolyMarket data.",
+            "loading": "Loading PolyMarket data...",
+            "note": "Note:",
+            "warning": "No PolyMarket data available for {stock}. Displaying estimated fallback data based on current stock price. These odds are based on monte carlo simulation&normal distribution for trading decisions.",
+            "title": "PolyMarket",
+            "price_target": "Price Target",
+            "odds": "Odds"
+        }
+    },
+    "alphatrade": {
+        "title": "INVENTORY & FUNDAMENTALS",
+        "subtitle": "QUANTITATIVE SHORT/LONG FRAMEWORK",
+        "new_execution": "New Execution",
+        "total_value": "TOTAL VALUE",
+        "total_cost": "TOTAL COST",
+        "unrealized_pl": "UNREALIZED P/L",
+        "total_return": "TOTAL RETURN",
+        "loading": "Loading positions...",
+        "empty_state": "No positions yet. Click \"New Execution\" to get started.",
+        "market_price": "MARKET PRICE",
+        "valuation": "VALUATION",
+        "delete_position": "Delete Position",
+        "tabs": {
+            "lot_inventory": "LOT INVENTORY",
+            "fundamental_analysis": "FUNDAMENTAL ANALYSIS",
+            "scenario_analysis": "SCENARIO ANALYSIS"
+        },
+        "lot_table": {
+            "purchase_date": "PURCHASE DATE",
+            "qty": "QTY",
+            "price": "PRICE",
+            "cost": "COST",
+            "equity_now": "EQUITY (NOW)",
+            "cost_val": "COST VAL",
+            "pl": "P/L",
+            "pct": "%",
+            "note": "NOTE",
+            "actions": "ACTIONS",
+            "open_link": "Open Link",
+            "modify_lot": "Modify Lot",
+            "delete_lot": "Delete Lot",
+            "total_stats": "TOTAL STATS"
+        },
+        "fundamental": {
+            "golden_rule_title": "THE GOLDEN RULE (ZERO)",
+            "golden_rule_text": "\"Bad companies can stay expensive longer than you can stay solvent. Fundamentals tell me what to short; timing + structure tell me when.\"",
+            "section_fundamental": "A) FUNDAMENTAL",
+            "section_timing": "B) TIMING",
+            "section_structure": "C) STRUCTURE",
+            "score": "Score"
+        },
+        "scenario": {
+            "hypothetical_target": "HYPOTHETICAL TARGET PRICE",
+            "reset": "RESET",
+            "crash": "-100% CRASH",
+            "current": "CURRENT",
+            "moon": "+100% MOON",
+            "table": {
+                "lot": "LOT",
+                "qty": "QTY",
+                "cost_avg": "COST (AVG)",
+                "hypo_equity": "HYPOTHETICAL EQUITY",
+                "hypo_pl": "HYPOTHETICAL P/L",
+                "hypo_roi": "HYPO ROI",
+                "current_delta": "CURRENT DELTA",
+                "hypo_total": "HYPO TOTAL"
+            }
+        },
+        "questions": {
+            "income_statement": {
+                "title": "INCOME STATEMENT",
+                "subtitle": "ARE EARNINGS REAL? HUNT FOR MARGIN COMPRESSION AND ADJUSTED-EBITDA GYMNASTICS.",
+                "placeholder": "Enter findings..."
+            },
+            "cash_flow": {
+                "title": "CASH FLOW STATEMENT",
+                "subtitle": "IF EARNINGS ARE REAL, CASH SHOWS UP. CHECK FOR NEGATIVE FCF AND OPEX CAPITALIZATION.",
+                "placeholder": "Enter findings..."
+            },
+            "working_capital": {
+                "title": "WORKING CAPITAL",
+                "subtitle": "AR GROWTH > REVENUE GROWTH? INVENTORY PILING? SUPPLIERS LATE? RED FLAGS.",
+                "placeholder": "Enter findings..."
+            },
+            "balance_sheet": {
+                "title": "BALANCE SHEET",
+                "subtitle": "SURVIVABILITY MATH: HOW LONG CAN THEY LIVE WITHOUT CAPITAL MARKETS? CHECK BURN.",
+                "placeholder": "Enter findings..."
+            },
+            "capex": {
+                "title": "CAPEX VS REALITY",
+                "subtitle": "CAPEX UP, REVENUE DOWN? EMPIRE BUILDING OR OVERBUILDING DETECTED.",
+                "placeholder": "Enter findings..."
+            },
+            "accounting": {
+                "title": "ACCOUNTING GAMES",
+                "subtitle": "TRUST NO ONE. SOFTWARE COSTS CAPITALIZED? AUDITORS QUITTING? AGGRESSIVE RECOGNITION?",
+                "placeholder": "Enter findings..."
+            },
+            "management": {
+                "title": "MANAGEMENT BEHAVIOR",
+                "subtitle": "CEO TALKS VISION VS NUMBERS? CFO TURNOVER? INSIDER SELLING PATTERNS?",
+                "placeholder": "Enter findings..."
+            },
+            "valuation": {
+                "title": "VALUATION",
+                "subtitle": "HIGH MULTIPLE + SLOWING GROWTH + WEAK CASH FLOW = AIR POCKET TERRITORY.",
+                "placeholder": "Enter findings..."
+            },
+            "catalyst": {
+                "title": "CATALYST CHECKLIST",
+                "subtitle": "NO CATALYST = NO SHORT. EARNINGS MISSES NEED HELP? EXPIRATIONS? LOAD THE GUN.",
+                "placeholder": "Enter findings..."
+            },
+            "sizing": {
+                "title": "POSITION SIZING",
+                "subtitle": "ASSUME YOU ARE EARLY. SHORTS ARE TACTICALLY SIZED. NEVER BE STUBBORN.",
+                "placeholder": "Enter findings..."
+            },
+            "earnings": {
+                "title": "🗓️ EARNINGS",
+                "subtitle": "Whisper numbers > guidance? Sell-side raising targets late? \"This quarter doesn't matter\" talk?",
+                "placeholder": "Expectations high + fundamentals weak + narrative stretched = setup..."
+            },
+            "liquidity": {
+                "title": "💰 LIQUIDITY EVENTS",
+                "subtitle": "Lock-up expirations, secondary offerings, ATM programs, convertible issuance",
+                "placeholder": "New supply hits market. Price must absorb shares. Mechanical sellers..."
+            },
+            "balance_sheet_deadlines": {
+                "title": "🧾 BALANCE-SHEET DEADLINES",
+                "subtitle": "Debt maturities, covenant tests, refinancing windows",
+                "placeholder": "Cash tight + markets hostile = equity crushed. The wall they can't avoid..."
+            },
+            "regulatory": {
+                "title": "🏛️ REGULATORY / LEGAL EVENTS",
+                "subtitle": "FDA decisions, NRC approvals, DOJ/SEC investigations",
+                "placeholder": "Market prices hope. Regulators price rules. Short when optimism > probability..."
+            },
+            "macro": {
+                "title": "🌎 MACRO REGIME SHIFTS",
+                "subtitle": "Rates rising, liquidity tightening, risk-off rotation",
+                "placeholder": "Speculative names break first. Don't short junk in a liquidity flood..."
+            },
+            "ownership": {
+                "title": "🚩 OWNERSHIP STRUCTURE",
+                "subtitle": "Retail-heavy, momentum funds, thematic ETFs vs long-only institutions, strategic holders",
+                "placeholder": "Who panics first? Fragile holders don't average down, don't defend price..."
+            },
+            "float": {
+                "title": "📊 FLOAT & SUPPLY",
+                "subtitle": "Lock-up shares becoming free, ATM dilution drip, SBC increasing float quietly",
+                "placeholder": "Low float + hype = squeeze risk. High float + forced sellers = downside velocity..."
+            },
+            "price_structure": {
+                "title": "📈 PRICE STRUCTURE",
+                "subtitle": "Lower highs, failed breakouts, gap fills, heavy-volume down days",
+                "placeholder": "Signs of damage. Big money exiting, not entering..."
+            },
+            "options": {
+                "title": "🎯 OPTIONS STRUCTURE",
+                "subtitle": "Heavy put ownership vs call-heavy OI, dealer gamma positioning",
+                "placeholder": "Dealers long gamma = danger. Call-heavy + retail chasing = sweet spot..."
+            },
+            "short_interest": {
+                "title": "⚡ SHORT INTEREST",
+                "subtitle": "SI %, trend direction, volume expansion",
+                "placeholder": "Fuel for squeezes or accelerant for crashes? When support breaks, shorts press..."
+            },
+            "borrow": {
+                "title": "💸 BORROW STRUCTURE",
+                "subtitle": "Borrow cost, recall risk, availability",
+                "placeholder": "Bad borrow turns timing risk into forced exit risk..."
+            }
+        },
+        "modal": {
+            "title_new": "NEW TRADE LOT ENTRY",
+            "subtitle_new": "Record execution details",
+            "title_modify": "MODIFY LOT: {ticker}",
+            "subtitle_modify": "Update trade execution details",
+            "ticker": "TICKER SYMBOL",
+            "execution_date": "EXECUTION DATE",
+            "purchase_calendar": "PURCHASE CALENDAR",
+            "position_side": "POSITION SIDE",
+            "long": "LONG",
+            "short": "SHORT",
+            "link": "LINK",
+            "quantity": "QUANTITY",
+            "entry_price": "ENTRY PRICE",
+            "cost_per_share": "COST PER SHARE",
+            "entry_notes": "ENTRY NOTES",
+            "entry_notes_placeholder": "Context for this purchase...",
+            "commit_lot": "COMMIT LOT",
+            "update_lot": "UPDATE LOT DETAILS",
+            "ticker_placeholder": "E.G. NVDA"
+        },
+        "errors": {
+            "ticker_required": "Ticker symbol is required",
+            "date_required": "Purchase date is required",
+            "quantity_positive": "Quantity must be greater than 0",
+            "cost_positive": "Cost per share must be greater than 0",
+            "ticker_placeholder": "E.G. NVDA"
+        }
+    },
+    "research": {
+        "title": "Beaver Research",
+        "subtitle": "FINANCIAL INTELLIGENCE UNIT",
+        "location": "LOCATION",
+        "location_value": "NEW YORK (EST)",
+        "report_name_placeholder": "Report Name",
+        "publish": "PUBLISH",
+        "audit": "AUDIT",
+        "active_agent": "ACTIVE AGENT:",
+        "autosave_on": "AUTOSAVE ON",
+        "chars": "CHARS",
+        "mode": "MODE",
+        "editor_placeholder": {
+            "title": "Begin analysis for {company}...",
+            "step_1": "Select an AI AGENT.",
+            "step_2": "Drag data modules to interpret."
+        },
+        "sidebar": {
+            "title": "DATA VAULT",
+            "stream": "STREAM",
+            "global_feed": "GLOBAL FEED",
+            "no_data": "NO RELEVANT DATA FOR THIS AGENT",
+            "encryption": "ENCRYPTION: AES-256",
+            "synced": "SYNCED",
+            "ticker_placeholder": "Q TSLA"
+        },
+        "chat": {
+            "placeholder": "Ask about research, filings, or analysis...",
+            "intro": "Hello! I can help you research company filings, analyze financial data, and answer questions about {ticker}. What would you like to know?",
+            "response_1": "Based on the latest filings for {ticker}, I can help you analyze the key financial metrics and trends.",
+            "response_2": "The 10-K filing shows significant growth in revenue and strong cash flow generation. Would you like me to dive deeper into any specific section?",
+            "response_3": "I've reviewed the management discussion and analysis. The company highlights several key strategic initiatives. What aspect interests you most?",
+            "response_4": "The financial statements indicate healthy margins and efficient capital allocation. I can provide more detailed analysis on any specific metric."
+        },
+        "loading": {
+            "checking_access": "Checking access..."
+        },
+        "report_types": {
+            "daily": "Daily",
+            "market": "Market",
+            "long_position": "Long Position",
+            "short_position": "Short Position"
+        },
+        "preview_modal": {
+            "title": "Preview PDF Report",
+            "generating": "Generating PDF preview...",
+            "confirm": "Confirm & Publish",
+            "publishing": "Publishing...",
+            "cancel": "Cancel"
+        },
+        "success_modal": {
+            "title": "Report Published Successfully!",
+            "message": "Your report has been published successfully.",
+            "type": "Type:",
+            "ticker": "Ticker:",
+            "date": "Date:",
+            "uuid": "UUID:",
+            "view_reports": "View Reports",
+            "close": "Close"
+        },
+        "alerts": {
+            "empty_content": "Cannot publish empty content. Please add some content to the editor.",
+            "ticker_required": "Please enter a ticker symbol before publishing.",
+            "report_type_required": "Please select a report type (Daily, Market, Long Position, or Short Position) before publishing.",
+            "login_required": "Please login to publish reports.",
+            "image_error": "Failed to process image {file}",
+            "interpretation_error": "Failed to interpret data",
+            "pdf_error": "Failed to generate PDF preview: {error}",
+            "publish_error": "Failed to publish report: {error}"
+        },
+        "agents": {
+            "financials": "Financials",
+            "insider": "Insider",
+            "option": "Option",
+            "polymarket": "PolyMarket",
+            "bond": "Bond",
+            "economics": "Economics",
+            "research": "Research",
+            "equity_agent": "Equity Agent",
+            "bond_agent": "Bond Agent",
+            "economics_agent": "Economics Agent"
+        },
+        "fallback": {
+            "analysis": "Analysis:",
+            "key_points": "Key Points:",
+            "data_extracted": "Data extracted from",
+            "timestamp": "Timestamp:",
+            "metric": "Metric",
+            "value": "Value"
+        }
+    },
+    "admin": {
+        "header": {
+            "title": "Admin Panel",
+            "subtitle": "Manage users and reports"
+        },
+        "tabs": {
+            "users": "User Management",
+            "access": "Access Management",
+            "reports": "Report Management",
+            "batch": "Batch Management",
+            "health": "Health Management",
+            "database": "Database Management"
+        },
+        "users": {
+            "loading": "Loading users...",
+            "stats": {
+                "total": "Total Users",
+                "paid": "Paid Users",
+                "unpaid": "Unpaid Users"
+            },
+            "filters": {
+                "search_placeholder": "Search by username or email...",
+                "all_roles": "All Roles",
+                "all_payment": "All Payment Status",
+                "paid": "Paid",
+                "unpaid": "Unpaid"
+            },
+            "table": {
+                "id": "ID",
+                "username": "Username",
+                "email": "Email",
+                "role": "Role",
+                "payment_status": "Payment Status",
+                "transaction_id": "Transaction ID",
+                "payment_date": "Payment Date",
+                "created": "Created",
+                "actions": "Actions"
+            },
+            "badges": {
+                "paid": "✓ Paid",
+                "unpaid": "✗ Unpaid"
+            },
+            "actions": {
+                "updating": "Updating...",
+                "unverify": "Unverify",
+                "verify": "Verify Payment",
+                "deleting": "Deleting...",
+                "delete": "Delete"
+            },
+            "tooltips": {
+                "cannot_delete_self": "Cannot delete your own account",
+                "delete_user": "Delete user"
+            },
+            "no_results": "No users found matching your filters."
+        },
+        "health": {
+            "title": "System Health",
+            "subtitle": "Monitor system status and services",
+            "backend": "Backend API",
+            "database": "Database",
+            "s3": "S3 Storage",
+            "status": {
+                "healthy": "Healthy",
+                "unhealthy": "Unhealthy",
+                "api_ok": "API is responding",
+                "api_error": "Cannot reach backend API",
+                "db_ok": "Database connection working",
+                "db_error": "Database connection failed",
+                "s3_ok": "S3 storage accessible",
+                "s3_error": "S3 storage error"
+            },
+            "actions": {
+                "checking": "Checking...",
+                "refresh": "Refresh Health Status"
+            }
+        },
+        "batch": {
+            "title": "Batch Job Management",
+            "subtitle": "Trigger and monitor batch processing jobs",
+            "filing_13f": {
+                "title": "13F Filing Processing",
+                "description": "Process 13F institutional holdings filings from SEC EDGAR. Fetches, parses, and stores holdings data with CUSIP-to-ticker mapping.",
+                "force_reprocess": "Force Reprocess (reprocess already processed filings)",
+                "quarters_label": "Quarters (leave empty for all):",
+                "quarters_placeholder": "e.g., 2025-Q3,2025-Q4",
+                "quarters_help": "Comma-separated list of quarters (e.g., 2025-Q3,2025-Q4)",
+                "process_btn": "Process 13F Filings",
+                "processing_btn": "Processing...",
+                "status": {
+                    "running": "Running...",
+                    "completed": "Completed",
+                    "failed": "Failed",
+                    "ready": "Ready"
+                },
+                "result": {
+                    "title": "Last Run Result:",
+                    "total": "Total Filings:",
+                    "processed": "Processed:",
+                    "skipped": "Skipped:",
+                    "errors": "Errors:",
+                    "quarters": "Quarters:"
+                },
+                "error": "Error:"
+            }
+        },
+        "access": {
+            "loading": "Loading permissions...",
+            "title": "Access Management",
+            "subtitle": "Control which roles can access specific application routes",
+            "table": {
+                "resource": "Resource / Route"
+            },
+            "legend": {
+                "admin": "* Admin role always has full access to all resources.",
+                "refresh": "* Changes take effect immediately but users may need to refresh for navigation updates."
+            },
+            "actions": {
+                "initialize": "Initialize Defaults"
+            },
+            "messages": {
+                "initialized": "Default permissions initialized",
+                "updated": "Permission updated for {role} on {resource}",
+                "no_permissions": "No permissions found. Please initialize defaults."
+            }
+        },
+        "reports": {
+            "loading": "Loading reports...",
+            "upload": {
+                "title": "Upload New Report",
+                "report_title": "Report Title *",
+                "report_title_placeholder": "e.g., Gold Market Analysis",
+                "ticker": "Ticker",
+                "ticker_placeholder": "e.g., GLD (optional)",
+                "type": "Report Type *",
+                "select_type": "Select Type",
+                "file": "PDF File *",
+                "btn_upload": "Upload Report",
+                "btn_uploading": "Uploading..."
+            },
+            "filters": {
+                "search_placeholder": "Search by ticker or title...",
+                "all_types": "All Types"
+            },
+            "table": {
+                "title": "Title",
+                "ticker": "Ticker",
+                "type": "Type",
+                "created": "Created",
+                "actions": "Actions"
+            },
+            "no_results": "No reports found matching your filters."
+        },
+        "database": {
+            "loading": "Loading database tables...",
+            "title": "Database Management",
+            "subtitle": "Inspect database tables and data",
+            "select_table": "Select Table:",
+            "select_placeholder": "Select a table",
+            "refresh_btn": "Refresh Data",
+            "loading_btn": "Loading...",
+            "info": {
+                "total": "Total Rows:",
+                "showing": "Showing:",
+                "rows": "rows"
+            },
+            "no_results": "No data found in this table."
+        },
+        "modals": {
+            "delete_user": {
+                "title": "Confirm Delete",
+                "message": "Are you sure you want to delete user",
+                "warning": "This action cannot be undone.",
+                "cancel": "Cancel",
+                "confirm": "Delete User",
+                "deleting": "Deleting..."
+            },
+            "delete_report": {
+                "title": "Confirm Delete Report",
+                "message": "Are you sure you want to delete report",
+                "ticker": "Ticker:",
+                "type": "Type:",
+                "warning": "This action cannot be undone.",
+                "cancel": "Cancel",
+                "confirm": "Delete Report",
+                "deleting": "Deleting..."
+            }
+        },
+        "errors": {
+            "load_users": "Failed to load users",
+            "access_denied": "Access denied. Admin privileges required.",
+            "update_payment": "Failed to update payment status",
+            "delete_user": "Failed to delete user",
+            "load_reports": "Failed to load reports",
+            "delete_report": "Failed to delete report",
+            "invalid_pdf": "Please select a valid PDF file",
+            "upload_report": "Failed to upload report",
+            "load_permissions": "Failed to load permissions",
+            "init_permissions": "Failed to initialize permissions",
+            "update_permission": "Failed to update permission",
+            "load_tables": "Failed to load tables",
+            "load_table_data": "Failed to load table data",
+            "check_job": "Failed to check job status",
+            "trigger_job": "Failed to trigger 13F processing",
+            "retry": "Retry"
+        },
+        "messages": {
+            "payment_updated": "Payment status updated successfully for {username}",
+            "user_deleted": "User {username} has been deleted successfully",
+            "report_deleted": "Report \"{title}\" deleted successfully.",
+            "report_uploaded": "Report \"{title}\" uploaded successfully!",
+            "processing_started": "13F processing started...",
+            "processing_completed": "13F processing completed: {processed} processed, {skipped} skipped",
+            "processing_failed": "13F processing failed"
+        }
+    },
+    "reports_page": {
+        "title": "Reports",
+        "checking_access": "Checking access...",
+        "loading": "Loading reports...",
+        "loading_single": "Loading report...",
+        "filter": {
+            "placeholder": "Search by ticker (e.g., TSLA, GLD)...",
+            "clear": "Clear"
+        },
+        "tabs": {
+            "market": "Market Report",
+            "daily": "Daily Report",
+            "long": "Long Position Report",
+            "short": "Short Position Report"
+        },
+        "no_reports": {
+            "market": "No market reports",
+            "daily": "No daily reports",
+            "long": "No long position reports",
+            "short": "No short position reports"
+        },
+        "pdf_unavailable": "PDF not available"
+    },
+    "payment_gate": {
+        "title": "Research Access",
+        "subtitle": "Premium Research Tools require payment",
+        "features_title": "What you'll get:",
+        "features": {
+            "ai_analysis": "Advanced AI-powered financial analysis",
+            "market_data": "Real-time market data and insights",
+            "research_tools": "Company and market research tools",
+            "data_vault": "Exclusive data vault access"
+        },
+        "pay_button": "Pay $19.99 with PayPal",
+        "verification_pending": "Payment Verification Pending"
     }
 }

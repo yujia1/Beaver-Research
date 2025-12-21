@@ -2,18 +2,18 @@
   <div class="payment-gate">
     <div class="payment-container">
       <div class="payment-header">
-        <h1>🔒 Research Access</h1>
-        <p class="subtitle">Premium Research Tools require payment</p>
+        <h1>{{ t('payment_gate.title') }}</h1>
+        <p class="subtitle">{{ t('payment_gate.subtitle') }}</p>
       </div>
       
       <div class="payment-content">
         <div class="features-list">
-          <h2>What you'll get:</h2>
+          <h2>{{ t('payment_gate.features_title') }}</h2>
           <ul>
-            <li>✓ Advanced AI-powered financial analysis</li>
-            <li>✓ Real-time market data and insights</li>
-            <li>✓ Company and market research tools</li>
-            <li>✓ Exclusive data vault access</li>
+            <li>✓ {{ t('payment_gate.features.ai_analysis') }}</li>
+            <li>✓ {{ t('payment_gate.features.market_data') }}</li>
+            <li>✓ {{ t('payment_gate.features.research_tools') }}</li>
+            <li>✓ {{ t('payment_gate.features.data_vault') }}</li>
           </ul>
         </div>
         
@@ -30,7 +30,7 @@
                 <path d="M6 9h12"></path>
                 <path d="M6 15h12"></path>
               </svg>
-              Pay $19.99 with PayPal
+              {{ t('payment_gate.pay_button') }}
             </a>
           </div>
           
@@ -38,7 +38,7 @@
             <div class="pending-status">
               <div class="pending-badge">
                 <span class="pending-icon">⏳</span>
-                <span>Payment Verification Pending</span>
+                <span>{{ t('payment_gate.verification_pending') }}</span>
               </div>
             </div>
           </div>
@@ -49,7 +49,9 @@
 </template>
 
 <script setup>
-// No script needed - just display payment gate
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

@@ -3,7 +3,7 @@
     <PaymentGate v-if="!hasPaid && !loading" />
     <div v-else-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Checking access...</p>
+      <p>{{ t('research.loading.checking_access') }}</p>
     </div>
     <ResearchEditView
       v-else
@@ -22,10 +22,12 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ResearchEditView from './ResearchEditView.vue'
 import PaymentGate from './PaymentGate.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 
 // State Management - Lifted to parent
 const viewMode = ref('COMPANY') // 'COMPANY' | 'MARKET'

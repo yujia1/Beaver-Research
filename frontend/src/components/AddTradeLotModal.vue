@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const emit = defineEmits(['close', 'submit'])
 
 const formData = ref({
@@ -19,19 +21,19 @@ const validateForm = () => {
   errors.value = {}
   
   if (!formData.value.ticker || formData.value.ticker.trim() === '') {
-    errors.value.ticker = 'Ticker symbol is required'
+    errors.value.ticker = t('alphatrade.errors.ticker_required')
   }
   
   if (!formData.value.purchaseDate) {
-    errors.value.purchaseDate = 'Purchase date is required'
+    errors.value.purchaseDate = t('alphatrade.errors.date_required')
   }
   
   if (!formData.value.quantity || formData.value.quantity <= 0) {
-    errors.value.quantity = 'Quantity must be greater than 0'
+    errors.value.quantity = t('alphatrade.errors.quantity_positive')
   }
   
   if (!formData.value.costPerShare || formData.value.costPerShare <= 0) {
-    errors.value.costPerShare = 'Cost per share must be greater than 0'
+    errors.value.costPerShare = t('alphatrade.errors.cost_positive')
   }
   
   return Object.keys(errors.value).length === 0
@@ -67,8 +69,8 @@ const handleBackdropClick = (e) => {
     <div class="modal-container">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">NEW TRADE LOT ENTRY</h2>
-          <p class="modal-subtitle">Record execution details</p>
+          <h2 class="modal-title">{{ t('alphatrade.modal.title_new') }}</h2>
+          <p class="modal-subtitle">{{ t('alphatrade.modal.subtitle_new') }}</p>
         </div>
         <button class="close-btn" @click="handleClose">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -82,12 +84,12 @@ const handleBackdropClick = (e) => {
         <form @submit.prevent="handleSubmit">
           <div class="form-row">
             <div class="form-group">
-              <label for="ticker">TICKER SYMBOL</label>
+              <label for="ticker">{{ t('alphatrade.modal.ticker') }}</label>
               <input
                 id="ticker"
                 v-model="formData.ticker"
                 type="text"
-                placeholder="E.G. NVDA"
+                :placeholder="t('alphatrade.modal.ticker_placeholder', 'E.G. NVDA')" 
                 class="form-input"
                 :class="{ error: errors.ticker }"
                 maxlength="10"
@@ -96,7 +98,7 @@ const handleBackdropClick = (e) => {
             </div>
 
             <div class="form-group">
-              <label for="purchaseDate">EXECUTION DATE</label>
+              <label for="purchaseDate">{{ t('alphatrade.modal.execution_date') }}</label>
               <input
                 id="purchaseDate"
                 v-model="formData.purchaseDate"
@@ -110,7 +112,7 @@ const handleBackdropClick = (e) => {
 
           <div class="form-row">
             <div class="form-group">
-              <label>POSITION SIDE</label>
+              <label>{{ t('alphatrade.modal.position_side') }}</label>
               <div class="toggle-buttons">
                 <button
                   type="button"
@@ -118,7 +120,7 @@ const handleBackdropClick = (e) => {
                   :class="{ active: formData.side === 'LONG' }"
                   @click="formData.side = 'LONG'"
                 >
-                  LONG
+                  {{ t('alphatrade.modal.long') }}
                 </button>
                 <button
                   type="button"
@@ -126,13 +128,13 @@ const handleBackdropClick = (e) => {
                   :class="{ active: formData.side === 'SHORT' }"
                   @click="formData.side = 'SHORT'"
                 >
-                  SHORT
+                  {{ t('alphatrade.modal.short') }}
                 </button>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="link">LINK</label>
+              <label for="link">{{ t('alphatrade.modal.link') }}</label>
               <input
                 id="link"
                 v-model="formData.link"
@@ -145,7 +147,7 @@ const handleBackdropClick = (e) => {
 
           <div class="form-row">
             <div class="form-group">
-              <label for="quantity">QUANTITY</label>
+              <label for="quantity">{{ t('alphatrade.modal.quantity') }}</label>
               <input
                 id="quantity"
                 v-model="formData.quantity"
@@ -160,7 +162,7 @@ const handleBackdropClick = (e) => {
             </div>
 
             <div class="form-group">
-              <label for="costPerShare">ENTRY PRICE</label>
+              <label for="costPerShare">{{ t('alphatrade.modal.entry_price') }}</label>
               <input
                 id="costPerShare"
                 v-model="formData.costPerShare"
@@ -176,11 +178,11 @@ const handleBackdropClick = (e) => {
           </div>
 
           <div class="form-group">
-            <label for="note">ENTRY NOTES</label>
+            <label for="note">{{ t('alphatrade.modal.entry_notes') }}</label>
             <textarea
               id="note"
               v-model="formData.note"
-              placeholder="Context for this purchase..."
+              :placeholder="t('alphatrade.modal.entry_notes_placeholder', 'Context for this purchase...')"
               class="form-textarea"
               rows="4"
             ></textarea>
@@ -188,7 +190,7 @@ const handleBackdropClick = (e) => {
 
           <div class="form-actions">
             <button type="submit" class="btn btn-submit">
-              COMMIT LOT
+              {{ t('alphatrade.modal.commit_lot') }}
             </button>
           </div>
         </form>

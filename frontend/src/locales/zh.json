@@ -105,5 +105,693 @@
             "5y": "5年",
             "max": "最大"
         }
+    },
+    "investment": {
+        "title": "股价时间轴",
+        "subtitle": "追踪股价走势及历史关键事件",
+        "search_label": "搜索股票：",
+        "search_placeholder": "输入股票代码 (如 TSLA, AAPL, MSFT)",
+        "search_button": "搜索",
+        "no_stock": "未选择股票",
+        "loading": "加载中...",
+        "price_timeline": "价格时间轴",
+        "timeframes": {
+            "daily": "日",
+            "weekly": "周",
+            "monthly": "月",
+            "yearly": "年",
+            "max": "最大"
+        },
+        "tabs": {
+            "company_basic": "公司基本面",
+            "polymarket": "PolyMarket"
+        },
+        "micro_tabs": {
+            "overview": "概览",
+            "financials": "财务报表",
+            "ratios": "财务比率",
+            "filings": "公告文件",
+            "release": "新闻发布",
+            "holders": "持仓分析",
+            "trading": "交易数据"
+        },
+        "overview": {
+            "latest_10k": "最新 10K 报告",
+            "refresh": "刷新",
+            "loading_10k": "正在加载 10-K 文件...",
+            "no_data_10k": "暂无 10-K 数据。点击刷新加载。",
+            "company_overview": "公司概览及深度研究分析",
+            "generate": "生成报告",
+            "generating": "生成中...",
+            "payment_required": "需付费 - 生成报告",
+            "payment_notice": "生成深度分析需要付费。",
+            "payment_link": "前往研究页面完成支付"
+        },
+        "financials": {
+            "header": "财务报表概览",
+            "annual": "年度",
+            "quarterly": "季度",
+            "ltm_snapshot": "LTM 快照",
+            "revenue_ltm": "营收 (LTM)",
+            "net_income_ltm": "净利润 (LTM)",
+            "total_assets": "总资产",
+            "fcf_ltm": "自由现金流 (LTM)",
+            "trends_chart": "营收与盈利趋势",
+            "cashflow_chart": "现金流分析",
+            "balance_composition": "资产负债构成 (最新)",
+            "assets": "资产",
+            "liabilities_equity": "负债与权益",
+            "income_statement": "利润表",
+            "balance_sheet": "资产负债表",
+            "cashflow_statement": "现金流量表"
+        },
+        "ratios": {
+            "profitability": "盈利能力",
+            "gross_margin": "毛利率",
+            "operating_margin": "经营利润率",
+            "ebitda_margin": "EBITDA 利润率",
+            "net_margin": "净利率",
+            "roa": "资产回报率 (ROA)",
+            "roe": "净资产收益率 (ROE)",
+            "roic": "投入资本回报率 (ROIC)",
+            "fcf_yield": "自由现金流收益率",
+            "liquidity_solvency": "流动性与偿债能力",
+            "current_ratio": "流动比率",
+            "quick_ratio": "速动比率",
+            "debt_equity": "债务权益比",
+            "debt_ebitda": "债务/EBITDA",
+            "interest_coverage": "利息保障倍数",
+            "efficiency": "运营效率",
+            "inventory_turnover": "存货周转率",
+            "dso": "应收账款周转天数",
+            "dpo": "应付账款周转天数",
+            "asset_turnover": "总资产周转率",
+            "working_capital": "营运资金",
+            "valuation": "估值指标",
+            "pe_trailing": "市盈率 (TTM)",
+            "pe_forward": "市盈率 (预期)",
+            "pb": "市净率 (P/B)",
+            "ev_ebitda": "企业价值倍数 (EV/EBITDA)",
+            "ps": "市销率 (P/S)",
+            "ev_revenue": "EV/营收"
+        },
+        "filings": {
+            "header": "SEC 申报文件",
+            "type": "文件类型",
+            "date": "日期",
+            "link": "SEC 链接",
+            "view": "前往 SEC.gov 查看",
+            "no_data": "暂无 SEC 申报数据"
+        },
+        "releases": {
+            "header": "关键日志 - 新闻发布",
+            "type": "发布类型",
+            "date": "日期",
+            "title": "标题",
+            "link": "链接",
+            "view": "查看原文",
+            "no_data": "新闻发布数据即将上线"
+        },
+        "holders": {
+            "title": "交易记录",
+            "all": "全部",
+            "institutions": "机构",
+            "insider": "内部人士",
+            "insider_header": "内部人士交易",
+            "institutional_header": "机构持仓",
+            "date": "日期",
+            "action": "操作",
+            "share": "股数",
+            "share_value": "价值",
+            "holding": "持股数",
+            "party": "职位",
+            "insider_col": "内部人士",
+            "date_reported": "报告日期",
+            "holder": "持有人",
+            "pct_held": "持股比例",
+            "pct_change": "变动比例",
+            "loading_institutions": "加载机构持仓数据中...",
+            "no_insider_data": "暂无内部交易数据",
+            "no_institutional_data": "暂无机构持仓数据"
+        },
+        "trading": {
+            "short_interest": "做空数据",
+            "short_ratio": "做空比率",
+            "short_pct_float": "做空占流通股比例",
+            "shares_short": "做空股数",
+            "volume_price": "量价分析",
+            "avg_volume": "平均成交量",
+            "high_52w": "52周最高",
+            "low_52w": "52周最低",
+            "beta": "贝塔系数",
+            "put_call_ratio": "看跌/看涨比率",
+            "options_volume": "期权成交量与持仓量 (按到期日)",
+            "options_calls_puts": "看涨与看跌成交量 (按到期日)"
+        },
+        "polymarket": {
+            "placeholder": "请选择股票代码以查看 PolyMarket 数据。",
+            "loading": "加载 PolyMarket 数据中...",
+            "note": "注意：",
+            "warning": "暂无 {stock} 的 PolyMarket 数据。显示基于当前股价的估算数据。这些赔率仅基于蒙特卡洛模拟和正态分布供交易参考。",
+            "title": "PolyMarket",
+            "price_target": "目标价",
+            "odds": "概率"
+        }
+    },
+    "alphatrade": {
+        "title": "库存与基本面",
+        "subtitle": "量化多空交易框架",
+        "new_execution": "新建交易",
+        "total_value": "总市值",
+        "total_cost": "总成本",
+        "unrealized_pl": "浮动盈亏",
+        "total_return": "总回报率",
+        "loading": "加载持仓中...",
+        "empty_state": "暂无持仓。点击“新建交易”开始。",
+        "market_price": "市价",
+        "valuation": "估值",
+        "delete_position": "删除持仓",
+        "tabs": {
+            "lot_inventory": "持仓明细",
+            "fundamental_analysis": "基本面分析",
+            "scenario_analysis": "情景分析"
+        },
+        "lot_table": {
+            "purchase_date": "买入日期",
+            "qty": "数量",
+            "price": "现价",
+            "cost": "成本价",
+            "equity_now": "当前市值",
+            "cost_val": "成本价值",
+            "pl": "盈亏",
+            "pct": "%",
+            "note": "备注",
+            "actions": "操作",
+            "open_link": "打开链接",
+            "modify_lot": "修改",
+            "delete_lot": "删除",
+            "total_stats": "总计"
+        },
+        "fundamental": {
+            "golden_rule_title": "黄金法则 (零)",
+            "golden_rule_text": "“烂公司的估值泡沫持续时间可能比你的偿付能力还长。基本面告诉我空什么；时机和结构告诉我什么时候空。”",
+            "section_fundamental": "A) 基本面",
+            "section_timing": "B) 时机",
+            "section_structure": "C) 结构",
+            "score": "评分"
+        },
+        "scenario": {
+            "hypothetical_target": "假设目标价",
+            "reset": "重置",
+            "crash": "-100% 崩盘",
+            "current": "当前",
+            "moon": "+100% 暴涨",
+            "table": {
+                "lot": "批次",
+                "qty": "数量",
+                "cost_avg": "平均成本",
+                "hypo_equity": "假设市值",
+                "hypo_pl": "假设盈亏",
+                "hypo_roi": "假设回报率",
+                "current_delta": "当前差额",
+                "hypo_total": "假设总计"
+            }
+        },
+        "questions": {
+            "income_statement": {
+                "title": "利润表",
+                "subtitle": "盈利真实吗？寻找利润率压缩和经调整 EBITDA 的猫腻。",
+                "placeholder": "输入分析..."
+            },
+            "cash_flow": {
+                "title": "现金流量表",
+                "subtitle": "如果盈利是真实的，现金流就会体现。检查负自由现金流和运营支出资本化。",
+                "placeholder": "输入分析..."
+            },
+            "working_capital": {
+                "title": "营运资金",
+                "subtitle": "应收账款增长 > 营收增长？存货积压？供应商付款延迟？红旗警示。",
+                "placeholder": "输入分析..."
+            },
+            "balance_sheet": {
+                "title": "资产负债表",
+                "subtitle": "生存能力计算：没有资本市场输血能活多久？检查烧钱速度。",
+                "placeholder": "输入分析..."
+            },
+            "capex": {
+                "title": "资本支出与现实",
+                "subtitle": "资本支出增加，营收下降？帝国大厦建设或过度建设迹象。",
+                "placeholder": "输入分析..."
+            },
+            "accounting": {
+                "title": "会计游戏",
+                "subtitle": "不信任任何人。软件成本资本化？审计师辞职？激进的收入确认？",
+                "placeholder": "输入分析..."
+            },
+            "management": {
+                "title": "管理层行为",
+                "subtitle": "CEO 谈愿景 vs 谈数字？CFO 离职？内部人士抛售模式？",
+                "placeholder": "输入分析..."
+            },
+            "valuation": {
+                "title": "估值",
+                "subtitle": "高倍数 + 增长放缓 + 现金流疲软 = 踩踏风险区。",
+                "placeholder": "输入分析..."
+            },
+            "catalyst": {
+                "title": "催化剂清单",
+                "subtitle": "无催化剂 = 不做空。财报不及预期？期权到期？装弹。",
+                "placeholder": "输入分析..."
+            },
+            "sizing": {
+                "title": "仓位控制",
+                "subtitle": "假设你入场早了。空头仓位需战术性控制。永远不要固执。",
+                "placeholder": "输入分析..."
+            },
+            "earnings": {
+                "title": "🗓️ 财报",
+                "subtitle": "传闻数据 > 指引？卖方分析师后期上调目标价？“这个季度不重要”言论？",
+                "placeholder": "预期高 + 基本面弱 + 叙事过度 = 设置..."
+            },
+            "liquidity": {
+                "title": "💰 流动性事件",
+                "subtitle": "禁售期结束，二次发行，ATM 计划，可转债发行",
+                "placeholder": "新供应冲击市场。价格必须吸收从天而降的股票..."
+            },
+            "balance_sheet_deadlines": {
+                "title": "🧾 资产负债表最后期限",
+                "subtitle": "债务到期，契约测试，再融资窗口",
+                "placeholder": "现金紧张 + 市场充满敌意 = 股权粉碎..."
+            },
+            "regulatory": {
+                "title": "🏛️ 监管 / 法律事件",
+                "subtitle": "FDA 决议，NRC 批准，DOJ/SEC 调查",
+                "placeholder": "市场定价希望。监管者定价规则。当乐观情绪 > 概率时做空..."
+            },
+            "macro": {
+                "title": "🌎 宏观体系转变",
+                "subtitle": "加息，流动性收紧，避险轮动",
+                "placeholder": "投机性股票率先崩盘。不要在流动性泛滥时做空垃圾股..."
+            },
+            "ownership": {
+                "title": "🚩 股权结构",
+                "subtitle": "散户重仓，动量基金，主题 ETF vs 纯多头机构，战略持有者",
+                "placeholder": "谁先恐慌？脆弱的持有者不会补仓，不会护盘..."
+            },
+            "float": {
+                "title": "📊 流通股与供应",
+                "subtitle": "解禁股变为自由流通，ATM 稀释滴灌，SBC 悄悄增加流通股",
+                "placeholder": "低流通股 + 炒作 = 逼空风险。高流通股 + 被迫抛售 = 下跌加速..."
+            },
+            "price_structure": {
+                "title": "📈 价格结构",
+                "subtitle": "高点降低，突破失败，缺口回补，放量下跌",
+                "placeholder": "受损迹象。大资金正在撤退，而不是进场..."
+            },
+            "options": {
+                "title": "🎯 期权结构",
+                "subtitle": "重仓看跌 vs 主要是看涨 OI，交易商 Gamma 敞口",
+                "placeholder": "交易商做多 Gamma = 危险。看涨期权密集 + 散户追高 = 绝佳做空点..."
+            },
+            "short_interest": {
+                "title": "⚡ 做空数据",
+                "subtitle": "SI %，趋势方向，成交量放大",
+                "placeholder": "逼空的燃料还是崩盘的助燃剂？当支撑位跌破，空头加码..."
+            },
+            "borrow": {
+                "title": "💸 融券结构",
+                "subtitle": "融券成本，召回风险，可用性",
+                "placeholder": "糟糕的融券将时间风险转化为被迫平仓风险..."
+            }
+        },
+        "modal": {
+            "title_new": "新建交易",
+            "subtitle_new": "记录交易详情",
+            "title_modify": "修改持仓: {ticker}",
+            "subtitle_modify": "更新交易详情",
+            "ticker": "股票代码",
+            "execution_date": "交易日期",
+            "purchase_calendar": "买入日期",
+            "position_side": "方向",
+            "long": "做多",
+            "short": "做空",
+            "link": "链接",
+            "quantity": "数量",
+            "entry_price": "入场价格",
+            "cost_per_share": "持仓成本",
+            "entry_notes": "交易笔记",
+            "entry_notes_placeholder": "交易背景上下文...",
+            "commit_lot": "提交交易",
+            "update_lot": "更新详情",
+            "ticker_placeholder": "例如 NVDA"
+        },
+        "errors": {
+            "ticker_required": "请输入股票代码",
+            "date_required": "请输入交易日期",
+            "quantity_positive": "数量必须大于 0",
+            "cost_positive": "持仓成本必须大于 0"
+        }
+    },
+    "research": {
+        "title": "Beaver Research",
+        "subtitle": "金融情报部门",
+        "location": "位置",
+        "location_value": "纽约 (EST)",
+        "report_name_placeholder": "报告名称",
+        "publish": "发布",
+        "audit": "审计",
+        "active_agent": "活跃智能体:",
+        "autosave_on": "自动保存开启",
+        "chars": "字符",
+        "mode": "模式",
+        "editor_placeholder": {
+            "title": "开始分析 {company}...",
+            "step_1": "选择一个 AI 智能体。",
+            "step_2": "拖拽数据模块以进行分析。"
+        },
+        "sidebar": {
+            "title": "数据金库",
+            "stream": "流",
+            "global_feed": "全域流",
+            "no_data": "此智能体无相关数据",
+            "encryption": "加密: AES-256",
+            "synced": "已同步",
+            "ticker_placeholder": "Q TSLA"
+        },
+        "chat": {
+            "placeholder": "询问关于研究、文件或分析的问题...",
+            "intro": "你好！我可以帮你研究公司文件，分析财务数据，并回答关于 {ticker} 的问题。你想了解什么？",
+            "response_1": "根据 {ticker} 的最新文件，我可以帮你分析关键财务指标和趋势。",
+            "response_2": "10-K 文件显示收入显著增长且现金流强劲。你想让我深入研究哪个具体部分吗？",
+            "response_3": "我已经查看了管理层讨论与分析。公司强调了几个关键战略举措。你对这方面感兴趣吗？",
+            "response_4": "财务报表显示利润率健康，资本分配效率高。我可以提供任何具体指标的详细分析。"
+        },
+        "loading": {
+            "checking_access": "正在检查访问权限..."
+        },
+        "report_types": {
+            "daily": "日报",
+            "market": "市场",
+            "long_position": "多头持仓",
+            "short_position": "空头持仓"
+        },
+        "preview_modal": {
+            "title": "预览 PDF 报告",
+            "generating": "正在生成 PDF 预览...",
+            "confirm": "确认并发布",
+            "publishing": "发布中...",
+            "cancel": "取消"
+        },
+        "success_modal": {
+            "title": "报告发布成功！",
+            "message": "您的报告已成功发布。",
+            "type": "类型:",
+            "ticker": "代码:",
+            "date": "日期:",
+            "uuid": "UUID:",
+            "view_reports": "查看报告",
+            "close": "关闭"
+        },
+        "alerts": {
+            "empty_content": "无法发布空内容。请在编辑器中添加一些内容。",
+            "ticker_required": "发布前请输入股票代码。",
+            "report_type_required": "发布前请选择报告类型（日报、市场、多头持仓或空头持仓）。",
+            "login_required": "请登录以发布报告。",
+            "image_error": "处理图片 {file} 失败",
+            "interpretation_error": "数据解读失败",
+            "pdf_error": "生成 PDF 预览失败: {error}",
+            "publish_error": "发布报告失败: {error}"
+        },
+        "agents": {
+            "financials": "财务",
+            "insider": "内幕交易",
+            "option": "期权",
+            "polymarket": "PolyMarket",
+            "bond": "债券",
+            "economics": "宏观经济",
+            "research": "深度研究",
+            "equity_agent": "股票智能体",
+            "bond_agent": "债券智能体",
+            "economics_agent": "经济智能体"
+        },
+        "fallback": {
+            "analysis": "分析:",
+            "key_points": "关键点:",
+            "data_extracted": "数据提取自",
+            "timestamp": "时间戳:",
+            "metric": "指标",
+            "value": "值"
+        }
+    },
+    "admin": {
+        "header": {
+            "title": "管理面板",
+            "subtitle": "管理用户和报告"
+        },
+        "tabs": {
+            "users": "用户管理",
+            "access": "访问管理",
+            "reports": "报告管理",
+            "batch": "批处理管理",
+            "health": "健康管理",
+            "database": "数据库管理"
+        },
+        "users": {
+            "loading": "正在加载用户...",
+            "stats": {
+                "total": "总用户数",
+                "paid": "付费用户",
+                "unpaid": "未付费用户"
+            },
+            "filters": {
+                "search_placeholder": "搜索用户名或邮箱...",
+                "all_roles": "所有角色",
+                "all_payment": "所有支付状态",
+                "paid": "已付费",
+                "unpaid": "未付费"
+            },
+            "table": {
+                "id": "ID",
+                "username": "用户名",
+                "email": "邮箱",
+                "role": "角色",
+                "payment_status": "支付状态",
+                "transaction_id": "交易 ID",
+                "payment_date": "支付日期",
+                "created": "创建时间",
+                "actions": "操作"
+            },
+            "badges": {
+                "paid": "✓ 已付费",
+                "unpaid": "✗ 未付费"
+            },
+            "actions": {
+                "updating": "更新中...",
+                "unverify": "取消验证",
+                "verify": "验证支付",
+                "deleting": "删除中...",
+                "delete": "删除"
+            },
+            "tooltips": {
+                "cannot_delete_self": "不能删除自己的账户",
+                "delete_user": "删除用户"
+            },
+            "no_results": "没有找到匹配的用户。"
+        },
+        "health": {
+            "title": "系统健康",
+            "subtitle": "监控系统状态和服务",
+            "backend": "后端 API",
+            "database": "数据库",
+            "s3": "S3 存储",
+            "status": {
+                "healthy": "健康",
+                "unhealthy": "不健康",
+                "api_ok": "API 响应正常",
+                "api_error": "无法连接后端 API",
+                "db_ok": "数据库连接正常",
+                "db_error": "数据库连接失败",
+                "s3_ok": "S3 存储可访问",
+                "s3_error": "S3 存储错误"
+            },
+            "actions": {
+                "checking": "检查中...",
+                "refresh": "刷新健康状态"
+            }
+        },
+        "batch": {
+            "title": "批处理任务管理",
+            "subtitle": "触发和监控批处理任务",
+            "filing_13f": {
+                "title": "13F 文件处理",
+                "description": "处理来自 SEC EDGAR 的 13F 机构持仓文件。获取、解析并存储持仓数据，通过 CUSIP 映射到股票代码。",
+                "force_reprocess": "强制重新处理 (重新处理已处理的文件)",
+                "quarters_label": "季度 (留空处理所有):",
+                "quarters_placeholder": "例如: 2025-Q3,2025-Q4",
+                "quarters_help": "逗号分隔的季度列表 (例如: 2025-Q3,2025-Q4)",
+                "process_btn": "处理 13F 文件",
+                "processing_btn": "处理中...",
+                "status": {
+                    "running": "运行中...",
+                    "completed": "已完成",
+                    "failed": "失败",
+                    "ready": "就绪"
+                },
+                "result": {
+                    "title": "上次运行结果:",
+                    "total": "文件总数:",
+                    "processed": "已处理:",
+                    "skipped": "已跳过:",
+                    "errors": "错误:",
+                    "quarters": "季度:"
+                },
+                "error": "错误:"
+            }
+        },
+        "access": {
+            "loading": "正在加载权限...",
+            "title": "访问管理",
+            "subtitle": "控制各角色对特定应用路由的访问权限",
+            "table": {
+                "resource": "资源 / 路由"
+            },
+            "legend": {
+                "admin": "* 管理员角色始终拥有所有资源的完全访问权限。",
+                "refresh": "* 更改立即生效，但用户可能需要刷新页面以更新导航。"
+            },
+            "actions": {
+                "initialize": "初始化默认设置"
+            },
+            "messages": {
+                "initialized": "默认权限已初始化",
+                "updated": "已更新 {role} 对 {resource} 的权限",
+                "no_permissions": "未找到权限。请初始化默认设置。"
+            }
+        },
+        "reports": {
+            "loading": "正在加载报告...",
+            "upload": {
+                "title": "上传新报告",
+                "report_title": "报告标题 *",
+                "report_title_placeholder": "例如: 黄金市场分析",
+                "ticker": "股票代码",
+                "ticker_placeholder": "例如: GLD (可选)",
+                "type": "报告类型 *",
+                "select_type": "选择类型",
+                "file": "PDF 文件 *",
+                "btn_upload": "上传报告",
+                "btn_uploading": "上传中..."
+            },
+            "filters": {
+                "search_placeholder": "搜索股票代码或标题...",
+                "all_types": "所有类型"
+            },
+            "table": {
+                "title": "标题",
+                "ticker": "代码",
+                "type": "类型",
+                "created": "创建时间",
+                "actions": "操作"
+            },
+            "no_results": "没有找到匹配的报告。"
+        },
+        "database": {
+            "loading": "正在加载数据库表...",
+            "title": "数据库管理",
+            "subtitle": "查看数据库表和数据",
+            "select_table": "选择表:",
+            "select_placeholder": "选择一个表",
+            "refresh_btn": "刷新数据",
+            "loading_btn": "加载中...",
+            "info": {
+                "total": "总行数:",
+                "showing": "显示:",
+                "rows": "行"
+            },
+            "no_results": "此表中未找到数据。"
+        },
+        "modals": {
+            "delete_user": {
+                "title": "确认删除",
+                "message": "您确定要删除用户",
+                "warning": "此操作无法撤销。",
+                "cancel": "取消",
+                "confirm": "删除用户",
+                "deleting": "删除中..."
+            },
+            "delete_report": {
+                "title": "确认删除报告",
+                "message": "您确定要删除报告",
+                "ticker": "代码:",
+                "type": "类型:",
+                "warning": "此操作无法撤销。",
+                "cancel": "取消",
+                "confirm": "删除报告",
+                "deleting": "删除中..."
+            }
+        },
+        "errors": {
+            "load_users": "加载用户失败",
+            "access_denied": "访问被拒绝。需要管理员权限。",
+            "update_payment": "更新支付状态失败",
+            "delete_user": "删除用户失败",
+            "load_reports": "加载报告失败",
+            "delete_report": "删除报告失败",
+            "invalid_pdf": "请选择有效的 PDF 文件",
+            "upload_report": "上传报告失败",
+            "load_permissions": "加载权限失败",
+            "init_permissions": "初始化权限失败",
+            "update_permission": "更新权限失败",
+            "load_tables": "加载表失败",
+            "load_table_data": "加载表数据失败",
+            "check_job": "检查任务状态失败",
+            "trigger_job": "触发 13F 处理失败",
+            "retry": "重试"
+        },
+        "messages": {
+            "payment_updated": "无论是已成功更新 {username} 的支付状态",
+            "user_deleted": "用户 {username} 已被成功删除",
+            "report_deleted": "报告 \"{title}\" 已成功删除。",
+            "report_uploaded": "报告 \"{title}\" 上传成功！",
+            "processing_started": "13F 处理已开始...",
+            "processing_completed": "13F 处理完成: {processed} 个已处理, {skipped} 个已跳过",
+            "processing_failed": "13F 处理失败"
+        }
+    },
+    "reports_page": {
+        "title": "报告中心",
+        "checking_access": "正在检查权限...",
+        "loading": "正在加载报告...",
+        "loading_single": "正在加载报告...",
+        "filter": {
+            "placeholder": "搜索股票代码 (例如 TSLA, GLD)...",
+            "clear": "清除"
+        },
+        "tabs": {
+            "market": "市场报告",
+            "daily": "每日简报",
+            "long": "多头持仓报告",
+            "short": "空头持仓报告"
+        },
+        "no_reports": {
+            "market": "暂无市场报告",
+            "daily": "暂无每日简报",
+            "long": "暂无多头持仓报告",
+            "short": "暂无空头持仓报告"
+        },
+        "pdf_unavailable": "暂无 PDF"
+    },
+    "payment_gate": {
+        "title": "研究访问权限",
+        "subtitle": "高级研究工具需付费使用",
+        "features_title": "您将获得：",
+        "features": {
+            "ai_analysis": "高级 AI 驱动的金融分析",
+            "market_data": "实时市场数据与洞察",
+            "research_tools": "公司与市场研究工具",
+            "data_vault": "专属数据保险库访问权限"
+        },
+        "pay_button": "使用 PayPal 支付 $19.99",
+        "verification_pending": "付款验证处理中"
     }
 }

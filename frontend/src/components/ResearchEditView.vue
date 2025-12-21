@@ -11,15 +11,15 @@
             </svg>
           </div>
           <div class="logo-text">
-            <div class="logo-title">Beaver Research</div>
-            <div class="logo-subtitle">FINANCIAL INTELLIGENCE UNIT</div>
+            <div class="logo-title">{{ t('research.title') }}</div>
+            <div class="logo-subtitle">{{ t('research.subtitle') }}</div>
           </div>
         </div>
       </div>
       <div class="top-bar-right">
         <div class="location-info">
-          <div class="location-label">LOCATION</div>
-          <div class="location-value">NEW YORK (EST)</div>
+          <div class="location-label">{{ t('research.location') }}</div>
+          <div class="location-value">{{ t('research.location_value') }}</div>
         </div>
         <div class="location-indicator"></div>
       </div>
@@ -32,7 +32,7 @@
         <input
           v-model="reportName"
           type="text"
-          placeholder="Report Name"
+          :placeholder="t('research.report_name_placeholder')"
           class="report-name-input"
         />
         
@@ -85,19 +85,19 @@
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
-            <span>PUBLISH</span>
+            <span>{{ t('research.publish') }}</span>
           </button>
           <button @click="auditReport" class="action-btn audit-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
-            <span>AUDIT</span>
+            <span>{{ t('research.audit') }}</span>
           </button>
         </div>
 
         <!-- Active Agent Display -->
         <div class="active-agent-display">
-          ACTIVE AGENT: <span class="agent-name-highlight">{{ currentAgentName.toUpperCase() }}</span>
+          {{ t('research.active_agent') }} <span class="agent-name-highlight">{{ currentAgentName.toUpperCase() }}</span>
         </div>
 
         <!-- Report Type Selector -->
@@ -120,22 +120,21 @@
       <div class="editor-panel">
         <div
           v-if="editorContent.trim() === ''"
-          class="editor-placeholder"
-        >
-          <h2 class="placeholder-title">
-            Begin analysis for {{ companyName || 'Company' }}...
-          </h2>
-          <div class="placeholder-instructions">
-            <div class="instruction-item">
-              <span class="instruction-number">1.</span>
-              <span>Select an AI AGENT.</span>
-            </div>
-            <div class="instruction-item">
-              <span class="instruction-number">2.</span>
-              <span>Drag data modules to interpret.</span>
+          <div class="editor-placeholder">
+            <h2 class="placeholder-title">
+              {{ t('research.editor_placeholder.title', { company: companyName || 'Company' }) }}
+            </h2>
+            <div class="placeholder-instructions">
+              <div class="instruction-item">
+                <span class="instruction-number">1.</span>
+                <span>{{ t('research.editor_placeholder.step_1') }}</span>
+              </div>
+              <div class="instruction-item">
+                <span class="instruction-number">2.</span>
+                <span>{{ t('research.editor_placeholder.step_2') }}</span>
+              </div>
             </div>
           </div>
-        </div>
 
         <div
           ref="editorRef"
@@ -158,7 +157,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9l2 3h9a2 2 0 0 1 2 2z"></path>
             </svg>
-            <span>DATA VAULT</span>
+            <span>{{ t('research.sidebar.title') }}</span>
           </div>
           <div class="sidebar-stream">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -174,11 +173,11 @@
               @keyup.enter="handleTickerSearch"
               @focus="isEditingTicker = true"
               @blur="isEditingTicker = false"
-              placeholder="Q TSLA"
+              :placeholder="t('research.sidebar.ticker_placeholder', 'Q TSLA')"
               class="ticker-stream-input"
             />
             <!-- Text for Market Mode or agents that don't need ticker -->
-            <span v-else>{{ viewMode === 'MARKET' ? 'GLOBAL FEED' : 'STREAM' }}</span>
+            <span v-else>{{ viewMode === 'MARKET' ? t('research.sidebar.global_feed') : t('research.sidebar.stream') }}</span>
             
             <!-- Refresh button -->
             <button 
@@ -212,7 +211,7 @@
               v-model="chatInput"
               @keyup.enter="sendChatMessage"
               type="text"
-              placeholder="Ask about research, filings, or analysis..."
+              :placeholder="t('research.chat.placeholder')"
               class="chat-input"
             />
             <button @click="sendChatMessage" class="chat-send-btn">
@@ -296,14 +295,14 @@
           <div v-if="filteredBubbles.length === 0" class="no-bubbles">
             <div class="lock-icon">🔒</div>
             <div class="folder-icon">📁</div>
-            <p class="no-data-text">NO RELEVANT DATA FOR THIS AGENT</p>
+            <p class="no-data-text">{{ t('research.sidebar.no_data') }}</p>
           </div>
         </div>
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
-          <span class="encryption-text">ENCRYPTION: AES-256</span>
-          <span class="sync-status synced">SYNCED</span>
+          <span class="encryption-text">{{ t('research.sidebar.encryption') }}</span>
+          <span class="sync-status synced">{{ t('research.sidebar.synced') }}</span>
         </div>
       </div>
     </div>
@@ -311,9 +310,9 @@
     <!-- Bottom Status Bar -->
     <div class="status-bar">
       <div class="status-left">
-        <span>CHARS: {{ characterCount }}</span>
+        <span>{{ t('research.chars') }}: {{ characterCount }}</span>
         <span class="status-separator">|</span>
-        <span>MODE: {{ viewMode }}</span>
+        <span>{{ t('research.mode') }}: {{ viewMode }}</span>
       </div>
       <div class="status-right">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -321,7 +320,7 @@
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        <span>AUTOSAVE ON</span>
+        <span>{{ t('research.autosave_on') }}</span>
       </div>
     </div>
 
@@ -329,7 +328,7 @@
     <div v-if="showPreviewModal" class="modal-overlay" @click="closePreviewModal">
       <div class="modal-content preview-modal-content" @click.stop>
         <div class="modal-header">
-          <h3>Preview PDF Report</h3>
+          <h3>{{ t('research.preview_modal.title') }}</h3>
           <button @click="closePreviewModal" class="close-modal-btn">×</button>
         </div>
         <div class="modal-body preview-body">
@@ -340,14 +339,14 @@
               class="pdf-preview-iframe"
               frameborder="0"
             ></iframe>
-            <div v-else class="loading-pdf">Generating PDF preview...</div>
+            <div v-else class="loading-pdf">{{ t('research.preview_modal.generating') }}</div>
           </div>
         </div>
         <div class="modal-footer">
           <button @click="confirmPublish" class="modal-btn primary" :disabled="isPublishing">
-            {{ isPublishing ? 'Publishing...' : 'Confirm & Publish' }}
+            {{ isPublishing ? t('research.preview_modal.publishing') : t('research.preview_modal.confirm') }}
           </button>
-          <button @click="closePreviewModal" class="modal-btn secondary" :disabled="isPublishing">Cancel</button>
+          <button @click="closePreviewModal" class="modal-btn secondary" :disabled="isPublishing">{{ t('research.preview_modal.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -356,33 +355,33 @@
     <div v-if="showSuccessModal" class="modal-overlay" @click="closeSuccessModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>Report Published Successfully!</h3>
+          <h3>{{ t('research.success_modal.title') }}</h3>
         </div>
         <div class="modal-body">
           <div class="success-icon">✓</div>
-          <p class="success-message">Your report has been published successfully.</p>
+          <p class="success-message">{{ t('research.success_modal.message') }}</p>
           <div class="success-details">
             <div class="detail-item">
-              <span class="detail-label">Type:</span>
+              <span class="detail-label">{{ t('research.success_modal.type') }}</span>
               <span class="detail-value">{{ publishedReportType }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Ticker:</span>
+              <span class="detail-label">{{ t('research.success_modal.ticker') }}</span>
               <span class="detail-value">{{ publishedReportTicker }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Date:</span>
+              <span class="detail-label">{{ t('research.success_modal.date') }}</span>
               <span class="detail-value">{{ publishedReportDate }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">UUID:</span>
+              <span class="detail-label">{{ t('research.success_modal.uuid') }}</span>
               <span class="detail-value uuid-value">{{ publishedReportUuid }}</span>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="redirectToReports" class="modal-btn primary">View Reports</button>
-          <button @click="closeSuccessModal" class="modal-btn secondary">Close</button>
+          <button @click="redirectToReports" class="modal-btn primary">{{ t('research.success_modal.view_reports') }}</button>
+          <button @click="closeSuccessModal" class="modal-btn secondary">{{ t('research.success_modal.close') }}</button>
         </div>
       </div>
     </div>
@@ -394,10 +393,12 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { getDailyCache, setDailyCache } from '../utils/dailyCache.js'
 import html2pdf from 'html2pdf.js'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const props = defineProps({
   viewMode: {
@@ -429,12 +430,12 @@ const draggedBubble = ref(null)
 const companyName = ref('Alphabet Inc.')
 
 // Report type selection
-const reportTypes = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Market', value: 'market' },
-  { label: 'Long Position', value: 'long' },
-  { label: 'Short Position', value: 'short' }
-]
+const reportTypes = computed(() => [
+  { label: t('research.report_types.daily'), value: 'daily' },
+  { label: t('research.report_types.market'), value: 'market' },
+  { label: t('research.report_types.long_position'), value: 'long' },
+  { label: t('research.report_types.short_position'), value: 'short' }
+])
 const selectedReportType = ref('daily')
 
 // Preview modal state
@@ -454,7 +455,7 @@ const publishedReportUuid = ref('')
 const chatMessages = ref([
   {
     role: 'assistant',
-    content: 'Hello! I can help you research company filings, analyze financial data, and answer questions about ' + (props.ticker || 'companies') + '. What would you like to know?',
+    content: t('research.chat.intro', { ticker: props.ticker || 'companies' }),
     timestamp: new Date()
   }
 ])
@@ -468,63 +469,63 @@ const characterCount = computed(() => {
 })
 
 // Agent definitions
-const companyAgents = [
+const companyAgents = computed(() => [
   { 
     id: 'FUNDAMENTAL_AGENT', 
-    name: 'Financials', 
+    name: t('research.agents.financials'), 
     icon: '🀃', 
     focus: ['income', 'balance', 'cashflow', 'financial'],
     subAgents: ['FUNDAMENTAL_AGENT']
   },
   { 
     id: 'INSIDE_TRADING_ANALYST_AGENT', 
-    name: 'Insider', 
+    name: t('research.agents.insider'), 
     icon: '♙', 
     focus: ['insider', 'trading', 'executive'],
     subAgents: ['INSIDE_TRADING_ANALYST_AGENT']
   },
   { 
     id: 'OPTION_ANALYST_AGENT', 
-    name: 'Option', 
+    name: t('research.agents.option'), 
     icon: '♘', 
     focus: ['option', 'options', 'chain', 'calls', 'puts'],
     subAgents: ['OPTION_ANALYST_AGENT']
   },
   { 
     id: 'POLYMARKET_AGENT', 
-    name: 'PolyMarket', 
+    name: t('research.agents.polymarket'), 
     icon: '⛪︎', 
     focus: ['polymarket', 'prediction', 'market'],
     subAgents: ['polymarket']
   },
   { 
     id: 'BOND_AGENT', 
-    name: 'Bond', 
+    name: t('research.agents.bond'), 
     icon: '🀅', 
     focus: ['bond', 'credit', 'yield', 'treasury'],
     subAgents: ['BOND_ANALYST_AGENT', 'CREDIT_ANALYST_AGENT']
   },
   { 
     id: 'ECONOMICS_AGENT', 
-    name: 'Economics', 
+    name: t('research.agents.economics'), 
     icon: '🀏', 
     focus: ['economics', 'cpi', 'macro', 'inflation'],
     subAgents: ['economics']
   },
   { 
     id: 'MANAGEMENT_AGENT', 
-    name: 'Research', 
+    name: t('research.agents.research'), 
     icon: '🀢', 
     focus: ['research', '10k', '10q', 'filing', 'management'],
     subAgents: ['management']
   }
-]
+])
 
-const marketAgents = [
-  { id: 'EQUITY_AGENT', name: 'Equity Agent', icon: '🀉', focus: ['equity', 'sector', 'sp500'], subAgents: ['sp500_index'] },
-  { id: 'BOND_AGENT', name: 'Bond Agent', icon: '🀅', focus: ['yield', 'treasury', 'rates'], subAgents: ['treasury_yield'] },
-  { id: 'ECONOMICS_AGENT', name: 'Economics Agent', icon: '🀏', focus: ['cpi', 'jobs', 'macro'], subAgents: ['cpi_inflation'] }
-]
+const marketAgents = computed(() => [
+  { id: 'EQUITY_AGENT', name: t('research.agents.equity_agent'), icon: '🀉', focus: ['equity', 'sector', 'sp500'], subAgents: ['sp500_index'] },
+  { id: 'BOND_AGENT', name: t('research.agents.bond_agent'), icon: '🀅', focus: ['yield', 'treasury', 'rates'], subAgents: ['treasury_yield'] },
+  { id: 'ECONOMICS_AGENT', name: t('research.agents.economics_agent'), icon: '🀏', focus: ['cpi', 'jobs', 'macro'], subAgents: ['cpi_inflation'] }
+])
 
 const availableAgents = computed(() => {
   return props.viewMode === 'COMPANY' ? companyAgents : marketAgents
@@ -810,7 +811,7 @@ const handleImageFiles = async (files) => {
       reader.readAsDataURL(file)
     } catch (error) {
       console.error('Error processing image:', error)
-      alert(`Failed to process image ${file.name}`)
+      alert(t('research.alerts.image_error', { file: file.name }))
     }
   }
 }
@@ -916,7 +917,7 @@ const interpretData = async (bubble, context) => {
     })
     
     if (!response.ok) {
-      throw new Error('Failed to interpret data')
+      throw new Error(t('research.alerts.interpretation_error'))
     }
     
     const data = await response.json()
@@ -930,7 +931,7 @@ const interpretData = async (bubble, context) => {
 
 const generateFallbackInsight = (bubble) => {
   let table = '## ' + bubble.title + '\n\n'
-  table += '| Metric | Value |\n'
+  table += `| ${t('research.fallback.metric')} | ${t('research.fallback.value')} |\n`
   table += '|--------|-------|\n'
   
   // Handle financial statement bubbles with period data
@@ -954,18 +955,18 @@ const generateFallbackInsight = (bubble) => {
   // Include insights if available
   if (insights) {
     if (insights.analysis) {
-      table += '\n**Analysis:**\n\n' + insights.analysis + '\n\n'
+      table += `\n**${t('research.fallback.analysis')}**\n\n` + insights.analysis + '\n\n'
     }
     if (insights.bullet_points && insights.bullet_points.length > 0) {
-      table += '**Key Points:**\n\n'
+      table += `**${t('research.fallback.key_points')}**\n\n`
       insights.bullet_points.forEach(point => {
         table += '- ' + point + '\n'
       })
     }
   } else {
-    table += '\n**Analysis:**\n\n'
-    table += '- Data extracted from ' + (bubble.category || 'DATA') + '\n'
-    table += '- Timestamp: ' + formatTime(bubble.timestamp) + '\n'
+    table += `\n**${t('research.fallback.analysis')}**\n\n`
+    table += `- ${t('research.fallback.data_extracted')} ` + (bubble.category || 'DATA') + '\n'
+    table += `- ${t('research.fallback.timestamp')} ` + formatTime(bubble.timestamp) + '\n'
   }
   
   return table
@@ -1104,7 +1105,7 @@ const formatDecodedInsight = (decodedData, bubble) => {
   
   // Add data metrics table if available
   if (Object.keys(metrics).length > 0) {
-    markdown += '| Metric | Value |\n'
+    markdown += `| ${t('research.fallback.metric')} | ${t('research.fallback.value')} |\n`
     markdown += '|--------|-------|\n'
     Object.entries(metrics).forEach(([key, value]) => {
       markdown += `| ${key} | ${formatValue(value)} |\n`
@@ -1114,12 +1115,12 @@ const formatDecodedInsight = (decodedData, bubble) => {
   
   // Add analysis if available
   if (decodedData.analysis) {
-    markdown += `**Analysis:**\n\n${decodedData.analysis}\n\n`
+    markdown += `**${t('research.fallback.analysis')}**\n\n${decodedData.analysis}\n\n`
   }
   
   // Add bullet points if available
   if (decodedData.bullet_points && decodedData.bullet_points.length > 0) {
-    markdown += '**Key Points:**\n\n'
+    markdown += `**${t('research.fallback.key_points')}**\n\n`
     decodedData.bullet_points.forEach(point => {
       markdown += `- ${point}\n`
     })
@@ -1136,7 +1137,7 @@ const formatInsightsAsMarkdown = (insights, bubble) => {
   if (bubble.data && bubble.data.data_metrics) {
     const metrics = bubble.data.data_metrics
     if (Object.keys(metrics).length > 0) {
-      markdown += '| Metric | Value |\n'
+      markdown += `| ${t('research.fallback.metric')} | ${t('research.fallback.value')} |\n`
       markdown += '|--------|-------|\n'
       Object.entries(metrics).forEach(([key, value]) => {
         markdown += `| ${key} | ${formatValue(value)} |\n`
@@ -1147,12 +1148,12 @@ const formatInsightsAsMarkdown = (insights, bubble) => {
   
   // Add analysis if available
   if (insights.analysis) {
-    markdown += `**Analysis:**\n\n${insights.analysis}\n\n`
+    markdown += `**${t('research.fallback.analysis')}**\n\n${insights.analysis}\n\n`
   }
   
   // Add bullet points if available
   if (insights.bullet_points && insights.bullet_points.length > 0) {
-    markdown += '**Key Points:**\n\n'
+    markdown += `**${t('research.fallback.key_points')}**\n\n`
     insights.bullet_points.forEach(point => {
       markdown += `- ${point}\n`
     })
@@ -1234,23 +1235,23 @@ const generatePdfPreview = async () => {
   return pdfBlob
 }
 
-const publishEditor = async () => {
-  // Publish the editor content
-  if (!editorContent.value.trim()) {
-    alert('Cannot publish empty content. Please add some content to the editor.')
-    return
-  }
-  
-  // Ticker is required for all report types except "market"
-  if (!props.ticker && selectedReportType.value !== 'market') {
-    alert('Please enter a ticker symbol before publishing.')
-    return
-  }
-  
-  if (!selectedReportType.value) {
-    alert('Please select a report type (Daily, Market, Long Position, or Short Position) before publishing.')
-    return
-  }
+  const publishEditor = async () => {
+    // Publish the editor content
+    if (!editorContent.value.trim()) {
+      alert(t('research.alerts.empty_content'))
+      return
+    }
+    
+    // Ticker is required for all report types except "market"
+    if (!props.ticker && selectedReportType.value !== 'market') {
+      alert(t('research.alerts.ticker_required'))
+      return
+    }
+    
+    if (!selectedReportType.value) {
+      alert(t('research.alerts.report_type_required'))
+      return
+    }
   
   try {
     // Generate PDF and show preview
@@ -1265,7 +1266,7 @@ const publishEditor = async () => {
     showPreviewModal.value = true
   } catch (error) {
     console.error('Error generating PDF preview:', error)
-    alert(`Failed to generate PDF preview: ${error.message}`)
+    alert(t('research.alerts.pdf_error', { error: error.message }))
   }
 }
 
@@ -1279,7 +1280,7 @@ const confirmPublish = async () => {
   try {
     const token = localStorage.getItem('access_token')
     if (!token) {
-      alert('Please login to publish reports.')
+      alert(t('research.alerts.login_required'))
       closePreviewModal()
       return
     }
@@ -1332,7 +1333,7 @@ const confirmPublish = async () => {
     console.log('Report published:', result)
   } catch (error) {
     console.error('Error publishing report:', error)
-    alert(`Failed to publish report: ${error.message}`)
+    alert(t('research.alerts.publish_error', { error: error.message }))
   } finally {
     isPublishing.value = false
   }
@@ -1451,10 +1452,10 @@ const sendChatMessage = () => {
   // Simulate assistant response (mock)
   setTimeout(() => {
     const responses = [
-      `Based on the latest filings for ${props.ticker}, I can help you analyze the key financial metrics and trends.`,
-      `The 10-K filing shows significant growth in revenue and strong cash flow generation. Would you like me to dive deeper into any specific section?`,
-      `I've reviewed the management discussion and analysis. The company highlights several key strategic initiatives. What aspect interests you most?`,
-      `The financial statements indicate healthy margins and efficient capital allocation. I can provide more detailed analysis on any specific metric.`
+      t('research.chat.response_1', { ticker: props.ticker }),
+      t('research.chat.response_2'),
+      t('research.chat.response_3'),
+      t('research.chat.response_4')
     ]
     const randomResponse = responses[Math.floor(Math.random() * responses.length)]
     
