@@ -10,6 +10,7 @@ import ShortInterestView from '../components/ShortInterestView.vue'
 import AlphaTradeView from '../components/AlphaTradeView.vue'
 import AcademyView from '../components/AcademyView.vue'
 import WhaleWatchingView from '../components/WhaleWatchingView.vue'
+import API_BASE_URL from '@/config/api.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
