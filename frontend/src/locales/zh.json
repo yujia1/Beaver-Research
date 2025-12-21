@@ -17,5 +17,65 @@
         "save": "保存",
         "cancel": "取消",
         "delete": "删除"
+    },
+    "dashboard": {
+        "title": "市场看板",
+        "refresh": "刷新数据",
+        "refreshing": "刷新中...",
+        "loading": "加载市场数据中...",
+        "key_logs": "关键日志",
+        "tabs": {
+            "equity": "权益",
+            "bond": "债券",
+            "economic": "宏观",
+            "fed": "美联储",
+            "currency": "外汇",
+            "commodity": "商品",
+            "crypto": "加密货币",
+            "policy": "政策",
+            "short_interest": "空头持仓"
+        },
+        "loading_states": {
+            "economic": "加载宏观经济数据中...",
+            "fed": "加载美联储数据中...",
+            "currency": "加载外汇数据中...",
+            "commodity": "加载商品数据中...",
+            "short_interest": "加载空头持仓数据中..."
+        },
+        "retry": "重试",
+        "no_data": "暂无历史数据",
+        "headers": {
+            "indicators": "指标",
+            "name": "名称",
+            "type": "类型",
+            "url": "链接",
+            "resource": "资源",
+            "symbol": "代码",
+            "current_short_int": "当前空头持仓",
+            "previous_short_int": "上期空头持仓",
+            "short_int_change": "持仓变动",
+            "short_int_pct_change": "变动百分比",
+            "days_to_cover": "回补天数",
+            "shares_short_value": "空头持仓市值",
+            "avg_daily_volume": "日均成交量",
+            "market_cap": "市值"
+        },
+        "categories": {
+            "liquidity": "流动性",
+            "forecasting": "预测",
+            "metals": "金属",
+            "agricultural": "农产品",
+            "industrial": "工业品",
+            "energy": "能源",
+            "balance_sheet": "资产负债表 / QT",
+            "money_market": "货币市场管道",
+            "stress_funding": "压力 / 资金",
+            "yield_curve": "收益率曲线 (市场隐含利率路径)",
+            "fed_policy": "美联储政策 / 前瞻指引",
+            "fed_watch": "FedWatch 工具",
+            "white_house": "白宫政策来源",
+            "federal_register": "联邦公报",
+            "congress": "国会政策来源"
+        }
     }
 }

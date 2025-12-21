@@ -1,13 +1,13 @@
 <template>
   <div class="dashboard">
     <div class="page-header">
-      <h1>Market Dashboard</h1>
+      <h1>{{ t('dashboard.title') }}</h1>
       <button @click="refreshData" :disabled="loading" class="update-btn">
-        {{ loading ? 'Refreshing...' : 'Refresh Data' }}
+        {{ loading ? t('dashboard.refreshing') : t('dashboard.refresh') }}
       </button>
     </div>
     
-    <div v-if="loading" class="loading">Loading Market Data...</div>
+    <div v-if="loading" class="loading">{{ t('dashboard.loading') }}</div>
     <div v-else>
        <KeyLogsSection ref="keyLogsRef" />
     </div>
@@ -16,8 +16,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import KeyLogsSection from './dashboard/KeyLogsSection.vue';
 
+const { t } = useI18n();
 const loading = ref(false);
 const keyLogsRef = ref(null);
 

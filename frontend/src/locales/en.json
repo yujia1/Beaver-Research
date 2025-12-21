@@ -17,5 +17,65 @@
         "save": "Save",
         "cancel": "Cancel",
         "delete": "Delete"
+    },
+    "dashboard": {
+        "title": "Market Dashboard",
+        "refresh": "Refresh Data",
+        "refreshing": "Refreshing...",
+        "loading": "Loading Market Data...",
+        "key_logs": "Key Logs",
+        "tabs": {
+            "equity": "Equity",
+            "bond": "Bond",
+            "economic": "Economic",
+            "fed": "Fed",
+            "currency": "Currency",
+            "commodity": "Commodity",
+            "crypto": "Crypto",
+            "policy": "Policy",
+            "short_interest": "Short Interest"
+        },
+        "loading_states": {
+            "economic": "Loading Macro Economic Data...",
+            "fed": "Loading Fed Data...",
+            "currency": "Loading Currency Data...",
+            "commodity": "Loading Commodity Data...",
+            "short_interest": "Loading short interest data..."
+        },
+        "retry": "Retry",
+        "no_data": "No history data available",
+        "headers": {
+            "indicators": "Indicators",
+            "name": "Name",
+            "type": "Type",
+            "url": "URL",
+            "resource": "Resource",
+            "symbol": "Symbol",
+            "current_short_int": "Current Short Int.",
+            "previous_short_int": "Previous Short Int.",
+            "short_int_change": "Short Int. Change",
+            "short_int_pct_change": "Short Int. % Change",
+            "days_to_cover": "Days to Cover",
+            "shares_short_value": "Shares Short Value",
+            "avg_daily_volume": "Avg Daily Volume",
+            "market_cap": "Market Cap"
+        },
+        "categories": {
+            "liquidity": "Liquidity",
+            "forecasting": "Forecasting",
+            "metals": "Metals",
+            "agricultural": "Agricultural",
+            "industrial": "Industrial",
+            "energy": "Energy",
+            "balance_sheet": "Balance Sheet / QT",
+            "money_market": "Money Market Plumbing",
+            "stress_funding": "Stress / Funding",
+            "yield_curve": "Yield Curve (Market-Implied Rate Path)",
+            "fed_policy": "Fed Policy / Forward Guidance",
+            "fed_watch": "FedWatch Tool",
+            "white_house": "White House Policy Sources",
+            "federal_register": "Federal Register",
+            "congress": "Congress Policy Sources"
+        }
     }
 }

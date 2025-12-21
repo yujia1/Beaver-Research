@@ -2,7 +2,7 @@
   <div class="key-logs-container">
         <div class="key-logs-section">
             <div class="key-logs-header">
-                <h2>Key Logs</h2>
+                <h2>{{ t('dashboard.key_logs') }}</h2>
             </div>
 
             <!-- Tab Selector -->
@@ -12,42 +12,42 @@
                     :class="{ active: activeTab === 'equity' }"
                     @click="activeTab = 'equity'"
                 >
-                    Equity
+                    {{ t('dashboard.tabs.equity') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'bond' }"
                     @click="activeTab = 'bond'"
                 >
-                    Bond
+                    {{ t('dashboard.tabs.bond') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'economic' }"
                     @click="activeTab = 'economic'"
                 >
-                    Economic
+                    {{ t('dashboard.tabs.economic') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'fed' }"
                     @click="activeTab = 'fed'"
                 >
-                    Fed
+                    {{ t('dashboard.tabs.fed') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'currency' }"
                     @click="activeTab = 'currency'"
                 >
-                    Currency
+                    {{ t('dashboard.tabs.currency') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'commodity' }"
                     @click="activeTab = 'commodity'"
                 >
-                    Commodity
+                    {{ t('dashboard.tabs.commodity') }}
                 </button>
 
                 <button 
@@ -55,21 +55,21 @@
                     :class="{ active: activeTab === 'crypto' }"
                     @click="activeTab = 'crypto'"
                 >
-                    Crypto
+                    {{ t('dashboard.tabs.crypto') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'policy' }"
                     @click="activeTab = 'policy'"
                 >
-                    Policy
+                    {{ t('dashboard.tabs.policy') }}
                 </button>
                 <button 
                     class="tab-btn" 
                     :class="{ active: activeTab === 'short-interest' }"
                     @click="activeTab = 'short-interest'"
                 >
-                    Short Interest
+                    {{ t('dashboard.tabs.short_interest') }}
                 </button>
             </div>
 
@@ -89,7 +89,7 @@
             <div v-if="activeTab === 'economic'" class="tab-content economic-tab-content">
                 <div v-if="economicLoading" class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p>Loading Macro Economic Data...</p>
+                    <p>{{ t('dashboard.loading_states.economic') }}</p>
                 </div>
                 <div v-else-if="economicError" class="error-state">
                     <p class="error-message">{{ economicError }}</p>
@@ -125,7 +125,7 @@
                             <Line v-else :data="getEconomicChartData(item)" :options="economicChartOptions" />
                         </div>
                         <div v-else class="no-data">
-                            <p>No history data available</p>
+                            <p>{{ t('dashboard.no_data') }}</p>
                         </div>
                     </div>
                 </div>
@@ -138,19 +138,19 @@
                         :class="{ active: activeFedCategory === 'liquidity' }"
                         @click="activeFedCategory = 'liquidity'"
                     >
-                        Liquidity
+                        {{ t('dashboard.categories.liquidity') }}
                     </button>
                     <button 
                         :class="{ active: activeFedCategory === 'forecasting' }"
                         @click="activeFedCategory = 'forecasting'"
                     >
-                        Forecasting
+                        {{ t('dashboard.categories.forecasting') }}
                     </button>
                 </div>
 
                 <div v-if="fedLoading" class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p>Loading Fed Data...</p>
+                    <p>{{ t('dashboard.loading_states.fed') }}</p>
                 </div>
                 <div v-else-if="fedError" class="error-state">
                     <p class="error-message">{{ fedError }}</p>
@@ -160,14 +160,14 @@
                     <div v-if="activeFedCategory === 'liquidity'" class="category-section">
                         <!-- Balance Sheet / QT -->
                         <div class="liquidity-subsection">
-                            <h4 class="subsection-title">Balance Sheet / QT</h4>
+                            <h4 class="subsection-title">{{ t('dashboard.categories.balance_sheet') }}</h4>
                             <table class="liquidity-table">
                 <thead>
                     <tr>
-                                        <th>Indicators</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>URL</th>
+                                        <th>{{ t('dashboard.headers.indicators') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -201,14 +201,14 @@
 
                         <!-- Money Market Plumbing -->
                         <div class="liquidity-subsection">
-                            <h4 class="subsection-title">Money Market Plumbing</h4>
+                            <h4 class="subsection-title">{{ t('dashboard.categories.money_market') }}</h4>
                             <table class="liquidity-table">
                 <thead>
                     <tr>
-                                        <th>Indicators</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>URL</th>
+                                        <th>{{ t('dashboard.headers.indicators') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -248,14 +248,14 @@
 
                         <!-- Stress / Funding -->
                         <div class="liquidity-subsection">
-                            <h4 class="subsection-title">Stress / Funding</h4>
+                            <h4 class="subsection-title">{{ t('dashboard.categories.stress_funding') }}</h4>
                             <table class="liquidity-table">
                 <thead>
                     <tr>
-                                        <th>Indicators</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>URL</th>
+                                        <th>{{ t('dashboard.headers.indicators') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -280,14 +280,14 @@
                     <div v-if="activeFedCategory === 'forecasting'" class="category-section">
                         <!-- Yield Curve (Market-Implied Rate Path) -->
                         <div class="liquidity-subsection">
-                            <h4 class="subsection-title">Yield Curve (Market-Implied Rate Path)</h4>
+                            <h4 class="subsection-title">{{ t('dashboard.categories.yield_curve') }}</h4>
                             <table class="liquidity-table">
                 <thead>
                     <tr>
-                                        <th>Indicators</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>URL</th>
+                                        <th>{{ t('dashboard.headers.indicators') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -315,14 +315,14 @@
 
                         <!-- Fed Policy / Forward Guidance -->
                         <div class="liquidity-subsection">
-                            <h4 class="subsection-title">Fed Policy / Forward Guidance</h4>
+                            <h4 class="subsection-title">{{ t('dashboard.categories.fed_policy') }}</h4>
                             <table class="liquidity-table">
                                 <thead>
                                     <tr>
-                                        <th>Indicators</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>URL</th>
+                                        <th>{{ t('dashboard.headers.indicators') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -350,7 +350,7 @@
 
                         <!-- FedWatch Tool Graph -->
                         <div class="liquidity-subsection">
-                            <h4 class="subsection-title">FedWatch Tool</h4>
+                            <h4 class="subsection-title">{{ t('dashboard.categories.fed_watch') }}</h4>
                             <div class="indicators">
                                 <div v-for="item in fedIndicators" :key="item.indicator" class="indicator-card">
                                     <div class="card-content">
@@ -369,7 +369,7 @@
                                         <Line v-else :data="getFedChartData(item)" :options="economicChartOptions" />
                                     </div>
                                     <div v-else class="no-data">
-                                        <p>No history data available</p>
+                                        <p>{{ t('dashboard.no_data') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -383,7 +383,7 @@
                 <div class="currency-data">
                     <div v-if="currencyLoading" class="loading-state">
                         <div class="loading-spinner"></div>
-                        <p>Loading Currency Data...</p>
+                        <p>{{ t('dashboard.loading_states.currency') }}</p>
                     </div>
                     <div v-else-if="currencyError" class="error-state">
                         <p class="error-message">{{ currencyError }}</p>
@@ -423,7 +423,7 @@
                                 <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
                             </div>
                             <div v-else class="no-data">
-                                <p>No history data available</p>
+                                <p>{{ t('dashboard.no_data') }}</p>
                             </div>
                         </div>
                     </div>
@@ -437,32 +437,32 @@
                         :class="{ active: activeCommodityCategory === 'metals' }"
                         @click="activeCommodityCategory = 'metals'"
                     >
-                        Metals
+                        {{ t('dashboard.categories.metals') }}
                     </button>
                     <button 
                         :class="{ active: activeCommodityCategory === 'agricultural' }"
                         @click="activeCommodityCategory = 'agricultural'"
                     >
-                        Agricultural
+                        {{ t('dashboard.categories.agricultural') }}
                     </button>
                     <button 
                         :class="{ active: activeCommodityCategory === 'industrial' }"
                         @click="activeCommodityCategory = 'industrial'"
                     >
-                        Industrial
+                        {{ t('dashboard.categories.industrial') }}
                     </button>
                     <button 
                         :class="{ active: activeCommodityCategory === 'energy' }"
                         @click="activeCommodityCategory = 'energy'"
                     >
-                        Energy
+                        {{ t('dashboard.categories.energy') }}
                     </button>
                 </div>
 
                 <div class="commodity-data">
                     <div v-if="commodityLoading" class="loading-state">
                         <div class="loading-spinner"></div>
-                        <p>Loading Commodity Data...</p>
+                        <p>{{ t('dashboard.loading_states.commodity') }}</p>
                     </div>
                     <div v-else-if="commodityError" class="error-state">
                         <p class="error-message">{{ commodityError }}</p>
@@ -505,7 +505,7 @@
                                         <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
                                     </div>
                                     <div v-else class="no-data">
-                                        <p>No history data available</p>
+                                        <p>{{ t('dashboard.no_data') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -548,7 +548,7 @@
                                         <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
                                     </div>
                                     <div v-else class="no-data">
-                                        <p>No history data available</p>
+                                        <p>{{ t('dashboard.no_data') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -591,7 +591,7 @@
                                         <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
                                     </div>
                                     <div v-else class="no-data">
-                                        <p>No history data available</p>
+                                        <p>{{ t('dashboard.no_data') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -634,7 +634,7 @@
                                         <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
                                     </div>
                                     <div v-else class="no-data">
-                                        <p>No history data available</p>
+                                        <p>{{ t('dashboard.no_data') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -647,14 +647,14 @@
             <div v-if="activeTab === 'policy'" class="tab-content policy-tab-content">
                 <!-- White House Policy Sources -->
                 <div class="liquidity-subsection">
-                    <h4 class="subsection-title">White House Policy Sources</h4>
+                    <h4 class="subsection-title">{{ t('dashboard.categories.white_house') }}</h4>
                     <table class="liquidity-table">
                                 <thead>
                                     <tr>
-                                        <th>Resource</th>
-                                        <th>Name</th>
-                                        <th>URL</th>
-                                        <th>Type</th>
+                                        <th>{{ t('dashboard.headers.resource') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
                                     </tr>
                                 </thead>
                         <tbody>
@@ -682,14 +682,14 @@
 
                 <!-- Federal Register -->
                 <div class="liquidity-subsection">
-                    <h4 class="subsection-title">Federal Register</h4>
+                    <h4 class="subsection-title">{{ t('dashboard.categories.federal_register') }}</h4>
                     <table class="liquidity-table">
                                 <thead>
                                     <tr>
-                                        <th>Resource</th>
-                                        <th>Name</th>
-                                        <th>URL</th>
-                                        <th>Type</th>
+                                        <th>{{ t('dashboard.headers.resource') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
                                     </tr>
                                 </thead>
                         <tbody>
@@ -711,14 +711,14 @@
 
                 <!-- Congress Policy Sources -->
                 <div class="liquidity-subsection">
-                    <h4 class="subsection-title">Congress Policy Sources</h4>
+                    <h4 class="subsection-title">{{ t('dashboard.categories.congress') }}</h4>
                     <table class="liquidity-table">
                                 <thead>
                                     <tr>
-                                        <th>Resource</th>
-                                        <th>Name</th>
-                                        <th>URL</th>
-                                        <th>Type</th>
+                                        <th>{{ t('dashboard.headers.resource') }}</th>
+                                        <th>{{ t('dashboard.headers.name') }}</th>
+                                        <th>{{ t('dashboard.headers.url') }}</th>
+                                        <th>{{ t('dashboard.headers.type') }}</th>
                                     </tr>
                                 </thead>
                         <tbody>
@@ -754,12 +754,12 @@
 
                 <div v-if="shortInterestLoading" class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p>Loading short interest data...</p>
+                    <p>{{ t('dashboard.loading_states.short_interest') }}</p>
                 </div>
 
                 <div v-else-if="shortInterestError" class="error-state">
                     <p class="error-message">{{ shortInterestError }}</p>
-                    <button @click="fetchShortInterestData" class="retry-btn">Retry</button>
+                    <button @click="fetchShortInterestData" class="retry-btn">{{ t('dashboard.retry') }}</button>
                 </div>
 
                 <div v-else class="short-interest-content-section">
@@ -767,15 +767,15 @@
                         <table class="short-interest-table">
                             <thead>
                                 <tr>
-                                    <th>Symbol</th>
-                                    <th>Current Short Int.</th>
-                                    <th>Previous Short Int.</th>
-                                    <th>Short Int. Change</th>
-                                    <th>Short Int. % Change</th>
-                                    <th>Days to Cover</th>
-                                    <th>Shares Short Value</th>
-                                    <th>Avg Daily Volume</th>
-                                    <th>Market Cap</th>
+                                    <th>{{ t('dashboard.headers.symbol') }}</th>
+                                    <th>{{ t('dashboard.headers.current_short_int') }}</th>
+                                    <th>{{ t('dashboard.headers.previous_short_int') }}</th>
+                                    <th>{{ t('dashboard.headers.short_int_change') }}</th>
+                                    <th>{{ t('dashboard.headers.short_int_pct_change') }}</th>
+                                    <th>{{ t('dashboard.headers.days_to_cover') }}</th>
+                                    <th>{{ t('dashboard.headers.shares_short_value') }}</th>
+                                    <th>{{ t('dashboard.headers.avg_daily_volume') }}</th>
+                                    <th>{{ t('dashboard.headers.market_cap') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -891,7 +891,7 @@
                                         <Line :data="getCryptoChartData(item)" :options="cryptoChartOptions" />
                                     </div>
                                     <div v-else class="no-data">
-                                        <p>No history data available</p>
+                                        <p>{{ t('dashboard.no_data') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -909,6 +909,7 @@
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, onMounted, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import IndicesSection from './IndicesSection.vue';
 import BondMarketSection from './BondMarketSection.vue';
 import {
@@ -925,6 +926,8 @@ import {
 } from 'chart.js'
 import { Line, Bar, Doughnut, Pie } from 'vue-chartjs'
 import { getDailyCache, setDailyCache, clearCacheByKey } from '../../utils/dailyCache.js'
+
+const { t } = useI18n();
 
 ChartJS.register(
   CategoryScale,
