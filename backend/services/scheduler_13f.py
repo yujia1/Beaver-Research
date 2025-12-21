@@ -17,11 +17,22 @@ def process_13f_filings():
     try:
         db = SessionLocal()
         try:
+            # Check if scheduler is enabled
+            from models import SystemConfig
+            enabled_config = db.query(SystemConfig).filter(SystemConfig.key == "13f_scheduler_enabled").first()
+            if enabled_config and enabled_config.value.lower() == "false":
+                logger.info("13F Scheduler is disabled in SystemConfig, skipping run")
+                return
+
             now = datetime.now()
             current_quarter = filing_13f_service.get_quarter_from_date(now)
             
+            # Check delay config
+            delay_config = db.query(SystemConfig).filter(SystemConfig.key == "13f_processing_delay_days").first()
+            delay_days = int(delay_config.value) if delay_config else 3
+            
             # Check if we should process this quarter
-            if filing_13f_service.should_process_quarter(current_quarter):
+            if filing_13f_service.should_process_quarter(current_quarter, delay_days):
                 logger.info(f"Processing 13F filings for quarter {current_quarter}")
                 
                 result = filing_13f_service.process_batch(db, quarters=[current_quarter])

@@ -646,6 +646,14 @@
                     "quarters": "季度:"
                 },
                 "error": "错误:"
+            },
+            "scheduler": {
+                "title": "调度器配置",
+                "enable_auto": "启用自动处理",
+                "delay_days": "处理延迟 (天)",
+                "delay_help": "季度结束后等待处理的天数。",
+                "save": "保存配置",
+                "saving": "保存中..."
             }
         },
         "access": {
@@ -746,6 +754,7 @@
             "load_table_data": "加载表数据失败",
             "check_job": "检查任务状态失败",
             "trigger_job": "触发 13F 处理失败",
+            "save_config": "保存调度器配置失败",
             "retry": "重试"
         },
         "messages": {
@@ -755,7 +764,8 @@
             "report_uploaded": "报告 \"{title}\" 上传成功！",
             "processing_started": "13F 处理已开始...",
             "processing_completed": "13F 处理完成: {processed} 个已处理, {skipped} 个已跳过",
-            "processing_failed": "13F 处理失败"
+            "processing_failed": "13F 处理失败",
+            "config_saved": "调度器配置已保存"
         }
     },
     "reports_page": {

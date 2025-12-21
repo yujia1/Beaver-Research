@@ -647,6 +647,14 @@
                     "quarters": "Quarters:"
                 },
                 "error": "Error:"
+            },
+            "scheduler": {
+                "title": "Scheduler Configuration",
+                "enable_auto": "Enable Auto-Processing",
+                "delay_days": "Processing Delay (Days)",
+                "delay_help": "Days to wait after quarter end before processing.",
+                "save": "Save Config",
+                "saving": "Saving..."
             }
         },
         "access": {
@@ -747,6 +755,7 @@
             "load_table_data": "Failed to load table data",
             "check_job": "Failed to check job status",
             "trigger_job": "Failed to trigger 13F processing",
+            "save_config": "Failed to save scheduler configuration",
             "retry": "Retry"
         },
         "messages": {
@@ -756,7 +765,8 @@
             "report_uploaded": "Report \"{title}\" uploaded successfully!",
             "processing_started": "13F processing started...",
             "processing_completed": "13F processing completed: {processed} processed, {skipped} skipped",
-            "processing_failed": "13F processing failed"
+            "processing_failed": "13F processing failed",
+            "config_saved": "Scheduler configuration saved"
         }
     },
     "reports_page": {

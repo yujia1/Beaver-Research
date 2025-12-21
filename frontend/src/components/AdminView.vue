@@ -275,6 +275,44 @@
             
             <!-- Add more batch jobs here in the future -->
           </div>
+          
+          <div class="scheduler-config-section">
+            <h3 class="section-title">{{ t('admin.batch.scheduler.title') }}</h3>
+            <div class="config-card">
+              <div class="config-group">
+                 <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      v-model="schedulerConfig.enabled"
+                    >
+                    <span class="slider round"></span>
+                  </label>
+                  <span class="config-label">{{ t('admin.batch.scheduler.enable_auto') }}</span>
+              </div>
+              
+              <div class="config-group">
+                <label>{{ t('admin.batch.scheduler.delay_days') }}</label>
+                <input 
+                  type="number" 
+                  v-model.number="schedulerConfig.processing_delay_days"
+                  min="0"
+                  max="30"
+                  class="days-input"
+                />
+                <small>{{ t('admin.batch.scheduler.delay_help') }}</small>
+              </div>
+              
+              <div class="config-actions">
+                <button 
+                  @click="saveSchedulerConfig" 
+                  class="action-button verify"
+                  :disabled="savingSchedulerConfig"
+                >
+                  {{ savingSchedulerConfig ? t('admin.batch.scheduler.saving') : t('admin.batch.scheduler.save') }}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -626,6 +664,66 @@ const batchJobs = ref({
     error: null
   }
 })
+
+// Scheduler Configuration State
+const schedulerConfig = ref({
+  enabled: true,
+  processing_delay_days: 3
+})
+const savingSchedulerConfig = ref(false)
+
+const loadSchedulerConfig = async () => {
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/scheduler/config`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      schedulerConfig.value = data
+    }
+  } catch (err) {
+    console.error('Error loading scheduler config:', err)
+  }
+}
+
+const saveSchedulerConfig = async () => {
+  savingSchedulerConfig.value = true
+  message.value = ''
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    
+    const response = await fetch(`${API_BASE_URL}/api/admin/scheduler/config`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(schedulerConfig.value)
+    })
+
+    if (!response.ok) {
+      throw new Error(t('admin.errors.save_config'))
+    }
+    
+    message.value = t('admin.messages.config_saved')
+    messageType.value = 'success'
+    setTimeout(() => { message.value = '' }, 3000)
+    
+  } catch (err) {
+    console.error('Error saving scheduler config:', err)
+    message.value = t('admin.errors.save_config')
+    messageType.value = 'error'
+  } finally {
+    savingSchedulerConfig.value = false
+  }
+}
 
 // Database Management State
 const tables = ref([])
@@ -1427,7 +1525,25 @@ onUnmounted(() => {
 })
 
 onMounted(() => {
-  loadUsers()
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    router.push('/login')
+    return
+  }
+
+  // Check if user is admin
+  const userRole = localStorage.getItem('user_role')
+  if (userRole !== 'admin') {
+    loadingTables.value = false
+    tablesError.value = t('admin.errors.access_denied')
+  }
+
+  // Load initial data based on active tab
+  if (activeTab.value === 'users') {
+    loadUsers()
+  } else if (activeTab.value === 'batch') {
+    loadSchedulerConfig()
+  }
 })
 </script>
 

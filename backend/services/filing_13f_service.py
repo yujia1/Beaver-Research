@@ -110,12 +110,13 @@ class Filing13FService:
             
         return datetime(year, month, day)
     
-    def should_process_quarter(self, quarter: str) -> bool:
-        """Check if we should process filings for this quarter (2-3 days after deadline)"""
+    def should_process_quarter(self, quarter: str, delay_days: int = 3) -> bool:
+        """Check if we should process filings for this quarter (customizable days after deadline)"""
         deadline = self.get_quarter_deadline(quarter)
-        # Process 2-3 days after deadline
-        process_start = deadline + timedelta(days=2)
-        process_end = deadline + timedelta(days=3)
+        # Process X days after deadline
+        process_start = deadline + timedelta(days=delay_days)
+        # We allow a window of 2 days for the run
+        process_end = process_start + timedelta(days=1)
         now = datetime.now()
         
         return process_start <= now <= process_end
@@ -516,20 +517,64 @@ class Filing13FService:
         form_type = filing_data['form_type']
         filing_date = filing_data['filing_date']
         
-        # Check if already processed
-        existing = db.query(Filing13F).filter(
+
+        # Check if we already have a filing for this quarter
+        # We want to avoid processing multiple 13F-HR filings for the same quarter
+        # But we do want to process 13F-HR/A (amendments)
+        
+        # First check strict duplicate by accession number
+        existing_accession = db.query(Filing13F).filter(
             Filing13F.accession_number == accession_number
         ).first()
         
-        if existing and not force_reprocess:
-            # Check if this is an amended filing that should override
-            if form_type == '13F-HR/A' and existing.form_type == '13F-HR':
+        if existing_accession and not force_reprocess:
+             # Check if this is an amended filing that should override
+            if form_type == '13F-HR/A' and existing_accession.form_type == '13F-HR':
                 # Amended filing - reprocess
-                print(f"Processing amended filing {accession_number} (overriding {existing.accession_number})")
+                print(f"Processing amended filing {accession_number} (overriding {existing_accession.accession_number})")
+                existing = existing_accession # Treat as existing to update it
+            else:
+                print(f"Filing {accession_number} already processed, skipping")
+                return False
+        else:
+             # If strictly new, check if we already have a filing for this CIK/Quarter
+             # Calculate quarter from filing date if not passed
+             # (Note: quarter calculation is done later in the function usually, but we need it now)
+             # We'll use the service's helper method, which might need period_end_date, 
+             # but standard 13F filing date is usually close enough to determine quarter for this check
+             # or we rely on the fact that if we are processing a batch, we know the quarter. 
+             # However, process_filing takes filing_data which has filing_date.
+             
+             derived_quarter = self.get_quarter_from_date(filing_date)
+             
+             existing_quarter_filing = db.query(Filing13F).filter(
+                 Filing13F.cik == cik,
+                 Filing13F.quarter == derived_quarter
+             ).first()
+             
+             if existing_quarter_filing:
+                 if form_type == '13F-HR' and existing_quarter_filing.form_type in ['13F-HR', '13F-HR/A']:
+                     # We already have a filing for this quarter, and this is just a standard HR.
+                     # Skip it to avoid duplicates/confusion, unless it's an amendment.
+                     print(f"Skipping duplicate 13F-HR filing {accession_number} for {cik} {derived_quarter} (already have {existing_quarter_filing.accession_number})")
+                     return False
+                 elif form_type == '13F-HR/A':
+                     # exact duplicate accessions checked above, so this is a NEW amendment
+                     # We allow it (it will become a new record or we might want to consolidate? 
+                     # Current logic below handles new records. We'll proceed.)
+                     print(f"Processing new amendment {accession_number} for {cik} {derived_quarter}")
+                     pass
+
+        if existing_accession and not force_reprocess:
+             # Check if this is an amended filing that should override
+            if form_type == '13F-HR/A' and existing_accession.form_type == '13F-HR':
+                # Amended filing - reprocess
+                print(f"Processing amended filing {accession_number} (overriding {existing_accession.accession_number})")
+                existing = existing_accession # Treat as existing to update it
             elif form_type == '13F-NT':
                 # No holdings table - just mark as processed
                 print(f"Skipping 13F-NT filing {accession_number} (no holdings)")
-                if not existing:
+                if not existing_accession:
                     db_filing = Filing13F(
                         cik=cik,
                         accession_number=accession_number,
@@ -550,20 +595,21 @@ class Filing13FService:
         # Skip 13F-NT (no holdings table)
         if form_type == '13F-NT':
             print(f"Skipping 13F-NT filing {accession_number} (no holdings table)")
-            if not existing:
-                db_filing = Filing13F(
-                    cik=cik,
-                    accession_number=accession_number,
-                    form_type=form_type,
-                    filing_date=filing_date,
-                    period_end_date=filing_date,
-                    quarter=self.get_quarter_from_date(filing_date),
-                    is_amended=False,
-                    holdings_count=0
-                )
-                db.add(db_filing)
-                db.commit()
+            # Save a metadata record so we don't try to fetch again
+            db_filing = Filing13F(
+                cik=cik,
+                accession_number=accession_number,
+                form_type=form_type,
+                filing_date=filing_date,
+                period_end_date=filing_date,
+                quarter=self.get_quarter_from_date(filing_date),
+                is_amended=False,
+                holdings_count=0
+            ) 
+            db.add(db_filing)
+            db.commit()
             return True
+
         
         # Fetch filing content
         filing_data = self.get_filing_content(cik, accession_number)

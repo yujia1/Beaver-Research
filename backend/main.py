@@ -48,7 +48,8 @@ from routers import (
     short_interest,
     alphatrade,
     whale_watching,
-    admin_db
+    admin_db,
+    admin_scheduler
 )
 from database import engine, SessionLocal, check_db_connection
 import models
@@ -186,6 +187,7 @@ app.include_router(short_interest.router, prefix="/api/short-interest", tags=["S
 app.include_router(whale_watching.router, prefix="/api/whale-watching", tags=["Whale Watching"])
 app.include_router(alphatrade.router, prefix="/api/alphatrade", tags=["AlphaTrade"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
+app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
 
 @app.get("/")
 def read_root():
