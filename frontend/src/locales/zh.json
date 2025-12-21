@@ -76,6 +76,34 @@
             "white_house": "白宫政策来源",
             "federal_register": "联邦公报",
             "congress": "国会政策来源"
+        },
+        "indices": {
+            "dow_jones": "道琼斯",
+            "nasdaq": "纳斯达克",
+            "sp_500": "标普500",
+            "russell_2000": "罗素2000"
+        },
+        "bond_categories": {
+            "treasury_yields": "国债收益率",
+            "yield_curve": "收益率曲线",
+            "tips_breakeven": "TIPS & 通胀平衡率",
+            "central_bank_rates": "央行利率",
+            "credit_spreads": "信用利差",
+            "funding_stress": "资金压力"
+        },
+        "short_interest_categories": {
+            "most_shorted": "做空最多",
+            "largest_increase": "增幅最大",
+            "largest_decrease": "降幅最大"
+        },
+        "timeframes": {
+            "daily": "日",
+            "weekly": "周",
+            "monthly": "1月",
+            "quarterly": "3月",
+            "yearly": "1年",
+            "5y": "5年",
+            "max": "最大"
         }
     }
 }

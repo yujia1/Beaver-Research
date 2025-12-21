@@ -1,7 +1,7 @@
 <template>
   <div class="indices-section">
-    <div class="index-card" v-for="index in indices" :key="index.name">
-        <h3>{{ index.name }}</h3>
+    <div class="index-card" v-for="index in indices" :key="index.key">
+        <h3>{{ t(`dashboard.indices.${index.key}`) }}</h3>
         <div class="index-value" :class="{ 'positive': index.change >= 0, 'negative': index.change < 0 }">
             <span class="value">{{ index.value.toLocaleString() }}</span>
             <span class="change">
@@ -19,7 +19,8 @@
 <script setup>
 import API_BASE_URL from '@/config/api.js'
 
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,12 +42,14 @@ ChartJS.register(
   Legend
 )
 
+const { t } = useI18n();
+
 // Market indices data
 const indices = ref([
-    { name: 'Dow Jones', value: 0, change: 0, history: [] },
-    { name: 'NASDAQ', value: 0, change: 0, history: [] },
-    { name: 'S&P 500', value: 0, change: 0, history: [] },
-    { name: 'Russell 2000', value: 0, change: 0, history: [] }
+    { name: 'Dow Jones', key: 'dow_jones', value: 0, change: 0, history: [] },
+    { name: 'NASDAQ', key: 'nasdaq', value: 0, change: 0, history: [] },
+    { name: 'S&P 500', key: 'sp_500', value: 0, change: 0, history: [] },
+    { name: 'Russell 2000', key: 'russell_2000', value: 0, change: 0, history: [] }
 ]);
 
 const miniChartOptions = {

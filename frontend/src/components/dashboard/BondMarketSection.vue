@@ -2,7 +2,7 @@
     <div class="bond-section">
         <div class="category-tabs">
             <button 
-                v-for="category in bondCategories" 
+                v-for="category in getBondCategories()" 
                 :key="category.value"
                 :class="{ active: activeBondCategory === category.value }"
                 @click="activeBondCategory = category.value"
@@ -12,7 +12,7 @@
         </div>
 
         <div v-if="bondLoading" class="loading-state">
-            <p>Loading Bond Market Data...</p>
+            <p>{{ t('dashboard.loading_states.bond') }}</p>
         </div>
         <div v-else-if="bondError" class="error-state">
             <p class="error-message">{{ bondError }}</p>
@@ -34,7 +34,7 @@
                             </p>
                             <div class="card-timeframe-selector">
                                 <button 
-                                    v-for="tf in bondTimeframes" 
+                                    v-for="tf in getBondTimeframes()" 
                                     :key="tf.value"
                                     :class="{ active: item.selectedTimeframe === tf.value }"
                                     @click="updateBondItemTimeframe(item, tf.value)"
@@ -63,6 +63,7 @@
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -83,6 +84,8 @@ ChartJS.register(
   Tooltip,
   Legend
 )
+
+const { t } = useI18n();
 
 // Bond cache configuration
 const BOND_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
@@ -132,25 +135,26 @@ const bondLoading = ref(false);
 const bondError = ref(null);
 const activeBondCategory = ref('treasury_yields');
 
-const bondTimeframes = [
-  { label: '1M', value: 'daily' },
-  { label: '3M', value: 'weekly' },
-  { label: '1Y', value: 'monthly' },
-  { label: '5Y', value: 'yearly' },
-  { label: 'Max', value: 'max' }
+// We use a function or computed for timeframes/categories to ensure reactivity with language change
+const getBondTimeframes = () => [
+  { label: t('dashboard.timeframes.monthly'), value: 'daily' },
+  { label: t('dashboard.timeframes.quarterly'), value: 'weekly' },
+  { label: t('dashboard.timeframes.yearly'), value: 'monthly' },
+  { label: t('dashboard.timeframes.5y'), value: 'yearly' },
+  { label: t('dashboard.timeframes.max'), value: 'max' }
 ];
 
-const bondCategories = [
-  { label: 'Treasury Yields', value: 'treasury_yields' },
-  { label: 'Yield Curve', value: 'yield_curve' },
-  { label: 'TIPS & Breakeven', value: 'tips_breakeven' },
-  { label: 'Central Bank Rates', value: 'central_bank_rates' },
-  { label: 'Credit Spreads', value: 'credit_spreads' },
-  { label: 'Funding Stress', value: 'funding_stress' }
+const getBondCategories = () => [
+  { label: t('dashboard.bond_categories.treasury_yields'), value: 'treasury_yields' },
+  { label: t('dashboard.bond_categories.yield_curve'), value: 'yield_curve' },
+  { label: t('dashboard.bond_categories.tips_breakeven'), value: 'tips_breakeven' },
+  { label: t('dashboard.bond_categories.central_bank_rates'), value: 'central_bank_rates' },
+  { label: t('dashboard.bond_categories.credit_spreads'), value: 'credit_spreads' },
+  { label: t('dashboard.bond_categories.funding_stress'), value: 'funding_stress' }
 ];
 
 const getCategoryLabel = (value) => {
-    const category = bondCategories.find(c => c.value === value);
+    const category = getBondCategories().find(c => c.value === value);
     return category ? category.label : '';
 };
 

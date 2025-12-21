@@ -76,6 +76,34 @@
             "white_house": "White House Policy Sources",
             "federal_register": "Federal Register",
             "congress": "Congress Policy Sources"
+        },
+        "indices": {
+            "dow_jones": "Dow Jones",
+            "nasdaq": "NASDAQ",
+            "sp_500": "S&P 500",
+            "russell_2000": "Russell 2000"
+        },
+        "bond_categories": {
+            "treasury_yields": "Treasury Yields",
+            "yield_curve": "Yield Curve",
+            "tips_breakeven": "TIPS & Breakeven",
+            "central_bank_rates": "Central Bank Rates",
+            "credit_spreads": "Credit Spreads",
+            "funding_stress": "Funding Stress"
+        },
+        "short_interest_categories": {
+            "most_shorted": "Most Shorted",
+            "largest_increase": "Largest Increase",
+            "largest_decrease": "Largest Decrease"
+        },
+        "timeframes": {
+            "daily": "Daily",
+            "weekly": "Weekly",
+            "monthly": "1M",
+            "quarterly": "3M",
+            "yearly": "1Y",
+            "5y": "5Y",
+            "max": "Max"
         }
     }
 }

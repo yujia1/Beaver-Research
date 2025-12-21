@@ -953,35 +953,35 @@ const bondRef = ref(null);
 const economicIndicators = ref([]);
 const economicLoading = ref(false);
 const economicError = ref(null);
-const economicTimeframes = [
-    { label: '1M', value: 'monthly' },
-    { label: '3M', value: 'quarterly' },
-    { label: '1Y', value: 'yearly' },
-    { label: '5Y', value: '5y' }
-];
+const economicTimeframes = computed(() => [
+    { label: t('dashboard.timeframes.monthly'), value: 'monthly' },
+    { label: t('dashboard.timeframes.quarterly'), value: 'quarterly' },
+    { label: t('dashboard.timeframes.yearly'), value: 'yearly' },
+    { label: t('dashboard.timeframes.5y'), value: '5y' }
+]);
 
 // Fed Tab State
 const fedIndicators = ref([]);
 const fedLoading = ref(false);
 const fedError = ref(null);
 const activeFedCategory = ref('forecasting');
-const fedTimeframes = [
-    { label: '1M', value: 'monthly' },
-    { label: '3M', value: 'quarterly' },
-    { label: '1Y', value: 'yearly' },
-    { label: '5Y', value: '5y' }
-];
+const fedTimeframes = computed(() => [
+    { label: t('dashboard.timeframes.monthly'), value: 'monthly' },
+    { label: t('dashboard.timeframes.quarterly'), value: 'quarterly' },
+    { label: t('dashboard.timeframes.yearly'), value: 'yearly' },
+    { label: t('dashboard.timeframes.5y'), value: '5y' }
+]);
 
 // Currency Tab State
 const currencyIndicators = ref([]);
 const currencyLoading = ref(false);
 const currencyError = ref(null);
-const currencyTimeframes = [
-  { label: '1M', value: 'monthly' },
-  { label: '3M', value: 'quarterly' },
-  { label: '1Y', value: 'yearly' },
-  { label: '5Y', value: '5y' }
-];
+const currencyTimeframes = computed(() => [
+  { label: t('dashboard.timeframes.monthly'), value: 'monthly' },
+  { label: t('dashboard.timeframes.quarterly'), value: 'quarterly' },
+  { label: t('dashboard.timeframes.yearly'), value: 'yearly' },
+  { label: t('dashboard.timeframes.5y'), value: '5y' }
+]);
 
 // Commodity Tab State
 const activeCommodityCategory = ref('metals');
@@ -993,12 +993,12 @@ const commodityIndicators = ref({
 });
 const commodityLoading = ref(false);
 const commodityError = ref(null);
-const commodityTimeframes = [
-  { label: '1M', value: 'monthly' },
-  { label: '3M', value: 'quarterly' },
-  { label: '1Y', value: 'yearly' },
-  { label: '5Y', value: '5y' }
-];
+const commodityTimeframes = computed(() => [
+  { label: t('dashboard.timeframes.monthly'), value: 'monthly' },
+  { label: t('dashboard.timeframes.quarterly'), value: 'quarterly' },
+  { label: t('dashboard.timeframes.yearly'), value: 'yearly' },
+  { label: t('dashboard.timeframes.5y'), value: '5y' }
+]);
 
 // Commodity series mapping by category
 const commoditySeriesMap = {
@@ -1012,12 +1012,12 @@ const commoditySeriesMap = {
 const cryptoIndicators = ref([]);
 const cryptoLoading = ref(false);
 const cryptoError = ref(null);
-const cryptoTimeframes = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' },
-  { label: 'Monthly', value: 'monthly' },
-  { label: 'Yearly', value: 'yearly' }
-];
+const cryptoTimeframes = computed(() => [
+  { label: t('dashboard.timeframes.daily'), value: 'daily' },
+  { label: t('dashboard.timeframes.weekly'), value: 'weekly' },
+  { label: t('dashboard.timeframes.monthly'), value: 'monthly' },
+  { label: t('dashboard.timeframes.yearly'), value: 'yearly' }
+]);
 
 // Bond cache configuration
 const BOND_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
@@ -1070,11 +1070,11 @@ const shortInterestCurrentPage = ref(1);
 const shortInterestTotalPages = ref(20); // Maximum 20 pages as per backend
 const shortInterestItemsPerPage = 100;
 
-const shortInterestCategories = [
-  { label: 'Most Shorted', value: 'most-shorted' },
-  { label: 'Largest Increase', value: 'largest-increase' },
-  { label: 'Largest Decrease', value: 'largest-decrease' }
-];
+const shortInterestCategories = computed(() => [
+  { label: t('dashboard.short_interest_categories.most_shorted'), value: 'most-shorted' },
+  { label: t('dashboard.short_interest_categories.largest_increase'), value: 'largest-increase' },
+  { label: t('dashboard.short_interest_categories.largest_decrease'), value: 'largest-decrease' }
+]);
 
 const shortInterestVisiblePages = computed(() => {
   const pages = [];
