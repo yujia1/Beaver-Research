@@ -291,7 +291,47 @@ async def process_data_with_agent(raw_data: Dict, agent_id: str, sub_agent_key: 
         
         import json
         import base64
-        analyzed = json.loads(response.choices[0].message.content)
+        import re
+        
+        # Robust JSON parsing with error handling
+        try:
+            analyzed = json.loads(response.choices[0].message.content)
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error for {sub_agent_name}: {e}")
+            print(f"Raw response content: {response.choices[0].message.content[:500]}...")
+            
+            # Attempt to extract JSON from markdown code blocks if present
+            content = response.choices[0].message.content
+            json_match = re.search(r'```json\s*(\{.*?\})\s*```', content, re.DOTALL)
+            if json_match:
+                try:
+                    analyzed = json.loads(json_match.group(1))
+                    print(f"Successfully extracted JSON from markdown block")
+                except json.JSONDecodeError:
+                    pass
+            
+            # If still failing, try to find any JSON object in the response
+            if 'analyzed' not in locals():
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    try:
+                        analyzed = json.loads(json_match.group(0))
+                        print(f"Successfully extracted JSON object from response")
+                    except json.JSONDecodeError:
+                        pass
+            
+            # Final fallback: return a structured error response
+            if 'analyzed' not in locals():
+                analyzed = {
+                    "insights": {
+                        "analysis": f"Error: Unable to parse response from {sub_agent_name}. The AI returned malformed JSON.",
+                        "bullet_points": [
+                            "JSON parsing failed",
+                            "Please try again or contact support"
+                        ]
+                    },
+                    "error": str(e)
+                }
         
         # Encode the full analysis if not already encoded
         insights_data = analyzed.get("insights", {})
