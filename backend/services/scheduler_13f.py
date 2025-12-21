@@ -31,6 +31,7 @@ def process_13f_filings():
         finally:
             db.close()
     except Exception as e:
+        db.rollback()
         logger.error(f"Error in 13F processing scheduler: {e}", exc_info=True)
 
 def setup_13f_scheduler():

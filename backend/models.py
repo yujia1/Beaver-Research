@@ -123,3 +123,46 @@ class AlphaTradeFundamentalAnalysis(Base):
 
     # Relationship
     position = relationship("AlphaTradePosition", back_populates="fundamental_analysis")
+
+
+class WhaleAlert(Base):
+    __tablename__ = "whale_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String, index=True, nullable=False)
+    institution_name = Column(String, nullable=False)
+    alert_type = Column(String, nullable=False)  # WHALE_NEW, WHALE_EXIT, WHALE_INCREASE, WHALE_DECREASE
+    severity = Column(String, nullable=False)  # HIGH, MEDIUM, LOW
+    message = Column(Text, nullable=False)
+    quarter = Column(String, nullable=False)
+    percent_change = Column(Float, nullable=True)
+    shares_change = Column(Float, nullable=True)
+    value_change = Column(Float, nullable=True)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PositionChange(Base):
+    __tablename__ = "position_changes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cik = Column(String, index=True, nullable=False)
+    ticker = Column(String, index=True, nullable=False)
+    institution_name = Column(String, nullable=False)
+    change_type = Column(String, nullable=False)  # NEW, CLOSED, INCREASED, DECREASED
+    current_quarter = Column(String, nullable=False)
+    prior_quarter = Column(String, nullable=True)
+    
+    # Use BigInteger for share counts and values to prevent overflow
+    current_shares = Column(BigInteger, nullable=False)
+    prior_shares = Column(BigInteger, nullable=True)
+    shares_change = Column(BigInteger, nullable=True)
+    
+    percent_change = Column(Float, nullable=True)
+    
+    current_value = Column(BigInteger, nullable=False)
+    prior_value = Column(BigInteger, nullable=True)
+    
+    is_whale = Column(Boolean, default=False)
+    detected_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
