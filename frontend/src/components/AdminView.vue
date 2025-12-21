@@ -190,7 +190,7 @@
             </div>
             
             <div class="health-card">
-              <h3>MinIO Storage</h3>
+              <h3>S3 Storage</h3>
               <div class="health-status" :class="minioHealth.status">
                 <span class="status-indicator"></span>
                 <span>{{ minioHealth.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}</span>
@@ -1130,12 +1130,12 @@ const checkHealth = async () => {
       })
       minioHealth.value = {
         status: minioResponse.ok ? 'healthy' : 'unhealthy',
-        message: minioResponse.ok ? 'MinIO storage accessible' : 'MinIO storage error'
+        message: minioResponse.ok ? 'S3 storage accessible' : 'S3 storage error'
       }
     } catch (err) {
       minioHealth.value = {
         status: 'unhealthy',
-        message: 'MinIO storage error'
+        message: 'S3 storage error'
       }
     }
 
