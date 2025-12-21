@@ -118,9 +118,7 @@
     <div class="editor-container">
       <!-- Editor Panel -->
       <div class="editor-panel">
-        <div
-          v-if="editorContent.trim() === ''"
-          <div class="editor-placeholder">
+        <div v-if="editorContent.trim() === ''" class="editor-placeholder">
             <h2 class="placeholder-title">
               {{ t('research.editor_placeholder.title', { company: companyName || 'Company' }) }}
             </h2>
@@ -671,7 +669,7 @@ const handleDrop = async (event) => {
       // Fallback to generating basic insight
       insight = generateFallbackInsight(draggedBubble.value)
     }
-    
+      
     // Insert insight into editor
     insertInsight(insight, range)
     
