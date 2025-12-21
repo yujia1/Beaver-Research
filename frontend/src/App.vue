@@ -38,6 +38,12 @@ const menuItems = computed(() => {
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
   }
   
+  const academyItem = {
+    path: '/academy',
+    name: 'Academy',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+  }
+  
   const researchItem = {
     path: '/research',
     name: 'Research',
@@ -56,6 +62,7 @@ const menuItems = computed(() => {
       items.push(investmentItem)
       items.push(reportItem)
       items.push(alphaTradeItem)
+      items.push(academyItem)
       items.push(researchItem)
       items.push(whaleWatchingItem)
   } else {
@@ -63,6 +70,7 @@ const menuItems = computed(() => {
       if (hasAccess('/investment')) items.push(investmentItem)
       if (hasAccess('/report')) items.push(reportItem)
       if (hasAccess('/alphatrade')) items.push(alphaTradeItem)
+      if (hasAccess('/academy')) items.push(academyItem)
       if (hasAccess('/research')) items.push(researchItem)
       if (hasAccess('/whale-watching')) items.push(whaleWatchingItem)
   }

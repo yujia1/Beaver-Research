@@ -8,6 +8,7 @@ import AdminView from '../components/AdminView.vue'
 import ReportView from '../components/ReportView.vue'
 import ShortInterestView from '../components/ShortInterestView.vue'
 import AlphaTradeView from '../components/AlphaTradeView.vue'
+import AcademyView from '../components/AcademyView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -65,6 +66,12 @@ const router = createRouter({
       name: 'alphatrade',
       component: AlphaTradeView,
       meta: { requiresAuth: false } // Controlled dynamically
+    },
+    {
+      path: '/academy',
+      name: 'academy',
+      component: AcademyView,
+      meta: { requiresAuth: false }
     }
   ]
 })
