@@ -100,15 +100,8 @@ const handleLogin = async () => {
 
     // Fetch and store permissions immediately to ensure navigation is correct on redirect
     try {
-      const permsResponse = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
-        headers: {
-          'Authorization': `Bearer ${data.access_token}`
-        }
-      })
-      if (permsResponse.ok) {
-        const permsData = await permsResponse.json()
-        localStorage.setItem('user_permissions', JSON.stringify(permsData))
-      }
+      const { permissionStore } = await import('../stores/permissions.js')
+      await permissionStore.fetch(API_BASE_URL)
     } catch (err) {
       console.error('Failed to fetch permissions:', err)
     }

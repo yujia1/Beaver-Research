@@ -84,28 +84,15 @@ const router = createRouter({
   ]
 })
 
-// Helper to check permission
-async function checkPermission(user, resource) {
+import { permissionStore } from '../stores/permissions.js'
+
+// Helper to check permission (no API calls, uses cached permissions)
+function checkPermission(user, resource) {
   // Admin always has access
-  if (user.role === 'admin') return true
+  if (user && user.role === 'admin') return true
 
-  try {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    if (response.ok) {
-      const allowedResources = await response.json()
-      return allowedResources.includes(resource)
-    }
-    return false
-  } catch (e) {
-    console.error('Error checking permission:', e)
-    return false
-  }
+  // Check cached permissions
+  return permissionStore.hasAccess(resource)
 }
 
 // Navigation guard
@@ -170,7 +157,7 @@ router.beforeEach(async (to, from, next) => {
 
     // If we have a user, check permission
     if (user) {
-      const hasAccess = await checkPermission(user, to.path)
+      const hasAccess = checkPermission(user, to.path)
       if (!hasAccess) {
         // Creating a smoother UX: if access denied, redirect home with a query param?
         // or just redirect home

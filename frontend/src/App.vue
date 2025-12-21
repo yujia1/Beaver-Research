@@ -149,36 +149,13 @@ const getUserInfo = async () => {
   }
 }
 
-// Request deduplication: prevent multiple simultaneous calls to /my-permissions
-let permissionsFetchPromise = null
+import { permissionStore } from './stores/permissions.js'
 
+// Fetch permissions from API and update store
 const fetchPermissions = async () => {
-    // If a fetch is already in progress, return that promise instead of starting a new one
-    if (permissionsFetchPromise) {
-        return permissionsFetchPromise
-    }
-
-    const token = localStorage.getItem('access_token')
-    if (!token) return
-
-    permissionsFetchPromise = (async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            if (response.ok) {
-                allowedResources.value = await response.json()
-                localStorage.setItem('user_permissions', JSON.stringify(allowedResources.value))
-            }
-        } catch (e) {
-            console.error('Error fetching permissions:', e)
-        } finally {
-            // Clear the promise after completion so future calls can proceed
-            permissionsFetchPromise = null
-        }
-    })()
-
-    return permissionsFetchPromise
+    await permissionStore.fetch(API_BASE_URL)
+    // Update local reactive state from store
+    allowedResources.value = permissionStore.get()
 }
 
 const logout = (e) => {
@@ -188,7 +165,7 @@ const logout = (e) => {
   }
   localStorage.removeItem('access_token')
   localStorage.removeItem('user')
-  localStorage.removeItem('user_permissions')
+  permissionStore.clear() // Clear permission store
   user.value = null
   allowedResources.value = []
   isAuthenticated.value = false
@@ -205,17 +182,16 @@ const getRoleBadgeColor = (role) => {
   return colors[role] || colors.user
 }
 
-// Function to update user state from localStorage
+// Update user state from localStorage
 const updateUserState = () => {
-  const storedUser = localStorage.getItem('user')
   const token = localStorage.getItem('access_token')
-  
-  // Update authentication state
   isAuthenticated.value = !!token
-  
-  if (token && storedUser) {
+
+  // Load user from localStorage
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
     try {
-      user.value = JSON.parse(storedUser)
+      user.value = JSON.parse(userStr)
     } catch (e) {
       console.error('Error parsing user data:', e)
       user.value = null
@@ -224,17 +200,13 @@ const updateUserState = () => {
     user.value = null
   }
 
-  // Also update permissions from storage
-  try {
-    const cachedPermissions = localStorage.getItem('user_permissions')
-    if (cachedPermissions) {
-      allowedResources.value = JSON.parse(cachedPermissions)
-    } else if (!token) {
-      // Clear permissions if logged out
-      allowedResources.value = []
-    }
-  } catch (e) {
-    console.error('Error parsing permissions:', e)
+  // Load permissions from store (which checks localStorage)
+  allowedResources.value = permissionStore.get()
+  
+  // Clear if logged out
+  if (!token) {
+    allowedResources.value = []
+    permissionStore.clear()
   }
 }
 
@@ -243,7 +215,10 @@ onMounted(() => {
   updateUserState()
   if (isAuthenticated.value) {
     getUserInfo()
-    fetchPermissions()
+    // Only fetch permissions from API if not already cached
+    if (!allowedResources.value || allowedResources.value.length === 0) {
+      fetchPermissions()
+    }
   }
   
   // Listen for storage changes (when login happens in another component)
@@ -255,7 +230,10 @@ onMounted(() => {
     updateUserState()
     if (isAuthenticated.value) {
       getUserInfo()
-      fetchPermissions()
+      // Only fetch if not cached (updateUserState already loaded from localStorage)
+      if (!allowedResources.value || allowedResources.value.length === 0) {
+        fetchPermissions()
+      }
     }
   }
   window.addEventListener('user-logged-in', handleLoginEvent)
@@ -274,7 +252,10 @@ watch(() => route.path, () => {
     updateUserState()
     if (isAuthenticated.value && !user.value) {
       getUserInfo()
-      fetchPermissions()
+      // Only fetch if not cached
+      if (!allowedResources.value || allowedResources.value.length === 0) {
+        fetchPermissions()
+      }
     }
   }, 100)
 }, { immediate: false })
@@ -285,7 +266,10 @@ watch(isAuthenticated, (newVal) => {
     updateUserState()
     if (!user.value) {
       getUserInfo()
-      fetchPermissions()
+      // Only fetch if not cached
+      if (!allowedResources.value || allowedResources.value.length === 0) {
+        fetchPermissions()
+      }
     }
   } else {
     user.value = null
