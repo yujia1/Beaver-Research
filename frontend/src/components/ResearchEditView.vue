@@ -68,7 +68,7 @@
         <div class="icon-group">
           <button
             v-for="(agent, index) in availableAgents"
-            :key="agent.id"
+            :key="agent.id || index"
             :class="{ active: props.activeAgent === agent.id }"
             @click="emit('update:active-agent', agent.id)"
             class="icon-btn"
@@ -226,8 +226,8 @@
         <!-- Data Bubbles for other agents -->
         <div v-else class="data-bubbles">
           <div
-            v-for="bubble in filteredBubbles"
-            :key="bubble.id"
+            v-for="(bubble, index) in filteredBubbles"
+            :key="bubble.id || index"
             :draggable="true"
             @dragstart="handleDragStart($event, bubble)"
             class="data-bubble"
@@ -246,15 +246,15 @@
             <div v-if="isFinancialStatementBubble(bubble)" class="bubble-period-row">
               <div class="period-toggle">
                 <button
-                  :class="{ active: getBubblePeriod(bubble.id) === 'Annually' }"
-                  @click="setBubblePeriod(bubble.id, 'Annually')"
+                  :class="{ active: bubble.id && getBubblePeriod(bubble.id) === 'Annually' }"
+                  @click="bubble.id && setBubblePeriod(bubble.id, 'Annually')"
                   class="period-btn"
                 >
                   Annually
                 </button>
                 <button
-                  :class="{ active: getBubblePeriod(bubble.id) === 'Quarterly' }"
-                  @click="setBubblePeriod(bubble.id, 'Quarterly')"
+                  :class="{ active: bubble.id && getBubblePeriod(bubble.id) === 'Quarterly' }"
+                  @click="bubble.id && setBubblePeriod(bubble.id, 'Quarterly')"
                   class="period-btn"
                 >
                   Quarterly
@@ -554,18 +554,20 @@ const filteredBubbles = computed(() => {
   if (!dataBubbles.value.length) return []
   
   const agent = availableAgents.value.find(a => a.id === props.activeAgent)
-  if (!agent) return dataBubbles.value
+  if (!agent) return dataBubbles.value.filter(b => b) // Filter out nulls
   
   return dataBubbles.value.filter(bubble => {
+    if (!bubble) return false
     return agent.focus.some(focus => 
-      bubble.type.toLowerCase().includes(focus) || 
-      bubble.category.toLowerCase().includes(focus)
+      (bubble.type && bubble.type.toLowerCase().includes(focus)) || 
+      (bubble.category && bubble.category.toLowerCase().includes(focus))
     )
   })
 })
 
 // Drag and Drop handlers
 const handleDragStart = (event, bubble) => {
+  if (!bubble || !bubble.id) return
   draggedBubble.value = bubble
   event.dataTransfer.effectAllowed = 'move'
   event.dataTransfer.setData('text/html', bubble.id)
@@ -617,9 +619,12 @@ const handleDrop = async (event) => {
     
     if (isFinancialStatementBubble(draggedBubble.value) && hasPeriodData(draggedBubble.value)) {
       // For financial statement bubbles, get insights from the selected period
-      const period = getBubblePeriod(draggedBubble.value.id)
-      const periodData = draggedBubble.value.data[period]
-      insights = periodData?.insights || null
+      const bubbleId = draggedBubble.value?.id
+      if (bubbleId) {
+        const period = getBubblePeriod(bubbleId)
+        const periodData = draggedBubble.value.data[period]
+        insights = periodData?.insights || null
+      }
     } else {
       // For other bubbles, get insights directly
       insights = draggedBubble.value.data?.insights || null
