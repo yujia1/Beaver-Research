@@ -166,3 +166,11 @@ class PositionChange(Base):
     is_whale = Column(Boolean, default=False)
     detected_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SystemConfig(Base):
+    __tablename__ = "system_config"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
