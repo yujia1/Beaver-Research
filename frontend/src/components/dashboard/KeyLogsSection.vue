@@ -999,7 +999,7 @@ const commodityTimeframes = [
 
 // Commodity series mapping by category
 const commoditySeriesMap = {
-  metals: ['GOLDAMGBD228NLBM', 'PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
+  metals: ['GOLDAMGBD228NLBM', 'SILVER', 'PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
   agricultural: ['PSOYBUSDM', 'PCOFFUSDM', 'PSUGAR', 'PCORNUSDM'],
   industrial: ['PZINC', 'PALUMINUM'],
   energy: ['POILBREUSDM', 'PNRGINDEXM']
