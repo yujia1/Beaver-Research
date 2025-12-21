@@ -1268,8 +1268,12 @@ const pollJobStatus = async (jobId) => {
     return
   }
 
+  const API_BASE_URL = window.location.hostname.includes('railway.app') 
+    ? 'https://beaver-research-backend-production.up.railway.app'
+    : 'http://localhost:8000'
+
   try {
-    const response = await fetch(`/api/filing-13f/process/status/${jobId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/filing-13f/process/status/${jobId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1356,7 +1360,11 @@ const trigger13FProcessing = async () => {
         .filter(q => q.length > 0)
     }
 
-    const response = await fetch('/api/filing-13f/process', {
+    const API_BASE_URL = window.location.hostname.includes('railway.app') 
+      ? 'https://beaver-research-backend-production.up.railway.app'
+      : 'http://localhost:8000'
+
+    const response = await fetch(`${API_BASE_URL}/api/filing-13f/process`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
