@@ -115,9 +115,19 @@
                   <div class="tenk-section">
                     <div class="section-header">
                       <h4>{{ t('investment.overview.latest_10k') }}</h4>
-                      <button @click="fetch10KChunks" :disabled="loading10K" class="refresh-btn">
-                        {{ loading10K ? t('investment.loading') : t('investment.overview.refresh') }}
-                      </button>
+                      <div class="button-group">
+                        <button @click="download10K" :disabled="loading10K || !tenKChunks" class="download-btn" title="Download 10-K">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                          </svg>
+                          Download
+                        </button>
+                        <button @click="fetch10KChunks" :disabled="loading10K" class="refresh-btn">
+                          {{ loading10K ? t('investment.loading') : t('investment.overview.refresh') }}
+                        </button>
+                      </div>
                     </div>
                     
                     <div v-if="loading10K" class="loading">{{ t('investment.overview.loading_10k') }}</div>
@@ -1218,6 +1228,67 @@ const fetch10KChunks = async () => {
     loading10K.value = false
   }
 }
+
+// Download 10-K filing as HTML file
+const download10K = () => {
+  if (!tenKChunks.value || !selectedStock.value) return
+  
+  try {
+    // Create a complete HTML document
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${selectedStock.value.toUpperCase()} - Form 10-K</title>
+  <style>
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      line-height: 1.6;
+      max-width: 8.5in;
+      margin: 0 auto;
+      padding: 1in;
+      background: white;
+      color: black;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    th, td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  ${tenKChunks.value}
+</body>
+</html>
+    `.trim()
+    
+    // Create blob and download
+    const blob = new Blob([htmlContent], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${selectedStock.value.toUpperCase()}_10K_${new Date().toISOString().split('T')[0]}.html`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Error downloading 10-K:', err)
+    alert('Failed to download 10-K filing')
+  }
+}
+
 
 // Watch selectedStock to auto-fetch company data
 watch(selectedStock, (newStock, oldStock) => {
@@ -4895,6 +4966,43 @@ watch(selectedTimePeriod, () => {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.download-btn {
+  padding: 8px 16px;
+  border: 2px solid #27ae60;
+  border-radius: 6px;
+  background: transparent;
+  color: #27ae60;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.download-btn:hover:not(:disabled) {
+  background: #27ae60;
+  color: white;
+}
+
+.download-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.download-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 
 .analysis-section-wrapper {
   flex: 1;
