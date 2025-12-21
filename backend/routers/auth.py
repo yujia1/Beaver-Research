@@ -692,7 +692,7 @@ async def get_my_permissions(
     """Get list of resources the current user can access"""
     # Admin gets access to everything by default
     if current_user.role == "admin":
-        return ["/research", "/alphatrade", "/report", "/investment", "/short-interest"]
+        return ["/research", "/alphatrade", "/report", "/investment", "/short-interest", "/whale-watching", "/agent", "/academy"]
     
     # Fetch permissions for user's role
     params = db.query(models.RolePermission).filter(
@@ -716,7 +716,7 @@ async def initialize_permissions(
     if count > 0:
         return {"message": "Permissions already initialized", "count": count}
         
-    resources = ["/research", "/alphatrade", "/report", "/investment"]
+    resources = ["/research", "/alphatrade", "/report", "/investment", "/short-interest", "/whale-watching", "/agent", "/academy"]
     roles = ["creator", "contributor", "user"]
     
     # Default Policy:
