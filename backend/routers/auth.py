@@ -41,8 +41,8 @@ class UserCreate(BaseModel):
         """Validate password length: 6-12 characters"""
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters long")
-        if len(v) > 12:
-            raise ValueError("Password must be no more than 12 characters long")
+        if len(v) > 20:
+            raise ValueError("Password must be no more than 20 characters long")
         return v
 
 class UserResponse(BaseModel):
@@ -241,10 +241,10 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Password must be at least 6 characters long"
             )
-        if len(user_data.password) > 12:
+        if len(user_data.password) > 20:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must be no more than 12 characters long"
+                detail="Password must be no more than 20 characters long"
             )
         
         # Ensure role defaults to "user" if not provided or None
@@ -341,8 +341,8 @@ class LoginRequest(BaseModel):
         """Validate password length: 6-12 characters"""
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters long")
-        if len(v) > 12:
-            raise ValueError("Password must be no more than 12 characters long")
+        if len(v) > 20:
+            raise ValueError("Password must be no more than 20 characters long")
         return v
 
 @router.post("/login", response_model=Token)
@@ -355,10 +355,10 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 6 characters long"
         )
-    if len(password) > 12:
+    if len(password) > 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be no more than 12 characters long"
+            detail="Password must be no more than 20 characters long"
         )
     
     try:
@@ -438,10 +438,10 @@ async def create_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 6 characters long"
         )
-    if len(user_data.password) > 12:
+    if len(user_data.password) > 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be no more than 12 characters long"
+            detail="Password must be no more than 20 characters long"
         )
     
     # Validate role
