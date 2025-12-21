@@ -986,7 +986,16 @@ const fetchDataBubbles = async () => {
   // Fetch real data from backend API
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/api/research/data-bubbles?view_mode=${props.viewMode}&agent=${props.activeAgent}&ticker=${props.ticker || ''}`, {
+    let url = ''
+    
+    if (props.viewMode === 'COMPANY') {
+        const ticker = props.ticker || 'MARKET'
+        url = `${API_BASE_URL}/api/research/company-data/${ticker}?agent=${props.activeAgent}`
+    } else {
+        url = `${API_BASE_URL}/api/research/market-data?agent=${props.activeAgent}`
+    }
+    
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token || ''}`
       }

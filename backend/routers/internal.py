@@ -2023,10 +2023,10 @@ async def get_indices():
     Returns current value, change percentage, and 30-day history for each index.
     """
     indices_config = [
-        {"name": "Dow Jones", "ticker": "^DJI"},
-        {"name": "NASDAQ", "ticker": "^IXIC"},
-        {"name": "S&P 500", "ticker": "^GSPC"},
-        {"name": "Russell 2000", "ticker": "^RUT"}
+        {"name": "Dow Jones", "ticker": "^DJI", "key": "dow_jones"},
+        {"name": "NASDAQ", "ticker": "^IXIC", "key": "nasdaq"},
+        {"name": "S&P 500", "ticker": "^GSPC", "key": "sp_500"},
+        {"name": "Russell 2000", "ticker": "^RUT", "key": "russell_2000"}
     ]
     
     results = []
@@ -2041,6 +2041,7 @@ async def get_indices():
                     # Fallback to default values if data unavailable
                     results.append({
                         "name": idx["name"],
+                        "key": idx["key"],
                         "value": 0.0,
                         "change": 0.0,
                         "history": []
@@ -2062,6 +2063,7 @@ async def get_indices():
                 
                 results.append({
                     "name": idx["name"],
+                    "key": idx["key"],
                     "value": round(current_price, 2),
                     "change": round(change_percent, 2),
                     "history": history_list
@@ -2071,6 +2073,7 @@ async def get_indices():
                 # Fallback to default values
                 results.append({
                     "name": idx["name"],
+                    "key": idx["key"],
                     "value": 0.0,
                     "change": 0.0,
                     "history": []
@@ -2081,7 +2084,7 @@ async def get_indices():
     except Exception as e:
         print(f"Error fetching indices: {e}")
         # Return empty results on critical failure
-        return [{"name": idx["name"], "value": 0.0, "change": 0.0, "history": []} for idx in indices_config]
+        return [{"name": idx["name"], "key": idx["key"], "value": 0.0, "change": 0.0, "history": []} for idx in indices_config]
 
 class CryptoData(BaseModel):
     ticker: str

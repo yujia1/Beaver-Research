@@ -119,7 +119,7 @@ const getIndexChartData = (index) => {
 const fetchIndices = async () => {
     // Check cache first
     const cached = getDailyCache('indices_data');
-    if (cached) {
+    if (cached && Array.isArray(cached) && cached.every(item => item.key)) {
         console.log('Using cached indices data');
         indices.value = cached;
         return;
