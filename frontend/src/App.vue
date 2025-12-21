@@ -582,4 +582,11 @@ nav {
 .sidebar:hover .auth-text {
   opacity: 1;
 }
+
+.lang-switch-container {
+  margin-top: 1rem;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: center;
+}
 </style>
