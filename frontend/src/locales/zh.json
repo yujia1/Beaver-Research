@@ -1,0 +1,21 @@
+{
+    "nav": {
+        "dashboard": "市场概览",
+        "investment": "投资组合",
+        "report": "研报中心",
+        "alphatrade": "Alpha交易",
+        "academy": "阿尔法学院",
+        "research": "深度研究",
+        "whale_watching": "巨鲸追踪",
+        "admin": "管理后台",
+        "login": "登录",
+        "logout": "退出登录"
+    },
+    "common": {
+        "loading": "加载中...",
+        "error": "错误",
+        "save": "保存",
+        "cancel": "取消",
+        "delete": "删除"
+    }
+}

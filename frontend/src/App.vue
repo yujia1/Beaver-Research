@@ -1,6 +1,8 @@
 <script setup>
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
+import { useI18n } from 'vue-i18n'
 
 // API Base URL - runtime detection
 const API_BASE_URL = window.location.hostname.includes('railway.app') 
@@ -9,12 +11,13 @@ const API_BASE_URL = window.location.hostname.includes('railway.app')
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const menuItems = computed(() => {
   const items = [
     { 
       path: '/', 
-      name: 'Market', 
+      name: t('nav.dashboard'), 
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>' 
     }
   ]
@@ -22,37 +25,37 @@ const menuItems = computed(() => {
   // Base items that might be restricted
   const investmentItem = { 
     path: '/investment', 
-    name: 'Investment', 
+    name: t('nav.investment'), 
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' 
   }
   
   const reportItem = { 
     path: '/report', 
-    name: 'Report', 
+    name: t('nav.report'), 
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' 
   }
   
   const alphaTradeItem = { 
     path: '/alphatrade', 
-    name: 'AlphaTrade', 
+    name: t('nav.alphatrade'), 
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
   }
   
   const academyItem = {
     path: '/academy',
-    name: 'Academy',
+    name: t('nav.academy'),
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
   }
   
   const researchItem = {
     path: '/research',
-    name: 'Research',
+    name: t('nav.research'),
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
   }
 
   const whaleWatchingItem = {
     path: '/whale-watching',
-    name: 'Whale Watching',
+    name: t('nav.whale_watching'),
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16s9-15 20-4C11 23 2 8 2 8"></path></svg>'
   }
 
@@ -80,8 +83,8 @@ const menuItems = computed(() => {
   if (user.value && user.value.role === 'admin') {
     items.push({
       path: '/admin',
-      name: 'Admin',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+      name: t('nav.admin'),
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>'
     })
   }
   
@@ -305,17 +308,21 @@ setInterval(() => {
           </div>
         </div>
         <button @click="logout" class="logout-btn">
-          <span class="logout-text">Logout</span>
+          <span class="logout-text">{{ t('nav.logout') }}</span>
         </button>
       </div>
       
       <div v-else class="auth-section">
         <RouterLink to="/login" class="auth-link">
-          <span class="auth-text">Login</span>
+          <span class="auth-text">{{ t('nav.login') }}</span>
         </RouterLink>
         <RouterLink to="/signup" class="auth-link">
           <span class="auth-text">Sign Up</span>
         </RouterLink>
+      </div>
+
+      <div class="lang-switch-container">
+        <LanguageSwitcher />
       </div>
     </aside>
     

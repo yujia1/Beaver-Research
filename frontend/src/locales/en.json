@@ -1,0 +1,21 @@
+{
+    "nav": {
+        "dashboard": "Market",
+        "investment": "Investment",
+        "report": "Report",
+        "alphatrade": "AlphaTrade",
+        "academy": "Academy",
+        "research": "Research",
+        "whale_watching": "Whale Watching",
+        "admin": "Admin Panel",
+        "login": "Login",
+        "logout": "Logout"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete"
+    }
+}
