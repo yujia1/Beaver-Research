@@ -855,6 +855,12 @@ async def get_macro_data(timeframe: str = "monthly"):
     Includes 8 key indicators with historical data.
     Timeframe options: daily, weekly, monthly, yearly
     """
+    # Check cache first
+    cache_key = f"macro:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     try:
         start_offset = period_map.get(timeframe, "1y")
         # Convert offset to a date string (approximate)
