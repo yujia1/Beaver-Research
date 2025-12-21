@@ -8,6 +8,17 @@
     <div v-else>
     <h2>Reports</h2>
     
+      <!-- Ticker Filter -->
+      <div class="filter-section">
+        <input
+          v-model="tickerFilter"
+          type="text"
+          placeholder="Search by ticker (e.g., TSLA, GLD)..."
+          class="ticker-filter-input"
+        />
+        <button v-if="tickerFilter" @click="tickerFilter = ''" class="clear-filter-btn">Clear</button>
+      </div>
+    
       <div class="category-tabs">
         <button 
           v-for="category in categories" 
@@ -140,6 +151,7 @@ const savedReports = ref([]);
 const loadingReports = ref(false);
 const expandedReportIds = ref(new Set()); // Track multiple expanded reports
 const activeCategory = ref('long');
+const tickerFilter = ref(''); // Ticker search filter
 
 // Report Content State - store content by report ID
 const reportContents = ref({});
@@ -157,9 +169,18 @@ const categories = [
 
 // Filtered reports by category
 const longReports = computed(() => {
-    const apiLongReports = savedReports.value.filter(report => 
+    let apiLongReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase().includes('long')
     );
+    
+    // Filter by ticker if search is active
+    if (tickerFilter.value.trim()) {
+        const searchTerm = tickerFilter.value.trim().toLowerCase();
+        apiLongReports = apiLongReports.filter(report =>
+            report.ticker && report.ticker.toLowerCase().includes(searchTerm)
+        );
+    }
+    
     // Sort by date, newest first
     return apiLongReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
@@ -169,9 +190,18 @@ const longReports = computed(() => {
 });
 
 const shortReports = computed(() => {
-    const apiShortReports = savedReports.value.filter(report => 
+    let apiShortReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase().includes('short')
     );
+    
+    // Filter by ticker if search is active
+    if (tickerFilter.value.trim()) {
+        const searchTerm = tickerFilter.value.trim().toLowerCase();
+        apiShortReports = apiShortReports.filter(report =>
+            report.ticker && report.ticker.toLowerCase().includes(searchTerm)
+        );
+    }
+    
     // Sort by date, newest first
     return apiShortReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
@@ -181,9 +211,18 @@ const shortReports = computed(() => {
 });
 
 const dailyReports = computed(() => {
-    const apiDailyReports = savedReports.value.filter(report => 
+    let apiDailyReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase().includes('daily')
     );
+    
+    // Filter by ticker if search is active
+    if (tickerFilter.value.trim()) {
+        const searchTerm = tickerFilter.value.trim().toLowerCase();
+        apiDailyReports = apiDailyReports.filter(report =>
+            report.ticker && report.ticker.toLowerCase().includes(searchTerm)
+        );
+    }
+    
     // Sort by date, newest first
     return apiDailyReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
@@ -194,9 +233,18 @@ const dailyReports = computed(() => {
 
 const marketReports = computed(() => {
     // Filter market reports
-    const apiMarketReports = savedReports.value.filter(report => 
+    let apiMarketReports = savedReports.value.filter(report => 
         report.report_type && report.report_type.toLowerCase() === 'market'
     );
+    
+    // Filter by ticker if search is active
+    if (tickerFilter.value.trim()) {
+        const searchTerm = tickerFilter.value.trim().toLowerCase();
+        apiMarketReports = apiMarketReports.filter(report =>
+            report.ticker && report.ticker.toLowerCase().includes(searchTerm)
+        );
+    }
+    
     // Sort by date, newest first
     return apiMarketReports.sort((a, b) => {
         const dateA = new Date(a.created_at || a.date || a.timestamp || 0);
@@ -401,6 +449,57 @@ const formatDate = (dateString) => {
   letter-spacing: 1px;
   border-bottom: 3px solid #000;
   padding-bottom: 1rem;
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.ticker-filter-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+}
+
+.ticker-filter-input:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.ticker-filter-input::placeholder {
+  color: #999;
+}
+
+.clear-filter-btn {
+  padding: 0.75rem 1.5rem;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.clear-filter-btn:hover {
+  background: #333;
 }
 
 /* Tabs - AlphaTrade Style */
