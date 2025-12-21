@@ -270,15 +270,45 @@ const getActiveTab = (ticker) => {
   return activeTab.value[ticker] || 'lot'
 }
 
+// Auto-save state
+const saveIndicators = ref({}) // Track save status per question
+let saveTimeouts = {} // Store timeout IDs for debouncing
+
 const saveFundamentalAnalysis = (ticker, questionId, value) => {
-  const position = positions.value.find(p => p.ticker === ticker)
-  if (position) {
-    if (!position.fundamentalAnalysis) {
-      position.fundamentalAnalysis = {}
-    }
-    position.fundamentalAnalysis[questionId] = value
-    savePositions()
+  const key = `${ticker}-${questionId}`
+  
+  // Clear existing timeout
+  if (saveTimeouts[key]) {
+    clearTimeout(saveTimeouts[key])
   }
+  
+  // Show saving indicator
+  saveIndicators.value[key] = 'saving'
+  
+  // Debounce the actual save (wait 500ms after last keystroke)
+  saveTimeouts[key] = setTimeout(() => {
+    const position = positions.value.find(p => p.ticker === ticker)
+    if (position) {
+      if (!position.fundamentalAnalysis) {
+        position.fundamentalAnalysis = {}
+      }
+      position.fundamentalAnalysis[questionId] = value
+      savePositions()
+      
+      // Show saved indicator
+      saveIndicators.value[key] = 'saved'
+      
+      // Clear saved indicator after 2 seconds
+      setTimeout(() => {
+        saveIndicators.value[key] = null
+      }, 2000)
+    }
+  }, 500)
+}
+
+const getSaveIndicator = (ticker, questionId) => {
+  const key = `${ticker}-${questionId}`
+  return saveIndicators.value[key] || null
 }
 
 const getFundamentalAnalysis = (ticker, questionId) => {
