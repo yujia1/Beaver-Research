@@ -181,30 +181,45 @@ const fundamentalQuestions = computed(() => [
 
 
 
-onMounted(() => {
-  // Load positions from localStorage or API
-  const savedPositions = localStorage.getItem('alphatrade_positions')
-  if (savedPositions) {
-    positions.value = JSON.parse(savedPositions)
-    // Fetch current prices for all positions
-    fetchStockPrices()
-  } else {
-    // Start with empty positions - no mock data
-    savePositions()
-    fetchStockPrices()
+const fetchPositions = async () => {
+  loading.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.ok) {
+      positions.value = await response.json()
+    } else {
+      console.error('Failed to fetch positions')
+    }
+  } catch (error) {
+    console.error('Error fetching positions:', error)
+  } finally {
+    loading.value = false
   }
-})
-
-const savePositions = () => {
-  localStorage.setItem('alphatrade_positions', JSON.stringify(positions.value))
 }
 
-const fetchStockPrices = async () => {
+onMounted(() => {
+  fetchPositions()
+})
+
+// Removed savePositions as we now rely on backend persistence
+
+// fetchStockPrices is no longer needed as getPositions returns current prices
+// We can keep a simplified version if we want to manually refresh prices button later
+const refreshPrices = async () => {
   if (positions.value.length === 0) return
   
   loading.value = true
   try {
+    const token = localStorage.getItem('access_token')
     const tickers = positions.value.map(p => p.ticker)
+    
+    // 1. Fetch real-time prices
     const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-prices`, {
       method: 'POST',
       headers: {
@@ -216,20 +231,32 @@ const fetchStockPrices = async () => {
     if (response.ok) {
       const priceData = await response.json()
       
-      // Update positions with real-time data
-      positions.value.forEach(position => {
+      // 2. Update local state AND backend
+      const updatePromises = positions.value.map(async (position) => {
         const data = priceData[position.ticker]
         if (data && !data.error) {
           position.currentPrice = data.currentPrice
           position.companyName = data.companyName
           position.sector = data.sector
+          
+          // Sync with backend
+          try {
+             await fetch(`${API_BASE_URL}/api/alphatrade/positions/${position.ticker}/price`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+             })
+          } catch (e) {
+             console.error(`Failed to sync price for ${position.ticker}`, e)
+          }
         }
       })
       
-      savePositions()
+      await Promise.all(updatePromises)
     }
   } catch (error) {
-    console.error('Error fetching stock prices:', error)
+    console.error('Error refreshing prices:', error)
   } finally {
     loading.value = false
   }
@@ -290,22 +317,42 @@ const saveFundamentalAnalysis = (ticker, questionId, value) => {
   saveIndicators.value[key] = 'saving'
   
   // Debounce the actual save (wait 500ms after last keystroke)
-  saveTimeouts[key] = setTimeout(() => {
+  saveTimeouts[key] = setTimeout(async () => {
+    // Optimistic UI update
     const position = positions.value.find(p => p.ticker === ticker)
     if (position) {
       if (!position.fundamentalAnalysis) {
         position.fundamentalAnalysis = {}
       }
       position.fundamentalAnalysis[questionId] = value
-      savePositions()
+    }
+
+    try {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}/analysis`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          questionId: questionId,
+          answer: value
+        })
+      })
       
-      // Show saved indicator
-      saveIndicators.value[key] = 'saved'
-      
-      // Clear saved indicator after 2 seconds
-      setTimeout(() => {
-        saveIndicators.value[key] = null
-      }, 2000)
+      if (response.ok) {
+        saveIndicators.value[key] = 'saved'
+        setTimeout(() => {
+          saveIndicators.value[key] = null
+        }, 2000)
+      } else {
+         saveIndicators.value[key] = 'error'
+         console.error('Failed to save analysis')
+      }
+    } catch (error) {
+      console.error('Error saving analysis:', error)
+      saveIndicators.value[key] = 'error'
     }
   }, 500)
 }
@@ -322,17 +369,42 @@ const getFundamentalAnalysis = (ticker, questionId) => {
 
 const getQuestionScore = (ticker, questionId) => {
   const position = positions.value.find(p => p.ticker === ticker)
-  return position?.fundamentalScores?.[questionId] || null
+  // Backend returns generic dict, frontend might expect number
+  const score = position?.fundamentalScores?.[questionId]
+  return score ? parseInt(score) : null
 }
 
-const setQuestionScore = (ticker, questionId, score) => {
+const setQuestionScore = async (ticker, questionId, score) => {
+  // Optimistic UI update
   const position = positions.value.find(p => p.ticker === ticker)
   if (position) {
     if (!position.fundamentalScores) {
       position.fundamentalScores = {}
     }
     position.fundamentalScores[questionId] = score
-    savePositions()
+  }
+
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}/analysis`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        questionId: questionId,
+        score: score
+      })
+    })
+    
+    if (!response.ok) {
+      console.error('Failed to save score')
+      // Revert optimistic update?
+      await fetchPositions() // Refresh to be safe
+    }
+  } catch (error) {
+    console.error('Error saving score:', error)
   }
 }
 
@@ -498,68 +570,119 @@ const portfolioTotals = computed(() => {
 })
 
 const handleAddLot = async (lotData) => {
-  // Find or create position for ticker
-  let position = positions.value.find(p => p.ticker === lotData.ticker.toUpperCase())
-  
-  if (!position) {
-    // Fetch real-time stock data
-    const stockData = await fetchSingleStockPrice(lotData.ticker)
+  loading.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    const ticker = lotData.ticker.toUpperCase()
     
-    // Create new position
-    position = {
-      ticker: lotData.ticker.toUpperCase(),
-      companyName: stockData?.companyName || lotData.ticker.toUpperCase(),
-      sector: stockData?.sector || 'UNKNOWN',
-      currentPrice: stockData?.currentPrice || 0,
-      side: lotData.side || 'LONG',
-      lots: []
-    }
-    positions.value.push(position)
-  }
-  
-  // Add new lot
-  const newLot = {
-    id: Date.now(),
-    purchaseDate: lotData.purchaseDate,
-    quantity: lotData.quantity,
-    costPerShare: lotData.costPerShare,
-    side: lotData.side || 'LONG',
-    note: lotData.note || '',
-    link: lotData.link || ''
-  }
-  
-  position.lots.push(newLot)
-  savePositions()
-  showAddLotModal.value = false
-}
-
-const deletePosition = (ticker) => {
-  if (confirm(`Are you sure you want to delete the entire ${ticker} position?`)) {
-    const index = positions.value.findIndex(p => p.ticker === ticker)
-    if (index !== -1) {
-      positions.value.splice(index, 1)
-      expandedPositions.value.delete(ticker)
-      delete activeTab.value[ticker]
-      savePositions()
-    }
-  }
-}
-
-const deleteLot = (ticker, lotId) => {
-  if (confirm('Are you sure you want to delete this lot?')) {
-    const position = positions.value.find(p => p.ticker === ticker)
-    if (position) {
-      const lotIndex = position.lots.findIndex(lot => lot.id === lotId)
-      if (lotIndex !== -1) {
-        position.lots.splice(lotIndex, 1)
-        
-        // If no lots left, delete the entire position
-        if (position.lots.length === 0) {
-          deletePosition(ticker)
-        } else {
-          savePositions()
+    // Check if position exists in our local list
+    let position = positions.value.find(p => p.ticker === ticker)
+    
+    if (!position) {
+      // Try to fetch stock info (optional, just for sector)
+      // Note: This endpoint might need to be implemented on backend or we assume UNKNOWN
+      // For now we just create the position.
+      
+      const posResponse = await fetch(`${API_BASE_URL}/api/alphatrade/positions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          ticker: ticker,
+          sector: 'UNKNOWN' // Backend could be improved to fetch this
+        })
+      })
+      
+      if (!posResponse.ok) {
+        const error = await posResponse.json()
+        // If it says it exists (race condition), ignore error
+        if (posResponse.status !== 400 || !error.detail.includes('exists')) {
+             throw new Error(error.detail || 'Failed to create position')
         }
       }
+    }
+    
+    // Add new lot
+    const lotResponse = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}/lots`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(lotData)
+    })
+    
+    if (!lotResponse.ok) {
+        const error = await lotResponse.json()
+        throw new Error(error.detail || 'Failed to create lot')
+    }
+    
+    await fetchPositions()
+    showAddLotModal.value = false
+  } catch (error) {
+    console.error('Error adding lot:', error)
+    alert('Failed to add lot: ' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+const deletePosition = async (ticker) => {
+  if (confirm(`Are you sure you want to delete the entire ${ticker} position?`)) {
+    loading.value = true
+    try {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        // Remove from local state immediately to feel responsive, or just refetch
+        // Refetching is safer to keep sync
+        await fetchPositions()
+        expandedPositions.value.delete(ticker)
+        delete activeTab.value[ticker]
+      } else {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to delete position')
+      }
+    } catch (error) {
+      console.error('Error deleting position:', error)
+      alert('Failed to delete position: ' + error.message)
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const deleteLot = async (ticker, lotId) => {
+  if (confirm('Are you sure you want to delete this lot?')) {
+    loading.value = true
+    try {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_BASE_URL}/api/alphatrade/lots/${lotId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        await fetchPositions()
+      } else {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to delete lot')
+      }
+    } catch (error) {
+      console.error('Error deleting lot:', error)
+      alert('Failed to delete lot: ' + error.message)
+    } finally {
+      loading.value = false
     }
   }
 }
@@ -576,21 +699,35 @@ const editLot = (ticker, lotId) => {
   }
 }
 
-const handleEditLot = (updatedData) => {
+const handleEditLot = async (updatedData) => {
   const position = positions.value.find(p => p.ticker === editingTicker.value)
   if (position && editingLot.value) {
-    const lot = position.lots.find(l => l.id === editingLot.value.id)
-    if (lot) {
-      lot.purchaseDate = updatedData.purchaseDate
-      lot.quantity = updatedData.quantity
-      lot.costPerShare = updatedData.costPerShare
-      lot.link = updatedData.link
-      lot.note = updatedData.note
+    loading.value = true
+    try {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_BASE_URL}/api/alphatrade/lots/${editingLot.value.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedData)
+      })
       
-      savePositions()
-      showEditLotModal.value = false
-      editingLot.value = null
-      editingTicker.value = ''
+      if (response.ok) {
+        await fetchPositions()
+        showEditLotModal.value = false
+        editingLot.value = null
+        editingTicker.value = ''
+      } else {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to update lot')
+      }
+    } catch (error) {
+       console.error('Error updating lot:', error)
+       alert('Failed to update lot: ' + error.message)
+    } finally {
+      loading.value = false
     }
   }
 }
@@ -623,7 +760,7 @@ const handleDrop = (event, dropIndex) => {
     items.splice(dropIndex, 0, draggedItem)
     
     positions.value = items
-    savePositions()
+    // Note: Reordering is currently local-only as backend doesn't support sort order persistence yet
   }
   
   draggedIndex.value = null
