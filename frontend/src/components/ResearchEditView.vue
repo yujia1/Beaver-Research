@@ -68,13 +68,13 @@
         <div class="icon-group">
           <button
             v-for="(agent, index) in availableAgents"
-            :key="agent.id || index"
-            :class="{ active: props.activeAgent === agent.id }"
-            @click="emit('update:active-agent', agent.id)"
+            :key="agent ? (agent.id || index) : index"
+            :class="{ active: agent && props.activeAgent === agent.id }"
+            @click="agent && emit('update:active-agent', agent.id)"
             class="icon-btn"
-            :title="agent.name"
+            :title="agent ? agent.name : ''"
           >
-            <span class="agent-icon-emoji">{{ agent.icon }}</span>
+            <span class="agent-icon-emoji">{{ agent ? agent.icon : '' }}</span>
           </button>
         </div>
 
@@ -528,11 +528,12 @@ const marketAgents = computed(() => [
 ])
 
 const availableAgents = computed(() => {
-  return props.viewMode === 'COMPANY' ? companyAgents : marketAgents
+  return props.viewMode === 'COMPANY' ? companyAgents.value : marketAgents.value
 })
 
 const currentAgentName = computed(() => {
-  const agent = availableAgents.value.find(a => a.id === props.activeAgent)
+  if (!availableAgents.value || !Array.isArray(availableAgents.value)) return props.activeAgent
+  const agent = availableAgents.value.find(a => a && a.id === props.activeAgent)
   return agent ? agent.name : props.activeAgent
 })
 
@@ -553,8 +554,12 @@ const filteredBubbles = computed(() => {
   
   if (!dataBubbles.value.length) return []
   
-  const agent = availableAgents.value.find(a => a.id === props.activeAgent)
-  if (!agent) return dataBubbles.value.filter(b => b) // Filter out nulls
+  if (!availableAgents.value || !Array.isArray(availableAgents.value)) return []
+
+  const agent = availableAgents.value.find(a => a && a.id === props.activeAgent)
+  
+  // If no agent found, return empty array to avoid stale/invalid data
+  if (!agent) return []
   
   return dataBubbles.value.filter(bubble => {
     if (!bubble) return false
