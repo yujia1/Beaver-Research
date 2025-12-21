@@ -54,9 +54,18 @@ class Filing13FService:
         
     def _get_minio_client(self):
         """Get MinIO client"""
+        # Determine protocol
+        protocol = 'https' if self.minio_use_ssl else 'http'
+        
+        # Check if endpoint already has protocol
+        if self.minio_endpoint.startswith('http://') or self.minio_endpoint.startswith('https://'):
+            endpoint_url = self.minio_endpoint
+        else:
+            endpoint_url = f"{protocol}://{self.minio_endpoint}"
+        
         return boto3.client(
             's3',
-            endpoint_url=self.minio_endpoint if self.minio_endpoint.startswith(("http://", "https://")) else f"{"https" if self.minio_use_ssl else "http"}://{self.minio_endpoint}",
+            endpoint_url=endpoint_url,
             aws_access_key_id=self.minio_access_key,
             aws_secret_access_key=self.minio_secret_key,
             config=Config(signature_version='s3v4'),
