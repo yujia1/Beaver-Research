@@ -97,6 +97,21 @@ const handleLogin = async () => {
     } catch (err) {
       console.error('Failed to fetch user info:', err)
     }
+
+    // Fetch and store permissions immediately to ensure navigation is correct on redirect
+    try {
+      const permsResponse = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`
+        }
+      })
+      if (permsResponse.ok) {
+        const permsData = await permsResponse.json()
+        localStorage.setItem('user_permissions', JSON.stringify(permsData))
+      }
+    } catch (err) {
+      console.error('Failed to fetch permissions:', err)
+    }
     
     // Dispatch custom event to notify App.vue of login
     window.dispatchEvent(new CustomEvent('user-logged-in'))

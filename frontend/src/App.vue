@@ -93,6 +93,16 @@ const menuItems = computed(() => {
 
 const allowedResources = ref([])
 
+// Initialize permissions from localStorage
+try {
+    const cached = localStorage.getItem('user_permissions')
+    if (cached) {
+        allowedResources.value = JSON.parse(cached)
+    }
+} catch (e) {
+    console.error('Error parsing permissions:', e)
+}
+
 const hasAccess = (resource) => {
     // If not logged in, maybe show if it's considered public? 
     // But requirement is about access management. 
@@ -128,8 +138,10 @@ const getUserInfo = async () => {
       // Token invalid, clear storage
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
+      localStorage.removeItem('user_permissions')
       isAuthenticated.value = false
       user.value = null
+      allowedResources.value = []
     }
   } catch (err) {
     console.error('Failed to fetch user info:', err)
@@ -147,6 +159,7 @@ const fetchPermissions = async () => {
         })
         if (response.ok) {
             allowedResources.value = await response.json()
+            localStorage.setItem('user_permissions', JSON.stringify(allowedResources.value))
         }
     } catch (e) {
         console.error('Error fetching permissions:', e)
@@ -160,7 +173,9 @@ const logout = (e) => {
   }
   localStorage.removeItem('access_token')
   localStorage.removeItem('user')
+  localStorage.removeItem('user_permissions')
   user.value = null
+  allowedResources.value = []
   isAuthenticated.value = false
   router.push('/login')
 }
@@ -192,6 +207,19 @@ const updateUserState = () => {
     }
   } else {
     user.value = null
+  }
+
+  // Also update permissions from storage
+  try {
+    const cachedPermissions = localStorage.getItem('user_permissions')
+    if (cachedPermissions) {
+      allowedResources.value = JSON.parse(cachedPermissions)
+    } else if (!token) {
+      // Clear permissions if logged out
+      allowedResources.value = []
+    }
+  } catch (e) {
+    console.error('Error parsing permissions:', e)
   }
 }
 
