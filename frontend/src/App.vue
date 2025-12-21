@@ -149,21 +149,36 @@ const getUserInfo = async () => {
   }
 }
 
+// Request deduplication: prevent multiple simultaneous calls to /my-permissions
+let permissionsFetchPromise = null
+
 const fetchPermissions = async () => {
+    // If a fetch is already in progress, return that promise instead of starting a new one
+    if (permissionsFetchPromise) {
+        return permissionsFetchPromise
+    }
+
     const token = localStorage.getItem('access_token')
     if (!token) return
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (response.ok) {
-            allowedResources.value = await response.json()
-            localStorage.setItem('user_permissions', JSON.stringify(allowedResources.value))
+    permissionsFetchPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/my-permissions`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (response.ok) {
+                allowedResources.value = await response.json()
+                localStorage.setItem('user_permissions', JSON.stringify(allowedResources.value))
+            }
+        } catch (e) {
+            console.error('Error fetching permissions:', e)
+        } finally {
+            // Clear the promise after completion so future calls can proceed
+            permissionsFetchPromise = null
         }
-    } catch (e) {
-        console.error('Error fetching permissions:', e)
-    }
+    })()
+
+    return permissionsFetchPromise
 }
 
 const logout = (e) => {
