@@ -644,6 +644,10 @@ async def get_permissions(
         )
     return db.query(models.RolePermission).all()
 
+from redis_client import redis_client
+
+# ... (imports)
+
 @router.post("/permissions", response_model=PermissionResponse)
 async def update_permission(
     permission_data: PermissionUpdate,
@@ -676,6 +680,10 @@ async def update_permission(
     try:
         db.commit()
         db.refresh(permission)
+        
+        # Invalidate cache for this role
+        redis_client.delete_cache(f"permissions:{permission_data.role}")
+        
         return permission
     except Exception as e:
         db.rollback()
@@ -694,6 +702,12 @@ async def get_my_permissions(
     if current_user.role == "admin":
         return ["/research", "/alphatrade", "/report", "/investment", "/short-interest", "/whale-watching", "/agent", "/academy"]
     
+    # Try to get from cache
+    cache_key = f"permissions:{current_user.role}"
+    cached_permissions = redis_client.get_cache(cache_key)
+    if cached_permissions is not None:
+        return cached_permissions
+    
     # Fetch permissions for user's role
     params = db.query(models.RolePermission).filter(
         models.RolePermission.role == current_user.role,
@@ -701,6 +715,10 @@ async def get_my_permissions(
     ).all()
     
     allowed_resources = [p.resource for p in params]
+    
+    # Set cache (TTL 5 minutes)
+    redis_client.set_cache(cache_key, allowed_resources, ttl=300)
+    
     return allowed_resources
 
 @router.post("/initialize-permissions")
@@ -736,5 +754,9 @@ async def initialize_permissions(
             added += 1
             
     db.commit()
+    
+    # Clear all permission caches
+    redis_client.delete_cache("permissions:*")
+    
     return {"message": "Initialized default permissions", "added": added}
 

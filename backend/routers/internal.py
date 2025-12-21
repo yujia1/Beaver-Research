@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from pandas_datareader import data as web
 import requests
 from requests.exceptions import ReadTimeout, Timeout, RequestException
+from redis_client import redis_client
 
 router = APIRouter()
 
@@ -1051,6 +1052,9 @@ async def get_macro_data(timeframe: str = "monthly"):
             ]
         })
         
+        # Cache the results (TTL 4 hours = 14400 seconds)
+        redis_client.set_cache(cache_key, results, ttl=14400)
+        
         return results
     except Exception as e:
         print(f"Error in get_macro_data: {e}")
@@ -2021,7 +2025,13 @@ async def get_indices():
     """
     Fetch real-time data for major market indices: Dow Jones, NASDAQ, S&P 500, Russell 2000.
     Returns current value, change percentage, and 30-day history for each index.
+    Caches result for 15 minutes.
     """
+    cache_key = "indices:data"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     indices_config = [
         {"name": "Dow Jones", "ticker": "^DJI", "key": "dow_jones"},
         {"name": "NASDAQ", "ticker": "^IXIC", "key": "nasdaq"},
@@ -2080,6 +2090,9 @@ async def get_indices():
                 })
                 continue
         
+        # Cache outcome (TTL 15 mins)
+        redis_client.set_cache(cache_key, results, ttl=900)
+        
         return results
     except Exception as e:
         print(f"Error fetching indices: {e}")
@@ -2104,7 +2117,13 @@ async def get_all_crypto_data(timeframe: str = "daily"):
     Fetch data for all major cryptocurrencies WITH history (like Bond/Economic tabs).
     Returns data for BTC-USD, ETH-USD, USDT-USD, BNB-USD, SOL-USD
     Includes history data for the specified timeframe.
+    Caches results for 15 minutes.
     """
+    cache_key = f"crypto:all:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     try:
         crypto_pairs = [
             {"ticker": "BTC-USD", "name": "Bitcoin (BTC)", "description": "Bitcoin Price"},
@@ -2224,6 +2243,9 @@ async def get_all_crypto_data(timeframe: str = "daily"):
                     "chart_type": "line"
                 })
                 continue
+        
+        # Cache results (TTL 15 mins)
+        redis_client.set_cache(cache_key, results, ttl=900)
         
         return results
     except Exception as e:

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from redis_client import redis_client
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import pandas as pd
@@ -126,7 +127,13 @@ async def get_treasury_yields(timeframe: str = "monthly"):
     """
     Fetch Treasury Yields (3m, 2y, 5y, 10y, 30y) from Yahoo Finance (primary) or FRED (fallback).
     Yahoo Finance provides more up-to-date data than FRED.
+    Caches results for 1 hour.
     """
+    cache_key = f"bond:treasury:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
@@ -171,6 +178,7 @@ async def get_treasury_yields(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
+    redis_client.set_cache(cache_key, results, ttl=3600)
     return results
 
 @router.get("/yield-curve", response_model=List[BondData])
@@ -178,7 +186,13 @@ async def get_yield_curve(timeframe: str = "monthly"):
     """
     Calculate Yield Curve Spreads (2s10s, 3m10s, 5s30s).
     Uses Yahoo Finance data (primary) or FRED (fallback) for underlying yields.
+    Caches results for 1 hour.
     """
+    cache_key = f"bond:yield_curve:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
@@ -188,16 +202,36 @@ async def get_yield_curve(timeframe: str = "monthly"):
         if series_id in treasury_yield_ticker_map:
             yahoo_ticker = treasury_yield_ticker_map[series_id]
             history = fetch_yfinance_series(yahoo_ticker, start_date)
-        if not history or len(history) == 0:
-            history = fetch_fred_series(series_id, start_date)
+            if not history:
+                history = fetch_fred_series(series_id, start_date)
+        elif not history or len(history) == 0: # Logic check: if yahoo failed or skipping yahoo
+             history = fetch_fred_series(series_id, start_date)
         return history
     
+    # Wait, the original helper function logic was:
+    # if series_id in map: try yahoo. 
+    # if not history (yahoo failed or not in map): try fred.
+    # I should be careful not to break it.
+    # Let's verify the original logic.
+    # 188: if series_id in map: yahoo...
+    # 191: if not history: fred...
+    # That works.
+    
+    def fetch_yield_data_safe(series_id: str):
+         history = None
+         if series_id in treasury_yield_ticker_map:
+             yahoo_ticker = treasury_yield_ticker_map[series_id]
+             history = fetch_yfinance_series(yahoo_ticker, start_date)
+         if not history or len(history) == 0:
+             history = fetch_fred_series(series_id, start_date)
+         return history
+
     # Fetch individual yields (trying Yahoo Finance first, then FRED)
-    dgs2 = fetch_yield_data("DGS2")
-    dgs3mo = fetch_yield_data("DGS3MO")
-    dgs5 = fetch_yield_data("DGS5")
-    dgs10 = fetch_yield_data("DGS10")
-    dgs30 = fetch_yield_data("DGS30")
+    dgs2 = fetch_yield_data_safe("DGS2")
+    dgs3mo = fetch_yield_data_safe("DGS3MO")
+    dgs5 = fetch_yield_data_safe("DGS5")
+    dgs10 = fetch_yield_data_safe("DGS10")
+    dgs30 = fetch_yield_data_safe("DGS30")
     
     results = []
     
@@ -273,6 +307,7 @@ async def get_yield_curve(timeframe: str = "monthly"):
                 "series_id": "SPREAD_5S30S"
             })
     
+    redis_client.set_cache(cache_key, results, ttl=3600)
     return results
 
 @router.get("/series/{series_id}", response_model=BondData)
@@ -454,7 +489,12 @@ async def get_bond_series(series_id: str, timeframe: str = "monthly"):
 async def get_tips_breakeven(timeframe: str = "monthly"):
     """
     Fetch TIPS (Treasury Inflation-Protected Securities) and Breakeven Rates.
+    Caches results for 1 hour.
     """
+    cache_key = f"bond:tips:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
@@ -480,13 +520,19 @@ async def get_tips_breakeven(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
+    redis_client.set_cache(cache_key, results, ttl=3600)
     return results
 
 @router.get("/central-bank-rates", response_model=List[BondData])
 async def get_central_bank_rates(timeframe: str = "monthly"):
     """
     Fetch Central Bank & Money Market Rates (Fed Funds, SOFR, etc.).
+    Caches results for 1 hour.
     """
+    cache_key = f"bond:rates:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
@@ -512,13 +558,19 @@ async def get_central_bank_rates(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
+    redis_client.set_cache(cache_key, results, ttl=3600)
     return results
 
 @router.get("/credit-spreads", response_model=List[BondData])
 async def get_credit_spreads(timeframe: str = "monthly"):
     """
     Fetch Corporate Bond Spreads (Investment Grade & High Yield).
+    Caches results for 1 hour.
     """
+    cache_key = f"bond:credit:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
@@ -543,6 +595,7 @@ async def get_credit_spreads(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
+    redis_client.set_cache(cache_key, results, ttl=3600)
     return results
 
 @router.get("/funding-stress", response_model=List[BondData])
@@ -553,7 +606,12 @@ async def get_funding_stress(timeframe: str = "monthly"):
     - LIBOR-OIS spread
     - Treasury liquidity indicators
     - Inter-bank spreads
+    Caches results for 1 hour.
     """
+    cache_key = f"bond:stress:{timeframe}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
@@ -658,6 +716,7 @@ async def get_funding_stress(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
+    redis_client.set_cache(cache_key, results, ttl=3600)
     return results
 
 @router.get("/all", response_model=Dict[str, List[BondData]])
