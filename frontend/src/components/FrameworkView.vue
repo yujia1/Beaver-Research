@@ -155,25 +155,28 @@ const calculateCashBurnRate = (cashBeginning, cashEnd, period) => {
   return cashChange / months
 }
 
-// Get revenue segment value for a specific date
-const getSegmentValue = (segment, date) => {
-  // segment object has date as key and contains product breakdown
-  // We need to find the matching date in the segment data
-  // The segment structure is like: { "2024-09-28": { "iPhone": 123456, "Mac": 789012, ... } }
-  if (!segment || !date) return null
+// Get revenue segment value for a specific date and product
+const getSegmentValue = (productName, date) => {
+  if (!revenueSegmentation.value || revenueSegmentation.value.length === 0) return null
   
-  // Get all keys from segment except 'date'
-  const segmentKeys = Object.keys(segment).filter(key => key !== 'date')
+  // Find the segment entry for this date
+  const segmentEntry = revenueSegmentation.value.find(seg => seg.date === date)
+  if (!segmentEntry || !segmentEntry.data) return null
   
-  // Find the product name (the key that's not a date)
-  for (const key of segmentKeys) {
-    if (typeof segment[key] === 'object' && segment[key][date]) {
-      return segment[key][date]
-    }
-  }
-  
-  return null
+  // Return the value for this product
+  return segmentEntry.data[productName] || null
 }
+
+// Get unique product names from revenue segmentation
+const productNames = computed(() => {
+  if (!revenueSegmentation.value || revenueSegmentation.value.length === 0) return []
+  
+  // Get product names from the first entry's data object
+  const firstEntry = revenueSegmentation.value[0]
+  if (!firstEntry || !firstEntry.data) return []
+  
+  return Object.keys(firstEntry.data)
+})
 
 // Get all line items for current statement type
 const lineItems = computed(() => {
@@ -516,11 +519,11 @@ const changePeriod = (newPeriod) => {
                     </tr>
                     
                     <!-- Revenue Product Segmentation after Revenue -->
-                    <template v-if="field === 'revenue' && activeTab === 'income' && revenueSegmentation.length > 0">
-                      <tr v-for="segment in revenueSegmentation" :key="segment.date" class="segmentation-row">
-                        <td class="line-item-cell segmentation-item">{{ segment.date }}</td>
+                    <template v-if="field === 'revenue' && activeTab === 'income' && productNames.length > 0">
+                      <tr v-for="productName in productNames" :key="productName" class="segmentation-row">
+                        <td class="line-item-cell segmentation-item">{{ productName }}</td>
                         <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                          {{ formatCurrency(getSegmentValue(segment, data.date)) }}
+                          {{ formatCurrency(getSegmentValue(productName, data.date)) }}
                         </td>
                       </tr>
                     </template>
