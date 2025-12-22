@@ -8,7 +8,8 @@ router = APIRouter()
 
 # Get FMP API key from environment
 FMP_API_KEY = os.getenv("FMP_API_KEY", "")
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+
 
 
 async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[Dict]:
@@ -51,8 +52,8 @@ async def get_income_statement(
     Fetch income statement data for a ticker
     """
     ticker = ticker.upper()
-    endpoint = f"income-statement/{ticker}"
-    params = {"period": period, "limit": limit}
+    endpoint = f"income-statement"
+    params = {"symbol": ticker, "period": period, "limit": limit}
     
     data = await fetch_fmp_data(endpoint, params)
     
@@ -76,8 +77,8 @@ async def get_cash_flow(
     Fetch cash flow statement data for a ticker
     """
     ticker = ticker.upper()
-    endpoint = f"cash-flow-statement/{ticker}"
-    params = {"period": period, "limit": limit}
+    endpoint = f"cash-flow-statement"
+    params = {"symbol": ticker, "period": period, "limit": limit}
     
     data = await fetch_fmp_data(endpoint, params)
     
@@ -101,8 +102,8 @@ async def get_balance_sheet(
     Fetch balance sheet data for a ticker
     """
     ticker = ticker.upper()
-    endpoint = f"balance-sheet-statement/{ticker}"
-    params = {"period": period, "limit": limit}
+    endpoint = f"balance-sheet-statement"
+    params = {"symbol": ticker, "period": period, "limit": limit}
     
     data = await fetch_fmp_data(endpoint, params)
     
