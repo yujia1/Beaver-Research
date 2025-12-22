@@ -884,9 +884,12 @@ const handleDragEnd = () => {
           <div class="position-info">
             <div class="ticker-icon-wrapper">
               <div class="ticker-icon">{{ position.ticker.charAt(0) }}</div>
-              <div class="position-indicator" :class="position.side || 'LONG'">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <div class="position-indicator" :class="getPositionSide(position)">
+                <svg v-if="getPositionSide(position) === 'LONG'" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
               </div>
             </div>
@@ -1554,10 +1557,6 @@ const handleDragEnd = () => {
 
 .position-indicator svg {
   color: #fff;
-}
-
-.position-indicator.SHORT svg {
-  transform: rotate(180deg);
 }
 
 .ticker-row {
