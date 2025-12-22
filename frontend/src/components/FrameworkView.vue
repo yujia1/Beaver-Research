@@ -16,6 +16,7 @@ const error = ref(null)
 const incomeData = ref([])
 const cashFlowData = ref([])
 const balanceSheetData = ref([])
+const revenueSegmentation = ref([])
 
 // Fetch financial data
 const fetchFinancialData = async () => {
@@ -45,6 +46,7 @@ const fetchFinancialData = async () => {
     incomeData.value = data.income_statement || []
     cashFlowData.value = data.cash_flow || []
     balanceSheetData.value = data.balance_sheet || []
+    revenueSegmentation.value = data.revenue_segmentation || []
   } catch (err) {
     error.value = err.message
     console.error('Error fetching financial data:', err)
@@ -151,6 +153,26 @@ const calculateCashBurnRate = (cashBeginning, cashEnd, period) => {
   const months = period === 'quarter' ? 3 : 12
   
   return cashChange / months
+}
+
+// Get revenue segment value for a specific date
+const getSegmentValue = (segment, date) => {
+  // segment object has date as key and contains product breakdown
+  // We need to find the matching date in the segment data
+  // The segment structure is like: { "2024-09-28": { "iPhone": 123456, "Mac": 789012, ... } }
+  if (!segment || !date) return null
+  
+  // Get all keys from segment except 'date'
+  const segmentKeys = Object.keys(segment).filter(key => key !== 'date')
+  
+  // Find the product name (the key that's not a date)
+  for (const key of segmentKeys) {
+    if (typeof segment[key] === 'object' && segment[key][date]) {
+      return segment[key][date]
+    }
+  }
+  
+  return null
 }
 
 // Get all line items for current statement type
@@ -492,6 +514,16 @@ const changePeriod = (newPeriod) => {
                         {{ formatValue(field, data[field]) }}
                       </td>
                     </tr>
+                    
+                    <!-- Revenue Product Segmentation after Revenue -->
+                    <template v-if="field === 'revenue' && activeTab === 'income' && revenueSegmentation.length > 0">
+                      <tr v-for="segment in revenueSegmentation" :key="segment.date" class="segmentation-row">
+                        <td class="line-item-cell segmentation-item">{{ segment.date }}</td>
+                        <td v-for="(data, index) in currentData" :key="index" class="data-cell">
+                          {{ formatCurrency(getSegmentValue(segment, data.date)) }}
+                        </td>
+                      </tr>
+                    </template>
                     
                     <!-- Calculated Metrics for Income Statement (skip for TTM) -->
                     <template v-if="activeTab === 'income' && period !== 'ttm'">
@@ -979,6 +1011,23 @@ const changePeriod = (newPeriod) => {
 .calculated-value {
   color: #1e40af;
   font-weight: 600;
+}
+
+.segmentation-row {
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+}
+
+.segmentation-row:hover {
+  background: #fde68a;
+}
+
+.segmentation-item {
+  padding-left: 2.5rem !important;
+  font-style: italic;
+  color: #92400e;
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 
 .loading-state,
