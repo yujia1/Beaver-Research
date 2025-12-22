@@ -181,25 +181,6 @@ async def get_earnings_calendar(
     }
 
 
-@router.get("/earnings-transcript/{ticker}")
-async def get_earnings_transcript(
-    ticker: str
-):
-    """
-    Fetch latest earnings call transcript for a ticker
-    """
-    ticker = ticker.upper()
-    endpoint = f"earning-call-transcript-latest"
-    params = {"symbol": ticker}
-    
-    data = await fetch_fmp_data(endpoint, params)
-    
-    return {
-        "ticker": ticker,
-        "data": data if data else []
-    }
-
-
 @router.get("/revenue-segmentation/{ticker}")
 async def get_revenue_segmentation(
     ticker: str
@@ -238,7 +219,6 @@ async def get_all_statements(
         key_metrics = await get_key_metrics(ticker, period, limit)
         dcf = await get_dcf(ticker)
         earnings_calendar = await get_earnings_calendar(ticker)
-        earnings_transcript = await get_earnings_transcript(ticker)
         
         return {
             "ticker": ticker,
@@ -249,8 +229,7 @@ async def get_all_statements(
             "revenue_segmentation": revenue_seg["data"],
             "key_metrics": key_metrics["data"],
             "dcf": dcf["data"],
-            "earnings_calendar": earnings_calendar["data"],
-            "earnings_transcript": earnings_transcript["data"]
+            "earnings_calendar": earnings_calendar["data"]
         }
     except HTTPException as e:
         raise e

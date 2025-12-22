@@ -43,7 +43,6 @@ const revenueSegmentation = ref([])
 const keyMetrics = ref([])
 const dcfData = ref([])
 const earningsCalendar = ref([])
-const earningsTranscript = ref([])
 
 // Fetch financial data
 const fetchFinancialData = async () => {
@@ -77,7 +76,6 @@ const fetchFinancialData = async () => {
     keyMetrics.value = data.key_metrics || []
     dcfData.value = data.dcf || []
     earningsCalendar.value = data.earnings_calendar || []
-    earningsTranscript.value = data.earnings_transcript || []
   } catch (err) {
     error.value = err.message
     console.error('Error fetching financial data:', err)
@@ -1347,9 +1345,9 @@ const changePeriod = (newPeriod) => {
           <div class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.calendar') }}</h3>
             <div class="section-content">
-              <div v-if="earningsCalendar.length > 0 || earningsTranscript.length > 0">
+              <div v-if="earningsCalendar.length > 0">
                 <!-- Earnings Calendar -->
-                <div v-if="earningsCalendar.length > 0" class="calendar-subsection">
+                <div class="calendar-subsection">
                   <h4 class="chart-subtitle">Earnings Calendar</h4>
                   <div class="calendar-grid">
                     <div v-for="event in earningsCalendar.slice(0, 5)" :key="event.date" class="calendar-card">
@@ -1372,24 +1370,6 @@ const changePeriod = (newPeriod) => {
                       <div class="calendar-row">
                         <span class="calendar-label">Revenue Actual:</span>
                         <span class="calendar-value">${{ event.revenue ? (event.revenue / 1000000).toFixed(2) + 'M' : '-' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Earnings Transcript -->
-                <div v-if="earningsTranscript.length > 0" class="calendar-subsection">
-                  <h4 class="chart-subtitle">Latest Earnings Call Transcript</h4>
-                  <div class="transcript-container">
-                    <div v-for="transcript in earningsTranscript.slice(0, 1)" :key="transcript.date" class="transcript-card">
-                      <div class="transcript-header">
-                        <div class="transcript-meta">
-                          <span class="transcript-date">{{ transcript.date || '-' }}</span>
-                          <span class="transcript-quarter">{{ transcript.quarter || '-' }} {{ transcript.year || '-' }}</span>
-                        </div>
-                      </div>
-                      <div class="transcript-content">
-                        <p>{{ transcript.content ? transcript.content.substring(0, 500) + '...' : 'No transcript available' }}</p>
                       </div>
                     </div>
                   </div>
@@ -1939,49 +1919,6 @@ const changePeriod = (newPeriod) => {
 .calendar-value {
   font-weight: 600;
   color: #111827;
-}
-
-.transcript-container {
-  margin-top: 1rem;
-}
-
-.transcript-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.transcript-header {
-  background: #f3f4f6;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.transcript-meta {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.transcript-date {
-  font-weight: 600;
-  color: #111827;
-}
-
-.transcript-quarter {
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.transcript-content {
-  padding: 1.5rem;
-}
-
-.transcript-content p {
-  color: #374151;
-  line-height: 1.6;
-  margin: 0;
 }
 
 .loading-state,
