@@ -815,7 +815,8 @@
             "core": "Core Statements",
             "income": "Income",
             "cash_flow": "Cash Flow",
-            "balance_sheet": "Balance Sheet"
+            "balance_sheet": "Balance Sheet",
+            "fundamental_analysis": "FUNDAMENTAL ANALYSIS"
         },
         "period": {
             "annual": "Annual",
@@ -825,6 +826,15 @@
         "loading": "Loading financial data...",
         "error": "Error loading data",
         "no_data": "No data available for this ticker",
-        "line_item": "Line Item"
+        "line_item": "Line Item",
+        "analysis": {
+            "income_statement": "Income Statement",
+            "cash_flow": "Cash Flow",
+            "balance_sheet": "Balance Sheet",
+            "working_capital": "Working Capital",
+            "capex": "CapEx",
+            "valuation": "Valuation",
+            "calendar": "Calendar"
+        }
     }
 }

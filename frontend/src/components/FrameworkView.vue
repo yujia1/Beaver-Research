@@ -405,6 +405,12 @@ const changePeriod = (newPeriod) => {
           >
             {{ t('framework.tabs.balance_sheet') }}
           </button>
+          <button
+            :class="['tab', { active: activeTab === 'fundamental_analysis' }]"
+            @click="activeTab = 'fundamental_analysis'"
+          >
+            {{ t('framework.tabs.fundamental_analysis') }}
+          </button>
         </div>
 
         <!-- Period Toggle -->
@@ -634,6 +640,67 @@ const changePeriod = (newPeriod) => {
       </div>
       <div v-else class="no-data">
         {{ t('framework.no_data') }}
+      </div>
+      
+      <!-- Fundamental Analysis Tab Content -->
+      <div v-if="activeTab === 'fundamental_analysis'" class="fundamental-analysis">
+        <div class="analysis-sections">
+          <!-- Income Statement Analysis -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.income_statement') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Income Statement analysis coming soon...</p>
+            </div>
+          </div>
+
+          <!-- Cash Flow Analysis -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.cash_flow') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Cash Flow analysis coming soon...</p>
+            </div>
+          </div>
+
+          <!-- Balance Sheet Analysis -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.balance_sheet') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Balance Sheet analysis coming soon...</p>
+            </div>
+          </div>
+
+          <!-- Working Capital Analysis -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.working_capital') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Working Capital analysis coming soon...</p>
+            </div>
+          </div>
+
+          <!-- CapEx Analysis -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.capex') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">CapEx analysis coming soon...</p>
+            </div>
+          </div>
+
+          <!-- Valuation Analysis -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.valuation') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Valuation analysis coming soon...</p>
+            </div>
+          </div>
+
+          <!-- Calendar -->
+          <div class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.calendar') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Calendar coming soon...</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1025,6 +1092,46 @@ const changePeriod = (newPeriod) => {
   color: #92400e;
   font-weight: 500;
   font-size: 0.875rem;
+}
+
+.fundamental-analysis {
+  padding: 2rem 0;
+}
+
+.analysis-sections {
+  display: grid;
+  gap: 2rem;
+}
+
+.analysis-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: box-shadow 0.2s;
+}
+
+.analysis-section:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.section-content {
+  color: #6b7280;
+}
+
+.placeholder-text {
+  font-style: italic;
+  color: #9ca3af;
+  margin: 0;
 }
 
 .loading-state,
