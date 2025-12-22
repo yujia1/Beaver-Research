@@ -90,12 +90,33 @@ const formatCurrency = (value) => {
   return `$${num.toFixed(2)}`
 }
 
+// Format value based on field type
+const formatValue = (key, value) => {
+  // Date fields should be displayed as-is
+  const dateFields = ['date', 'filingDate', 'acceptedDate', 'fillingDate', 'calendarYear', 'period']
+  if (dateFields.includes(key)) {
+    return value || '-'
+  }
+  
+  // Everything else is currency
+  return formatCurrency(value)
+}
+
+// Convert camelCase to Title Case
+const formatLineItemName = (name) => {
+  // Add space before capital letters and capitalize first letter
+  return name
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim()
+}
+
 // Get all line items for current statement type
 const lineItems = computed(() => {
   if (!currentData.value || currentData.value.length === 0) return []
   
   const firstItem = currentData.value[0]
-  const excludeKeys = ['date', 'symbol', 'reportedCurrency', 'cik', 'fillingDate', 'acceptedDate', 'calendarYear', 'period', 'link', 'finalLink']
+  const excludeKeys = ['date', 'symbol', 'reportedCurrency', 'cik', 'fillingDate', 'filingDate', 'acceptedDate', 'calendarYear', 'period', 'link', 'finalLink', 'fiscalYear']
   
   return Object.keys(firstItem).filter(key => !excludeKeys.includes(key))
 })
@@ -199,9 +220,9 @@ const changePeriod = (newPeriod) => {
           </thead>
           <tbody>
             <tr v-for="item in lineItems" :key="item">
-              <td class="line-item-cell">{{ item }}</td>
+              <td class="line-item-cell">{{ formatLineItemName(item) }}</td>
               <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                {{ formatCurrency(data[item]) }}
+                {{ formatValue(item, data[item]) }}
               </td>
             </tr>
           </tbody>
