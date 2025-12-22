@@ -827,8 +827,8 @@
         "no_data": "该股票代码无可用数据",
         "line_item": "项目",
         "analysis": {
-            "income_statement": "损益表",
-            "cash_flow": "现金流",
+            "pricing_power": "定价能力",
+            "financial_health": "财务健康",
             "balance_sheet": "资产负债表",
             "working_capital": "营运资本",
             "capex": "资本支出",

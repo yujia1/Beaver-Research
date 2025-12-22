@@ -828,8 +828,8 @@
         "no_data": "No data available for this ticker",
         "line_item": "Line Item",
         "analysis": {
-            "income_statement": "Income Statement",
-            "cash_flow": "Cash Flow",
+            "pricing_power": "Pricing Power",
+            "financial_health": "Financial Health",
             "balance_sheet": "Balance Sheet",
             "working_capital": "Working Capital",
             "capex": "CapEx",
