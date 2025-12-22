@@ -180,6 +180,25 @@ const fundamentalQuestions = computed(() => [
 ])
 
 
+// Helper function to calculate position side based on lots
+// Returns 'LONG' if net quantity is positive, 'SHORT' if negative
+const getPositionSide = (position) => {
+  if (!position.lots || position.lots.length === 0) {
+    return 'LONG' // Default to LONG if no lots
+  }
+  
+  // Calculate net quantity: LONG lots add, SHORT lots subtract
+  const netQuantity = position.lots.reduce((total, lot) => {
+    if (lot.side === 'LONG') {
+      return total + lot.quantity
+    } else if (lot.side === 'SHORT') {
+      return total - lot.quantity
+    }
+    return total
+  }, 0)
+  
+  return netQuantity >= 0 ? 'LONG' : 'SHORT'
+}
 
 const fetchPositions = async () => {
   loading.value = true
@@ -874,8 +893,8 @@ const handleDragEnd = () => {
             <div class="ticker-details">
               <div class="ticker-row">
                 <h3 class="ticker">{{ position.ticker }}</h3>
-                <span class="position-badge" :class="position.side || 'LONG'">
-                  {{ position.side || 'LONG' }}
+                <span class="position-badge" :class="getPositionSide(position)">
+                  {{ getPositionSide(position) }}
                 </span>
               </div>
               <p class="sector">{{ position.sector }}</p>
