@@ -1331,7 +1331,7 @@ const confirmPublish = async () => {
     closePreviewModal()
     
     // Show success modal
-    publishedReportType.value = reportTypes.find(t => t.value === selectedReportType.value)?.label || ''
+    publishedReportType.value = reportTypes.value.find(t => t.value === selectedReportType.value)?.label || ''
     publishedReportTicker.value = result.ticker
     publishedReportDate.value = result.date
     publishedReportUuid.value = result.uuid
