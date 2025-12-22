@@ -738,7 +738,7 @@ const permissions = ref([])
 const loadingPermissions = ref(false)
 const permissionsError = ref('')
 const roles = ['admin', 'creator', 'contributor', 'user']
-const resourceTypes = ['/research', '/alphatrade', '/report', '/investment', '/short-interest', '/whale-watching', '/agent', '/academy']
+const resourceTypes = ['/research', '/alphatrade', '/framework', '/report', '/investment', '/short-interest', '/whale-watching', '/agent', '/academy']
 
 // Message State
 const message = ref('')
