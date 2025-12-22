@@ -121,6 +121,156 @@ const lineItems = computed(() => {
   return Object.keys(firstItem).filter(key => !excludeKeys.includes(key))
 })
 
+// Income statement categories
+const incomeCategories = [
+  {
+    name: 'Revenue & Direct Costs',
+    fields: ['revenue', 'costOfRevenue', 'grossProfit']
+  },
+  {
+    name: 'Operating Expenses',
+    fields: ['researchAndDevelopmentExpenses', 'generalAndAdministrativeExpenses', 'sellingAndMarketingExpenses', 'sellingGeneralAndAdministrativeExpenses', 'otherExpenses', 'operatingExpenses', 'costAndExpenses']
+  },
+  {
+    name: 'Profitability Metrics (Core Operations)',
+    fields: ['operatingIncome', 'depreciationAndAmortization', 'ebitda', 'ebitdaratio', 'operatingIncomeRatio']
+  },
+  {
+    name: 'Non-Operating, Interest & Taxes',
+    fields: ['totalOtherIncomeExpensesNet', 'incomeBeforeTax', 'incomeBeforeTaxRatio', 'incomeTaxExpense', 'netInterestIncome', 'interestIncome', 'interestExpense']
+  },
+  {
+    name: 'Net Income (Bottom Line)',
+    fields: ['netIncome', 'netIncomeRatio', 'eps', 'epsdiluted']
+  },
+  {
+    name: 'Shareholder Data',
+    fields: ['weightedAverageShsOut', 'weightedAverageShsOutDil']
+  }
+]
+
+// Cash flow statement categories
+const cashFlowCategories = [
+  {
+    name: 'Operating Activities (Cash from Operations)',
+    fields: ['netIncome', 'depreciationAndAmortization', 'deferredIncomeTax', 'stockBasedCompensation', 'changeInWorkingCapital', 'accountsReceivables', 'inventory', 'accountsPayables', 'otherWorkingCapital', 'otherNonCashItems', 'netCashProvidedByOperatingActivities']
+  },
+  {
+    name: 'Investing Activities (Cash for Investing)',
+    fields: ['investmentsInPropertyPlantAndEquipment', 'acquisitionsNet', 'purchasesOfInvestments', 'salesMaturitiesOfInvestments', 'otherInvestingActivites', 'netCashUsedForInvestingActivites']
+  },
+  {
+    name: 'Financing Activities (Cash from Financing)',
+    fields: ['debtRepayment', 'commonStockIssued', 'commonStockRepurchased', 'dividendsPaid', 'otherFinancingActivites', 'netCashUsedProvidedByFinancingActivities']
+  },
+  {
+    name: 'Cash Reconciliation',
+    fields: ['effectOfForexChangesOnCash', 'netChangeInCash', 'cashAtBeginningOfPeriod', 'cashAtEndOfPeriod']
+  },
+  {
+    name: 'Supplemental Metrics',
+    fields: ['operatingCashFlow', 'capitalExpenditure', 'freeCashFlow']
+  }
+]
+
+// Balance sheet categories
+const balanceSheetCategories = [
+  {
+    name: 'Assets (What the Company Owns)',
+    subcategories: [
+      {
+        name: 'Current Assets (Liquid, <1 year)',
+        fields: ['cashAndCashEquivalents', 'shortTermInvestments', 'cashAndShortTermInvestments', 'netReceivables', 'inventory', 'otherCurrentAssets', 'totalCurrentAssets']
+      },
+      {
+        name: 'Non-Current Assets (Long-term, >1 year)',
+        fields: ['propertyPlantEquipmentNet', 'goodwill', 'intangibleAssets', 'goodwillAndIntangibleAssets', 'longTermInvestments', 'taxAssets', 'otherNonCurrentAssets', 'totalNonCurrentAssets']
+      }
+    ],
+    fields: ['otherAssets', 'totalAssets']
+  },
+  {
+    name: 'Liabilities (What the Company Owes)',
+    subcategories: [
+      {
+        name: 'Current Liabilities (Due within 1 year)',
+        fields: ['accountPayables', 'shortTermDebt', 'taxPayables', 'deferredRevenue', 'otherCurrentLiabilities', 'totalCurrentLiabilities']
+      },
+      {
+        name: 'Non-Current Liabilities (Due after 1 year)',
+        fields: ['longTermDebt', 'deferredRevenueNonCurrent', 'deferredTaxLiabilitiesNonCurrent', 'otherNonCurrentLiabilities', 'totalNonCurrentLiabilities']
+      }
+    ],
+    fields: ['otherLiabilities', 'capitalLeaseObligations', 'totalLiabilities']
+  },
+  {
+    name: "Shareholders' Equity (Net Worth)",
+    fields: ['preferredStock', 'commonStock', 'retainedEarnings', 'accumulatedOtherComprehensiveIncomeLoss', 'othertotalStockholdersEquity', 'totalStockholdersEquity', 'totalEquity', 'totalInvestments', 'totalDebt', 'netDebt']
+  },
+  {
+    name: 'Supplemental / Summary Metrics',
+    fields: ['totalLiabilitiesAndTotalEquity', 'minorityInterest', 'totalInvestments', 'totalDebt', 'netDebt']
+  }
+]
+
+// Track expanded/collapsed state for each category
+const expandedCategories = ref(new Set(['Revenue & Direct Costs', 'Operating Activities (Cash from Operations)', 'Assets (What the Company Owns)']))
+
+const toggleCategory = (categoryName) => {
+  if (expandedCategories.value.has(categoryName)) {
+    expandedCategories.value.delete(categoryName)
+  } else {
+    expandedCategories.value.add(categoryName)
+  }
+}
+
+const isCategoryExpanded = (categoryName) => {
+  return expandedCategories.value.has(categoryName)
+}
+
+// Get categorized line items based on active tab
+const categorizedLineItems = computed(() => {
+  if (!currentData.value || currentData.value.length === 0) {
+    return []
+  }
+  
+  const firstItem = currentData.value[0]
+  const availableFields = Object.keys(firstItem)
+  
+  let categories = []
+  if (activeTab.value === 'income') {
+    categories = incomeCategories
+  } else if (activeTab.value === 'cash_flow') {
+    categories = cashFlowCategories
+  } else if (activeTab.value === 'balance_sheet') {
+    categories = balanceSheetCategories
+  } else {
+    return []
+  }
+  
+  // Process categories and filter by available fields
+  return categories.map(category => {
+    const processedCategory = {
+      ...category,
+      fields: category.fields ? category.fields.filter(field => availableFields.includes(field)) : []
+    }
+    
+    // Handle subcategories for balance sheet
+    if (category.subcategories) {
+      processedCategory.subcategories = category.subcategories.map(sub => ({
+        ...sub,
+        fields: sub.fields.filter(field => availableFields.includes(field))
+      })).filter(sub => sub.fields.length > 0)
+    }
+    
+    return processedCategory
+  }).filter(category => {
+    // Keep category if it has fields or subcategories with fields
+    return category.fields.length > 0 || (category.subcategories && category.subcategories.length > 0)
+  })
+})
+
+
 // Handle search
 const handleSearch = () => {
   fetchFinancialData()
@@ -219,12 +369,93 @@ const changePeriod = (newPeriod) => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in lineItems" :key="item">
-              <td class="line-item-cell">{{ formatLineItemName(item) }}</td>
-              <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                {{ formatValue(item, data[item]) }}
-              </td>
-            </tr>
+            <!-- Categorized view for all statements -->
+            <template v-if="categorizedLineItems.length > 0">
+              <template v-for="category in categorizedLineItems" :key="category.name">
+                <!-- Category Header Row -->
+                <tr class="category-header-row" @click="toggleCategory(category.name)">
+                  <td class="category-header-cell" :colspan="periods.length + 1">
+                    <div class="category-header-content">
+                      <svg 
+                        class="category-icon" 
+                        :class="{ expanded: isCategoryExpanded(category.name) }"
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="2" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                      <span class="category-name">{{ category.name }}</span>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Category Content (when expanded) -->
+                <template v-if="isCategoryExpanded(category.name)">
+                  <!-- Subcategories (for Balance Sheet) -->
+                  <template v-if="category.subcategories && category.subcategories.length > 0">
+                    <template v-for="subcategory in category.subcategories" :key="subcategory.name">
+                      <!-- Subcategory Header -->
+                      <tr class="subcategory-header-row" @click.stop="toggleCategory(subcategory.name)">
+                        <td class="subcategory-header-cell" :colspan="periods.length + 1">
+                          <div class="subcategory-header-content">
+                            <svg 
+                              class="category-icon subcategory-icon" 
+                              :class="{ expanded: isCategoryExpanded(subcategory.name) }"
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="14" 
+                              height="14" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              stroke-width="2" 
+                              stroke-linecap="round" 
+                              stroke-linejoin="round"
+                            >
+                              <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                            <span class="subcategory-name">{{ subcategory.name }}</span>
+                          </div>
+                        </td>
+                      </tr>
+                      <!-- Subcategory Fields -->
+                      <template v-if="isCategoryExpanded(subcategory.name)">
+                        <tr v-for="field in subcategory.fields" :key="field" class="data-row subcategory-data-row">
+                          <td class="line-item-cell subcategory-item">{{ formatLineItemName(field) }}</td>
+                          <td v-for="(data, index) in currentData" :key="index" class="data-cell">
+                            {{ formatValue(field, data[field]) }}
+                          </td>
+                        </tr>
+                      </template>
+                    </template>
+                  </template>
+                  
+                  <!-- Category Fields (direct fields without subcategories) -->
+                  <tr v-for="field in category.fields" :key="field" class="data-row">
+                    <td class="line-item-cell">{{ formatLineItemName(field) }}</td>
+                    <td v-for="(data, index) in currentData" :key="index" class="data-cell">
+                      {{ formatValue(field, data[field]) }}
+                    </td>
+                  </tr>
+                </template>
+              </template>
+            </template>
+            
+            <!-- Fallback regular view (shouldn't be needed) -->
+            <template v-else>
+              <tr v-for="item in lineItems" :key="item">
+                <td class="line-item-cell">{{ formatLineItemName(item) }}</td>
+                <td v-for="(data, index) in currentData" :key="index" class="data-cell">
+                  {{ formatValue(item, data[item]) }}
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -497,6 +728,93 @@ const changePeriod = (newPeriod) => {
   text-align: right;
   color: #666;
   font-family: 'Courier New', monospace;
+}
+
+.category-header-row {
+  background: #f8f8f8;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-top: 2px solid #e0e0e0;
+}
+
+.category-header-row:hover {
+  background: #f0f0f0;
+}
+
+.category-header-cell {
+  padding: 0.875rem 1rem !important;
+  font-weight: 600;
+  color: #000;
+  text-align: left !important;
+}
+
+.category-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.category-icon {
+  color: #666;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.category-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.category-name {
+  font-size: 0.9375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subcategory-header-row {
+  background: #fafafa;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.subcategory-header-row:hover {
+  background: #f5f5f5;
+}
+
+.subcategory-header-cell {
+  padding: 0.75rem 1rem 0.75rem 2.5rem !important;
+  font-weight: 600;
+  color: #333;
+  text-align: left !important;
+}
+
+.subcategory-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subcategory-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.subcategory-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.subcategory-data-row {
+  background: #fcfcfc;
+}
+
+.subcategory-data-row:hover {
+  background: #f8f8f8;
+}
+
+.subcategory-item {
+  padding-left: 3.5rem !important;
+  font-weight: 400;
 }
 
 .loading-state,
