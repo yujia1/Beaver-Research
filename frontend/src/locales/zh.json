@@ -4,6 +4,7 @@
         "investment": "投资组合",
         "report": "研报中心",
         "alphatrade": "Alpha交易",
+        "framework": "财务框架",
         "academy": "阿尔法学院",
         "research": "深度研究",
         "whale_watching": "巨鲸追踪",
@@ -803,5 +804,25 @@
         },
         "pay_button": "使用 PayPal 支付 $19.99",
         "verification_pending": "付款验证处理中"
+    },
+    "framework": {
+        "title": "财务框架",
+        "subtitle": "财务数据引擎",
+        "ticker_placeholder": "输入股票代码 (例如: TSLA)",
+        "search": "搜索",
+        "tabs": {
+            "core": "核心报表",
+            "income": "损益表",
+            "cash_flow": "现金流量表",
+            "balance_sheet": "资产负债表"
+        },
+        "period": {
+            "annual": "年度",
+            "quarterly": "季度"
+        },
+        "loading": "加载财务数据中...",
+        "error": "加载数据出错",
+        "no_data": "该股票代码无可用数据",
+        "line_item": "项目"
     }
 }

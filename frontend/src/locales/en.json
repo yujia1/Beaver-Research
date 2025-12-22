@@ -4,6 +4,7 @@
         "investment": "Investment",
         "report": "Report",
         "alphatrade": "AlphaTrade",
+        "framework": "Framework",
         "academy": "Academy",
         "research": "Research",
         "whale_watching": "Whale Watching",
@@ -804,5 +805,25 @@
         },
         "pay_button": "Pay $19.99 with PayPal",
         "verification_pending": "Payment Verification Pending"
+    },
+    "framework": {
+        "title": "Framework",
+        "subtitle": "Financial Data Engine",
+        "ticker_placeholder": "Enter ticker symbol (e.g., TSLA)",
+        "search": "Search",
+        "tabs": {
+            "core": "Core Statements",
+            "income": "Income",
+            "cash_flow": "Cash Flow",
+            "balance_sheet": "Balance Sheet"
+        },
+        "period": {
+            "annual": "Annual",
+            "quarterly": "Quarterly"
+        },
+        "loading": "Loading financial data...",
+        "error": "Error loading data",
+        "no_data": "No data available for this ticker",
+        "line_item": "Line Item"
     }
 }

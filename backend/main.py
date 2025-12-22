@@ -48,6 +48,7 @@ from routers import (
     short_interest,
     alphatrade,
     whale_watching,
+    framework,
     admin_db,
     admin_scheduler
 )
@@ -187,6 +188,7 @@ app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filin
 app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
 app.include_router(whale_watching.router, prefix="/api/whale-watching", tags=["Whale Watching"])
 app.include_router(alphatrade.router, prefix="/api/alphatrade", tags=["AlphaTrade"])
+app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
 

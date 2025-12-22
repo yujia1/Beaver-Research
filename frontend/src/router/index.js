@@ -9,6 +9,7 @@ import ReportView from '../components/ReportView.vue'
 import ShortInterestView from '../components/ShortInterestView.vue'
 import AlphaTradeView from '../components/AlphaTradeView.vue'
 import AcademyView from '../components/AcademyView.vue'
+import FrameworkView from '../components/FrameworkView.vue'
 import WhaleWatchingView from '../components/WhaleWatchingView.vue'
 import API_BASE_URL from '@/config/api.js'
 
@@ -79,6 +80,12 @@ const router = createRouter({
       path: '/academy',
       name: 'academy',
       component: AcademyView,
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/framework',
+      name: 'framework',
+      component: FrameworkView,
       meta: { requiresAuth: false }
     }
   ]

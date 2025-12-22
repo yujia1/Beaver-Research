@@ -41,6 +41,12 @@ const menuItems = computed(() => {
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
   }
   
+  const frameworkItem = {
+    path: '/framework',
+    name: t('nav.framework'),
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>'
+  }
+  
   const academyItem = {
     path: '/academy',
     name: t('nav.academy'),
@@ -63,6 +69,7 @@ const menuItems = computed(() => {
   if (user.value && user.value.role === 'admin') {
       // Admin gets everything
       items.push(investmentItem)
+      items.push(frameworkItem)
       items.push(reportItem)
       items.push(alphaTradeItem)
       items.push(academyItem)
@@ -71,6 +78,7 @@ const menuItems = computed(() => {
   } else {
       // Check specific permissions
       if (hasAccess('/investment')) items.push(investmentItem)
+      if (hasAccess('/framework')) items.push(frameworkItem)
       if (hasAccess('/report')) items.push(reportItem)
       if (hasAccess('/alphatrade')) items.push(alphaTradeItem)
       if (hasAccess('/academy')) items.push(academyItem)

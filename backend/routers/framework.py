@@ -1,0 +1,145 @@
+from fastapi import APIRouter, HTTPException
+from typing import List, Dict, Any, Optional
+import httpx
+import os
+from datetime import datetime
+
+router = APIRouter()
+
+# Get FMP API key from environment
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
+FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+
+
+async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[Dict]:
+    """
+    Fetch data from Financial Modeling Prep API
+    """
+    if not FMP_API_KEY:
+        raise HTTPException(status_code=500, detail="FMP_API_KEY not configured")
+    
+    if params is None:
+        params = {}
+    
+    params["apikey"] = FMP_API_KEY
+    
+    url = f"{FMP_BASE_URL}/{endpoint}"
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if isinstance(data, dict) and "Error Message" in data:
+                raise HTTPException(status_code=400, detail=data["Error Message"])
+            
+            return data if isinstance(data, list) else []
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"FMP API error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
+
+
+@router.get("/income-statement/{ticker}")
+async def get_income_statement(
+    ticker: str,
+    period: str = "annual",  # annual or quarter
+    limit: int = 5
+):
+    """
+    Fetch income statement data for a ticker
+    """
+    ticker = ticker.upper()
+    endpoint = f"income-statement/{ticker}"
+    params = {"period": period, "limit": limit}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No income statement data found for {ticker}")
+    
+    return {
+        "ticker": ticker,
+        "period": period,
+        "data": data
+    }
+
+
+@router.get("/cash-flow/{ticker}")
+async def get_cash_flow(
+    ticker: str,
+    period: str = "annual",
+    limit: int = 5
+):
+    """
+    Fetch cash flow statement data for a ticker
+    """
+    ticker = ticker.upper()
+    endpoint = f"cash-flow-statement/{ticker}"
+    params = {"period": period, "limit": limit}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No cash flow data found for {ticker}")
+    
+    return {
+        "ticker": ticker,
+        "period": period,
+        "data": data
+    }
+
+
+@router.get("/balance-sheet/{ticker}")
+async def get_balance_sheet(
+    ticker: str,
+    period: str = "annual",
+    limit: int = 5
+):
+    """
+    Fetch balance sheet data for a ticker
+    """
+    ticker = ticker.upper()
+    endpoint = f"balance-sheet-statement/{ticker}"
+    params = {"period": period, "limit": limit}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No balance sheet data found for {ticker}")
+    
+    return {
+        "ticker": ticker,
+        "period": period,
+        "data": data
+    }
+
+
+@router.get("/all/{ticker}")
+async def get_all_statements(
+    ticker: str,
+    period: str = "annual",
+    limit: int = 5
+):
+    """
+    Fetch all financial statements for a ticker
+    """
+    ticker = ticker.upper()
+    
+    try:
+        income = await get_income_statement(ticker, period, limit)
+        cash_flow = await get_cash_flow(ticker, period, limit)
+        balance_sheet = await get_balance_sheet(ticker, period, limit)
+        
+        return {
+            "ticker": ticker,
+            "period": period,
+            "income_statement": income["data"],
+            "cash_flow": cash_flow["data"],
+            "balance_sheet": balance_sheet["data"]
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching statements: {str(e)}")
