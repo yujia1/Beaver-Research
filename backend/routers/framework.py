@@ -45,15 +45,21 @@ async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[D
 @router.get("/income-statement/{ticker}")
 async def get_income_statement(
     ticker: str,
-    period: str = "annual",  # annual or quarter
+    period: str = "annual",  # annual, quarter, or ttm
     limit: int = 5
 ):
     """
     Fetch income statement data for a ticker
     """
     ticker = ticker.upper()
-    endpoint = f"income-statement"
-    params = {"symbol": ticker, "period": period, "limit": limit}
+    
+    # Use TTM endpoint if period is ttm
+    if period == "ttm":
+        endpoint = f"income-statement-ttm"
+        params = {"symbol": ticker}
+    else:
+        endpoint = f"income-statement"
+        params = {"symbol": ticker, "period": period, "limit": limit}
     
     data = await fetch_fmp_data(endpoint, params)
     
@@ -67,18 +73,25 @@ async def get_income_statement(
     }
 
 
+
 @router.get("/cash-flow/{ticker}")
 async def get_cash_flow(
     ticker: str,
-    period: str = "annual",
+    period: str = "annual",  # annual, quarter, or ttm
     limit: int = 5
 ):
     """
     Fetch cash flow statement data for a ticker
     """
     ticker = ticker.upper()
-    endpoint = f"cash-flow-statement"
-    params = {"symbol": ticker, "period": period, "limit": limit}
+    
+    # Use TTM endpoint if period is ttm
+    if period == "ttm":
+        endpoint = f"cash-flow-statement-ttm"
+        params = {"symbol": ticker}
+    else:
+        endpoint = f"cash-flow-statement"
+        params = {"symbol": ticker, "period": period, "limit": limit}
     
     data = await fetch_fmp_data(endpoint, params)
     
@@ -95,15 +108,21 @@ async def get_cash_flow(
 @router.get("/balance-sheet/{ticker}")
 async def get_balance_sheet(
     ticker: str,
-    period: str = "annual",
+    period: str = "annual",  # annual, quarter, or ttm
     limit: int = 5
 ):
     """
     Fetch balance sheet data for a ticker
     """
     ticker = ticker.upper()
-    endpoint = f"balance-sheet-statement"
-    params = {"symbol": ticker, "period": period, "limit": limit}
+    
+    # Use TTM endpoint if period is ttm
+    if period == "ttm":
+        endpoint = f"balance-sheet-statement-ttm"
+        params = {"symbol": ticker}
+    else:
+        endpoint = f"balance-sheet-statement"
+        params = {"symbol": ticker, "period": period, "limit": limit}
     
     data = await fetch_fmp_data(endpoint, params)
     

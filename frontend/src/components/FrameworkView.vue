@@ -8,7 +8,7 @@ const { t } = useI18n()
 // State
 const ticker = ref('')
 const activeTab = ref('income') // income, cash_flow, balance_sheet
-const period = ref('annual') // annual or quarter
+const period = ref('annual') // annual, quarter, or ttm
 const loading = ref(false)
 const error = ref(null)
 
@@ -396,6 +396,12 @@ const changePeriod = (newPeriod) => {
           >
             {{ t('framework.period.quarterly') }}
           </button>
+          <button
+            :class="['period-btn', { active: period === 'ttm' }]"
+            @click="changePeriod('ttm')"
+          >
+            {{ t('framework.period.ttm') }}
+          </button>
         </div>
       </div>
 
@@ -487,11 +493,11 @@ const changePeriod = (newPeriod) => {
                       </td>
                     </tr>
                     
-                    <!-- Calculated Metrics for Income Statement -->
-                    <template v-if="activeTab === 'income'">
+                    <!-- Calculated Metrics for Income Statement (skip for TTM) -->
+                    <template v-if="activeTab === 'income' && period !== 'ttm'">
                       <!-- Revenue Growth Rate after Revenue -->
                       <tr v-if="field === 'revenue'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Revenue Growth Rate (YoY)</td>
+                        <td class="line-item-cell calculated-metric">Revenue Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.revenue, currentData[index + 1].revenue)) : '-' }}
                         </td>
@@ -522,11 +528,11 @@ const changePeriod = (newPeriod) => {
                       </tr>
                     </template>
                     
-                    <!-- Calculated Metrics for Cash Flow Statement -->
-                    <template v-if="activeTab === 'cash_flow'">
+                    <!-- Calculated Metrics for Cash Flow Statement (skip for TTM) -->
+                    <template v-if="activeTab === 'cash_flow' && period !== 'ttm'">
                       <!-- Net Income Growth after Net Income -->
                       <tr v-if="field === 'netIncome'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Net Income Growth (YoY)</td>
+                        <td class="line-item-cell calculated-metric">Net Income Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`ni-growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.netIncome, currentData[index + 1].netIncome)) : '-' }}
                         </td>
@@ -534,7 +540,7 @@ const changePeriod = (newPeriod) => {
                       
                       <!-- Operating Cash Flow Growth after Net Cash Provided By Operating Activities -->
                       <tr v-if="field === 'netCashProvidedByOperatingActivities'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Operating Cash Flow Growth (YoY)</td>
+                        <td class="line-item-cell calculated-metric">Operating Cash Flow Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`ocf-growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.netCashProvidedByOperatingActivities, currentData[index + 1].netCashProvidedByOperatingActivities)) : '-' }}
                         </td>
@@ -542,7 +548,7 @@ const changePeriod = (newPeriod) => {
                       
                       <!-- Accounts Receivables Growth after Accounts Receivables -->
                       <tr v-if="field === 'accountsReceivables'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Accounts Receivables Growth (YoY)</td>
+                        <td class="line-item-cell calculated-metric">Accounts Receivables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`ar-growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.accountsReceivables, currentData[index + 1].accountsReceivables)) : '-' }}
                         </td>
@@ -550,7 +556,7 @@ const changePeriod = (newPeriod) => {
                       
                       <!-- Inventory Growth after Inventory -->
                       <tr v-if="field === 'inventory'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Inventory Growth (YoY)</td>
+                        <td class="line-item-cell calculated-metric">Inventory Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`inv-growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.inventory, currentData[index + 1].inventory)) : '-' }}
                         </td>
@@ -558,7 +564,7 @@ const changePeriod = (newPeriod) => {
                       
                       <!-- Accounts Payables Growth after Accounts Payables -->
                       <tr v-if="field === 'accountsPayables'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Accounts Payables Growth (YoY)</td>
+                        <td class="line-item-cell calculated-metric">Accounts Payables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`ap-growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.accountsPayables, currentData[index + 1].accountsPayables)) : '-' }}
                         </td>
@@ -574,7 +580,7 @@ const changePeriod = (newPeriod) => {
                       
                       <!-- CapEx Growth Rate after Capital Expenditure -->
                       <tr v-if="field === 'capitalExpenditure'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">CapEx Growth Rate (YoY)</td>
+                        <td class="line-item-cell calculated-metric">CapEx Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
                         <td v-for="(data, index) in currentData" :key="`capex-growth-${index}`" class="data-cell calculated-value">
                           {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.capitalExpenditure, currentData[index + 1].capitalExpenditure)) : '-' }}
                         </td>

@@ -819,7 +819,8 @@
         },
         "period": {
             "annual": "Annual",
-            "quarterly": "Quarterly"
+            "quarterly": "Quarterly",
+            "ttm": "TTM"
         },
         "loading": "Loading financial data...",
         "error": "Error loading data",

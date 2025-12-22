@@ -818,7 +818,8 @@
         },
         "period": {
             "annual": "年度",
-            "quarterly": "季度"
+            "quarterly": "季度",
+            "ttm": "TTM"
         },
         "loading": "加载财务数据中...",
         "error": "加载数据出错",
