@@ -8,7 +8,7 @@ const { t } = useI18n()
 // State
 const ticker = ref('')
 const activeTab = ref('income') // income, cash_flow, balance_sheet
-const period = ref('annual') // annual, quarter, or ttm
+const period = ref('annual') // annual or quarter
 const loading = ref(false)
 const error = ref(null)
 
@@ -421,12 +421,6 @@ const changePeriod = (newPeriod) => {
           >
             {{ t('framework.period.quarterly') }}
           </button>
-          <button
-            :class="['period-btn', { active: period === 'ttm' }]"
-            @click="changePeriod('ttm')"
-          >
-            {{ t('framework.period.ttm') }}
-          </button>
         </div>
       </div>
 
@@ -528,8 +522,8 @@ const changePeriod = (newPeriod) => {
                       </tr>
                     </template>
                     
-                    <!-- Calculated Metrics for Income Statement (skip for TTM) -->
-                    <template v-if="activeTab === 'income' && period !== 'ttm'">
+                    <!-- Calculated Metrics for Income Statement -->
+                    <template v-if="activeTab === 'income'">
                       <!-- Revenue Growth Rate after Revenue -->
                       <tr v-if="field === 'revenue'" class="calculated-metric-row">
                         <td class="line-item-cell calculated-metric">Revenue Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
@@ -563,8 +557,8 @@ const changePeriod = (newPeriod) => {
                       </tr>
                     </template>
                     
-                    <!-- Calculated Metrics for Cash Flow Statement (skip for TTM) -->
-                    <template v-if="activeTab === 'cash_flow' && period !== 'ttm'">
+                    <!-- Calculated Metrics for Cash Flow Statement -->
+                    <template v-if="activeTab === 'cash_flow'">
                       <!-- Net Income Growth after Net Income -->
                       <tr v-if="field === 'netIncome'" class="calculated-metric-row">
                         <td class="line-item-cell calculated-metric">Net Income Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
