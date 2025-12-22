@@ -111,6 +111,48 @@ const formatLineItemName = (name) => {
     .trim()
 }
 
+// Format percentage
+const formatPercentage = (value) => {
+  if (value === null || value === undefined || isNaN(value)) return '-'
+  return `${(value * 100).toFixed(2)}%`
+}
+
+// Calculate Revenue Growth Rate (YoY)
+const calculateRevenueGrowth = (currentRevenue, previousRevenue) => {
+  if (!previousRevenue || previousRevenue === 0) return null
+  return (currentRevenue - previousRevenue) / previousRevenue
+}
+
+// Calculate Gross Margin
+const calculateGrossMargin = (grossProfit, revenue) => {
+  if (!revenue || revenue === 0) return null
+  return grossProfit / revenue
+}
+
+// Calculate Operating Profit Margin (EBITDA / Revenue)
+const calculateOperatingMargin = (ebitda, revenue) => {
+  if (!revenue || revenue === 0) return null
+  return ebitda / revenue
+}
+
+// Calculate Net Profit Margin
+const calculateNetMargin = (netIncome, revenue) => {
+  if (!revenue || revenue === 0) return null
+  return netIncome / revenue
+}
+
+// Calculate Cash Burn Rate (monthly)
+const calculateCashBurnRate = (cashBeginning, cashEnd, period) => {
+  if (cashBeginning === null || cashBeginning === undefined || 
+      cashEnd === null || cashEnd === undefined) return null
+  
+  const cashChange = cashBeginning - cashEnd
+  // Determine number of months based on period
+  const months = period === 'quarter' ? 3 : 12
+  
+  return cashChange / months
+}
+
 // Get all line items for current statement type
 const lineItems = computed(() => {
   if (!currentData.value || currentData.value.length === 0) return []
@@ -437,12 +479,108 @@ const changePeriod = (newPeriod) => {
                   </template>
                   
                   <!-- Category Fields (direct fields without subcategories) -->
-                  <tr v-for="field in category.fields" :key="field" class="data-row">
-                    <td class="line-item-cell">{{ formatLineItemName(field) }}</td>
-                    <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                      {{ formatValue(field, data[field]) }}
-                    </td>
-                  </tr>
+                  <template v-for="(field, fieldIndex) in category.fields" :key="field">
+                    <tr class="data-row">
+                      <td class="line-item-cell">{{ formatLineItemName(field) }}</td>
+                      <td v-for="(data, index) in currentData" :key="index" class="data-cell">
+                        {{ formatValue(field, data[field]) }}
+                      </td>
+                    </tr>
+                    
+                    <!-- Calculated Metrics for Income Statement -->
+                    <template v-if="activeTab === 'income'">
+                      <!-- Revenue Growth Rate after Revenue -->
+                      <tr v-if="field === 'revenue'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Revenue Growth Rate (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.revenue, currentData[index + 1].revenue)) : '-' }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Gross Margin after Gross Profit -->
+                      <tr v-if="field === 'grossProfit'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Gross Margin</td>
+                        <td v-for="(data, index) in currentData" :key="`gm-${index}`" class="data-cell calculated-value">
+                          {{ formatPercentage(calculateGrossMargin(data.grossProfit, data.revenue)) }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Operating Profit Margin after EBITDA -->
+                      <tr v-if="field === 'ebitda'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Operating Profit Margin</td>
+                        <td v-for="(data, index) in currentData" :key="`opm-${index}`" class="data-cell calculated-value">
+                          {{ formatPercentage(calculateOperatingMargin(data.ebitda, data.revenue)) }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Net Profit Margin after Net Income -->
+                      <tr v-if="field === 'netIncome'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Net Profit Margin</td>
+                        <td v-for="(data, index) in currentData" :key="`npm-${index}`" class="data-cell calculated-value">
+                          {{ formatPercentage(calculateNetMargin(data.netIncome, data.revenue)) }}
+                        </td>
+                      </tr>
+                    </template>
+                    
+                    <!-- Calculated Metrics for Cash Flow Statement -->
+                    <template v-if="activeTab === 'cash_flow'">
+                      <!-- Net Income Growth after Net Income -->
+                      <tr v-if="field === 'netIncome'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Net Income Growth (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`ni-growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.netIncome, currentData[index + 1].netIncome)) : '-' }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Operating Cash Flow Growth after Net Cash Provided By Operating Activities -->
+                      <tr v-if="field === 'netCashProvidedByOperatingActivities'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Operating Cash Flow Growth (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`ocf-growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.netCashProvidedByOperatingActivities, currentData[index + 1].netCashProvidedByOperatingActivities)) : '-' }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Accounts Receivables Growth after Accounts Receivables -->
+                      <tr v-if="field === 'accountsReceivables'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Accounts Receivables Growth (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`ar-growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.accountsReceivables, currentData[index + 1].accountsReceivables)) : '-' }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Inventory Growth after Inventory -->
+                      <tr v-if="field === 'inventory'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Inventory Growth (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`inv-growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.inventory, currentData[index + 1].inventory)) : '-' }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Accounts Payables Growth after Accounts Payables -->
+                      <tr v-if="field === 'accountsPayables'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Accounts Payables Growth (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`ap-growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.accountsPayables, currentData[index + 1].accountsPayables)) : '-' }}
+                        </td>
+                      </tr>
+                      
+                      <!-- Cash Burn Rate after Cash At End Of Period -->
+                      <tr v-if="field === 'cashAtEndOfPeriod'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">Cash Burn Rate (Monthly)</td>
+                        <td v-for="(data, index) in currentData" :key="`burn-${index}`" class="data-cell calculated-value">
+                          {{ formatCurrency(calculateCashBurnRate(data.cashAtBeginningOfPeriod, data.cashAtEndOfPeriod, period)) }}
+                        </td>
+                      </tr>
+                      
+                      <!-- CapEx Growth Rate after Capital Expenditure -->
+                      <tr v-if="field === 'capitalExpenditure'" class="calculated-metric-row">
+                        <td class="line-item-cell calculated-metric">CapEx Growth Rate (YoY)</td>
+                        <td v-for="(data, index) in currentData" :key="`capex-growth-${index}`" class="data-cell calculated-value">
+                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.capitalExpenditure, currentData[index + 1].capitalExpenditure)) : '-' }}
+                        </td>
+                      </tr>
+                    </template>
+                  </template>
                 </template>
               </template>
             </template>
@@ -815,6 +953,26 @@ const changePeriod = (newPeriod) => {
 .subcategory-item {
   padding-left: 3.5rem !important;
   font-weight: 400;
+}
+
+.calculated-metric-row {
+  background: #f0f7ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.calculated-metric-row:hover {
+  background: #e6f2ff;
+}
+
+.calculated-metric {
+  font-style: italic;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.calculated-value {
+  color: #1e40af;
+  font-weight: 600;
 }
 
 .loading-state,
