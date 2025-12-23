@@ -1,5 +1,5 @@
 <template>
-  <div class="research-edit-view" :class="{ 'market-mode': viewMode === 'MARKET' }">
+  <div class="research-edit-view" :class="{ 'preview-mode': viewMode === 'PREVIEW' }">
     <!-- Top Bar with Logo and Location -->
     <div class="top-bar">
       <div class="top-bar-left">
@@ -36,47 +36,29 @@
           class="report-name-input"
         />
         
-        <!-- Title -->
-        <h1 class="header-title"></h1>
-        
-        <!-- Mode Toggle Switch -->
-        <div class="mode-toggle-switch" @click="toggleViewMode">
-          <div class="switch-track" :class="{ 'market-active': viewMode === 'MARKET' }">
-            <div class="switch-section company-section" :class="{ 'active': viewMode === 'COMPANY' }">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        <!-- Mode Toggle Switch (Edit / Preview) -->
+        <div class="mode-toggle-switch" @click="toggleViewMode" :title="viewMode === 'EDIT' ? 'Switch to Preview' : 'Switch to Edit'">
+          <div class="switch-track" :class="{ 'preview-active': viewMode === 'PREVIEW' }">
+            <div class="switch-section edit-section" :class="{ 'active': viewMode === 'EDIT' }">
+              <!-- Edit Icon -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
+              <span style="font-size: 11px; margin-left: 4px; font-weight: 600;">Edit</span>
             </div>
-            <div class="switch-section market-section" :class="{ 'active': viewMode === 'MARKET' }">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+            <div class="switch-section preview-section" :class="{ 'active': viewMode === 'PREVIEW' }">
+              <!-- Preview Icon -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
               </svg>
+              <span style="font-size: 11px; margin-left: 4px; font-weight: 600;">Preview</span>
             </div>
           </div>
         </div>
-
-
-        <!-- Icon Group (Agent Selector) -->
-        <div class="icon-group">
-          <button
-            v-for="(agent, index) in availableAgents"
-            :key="agent ? (agent.id || index) : index"
-            :class="{ active: agent && props.activeAgent === agent.id }"
-            @click="agent && emit('update:active-agent', agent.id)"
-            class="icon-btn"
-            :title="agent ? agent.name : ''"
-          >
-            <span class="agent-icon-emoji">{{ agent ? agent.icon : '' }}</span>
-          </button>
-        </div>
+        
+        <div style="flex: 1;"></div>
 
         <!-- Action Buttons -->
         <div class="header-actions">
@@ -93,11 +75,6 @@
             </svg>
             <span>{{ t('research.audit') }}</span>
           </button>
-        </div>
-
-        <!-- Active Agent Display -->
-        <div class="active-agent-display">
-          {{ t('research.active_agent') }} <span class="agent-name-highlight">{{ currentAgentName.toUpperCase() }}</span>
         </div>
 
         <!-- Report Type Selector -->
@@ -129,7 +106,7 @@
               </div>
               <div class="instruction-item">
                 <span class="instruction-number">2.</span>
-                <span>{{ t('research.editor_placeholder.step_2') }}</span>
+                <span>{{ t('research.editor_placeholder.chat_instruction', 'Chat with the agent to generate analysis.') }}</span>
               </div>
             </div>
           </div>
@@ -137,7 +114,7 @@
         <div
           ref="editorRef"
           class="editor-content"
-          contenteditable="true"
+          :contenteditable="viewMode === 'EDIT'"
           @drop.prevent="handleDrop"
           @dragover.prevent="handleDragOver"
           @dragenter.prevent="handleDragEnter"
@@ -149,160 +126,11 @@
       </div>
 
       <!-- Data Stream Sidebar -->
-      <div class="data-sidebar">
-        <div class="sidebar-header">
-          <div class="sidebar-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <span>{{ t('research.sidebar.title') }}</span>
-          </div>
-          <div class="sidebar-stream">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-            </svg>
-            <!-- Ticker Input for Company Mode - Only for specific agents -->
-            <input
-              v-if="viewMode === 'COMPANY' && ['FUNDAMENTAL_AGENT', 'INSIDE_TRADING_ANALYST_AGENT', 'OPTION_ANALYST_AGENT', 'POLYMARKET_AGENT'].includes(activeAgent)"
-              ref="tickerInputRef"
-              type="text"
-              :value="tickerInput"
-              @input="handleTickerInput"
-              @keyup.enter="handleTickerSearch"
-              @focus="isEditingTicker = true"
-              @blur="isEditingTicker = false"
-              :placeholder="t('research.sidebar.ticker_placeholder', 'Q TSLA')"
-              class="ticker-stream-input"
-            />
-            <!-- Text for Market Mode or agents that don't need ticker -->
-            <span v-else>{{ viewMode === 'MARKET' ? t('research.sidebar.global_feed') : t('research.sidebar.stream') }}</span>
-            
-            <!-- Refresh button -->
-            <button 
-              v-if="activeAgent !== 'MANAGEMENT_AGENT'"
-              @click="refreshData" 
-              class="refresh-btn"
-              :disabled="isLoading"
-              :class="{ 'loading': isLoading }"
-            >
-              <span v-if="!isLoading">↻</span>
-              <span v-else class="spinner">⟳</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Chatbox for Research Agent -->
-        <div v-if="props.activeAgent === 'MANAGEMENT_AGENT'" class="research-chatbox">
-          <div class="chatbox-messages">
-            <div
-              v-for="(message, index) in chatMessages"
-              :key="index"
-              class="chat-message"
-              :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant' }"
-            >
-              <div class="message-content">{{ message.content }}</div>
-              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-            </div>
-          </div>
-          <div class="chatbox-input">
-            <input
-              v-model="chatInput"
-              @keyup.enter="sendChatMessage"
-              type="text"
-              :placeholder="t('research.chat.placeholder')"
-              class="chat-input"
-            />
-            <button @click="sendChatMessage" class="chat-send-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Data Bubbles for other agents -->
-        <div v-else class="data-bubbles">
-          <div
-            v-for="(bubble, index) in filteredBubbles"
-            :key="bubble.id || index"
-            :draggable="true"
-            @dragstart="handleDragStart($event, bubble)"
-            class="data-bubble"
-            :class="`bubble-${bubble.type}`"
-          >
-            <div class="bubble-header" v-if="!isFinancialStatementBubble(bubble)">
-              <div class="bubble-icon">{{ bubble.icon }}</div>
-              <div class="bubble-meta">
-                <span class="bubble-category-badge">{{ bubble.category }}</span>
-                <span class="bubble-time">{{ formatTime(bubble.timestamp) }}</span>
-              </div>
-            </div>
-            <div class="bubble-title">{{ bubble.title }}</div>
-            
-            <!-- Period Toggle Row for Financial Statements (Income, Balance, Cash Flow) -->
-            <div v-if="isFinancialStatementBubble(bubble)" class="bubble-period-row">
-              <div class="period-toggle">
-                <button
-                  :class="{ active: bubble.id && getBubblePeriod(bubble.id) === 'Annually' }"
-                  @click="bubble.id && setBubblePeriod(bubble.id, 'Annually')"
-                  class="period-btn"
-                >
-                  Annually
-                </button>
-                <button
-                  :class="{ active: bubble.id && getBubblePeriod(bubble.id) === 'Quarterly' }"
-                  @click="bubble.id && setBubblePeriod(bubble.id, 'Quarterly')"
-                  class="period-btn"
-                >
-                  Quarterly
-                </button>
-              </div>
-              <div class="bubble-meta-right">
-                <span class="bubble-category-badge">{{ bubble.category }}</span>
-                <span class="bubble-time">{{ formatTime(bubble.timestamp) }}</span>
-              </div>
-            </div>
-            
-            <div class="bubble-data" v-if="!shouldHideBubbleData(bubble)">
-              <template v-if="isFinancialStatementBubble(bubble) && hasPeriodData(bubble)">
-                <!-- Financial statement with period data - HIDDEN -->
-                <div
-                  v-for="(value, key) in getPeriodDataMetrics(bubble)"
-                  :key="key"
-                  class="bubble-data-item"
-                >
-                  <span class="data-label">{{ key }}</span>
-                  <span class="data-value" :class="getValueClass(value)">{{ formatValue(value) }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <!-- Regular bubble data -->
-                <div
-                  v-for="(value, key) in (bubble.data?.data_metrics || bubble.data || {})"
-                  :key="key"
-                  class="bubble-data-item"
-                >
-                  <span class="data-label">{{ key }}</span>
-                  <span class="data-value" :class="getValueClass(value)">{{ formatValue(value) }}</span>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <div v-if="filteredBubbles.length === 0" class="no-bubbles">
-            <div class="lock-icon">🔒</div>
-            <div class="folder-icon">📁</div>
-            <p class="no-data-text">{{ t('research.sidebar.no_data') }}</p>
-          </div>
-        </div>
-
-        <!-- Sidebar Footer -->
-        <div class="sidebar-footer">
-          <span class="encryption-text">{{ t('research.sidebar.encryption') }}</span>
-          <span class="sync-status synced">{{ t('research.sidebar.synced') }}</span>
-        </div>
-      </div>
+      <ResearchChatSidebar 
+        :active-agent="props.activeAgent"
+        :ticker="props.ticker"
+        :view-mode="props.viewMode"
+      />
     </div>
 
     <!-- Bottom Status Bar -->
@@ -388,6 +216,7 @@
 
 <script setup>
 import API_BASE_URL from '@/config/api.js'
+import ResearchChatSidebar from './ResearchChatSidebar.vue'
 
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
@@ -402,7 +231,7 @@ const props = defineProps({
   viewMode: {
     type: String,
     required: true,
-    validator: (value) => ['COMPANY', 'MARKET'].includes(value)
+    validator: (value) => ['EDIT', 'PREVIEW'].includes(value)
   },
   activeAgent: {
     type: String,
@@ -419,12 +248,6 @@ const emit = defineEmits(['update:view-mode', 'update:active-agent', 'update:tic
 // Editor state
 const editorRef = ref(null)
 const editorContent = ref('')
-const tickerInput = ref(props.ticker)
-const tickerInputRef = ref(null)
-const reportName = ref('')
-const isEditingTicker = ref(false)
-const isDragging = ref(false)
-const draggedBubble = ref(null)
 const companyName = ref('Alphabet Inc.')
 
 // Report type selection
@@ -450,14 +273,7 @@ const publishedReportDate = ref('')
 const publishedReportUuid = ref('')
 
 // Chatbox state for Research agent
-const chatMessages = ref([
-  {
-    role: 'assistant',
-    content: t('research.chat.intro', { ticker: props.ticker || 'companies' }),
-    timestamp: new Date()
-  }
-])
-const chatInput = ref('')
+
 
 // Character count
 const characterCount = computed(() => {
@@ -535,46 +351,10 @@ const currentAgentName = computed(() => {
   return agent ? agent.name : props.activeAgent
 })
 
-// Data bubbles state
-const dataBubbles = ref([])
-const isLoading = ref(false)
 
-// Period selection state for financial statement bubbles (Annually/Quarterly)
-const bubblePeriods = ref({}) // { bubbleId: 'Annually' | 'Quarterly' }
-
-// Filter bubbles based on active agent
-const filteredBubbles = computed(() => {
-  // For market mode, bubbles are already filtered by agent on the backend
-  // For company mode, we filter by agent focus
-  if (props.viewMode === 'MARKET') {
-    return dataBubbles.value
-  }
-  
-  if (!dataBubbles.value.length) return []
-  
-  if (!availableAgents.value || !Array.isArray(availableAgents.value)) return []
-
-  const agent = availableAgents.value.find(a => a && a.id === props.activeAgent)
-  
-  // If no agent found, return empty array to avoid stale/invalid data
-  if (!agent) return []
-  
-  return dataBubbles.value.filter(bubble => {
-    if (!bubble) return false
-    return agent.focus.some(focus => 
-      (bubble.type && bubble.type.toLowerCase().includes(focus)) || 
-      (bubble.category && bubble.category.toLowerCase().includes(focus))
-    )
-  })
-})
 
 // Drag and Drop handlers
-const handleDragStart = (event, bubble) => {
-  if (!bubble || !bubble.id) return
-  draggedBubble.value = bubble
-  event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('text/html', bubble.id)
-}
+const handleDragStart = (event) => {}
 
 const handleDragOver = (event) => {
   event.preventDefault()
@@ -602,81 +382,6 @@ const handleDrop = async (event) => {
     // Handle file drops (images)
     await handleImageFiles(Array.from(files))
     return
-  }
-  
-  // Otherwise, handle data bubble drops
-  if (!draggedBubble.value) return
-  
-  // IMPORTANT: Only allow drops on the editor element
-  if (!editorRef.value || !editorRef.value.contains(event.target)) {
-    draggedBubble.value = null
-    return
-  }
-
-  const selection = window.getSelection()
-  const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
-  
-  try {
-    // Decode the encoded_output from insights
-    let insights = null
-    
-    if (isFinancialStatementBubble(draggedBubble.value) && hasPeriodData(draggedBubble.value)) {
-      // For financial statement bubbles, get insights from the selected period
-      const bubbleId = draggedBubble.value?.id
-      if (bubbleId) {
-        const period = getBubblePeriod(bubbleId)
-        const periodData = draggedBubble.value.data[period]
-        insights = periodData?.insights || null
-      }
-    } else {
-      // For other bubbles, get insights directly
-      insights = draggedBubble.value.data?.insights || null
-    }
-    
-    // Decode the encoded_output if available
-    let insight = null
-    if (insights && insights.encoded_output) {
-      try {
-        // Decode base64 string
-        const decodedJson = atob(insights.encoded_output)
-        const decodedData = JSON.parse(decodedJson)
-        
-        // Format the analysis with proper structure
-        if (decodedData.analysis) {
-          // The analysis already has markdown formatting from AI
-          // Just add some spacing and structure
-          insight = decodedData.analysis
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .join('\n\n') // Double newlines for better spacing
-          
-          // Add title at the top
-          insight = `## ${draggedBubble.value.title}\n\n${insight}`
-        } else {
-          // Fallback to formatted version
-          insight = formatInsightsAsMarkdown(insights, draggedBubble.value)
-        }
-      } catch (decodeError) {
-        console.error('Error decoding encoded_output:', decodeError)
-        // Fallback to using insights directly if decoding fails
-        insight = formatInsightsAsMarkdown(insights, draggedBubble.value)
-      }
-    } else if (insights) {
-      // If no encoded_output, use insights directly
-      insight = formatInsightsAsMarkdown(insights, draggedBubble.value)
-    } else {
-      // Fallback to generating basic insight
-      insight = generateFallbackInsight(draggedBubble.value)
-    }
-      
-    // Insert insight into editor
-    insertInsight(insight, range)
-    
-    draggedBubble.value = null
-  } catch (error) {
-    console.error('Error processing drop:', error)
-    alert('Failed to process data. Please try again.')
   }
 }
 
@@ -906,301 +611,15 @@ const handlePaste = async (event) => {
   }
 }
 
-// Data interpretation
-const interpretData = async (bubble, context) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/research/process?data-agent=${props.activeAgent}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
-      },
-      body: JSON.stringify({
-        bubble: bubble,
-        agent: props.activeAgent,
-        view_mode: props.viewMode,
-        ticker: props.ticker,
-        context: context
-      })
-    })
-    
-    if (!response.ok) {
-      throw new Error(t('research.alerts.interpretation_error'))
-    }
-    
-    const data = await response.json()
-    return data.insight
-  } catch (error) {
-    console.error('Interpretation error:', error)
-    // Fallback: return basic markdown table
-    return generateFallbackInsight(bubble)
-  }
-}
-
-const generateFallbackInsight = (bubble) => {
-  let table = '## ' + bubble.title + '\n\n'
-  table += `| ${t('research.fallback.metric')} | ${t('research.fallback.value')} |\n`
-  table += '|--------|-------|\n'
-  
-  // Handle financial statement bubbles with period data
-  let metrics = {}
-  let insights = null
-  
-  if (isFinancialStatementBubble(bubble) && hasPeriodData(bubble)) {
-    const period = getBubblePeriod(bubble.id)
-    const periodData = bubble.data[period]
-    metrics = periodData?.data_metrics || {}
-    insights = periodData?.insights || null
-  } else {
-    metrics = bubble.data?.data_metrics || bubble.data || {}
-    insights = bubble.data?.insights || null
-  }
-  
-  Object.entries(metrics).forEach(([key, value]) => {
-    table += `| ${key} | ${formatValue(value)} |\n`
-  })
-  
-  // Include insights if available
-  if (insights) {
-    if (insights.analysis) {
-      table += `\n**${t('research.fallback.analysis')}**\n\n` + insights.analysis + '\n\n'
-    }
-    if (insights.bullet_points && insights.bullet_points.length > 0) {
-      table += `**${t('research.fallback.key_points')}**\n\n`
-      insights.bullet_points.forEach(point => {
-        table += '- ' + point + '\n'
-      })
-    }
-  } else {
-    table += `\n**${t('research.fallback.analysis')}**\n\n`
-    table += `- ${t('research.fallback.data_extracted')} ` + (bubble.category || 'DATA') + '\n'
-    table += `- ${t('research.fallback.timestamp')} ` + formatTime(bubble.timestamp) + '\n'
-  }
-  
-  return table
-}
-
-// Market data cache (for async loading in company mode)
-const marketDataCache = ref({})
-
-// Async load market data when in company mode
-const loadMarketDataAsync = async () => {
-  if (props.viewMode !== 'COMPANY') return
-  // Real data loading would happen here if needed
-}
 
 
-const fetchDataBubbles = async () => {
-  // Fetch real data from backend API
-  try {
-    const token = localStorage.getItem('access_token')
-    let url = ''
-    
-    if (props.viewMode === 'COMPANY') {
-        const ticker = props.ticker || 'MARKET'
-        url = `${API_BASE_URL}/api/research/company-data/${ticker}?agent=${props.activeAgent}`
-    } else {
-        url = `${API_BASE_URL}/api/research/market-data?agent=${props.activeAgent}`
-    }
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token || ''}`
-      }
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      dataBubbles.value = data.bubbles || []
-    } else {
-      console.error('Failed to fetch data bubbles:', response.statusText)
-      dataBubbles.value = []
-    }
-  } catch (error) {
-    console.error('Error fetching data bubbles:', error)
-    dataBubbles.value = []
-  }
-}
-
-// Utility functions
-const formatTime = (date) => {
-  const d = new Date(date)
-  const hours = d.getHours()
-  const minutes = d.getMinutes()
-  const seconds = d.getSeconds()
-  const ampm = hours >= 12 ? 'PM' : 'AM'
-  const displayHours = hours % 12 || 12
-  return `${displayHours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} ${ampm}`
-}
-
-const formatValue = (value) => {
-  if (typeof value === 'string') {
-    if (value.startsWith('+') || value.startsWith('-')) {
-      return value
-    }
-  }
-  return value
-}
-
-const getValueClass = (value) => {
-  if (typeof value === 'string') {
-    if (value.startsWith('+')) return 'positive'
-    if (value.startsWith('-')) return 'negative'
-  }
-  return ''
-}
-
-// Check if bubble is a financial statement (Income, Balance, Cash Flow)
-const isFinancialStatementBubble = (bubble) => {
-  if (!bubble || !bubble.type) return false
-  // Only FUNDAMENTAL_AGENT should have period toggles (Annually/Quarterly)
-  // Other agents (INSIDER, OPTION, POLYMARKET, BOND, ECONOMICS) don't need them
-  return bubble.type === 'FUNDAMENTAL_AGENT'
-}
-
-// Check if bubble should hide its data metrics
-const shouldHideBubbleData = (bubble) => {
-  if (!bubble || !bubble.type) return false
-  // These agents should not show data metrics in the bubble
-  const hideDataAgents = [
-    'INSIDE_TRADING_ANALYST_AGENT',  // INSIDER agent
-    'OPTION_ANALYST_AGENT',           // OPTION agent
-    'POLYMARKET_AGENT',               // POLYMARKET agent
-    'BOND_AGENT',                     // BOND agent
-    'ECONOMICS_AGENT',                // ECONOMICS agent
-    'FUNDAMENTAL_AGENT'               // FUNDAMENTAL agent (financial statements)
-  ]
-  return hideDataAgents.includes(bubble.type)
-}
-
-// Check if bubble has period data (Annually/Quarterly structure)
-const hasPeriodData = (bubble) => {
-  return bubble.data && (bubble.data.Annually || bubble.data.Quarterly)
-}
-
-// Get the selected period for a bubble (default to 'Annually')
-const getBubblePeriod = (bubbleId) => {
-  return bubblePeriods.value[bubbleId] || 'Annually'
-}
-
-// Set the period for a bubble
-const setBubblePeriod = (bubbleId, period) => {
-  bubblePeriods.value[bubbleId] = period
-}
-
-// Get data metrics for the selected period
-const getPeriodDataMetrics = (bubble) => {
-  const period = getBubblePeriod(bubble.id)
-  if (bubble.data && bubble.data[period]) {
-    return bubble.data[period].data_metrics || {}
-  }
-  return {}
-}
-
-// Get insights for the selected period (for drag and drop)
-const getPeriodInsights = (bubble) => {
-  const period = getBubblePeriod(bubble.id)
-  if (bubble.data && bubble.data[period]) {
-    return bubble.data[period].insights || {}
-  }
-  return {}
-}
-
-// Format decoded insight data as markdown
-const formatDecodedInsight = (decodedData, bubble) => {
-  let markdown = `## ${bubble.title}\n\n`
-  
-  // Get data metrics from bubble's period data (for financial statements) or direct data
-  let metrics = {}
-  if (isFinancialStatementBubble(bubble) && hasPeriodData(bubble)) {
-    const period = getBubblePeriod(bubble.id)
-    const periodData = bubble.data[period]
-    metrics = periodData?.data_metrics || {}
-  } else {
-    metrics = bubble.data?.data_metrics || bubble.data || {}
-  }
-  
-  // Add data metrics table if available
-  if (Object.keys(metrics).length > 0) {
-    markdown += `| ${t('research.fallback.metric')} | ${t('research.fallback.value')} |\n`
-    markdown += '|--------|-------|\n'
-    Object.entries(metrics).forEach(([key, value]) => {
-      markdown += `| ${key} | ${formatValue(value)} |\n`
-    })
-    markdown += '\n'
-  }
-  
-  // Add analysis if available
-  if (decodedData.analysis) {
-    markdown += `**${t('research.fallback.analysis')}**\n\n${decodedData.analysis}\n\n`
-  }
-  
-  // Add bullet points if available
-  if (decodedData.bullet_points && decodedData.bullet_points.length > 0) {
-    markdown += `**${t('research.fallback.key_points')}**\n\n`
-    decodedData.bullet_points.forEach(point => {
-      markdown += `- ${point}\n`
-    })
-  }
-  
-  return markdown
-}
-
-// Format insights object as markdown (when encoded_output is not available)
-const formatInsightsAsMarkdown = (insights, bubble) => {
-  let markdown = `## ${bubble.title}\n\n`
-  
-  // Add data metrics if available
-  if (bubble.data && bubble.data.data_metrics) {
-    const metrics = bubble.data.data_metrics
-    if (Object.keys(metrics).length > 0) {
-      markdown += `| ${t('research.fallback.metric')} | ${t('research.fallback.value')} |\n`
-      markdown += '|--------|-------|\n'
-      Object.entries(metrics).forEach(([key, value]) => {
-        markdown += `| ${key} | ${formatValue(value)} |\n`
-      })
-      markdown += '\n'
-    }
-  }
-  
-  // Add analysis if available
-  if (insights.analysis) {
-    markdown += `**${t('research.fallback.analysis')}**\n\n${insights.analysis}\n\n`
-  }
-  
-  // Add bullet points if available
-  if (insights.bullet_points && insights.bullet_points.length > 0) {
-    markdown += `**${t('research.fallback.key_points')}**\n\n`
-    insights.bullet_points.forEach(point => {
-      markdown += `- ${point}\n`
-    })
-  }
-  
-  return markdown
-}
 
 const toggleViewMode = () => {
-  const newMode = props.viewMode === 'COMPANY' ? 'MARKET' : 'COMPANY'
+  const newMode = props.viewMode === 'EDIT' ? 'PREVIEW' : 'EDIT'
   emit('update:view-mode', newMode)
 }
 
-const handleTickerInput = (event) => {
-  const cursorPosition = event.target.selectionStart
-  tickerInput.value = event.target.value
-  // Preserve cursor position after value update
-  nextTick(() => {
-    if (tickerInputRef.value && cursorPosition !== null) {
-      tickerInputRef.value.setSelectionRange(cursorPosition, cursorPosition)
-    }
-  })
-}
 
-const handleTickerSearch = () => {
-  if (tickerInput.value.trim()) {
-    emit('update:ticker', tickerInput.value.trim().toUpperCase())
-    fetchDataBubbles()
-  }
-}
 
 const generatePdfPreview = async () => {
   // Generate PDF from editor content
@@ -1380,144 +799,9 @@ const auditReport = () => {
   console.log('Audit report:', editorContent.value)
 }
 
-const refreshData = async () => {
-  console.log('Refreshing data for agent:', props.activeAgent)
-  
-  // For FUNDAMENTAL_AGENT, fetch real analysis from backend
-  if (props.activeAgent === 'FUNDAMENTAL_AGENT' && tickerInput.value) {
-    try {
-      isLoading.value = true
-      
-      // Update the ticker prop with the input value
-      const ticker = tickerInput.value.trim().toUpperCase()
-      emit('update:ticker', ticker)
-      
-      console.log(`Fetching financial analysis for ${ticker}...`)
-      
-      // Add timestamp to override cache
-      const timestamp = Date.now()
-      
-      // Fetch both annual and quarterly analysis
-      const [annualResponse, quarterlyResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/research/financial-analysis/${ticker}?period=annual&_t=${timestamp}`, {
-          cache: 'no-cache'
-        }),
-        fetch(`${API_BASE_URL}/api/research/financial-analysis/${ticker}?period=quarterly&_t=${timestamp}`, {
-          cache: 'no-cache'
-        })
-      ])
-      
-      const annualData = await annualResponse.json()
-      const quarterlyData = await quarterlyResponse.json()
-      
-      if (annualData.success && quarterlyData.success) {
-        console.log('Financial analysis fetched successfully')
-        
-        // Update the bubble with real data
-        const now = new Date()
-        dataBubbles.value = [
-          {
-            id: `financial-statements-${ticker}-${now.getTime()}`,
-            type: 'FUNDAMENTAL_AGENT',
-            category: 'FINANCIAL',
-            title: 'FINANCIAL STATEMENTS',
-            timestamp: now,
-            data: {
-              Annually: {
-                data_metrics: {},
-                insights: annualData.data
-              },
-              Quarterly: {
-                data_metrics: {},
-                insights: quarterlyData.data
-              }
-            }
-          }
-        ]
-      } else {
-        console.error('Failed to fetch financial analysis:', annualData.error || quarterlyData.error)
-        // Fall back to placeholder
-        fetchDataBubbles()
-      }
-    } catch (error) {
-      console.error('Error fetching financial analysis:', error)
-      // Fall back to placeholder
-      fetchDataBubbles()
-    } finally {
-      isLoading.value = false
-    }
-  } else {
-    // For other agents, use mock data
-    fetchDataBubbles()
-  }
-}
 
-// Chatbox functions for Research agent
-const sendChatMessage = () => {
-  if (!chatInput.value.trim()) return
-  
-  // Add user message
-  chatMessages.value.push({
-    role: 'user',
-    content: chatInput.value.trim(),
-    timestamp: new Date()
-  })
-  
-  const userMessage = chatInput.value.trim()
-  chatInput.value = ''
-  
-  // Simulate assistant response (mock)
-  setTimeout(() => {
-    const responses = [
-      t('research.chat.response_1', { ticker: props.ticker }),
-      t('research.chat.response_2'),
-      t('research.chat.response_3'),
-      t('research.chat.response_4')
-    ]
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-    
-    chatMessages.value.push({
-      role: 'assistant',
-      content: randomResponse,
-      timestamp: new Date()
-    })
-  }, 500)
-}
-
-// Watchers
-watch(() => props.viewMode, () => {
-  // Reset agent to first available when mode changes
-  if (availableAgents.value.length > 0) {
-    emit('update:active-agent', availableAgents.value[0].id)
-  }
-  // fetchDataBubbles will be called by the activeAgent watcher
-})
-
-watch(() => props.activeAgent, () => {
-  // Fetch data when agent changes
-  fetchDataBubbles()
-}, { immediate: false })
-
-watch(() => props.ticker, (newTicker, oldTicker) => {
-  // Only update tickerInput if user is not currently editing
-  // This prevents cursor jumping while user is typing
-  if (!isEditingTicker.value && newTicker !== tickerInput.value) {
-    const cursorPos = tickerInputRef.value ? tickerInputRef.value.selectionStart : tickerInput.value.length
-    tickerInput.value = newTicker
-    // Preserve cursor position when updating from prop
-    nextTick(() => {
-      if (tickerInputRef.value && cursorPos !== null) {
-        tickerInputRef.value.setSelectionRange(cursorPos, cursorPos)
-      }
-    })
-  }
-  if (props.viewMode === 'COMPANY') {
-    fetchDataBubbles()
-  }
-})
 
 onMounted(() => {
-  fetchDataBubbles()
   // Initialize editor content only if it exists
   nextTick(() => {
     if (editorRef.value && editorContent.value && !editorRef.value.innerHTML) {
@@ -1694,58 +978,58 @@ onMounted(() => {
   position: relative;
 }
 
-.company-section {
+.edit-section {
   flex: 1.2;
   background: transparent;
   border-radius: 20px 0 0 20px;
 }
 
-.company-section.active {
+.edit-section.active {
   background: #f59e0b;
   border-radius: 20px 0 0 20px;
   flex: 1.2;
 }
 
-.company-section.active svg {
+.edit-section.active svg {
   color: #000000;
   stroke: #000000;
   stroke-width: 2.5;
 }
 
-.company-section:not(.active) {
+.edit-section:not(.active) {
   flex: 0.8;
   background: rgba(0, 0, 0, 0.05);
 }
 
-.company-section:not(.active) svg {
+.edit-section:not(.active) svg {
   color: #737373;
   stroke: #737373;
   opacity: 0.5;
 }
 
-.market-section {
+.preview-section {
   flex: 0.8;
   background: transparent;
   border-radius: 0 20px 20px 0;
 }
 
-.market-section.active {
+.preview-section.active {
   background: #22d3ee;
   border-radius: 0 20px 20px 0;
   flex: 1.2;
 }
 
-.market-section.active svg {
+.preview-section.active svg {
   color: #000000;
   stroke: #000000;
 }
 
-.market-section:not(.active) {
+.preview-section:not(.active) {
   flex: 0.8;
   background: rgba(0, 0, 0, 0.05);
 }
 
-.market-section:not(.active) svg {
+.preview-section:not(.active) svg {
   color: #737373;
   stroke: #737373;
   opacity: 0.5;
@@ -1846,7 +1130,7 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.research-edit-view.market-mode .publish-btn {
+.research-edit-view.preview-mode .publish-btn {
   background: #22d3ee;
   border-color: #22d3ee;
 }
@@ -1856,7 +1140,7 @@ onMounted(() => {
   transform: scale(1.02);
 }
 
-.research-edit-view.market-mode .publish-btn:hover {
+.research-edit-view.preview-mode .publish-btn:hover {
   background: #38bdf8;
 }
 
@@ -1867,7 +1151,7 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.research-edit-view.market-mode .audit-btn {
+.research-edit-view.preview-mode .audit-btn {
   background: #22d3ee;
   border-color: #22d3ee;
 }
@@ -1877,7 +1161,7 @@ onMounted(() => {
   transform: scale(1.02);
 }
 
-.research-edit-view.market-mode .audit-btn:hover {
+.research-edit-view.preview-mode .audit-btn:hover {
   background: #38bdf8;
 }
 
@@ -1897,7 +1181,7 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.research-edit-view.market-mode .agent-name-highlight {
+.research-edit-view.preview-mode .agent-name-highlight {
   color: #22d3ee;
 }
 
@@ -1933,7 +1217,7 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.research-edit-view.market-mode .report-type-btn.active {
+.research-edit-view.preview-mode .report-type-btn.active {
   background: #22d3ee;
   border-color: #22d3ee;
 }
@@ -1981,7 +1265,7 @@ onMounted(() => {
   background: rgba(245, 158, 11, 0.05);
 }
 
-.research-edit-view.market-mode .editor-content.drag-active {
+.research-edit-view.preview-mode .editor-content.drag-active {
   border-color: rgba(34, 211, 238, 0.5);
   background: rgba(34, 211, 238, 0.05);
 }
@@ -2026,465 +1310,11 @@ onMounted(() => {
   font-family: 'Space Mono', monospace;
 }
 
-.research-edit-view.market-mode .instruction-number {
+.research-edit-view.preview-mode .instruction-number {
   color: #22d3ee;
 }
 
-/* Data Sidebar */
-.data-sidebar {
-  width: 380px;
-  background: rgba(255, 255, 255, 0.8);
-  border-left: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  overflow-y: auto;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
 
-.sidebar-header {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.sidebar-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'Cinzel', serif;
-  font-size: 1em;
-  font-weight: 600;
-  color: #000000;
-  margin-bottom: 10px;
-  letter-spacing: 1px;
-}
-
-.sidebar-title svg {
-  color: #1a1a1a;
-}
-
-.sidebar-stream {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.8em;
-  color: #737373;
-}
-
-.sidebar-stream svg {
-  color: #737373;
-}
-
-.ticker-stream-input {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85em;
-  color: var(--accent-color, #f59e0b);
-  outline: none;
-  transition: all 0.2s;
-}
-
-.ticker-stream-input:focus {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--accent-color, #f59e0b);
-  box-shadow: 0 0 0 2px var(--accent-glow, rgba(245, 158, 11, 0.2));
-}
-
-.ticker-stream-input::placeholder {
-  color: #737373;
-}
-
-.refresh-btn {
-  background: #f59e0b;
-  border: none;
-  border-radius: 6px;
-  color: #000000;
-  cursor: pointer;
-  padding: 4px;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.refresh-btn:hover {
-  background: #fbbf24;
-  color: #000000;
-  transform: rotate(180deg);
-}
-
-.research-edit-view.market-mode .refresh-btn {
-  background: #22d3ee;
-}
-
-.research-edit-view.market-mode .refresh-btn:hover {
-  background: #38bdf8;
-  color: #000000;
-}
-
-/* Data Bubbles */
-.data-bubbles {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  flex: 1;
-}
-
-.data-bubble {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  padding: 18px;
-  cursor: grab;
-  transition: all 0.3s ease;
-}
-
-.data-bubble:hover {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-2px);
-}
-
-.research-edit-view.market-mode .data-bubble:hover {
-  border-color: rgba(34, 211, 238, 0.4);
-}
-
-.data-bubble:active {
-  cursor: grabbing;
-  transform: scale(0.98);
-}
-
-.bubble-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.bubble-icon {
-  font-size: 1.5em;
-}
-
-.bubble-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.bubble-category-badge {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7em;
-  color: #a3a3a3;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.bubble-time {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7em;
-  color: #525252;
-}
-
-.bubble-title {
-  font-family: 'Cinzel', serif;
-  font-size: 0.9em;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 12px;
-  letter-spacing: 0.5px;
-}
-
-/* Period Toggle Row for Financial Statements */
-.bubble-period-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.period-toggle {
-  display: flex;
-  gap: 8px;
-}
-
-.bubble-meta-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.period-btn {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75em;
-  font-weight: 600;
-  padding: 6px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  border-radius: 20px;
-  background: transparent;
-  color: #10b981;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.period-btn:hover {
-  border-color: rgba(0, 0, 0, 0.5);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.period-btn.active {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #10b981;
-}
-
-.bubble-subtitle {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.8em;
-  color: #525252;
-  margin-bottom: 15px;
-}
-
-.bubble-data {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.bubble-data-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.03);
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.data-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7em;
-  color: #737373;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.data-value {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.9em;
-  font-weight: 700;
-  color: #000000;
-}
-
-.data-value.positive {
-  color: #10b981;
-}
-
-.data-value.negative {
-  color: #ef4444;
-}
-
-.no-bubbles {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  flex: 1;
-}
-
-.lock-icon {
-  font-size: 4em;
-  margin-bottom: 10px;
-  opacity: 0.6;
-}
-
-.folder-icon {
-  font-size: 3em;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-.no-data-text {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85em;
-  color: #737373;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Research Chatbox */
-.research-chatbox {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  flex: 1;
-  min-height: 0;
-}
-
-.chatbox-messages {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 10px 0;
-  margin-bottom: 15px;
-}
-
-.chat-message {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  max-width: 85%;
-}
-
-.user-message {
-  align-self: flex-end;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-.assistant-message {
-  align-self: flex-start;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.message-content {
-  font-family: 'Lora', serif;
-  font-size: 0.9em;
-  color: #1a1a1a;
-  line-height: 1.5;
-}
-
-.message-time {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7em;
-  color: #737373;
-  margin-top: 4px;
-}
-
-.chatbox-input {
-  display: flex;
-  gap: 8px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.chat-input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85em;
-  color: #1a1a1a;
-  background: rgba(0, 0, 0, 0.02);
-  outline: none;
-}
-
-.chat-input:focus {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: rgba(0, 0, 0, 0.03);
-}
-
-.chat-input::placeholder {
-  color: #737373;
-}
-
-.chat-send-btn {
-  padding: 10px 14px;
-  background: #f59e0b;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #000000;
-  transition: all 0.2s;
-}
-
-.chat-send-btn:hover {
-  background: #fbbf24;
-  transform: scale(1.05);
-}
-
-.chat-send-btn:active {
-  transform: scale(0.98);
-}
-
-.chat-s.refresh-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.05);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.refresh-btn .spinner {
-  display: inline-block;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-
-/* Sidebar Footer */
-.sidebar-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  margin-top: auto;
-}
-
-.encryption-text {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75em;
-  color: #737373;
-}
-
-.sync-status {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75em;
-  font-weight: 600;
-}
-
-.sync-status.synced {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
 
 /* Status Bar */
 .status-bar {
@@ -2520,24 +1350,20 @@ onMounted(() => {
 }
 
 /* Scrollbar Styling */
-.editor-panel::-webkit-scrollbar,
-.data-sidebar::-webkit-scrollbar {
+.editor-panel::-webkit-scrollbar {
   width: 6px;
 }
 
-.editor-panel::-webkit-scrollbar-track,
-.data-sidebar::-webkit-scrollbar-track {
+.editor-panel::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.editor-panel::-webkit-scrollbar-thumb,
-.data-sidebar::-webkit-scrollbar-thumb {
+.editor-panel::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 3px;
 }
 
-.editor-panel::-webkit-scrollbar-thumb:hover,
-.data-sidebar::-webkit-scrollbar-thumb:hover {
+.editor-panel::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
 }
 

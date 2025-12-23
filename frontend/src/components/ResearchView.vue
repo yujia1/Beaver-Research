@@ -18,73 +18,27 @@
 </template>
 
 <script setup>
-import API_BASE_URL from '@/config/api.js'
-
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ResearchEditView from './ResearchEditView.vue'
 import PaymentGate from './PaymentGate.vue'
+import { usePayment } from '@/composables/usePayment.js'
 
-const router = useRouter()
 const { t } = useI18n()
+const { hasPaid, loading, checkPaymentStatus, setupPaymentListeners } = usePayment()
 
 // State Management - Lifted to parent
-const viewMode = ref('COMPANY') // 'COMPANY' | 'MARKET'
-const activeAgent = ref('FUNDAMENTAL_AGENT')
+const viewMode = ref('EDIT') // 'EDIT' | 'PREVIEW'
+const activeAgent = ref('MANAGEMENT_AGENT')
 const ticker = ref('TSLA')
 
-const hasPaid = ref(false)
-const loading = ref(true)
-
 const viewModeClass = computed(() => {
-  return viewMode.value === 'COMPANY' ? 'company-mode' : 'market-mode'
+  return viewMode.value === 'EDIT' ? 'edit-mode' : 'preview-mode'
 })
-
-const checkPaymentStatus = async () => {
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    router.push('/login')
-    return
-  }
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/payment-status`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    
-    if (response.ok) {
-      const status = await response.json()
-      // Grant access if paid OR if user is admin/creator
-      if (status.role === 'admin' || status.role === 'creator') {
-        hasPaid.value = true
-      } else {
-        hasPaid.value = status.has_paid || false
-      }
-    } else if (response.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('user')
-      router.push('/login')
-    }
-  } catch (error) {
-    console.error('Error checking payment status:', error)
-    // On error, allow access (fail open) - you can change this to fail closed
-    hasPaid.value = true
-  } finally {
-    loading.value = false
-  }
-}
 
 onMounted(() => {
   checkPaymentStatus()
-  
-  // Listen for payment verification events
-  window.addEventListener('payment-verified', () => {
-    checkPaymentStatus()
-  })
+  setupPaymentListeners()
 })
 </script>
 
@@ -100,12 +54,12 @@ onMounted(() => {
 }
 
 /* Theme Colors - Adjusted for light mode financial terminal look */
-.research-view.company-mode {
+.research-view.edit-mode {
   --accent-color: #000000;
   --accent-glow: rgba(0, 0, 0, 0.1);
 }
 
-.research-view.market-mode {
+.research-view.preview-mode {
   --accent-color: #3498db;
   --accent-glow: rgba(52, 152, 219, 0.1);
 }

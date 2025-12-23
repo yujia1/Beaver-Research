@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from routers.auth import verify_premium_access
 import models
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import openai
 import os
 from datetime import datetime, timedelta
@@ -69,6 +69,63 @@ class InterpretRequest(BaseModel):
     view_mode: str  # 'COMPANY' | 'MARKET'
     ticker: Optional[str] = None
     context: Optional[str] = ""
+
+class ChatRequest(BaseModel):
+    message: str
+    agent_id: str
+    ticker: Optional[str] = None
+    view_mode: str = "COMPANY"
+    history: Optional[List[Dict[str, str]]] = None
+
+@router.post("/chat")
+async def chat_interaction(
+    request: ChatRequest,
+    current_user: models.User = Depends(verify_premium_access)
+):
+    """
+    Direct chat interaction with specific agents.
+    """
+    try:
+        client = get_openai_client()
+        
+        agent_config = None
+        if request.view_mode in ["COMPANY", "EDIT"]:
+            agent_config = COMPANY_AGENTS.get(request.agent_id)
+        else:
+            agent_config = MARKET_AGENTS.get(request.agent_id)
+            
+        agent_name = agent_config["name"] if agent_config else "Research Assistant"
+        agent_focus = ", ".join(agent_config["focus"]) if agent_config else "general assistance"
+        agent_tone = agent_config.get("tone", "professional") if agent_config else "professional"
+        
+        system_content = f"You are {agent_name}. Your focus is {agent_focus}. " \
+                         f"Your tone is {agent_tone}. " \
+                         f"You are assisting with analysis for {request.ticker or 'the market'}."
+
+        messages = [{"role": "system", "content": system_content}]
+        
+        if request.history:
+            # Filter valid roles
+            valid_history = [
+                msg for msg in request.history 
+                if msg.get("role") in ["user", "assistant"] and msg.get("content")
+            ]
+            messages.extend(valid_history[-10:])
+            
+        messages.append({"role": "user", "content": request.message})
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=800
+        )
+        
+        return {"response": response.choices[0].message.content}
+        
+    except Exception as e:
+        print(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Initialize Engine
 engine = ResearchEngine()
