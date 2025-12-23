@@ -1771,30 +1771,34 @@ const formatKey = (key) => {
   border-collapse: collapse;
 }
 
-.period-header {
+/* Calendar Analysis Specific Styles */
+.calendar-analysis .period-header {
   background: #f8fafc;
   padding: 1rem;
-  text-align: left;
+  text-align: left !important;
+  vertical-align: middle !important;
   font-weight: 600;
   color: #475569;
   border-bottom: 2px solid #e2e8f0;
   white-space: nowrap;
 }
 
-.data-row {
+.calendar-analysis .data-row {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.data-row:last-child {
+.calendar-analysis .data-row:last-child {
   border-bottom: none;
 }
 
-.data-row:hover {
+.calendar-analysis .data-row:hover {
   background: #f8fafc;
 }
 
-.data-cell {
+.calendar-analysis .data-cell {
   padding: 1rem;
   color: #1e293b;
+  text-align: left !important;
+  vertical-align: middle !important;
 }
 </style>
