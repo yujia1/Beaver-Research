@@ -15,6 +15,9 @@ export function useFinancialData() {
     const filings = ref([])
     const keyMetrics = ref([])
     const financialRatios = ref([])
+    const earnings = ref([])
+    const dividends = ref([])
+    const splits = ref([])
 
     const fetchFinancialData = async (tickerValue, periodValue) => {
         if (!tickerValue || String(tickerValue).trim() === '') {
@@ -49,6 +52,9 @@ export function useFinancialData() {
             filings.value = data.filings || []
             keyMetrics.value = data.key_metrics || []
             financialRatios.value = data.financial_ratios || []
+            earnings.value = data.earnings || []
+            dividends.value = data.dividends || []
+            splits.value = data.splits || []
         } catch (err) {
             error.value = err.message
             console.error('Error fetching financial data:', err)
@@ -69,6 +75,9 @@ export function useFinancialData() {
         filings,
         keyMetrics,
         financialRatios,
+        earnings,
+        dividends,
+        splits,
         fetchFinancialData
     }
 }

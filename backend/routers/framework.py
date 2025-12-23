@@ -327,6 +327,31 @@ async def get_financial_ratios_analysis(ticker: str):
     return final_data
 
 
+
+@router.get("/earnings/{ticker}")
+async def get_earnings_data(ticker: str):
+    """Fetch earnings data"""
+    ticker = ticker.upper()
+    data = await fetch_fmp_data("earnings", {"symbol": ticker})
+    return {"ticker": ticker, "data": data if data else []}
+
+
+@router.get("/dividends/{ticker}")
+async def get_stock_dividends(ticker: str):
+    """Fetch dividends data"""
+    ticker = ticker.upper()
+    data = await fetch_fmp_data("dividends", {"symbol": ticker})
+    return {"ticker": ticker, "data": data if data else []}
+
+
+@router.get("/splits/{ticker}")
+async def get_stock_splits(ticker: str):
+    """Fetch splits data"""
+    ticker = ticker.upper()
+    data = await fetch_fmp_data("splits", {"symbol": ticker})
+    return {"ticker": ticker, "data": data if data else []}
+
+
 @router.get("/revenue-segmentation/{ticker}")
 async def get_revenue_segmentation(
     ticker: str
@@ -369,6 +394,9 @@ async def get_all_statements(
         # filings = await get_sec_filings(ticker)
         key_metrics = await get_key_metrics_ttm(ticker)
         financial_ratios = await get_financial_ratios_analysis(ticker)
+        earnings = await get_earnings_data(ticker)
+        dividends = await get_stock_dividends(ticker)
+        splits = await get_stock_splits(ticker)
         
         return {
             "ticker": ticker,
@@ -383,7 +411,10 @@ async def get_all_statements(
             "mergers_acquisitions": mergers_acquisitions["data"],
             "filings": [],
             "key_metrics": key_metrics["data"],
-            "financial_ratios": financial_ratios
+            "financial_ratios": financial_ratios,
+            "earnings": earnings["data"],
+            "dividends": dividends["data"],
+            "splits": splits["data"]
         }
     except HTTPException as e:
         raise e

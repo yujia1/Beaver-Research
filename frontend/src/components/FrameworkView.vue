@@ -36,6 +36,9 @@ const {
   filings,
   keyMetrics,
   financialRatios,
+  earnings,
+  dividends,
+  splits,
   fetchFinancialData: fetchFinData 
 } = useFinancialData()
 
@@ -292,6 +295,9 @@ const formatFilingDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString()
 }
 
+const calendarTab = ref('earning')
+
+
 // Ratio Logic
 const ratioTab = ref('key_matrix')
 
@@ -505,6 +511,12 @@ const formatKey = (key) => {
             Ratio
           </button>
           <button
+            :class="['main-tab', { active: mainTab === 'calendar' }]"
+            @click="mainTab = 'calendar'"
+          >
+            Calendar
+          </button>
+          <button
             :class="['main-tab', { active: mainTab === 'filling' }]"
             @click="mainTab = 'filling'"
           >
@@ -654,6 +666,92 @@ const formatKey = (key) => {
             </div>
             <p v-else class="placeholder-text">No financial ratio comparison data available</p>
          </div>
+      </div>
+
+      <!-- Calendar Content -->
+      <div v-if="mainTab === 'calendar'" class="calendar-analysis">
+          <div class="profile-tabs" style="margin-bottom: 20px;">
+             <button class="profile-tab" :class="{ active: calendarTab === 'earning' }" @click="calendarTab = 'earning'">Earning</button>
+             <button class="profile-tab" :class="{ active: calendarTab === 'dividends' }" @click="calendarTab = 'dividends'">Dividends</button>
+             <button class="profile-tab" :class="{ active: calendarTab === 'splits' }" @click="calendarTab = 'splits'">Splits</button>
+          </div>
+
+          <!-- Earning -->
+          <div v-if="calendarTab === 'earning'">
+             <div v-if="earnings && earnings.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header">Date</th>
+                         <th class="period-header">EPS Actual</th>
+                         <th class="period-header">EPS Estimated</th>
+                         <th class="period-header">Revenue Actual</th>
+                         <th class="period-header">Revenue Estimated</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(item, index) in earnings" :key="index" class="data-row">
+                         <td class="data-cell">{{ formatFilingDate(item.date) }}</td>
+                         <td class="data-cell">{{ item.epsActual !== null ? item.epsActual : '-' }}</td>
+                         <td class="data-cell">{{ item.epsEstimated !== null ? item.epsEstimated : '-' }}</td>
+                         <td class="data-cell">{{ item.revenueActual !== null ? formatMetric(item.revenueActual) : '-' }}</td>
+                         <td class="data-cell">{{ item.revenueEstimated !== null ? formatMetric(item.revenueEstimated) : '-' }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else class="placeholder-text">No earnings data available</p>
+          </div>
+
+          <!-- Dividends -->
+          <div v-if="calendarTab === 'dividends'">
+             <div v-if="dividends && dividends.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header">Date</th>
+                         <th class="period-header">Dividend</th>
+                         <th class="period-header">Record Date</th>
+                         <th class="period-header">Payment Date</th>
+                         <th class="period-header">Declaration Date</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(item, index) in dividends" :key="index" class="data-row">
+                         <td class="data-cell">{{ formatFilingDate(item.date) }}</td>
+                         <td class="data-cell">{{ item.dividend }}</td>
+                         <td class="data-cell">{{ formatFilingDate(item.recordDate) }}</td>
+                         <td class="data-cell">{{ formatFilingDate(item.paymentDate) }}</td>
+                         <td class="data-cell">{{ formatFilingDate(item.declarationDate) }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else class="placeholder-text">No dividends data available</p>
+          </div>
+
+          <!-- Splits -->
+          <div v-if="calendarTab === 'splits'">
+             <div v-if="splits && splits.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header">Date</th>
+                         <th class="period-header">Numerator</th>
+                         <th class="period-header">Denominator</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(item, index) in splits" :key="index" class="data-row">
+                         <td class="data-cell">{{ formatFilingDate(item.date) }}</td>
+                         <td class="data-cell">{{ item.numerator }}</td>
+                         <td class="data-cell">{{ item.denominator }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else class="placeholder-text">No splits data available</p>
+          </div>
       </div>
 
       <!-- Filling Content -->
@@ -1659,5 +1757,44 @@ const formatKey = (key) => {
 .filing-link a:hover {
   color: #35a372;
   text-decoration: underline;
+}
+
+.data-table-wrapper {
+  margin-top: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.period-header {
+  background: #f8fafc;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.data-row {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.data-row:last-child {
+  border-bottom: none;
+}
+
+.data-row:hover {
+  background: #f8fafc;
+}
+
+.data-cell {
+  padding: 1rem;
+  color: #1e293b;
 }
 </style>
