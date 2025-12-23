@@ -44,7 +44,7 @@
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
-                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">Loading report...</div>
+                                <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">{{ t('reports_page.loading_single') }}</div>
                                 <div v-else class="report-body">
                                     <iframe 
                                         v-if="getReportPdfUrl(savedReport)" 
@@ -52,7 +52,7 @@
                                         class="pdf-viewer"
                                         frameborder="0"
                                     ></iframe>
-                                    <div v-else class="report-error">PDF not available</div>
+                                    <div v-else class="report-error">{{ t('reports_page.pdf_unavailable') }}</div>
                                 </div>
                             </div>
                         </li>
@@ -394,6 +394,17 @@ const toggleReport = async (savedReportSummary) => {
     
     // Mark as loaded (PDFs are loaded via iframe src, no need to fetch content)
     loadingReportsById.value[reportId] = false;
+};
+
+const getReportContent = (savedReport) => {
+    if (!savedReport) return '';
+    const content = savedReport.content || savedReport.body || ''; 
+    if (!content) return '<p>No content available.</p>';
+    try {
+        return marked.parse(content);
+    } catch (e) {
+        return content;
+    }
 };
 
 const getReportPdfUrl = (savedReportSummary) => {
