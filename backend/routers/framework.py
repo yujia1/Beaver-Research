@@ -290,17 +290,17 @@ async def get_financial_ratios_analysis(ticker: str):
     
     # 1. Get Peers
     try:
-        peers_data = await fetch_fmp_v4_data("stock-peers", {"symbol": ticker})
+        peers_data = await fetch_fmp_data("stock-peers", {"symbol": ticker})
         peers = []
-        if peers_data and isinstance(peers_data, list) and len(peers_data) > 0:
-            # FMP structure: [{"symbol": "AAPL", "peersList": [...]}]
-            peers = peers_data[0].get("peersList", [])
+        if peers_data and isinstance(peers_data, list):
+             # Response is list of peer objects: [{"symbol": "PEER1", ...}, ...]
+             peers = [p.get("symbol") for p in peers_data if p.get("symbol")]
     except Exception as e:
         print(f"Error fetching peers: {e}")
         peers = []
 
     # Limit peers to keep table manageable (e.g. 4 peers)
-    target_tickers = [ticker] + peers[:4]
+    target_tickers = [ticker] + peers[:6]
     
     # 2. Fetch Ratios for each
     tasks = []
