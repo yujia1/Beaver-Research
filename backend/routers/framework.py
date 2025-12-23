@@ -459,6 +459,29 @@ async def get_insider_trading(ticker: str, page: int = 0, limit: int = 50):
         return {"ticker": ticker, "data": []}
 
 
+async def get_fmp_filings(ticker: str, limit: int = 100) -> List[Dict]:
+    """Fetch SEC filings from FMP"""
+    ticker = ticker.upper()
+    endpoint = f"sec_filings/{ticker}"
+    params = {"limit": limit}
+
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        if isinstance(data, list):
+            mapped_data = []
+            for item in data:
+                mapped_data.append({
+                    "type": item.get("type"),
+                    "date": item.get("fillingDate", "").split(" ")[0],
+                    "link": item.get("finalLink"),
+                    "symbol": item.get("symbol")
+                })
+            return mapped_data
+    except Exception as e:
+        print(f"Error fetching FMP filings: {e}")
+
+    return []
+
 @router.get("/all/{ticker}")
 async def get_all_statements(
     ticker: str,
@@ -480,15 +503,9 @@ async def get_all_statements(
         employee_count = await get_employee_count(ticker)
         mergers_acquisitions = {"data": []} # await get_mergers_acquisitions(ticker)
         
-        # Fetch Filings
-        filings_data = []
-        try:
-             if 'loop' not in locals():
-                 loop = asyncio.get_running_loop()
-             filings_data = await loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
-        except Exception as e:
-             print(f"Error fetching filings: {e}")
-             filings_data = []
+        # Fetch Filings from FMP
+        filings_data = await get_fmp_filings(ticker, 100)
+
 
         key_metrics = await get_key_metrics_ttm(ticker)
         financial_ratios = await get_financial_ratios_analysis(ticker)

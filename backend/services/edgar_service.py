@@ -13,7 +13,8 @@ class EdgarService:
     def __init__(self):
         # SEC requires a User-Agent with contact info (email)
         self.headers = {
-            "User-Agent": "FinancialDashboard contact@example.com"  # Replace with valid email in prod
+            "User-Agent": "BeaverResearch beaver@research.com",
+            "Accept-Encoding": "gzip, deflate"
         }
         self.cik_map = {}
         self._load_cik_map()
@@ -164,39 +165,49 @@ class EdgarService:
         """
         Find a section in the 10-K by searching for various patterns.
         Returns the text content of the section.
+        Skips Table of Contents entries by filtering out short matches.
         """
         text_content = soup.get_text()
+        best_match = ""
         
         for pattern in patterns:
-            # Try to find the section using regex
-            # Look for patterns like "Item 1.", "ITEM 1", "Item 1A", etc.
-            # Escape the pattern and create regex that matches until next Item or PART
             escaped_pattern = re.escape(pattern)
+            
+            # Regex to match from pattern until the next Item or PART
             regex_patterns = [
-                rf"{escaped_pattern}.*?(?=(?:Item\s+\d+[A-Z]?\.|PART\s+[IVX]+|$))",
-                rf"{escaped_pattern}.*",
+                rf"{escaped_pattern}.*?(?=(?:Item\s+\d+[A-Z]?\.|PART\s+[IVX]+|$))"
             ]
             
             for regex_pattern in regex_patterns:
                 try:
-                    match = re.search(regex_pattern, text_content, re.DOTALL | re.IGNORECASE)
-                    if match:
+                    # Use finditer to find all occurrences (TOC + Content)
+                    matches = list(re.finditer(regex_pattern, text_content, re.DOTALL | re.IGNORECASE))
+                    
+                    for match in matches:
                         section_text = match.group(0)
+                        
                         # Clean up
                         section_text = re.sub(r'\n{3,}', '\n\n', section_text)
                         section_text = re.sub(r' +', ' ', section_text)
+                        stripped = section_text.strip()
                         
-                        # Truncate if too long
-                        if len(section_text) > max_length:
-                            section_text = section_text[:max_length] + "\n\n[Section truncated due to length...]"
+                        # Heuristic: TOC entries are usually short (< 1000 chars)
+                        # Actual Business section is usually much longer.
+                        if len(stripped) > 1000:
+                            # Found likely content
+                            if len(stripped) > max_length:
+                                stripped = stripped[:max_length] + "\n\n[Section truncated due to length...]"
+                            return stripped
                         
-                        return section_text.strip()
+                        # Store short match as fallback (though unlikely to be what we want if < 1000)
+                        if len(stripped) > len(best_match):
+                            best_match = stripped
+                            
                 except re.error as e:
-                    # Skip invalid regex patterns
                     print(f"Regex error for pattern '{pattern}': {e}")
                     continue
         
-        return ""
+        return best_match
 
     def get_latest_10k_content(self, ticker: str, max_chunk_length: int = 50000) -> Optional[Dict[str, str]]:
         """
