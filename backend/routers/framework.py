@@ -42,6 +42,39 @@ async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[D
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
 
+async def fetch_fmp_v4_data(endpoint: str, params: Dict[str, Any] = None) -> List[Dict]:
+    """
+    Fetch data from Financial Modeling Prep API v4
+    """
+    if not FMP_API_KEY:
+        raise HTTPException(status_code=500, detail="FMP_API_KEY not configured")
+    
+    if params is None:
+        params = {}
+    
+    params["apikey"] = FMP_API_KEY
+    
+    url = f"https://financialmodelingprep.com/api/v4/{endpoint}"
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if isinstance(data, dict) and "Error Message" in data:
+                raise HTTPException(status_code=400, detail=data["Error Message"])
+            
+            return data if isinstance(data, list) else []
+    except httpx.HTTPStatusError as e:
+         # Log but don't crash, return empty list for peers if v4 fails
+        print(f"FMP V4 API error: {str(e)}")
+        return []
+    except Exception as e:
+        print(f"Error fetching v4 data: {str(e)}")
+        return []
+
+
 
 @router.get("/income-statement/{ticker}")
 async def get_income_statement(
@@ -257,7 +290,7 @@ async def get_financial_ratios_analysis(ticker: str):
     
     # 1. Get Peers
     try:
-        peers_data = await fetch_fmp_data("stock-peers", {"symbol": ticker})
+        peers_data = await fetch_fmp_v4_data("stock-peers", {"symbol": ticker})
         peers = []
         if peers_data and isinstance(peers_data, list) and len(peers_data) > 0:
             # FMP structure: [{"symbol": "AAPL", "peersList": [...]}]
