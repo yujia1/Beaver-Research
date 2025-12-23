@@ -33,6 +33,7 @@ const {
   revenueSegmentation, 
   employeeCount, 
   mergersAcquisitions,
+  filings,
   fetchFinancialData: fetchFinData 
 } = useFinancialData()
 
@@ -250,6 +251,44 @@ const changePeriod = (newPeriod) => {
     fetchFinancialData()
   }
 }
+
+// Filings Logic
+const filingsSortField = ref('date')
+const filingsSortDirection = ref('desc')
+
+const sortedFilings = computed(() => {
+  if (!filings.value) return []
+  return [...filings.value].sort((a, b) => {
+    let valA = a[filingsSortField.value]
+    let valB = b[filingsSortField.value]
+    
+    if (valA === valB) return 0
+    let comparison = 0
+    if (valA > valB) comparison = 1
+    else comparison = -1
+    
+    return filingsSortDirection.value === 'asc' ? comparison : -comparison
+  })
+})
+
+const sortFilings = (field) => {
+  if (filingsSortField.value === field) {
+    filingsSortDirection.value = filingsSortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    filingsSortField.value = field
+    filingsSortDirection.value = 'desc'
+  }
+}
+
+const getSortIcon = (field) => {
+  if (filingsSortField.value !== field) return '↕'
+  return filingsSortDirection.value === 'asc' ? '↑' : '↓'
+}
+
+const formatFilingDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString()
+}
 </script>
 
 <template>
@@ -315,7 +354,7 @@ const changePeriod = (newPeriod) => {
         </div>
 
         <!-- Sub-tabs and Period Toggle Container -->
-        <div class="sub-tabs-container">
+        <div v-if="['statements', 'fundamental_analysis'].includes(mainTab)" class="sub-tabs-container">
           <!-- Sub-tabs (only show for Financial Statements) -->
           <div v-if="mainTab === 'statements'" class="tabs">
             <button
@@ -413,7 +452,35 @@ const changePeriod = (newPeriod) => {
 
       <!-- Filling Content -->
       <div v-if="mainTab === 'filling'" class="filling-analysis">
-         <p class="placeholder-text">Filling analysis coming soon...</p>
+         <div v-if="filings && filings.length > 0" class="filings-container">
+            <table class="filings-table">
+              <thead>
+                <tr>
+                  <th @click="sortFilings('type')" class="sortable">
+                    Type 
+                    <span class="sort-icon">{{ getSortIcon('type') }}</span>
+                  </th>
+                  <th @click="sortFilings('date')" class="sortable">
+                    Date 
+                    <span class="sort-icon">{{ getSortIcon('date') }}</span>
+                  </th>
+                  <th>Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(filing, index) in sortedFilings" :key="index">
+                  <td class="filing-type">{{ filing.type }}</td>
+                  <td class="filing-date">{{ formatFilingDate(filing.date) }}</td>
+                  <td class="filing-link">
+                    <a v-if="filing.link" :href="filing.link" target="_blank" rel="noopener noreferrer">
+                      View →
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+         </div>
+         <p v-else class="placeholder-text">No filings data available</p>
       </div>
 
       <!-- Fundamental Analysis Tab Content -->
@@ -1304,5 +1371,87 @@ const changePeriod = (newPeriod) => {
   .period-btn {
     flex: 1;
   }
+}
+
+.filings-container {
+  margin-top: 20px;
+}
+
+.filings-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.filings-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.filings-table th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95em;
+  color: white;
+}
+
+.filings-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.filings-table th.sortable:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.filings-table .sort-icon {
+  margin-left: 8px;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.filings-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background 0.2s;
+}
+
+.filings-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.filings-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.filings-table td {
+  padding: 12px 15px;
+  font-size: 0.9em;
+  color: #000;
+}
+
+.filing-type {
+  font-weight: 600;
+  color: #000;
+}
+
+.filing-date {
+  color: #000;
+}
+
+.filing-link a {
+  color: #42b983;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.filing-link a:hover {
+  color: #35a372;
+  text-decoration: underline;
 }
 </style>

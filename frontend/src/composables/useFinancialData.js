@@ -12,6 +12,7 @@ export function useFinancialData() {
     const revenueSegmentation = ref([])
     const employeeCount = ref([])
     const mergersAcquisitions = ref([])
+    const filings = ref([])
 
     const fetchFinancialData = async (tickerValue, periodValue) => {
         if (!tickerValue || String(tickerValue).trim() === '') {
@@ -43,6 +44,7 @@ export function useFinancialData() {
             revenueSegmentation.value = data.revenue_segmentation || []
             employeeCount.value = data.employee_count || []
             mergersAcquisitions.value = data.mergers_acquisitions || []
+            filings.value = data.filings || []
         } catch (err) {
             error.value = err.message
             console.error('Error fetching financial data:', err)
@@ -60,6 +62,7 @@ export function useFinancialData() {
         revenueSegmentation,
         employeeCount,
         mergersAcquisitions,
+        filings,
         fetchFinancialData
     }
 }

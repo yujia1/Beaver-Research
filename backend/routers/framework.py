@@ -193,6 +193,36 @@ async def get_mergers_acquisitions(
     }
 
 
+
+@router.get("/sec-filings/{ticker}")
+async def get_sec_filings(
+    ticker: str,
+    limit: int = 100
+):
+    """
+    Fetch SEC filings for a ticker
+    """
+    ticker = ticker.upper()
+    endpoint = f"sec_filings/{ticker}"
+    params = {"limit": limit}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    formatted_data = []
+    if data:
+        for item in data:
+            formatted_data.append({
+                "type": item.get("type"),
+                "date": item.get("fillingDate") or item.get("date"),
+                "link": item.get("finalLink") or item.get("link")
+            })
+    
+    return {
+        "ticker": ticker,
+        "data": formatted_data
+    }
+
+
 @router.get("/revenue-segmentation/{ticker}")
 async def get_revenue_segmentation(
     ticker: str
@@ -232,6 +262,7 @@ async def get_all_statements(
         earnings_calendar = await get_earnings_calendar(ticker)
         employee_count = await get_employee_count(ticker)
         mergers_acquisitions = await get_mergers_acquisitions()
+        filings = await get_sec_filings(ticker)
         
         return {
             "ticker": ticker,
@@ -243,7 +274,8 @@ async def get_all_statements(
             "dcf": dcf["data"],
             "earnings_calendar": earnings_calendar["data"],
             "employee_count": employee_count["data"],
-            "mergers_acquisitions": mergers_acquisitions["data"]
+            "mergers_acquisitions": mergers_acquisitions["data"],
+            "filings": filings["data"]
         }
     except HTTPException as e:
         raise e
