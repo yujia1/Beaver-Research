@@ -34,6 +34,8 @@ const {
   employeeCount, 
   mergersAcquisitions,
   filings,
+  keyMetrics,
+  financialRatios,
   fetchFinancialData: fetchFinData 
 } = useFinancialData()
 
@@ -289,6 +291,32 @@ const formatFilingDate = (dateStr) => {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString()
 }
+
+// Ratio Logic
+const ratioTab = ref('key_matrix')
+
+const getRatioKeys = computed(() => {
+  if (!financialRatios.value || financialRatios.value.length === 0) return []
+  const first = financialRatios.value[0]
+  // Filter out non-metric keys
+  return Object.keys(first).filter(k => !['symbol', 'date', 'period', 'calendarYear'].includes(k))
+})
+
+const formatMetric = (val) => {
+  if (val === null || val === undefined) return '-'
+  if (typeof val === 'number') {
+    // Large numbers check
+    if (Math.abs(val) > 1000000) return (val / 1000000).toFixed(2) + 'M'
+    return val.toFixed(2)
+  }
+  return val
+}
+
+const formatKey = (key) => {
+  if (!key) return ''
+  // Split camelCase and capitalize
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+}
 </script>
 
 <template>
@@ -447,7 +475,44 @@ const formatFilingDate = (dateStr) => {
 
       <!-- Ratio Content -->
       <div v-if="mainTab === 'ratio'" class="ratio-analysis">
-         <p class="placeholder-text">Ratio analysis coming soon...</p>
+         <div class="profile-tabs" style="margin-bottom: 20px;">
+           <button class="profile-tab" :class="{ active: ratioTab === 'key_matrix' }" @click="ratioTab = 'key_matrix'">Key Matrix</button>
+           <button class="profile-tab" :class="{ active: ratioTab === 'financial_ratio' }" @click="ratioTab = 'financial_ratio'">Financial Ratio</button>
+         </div>
+
+         <!-- Key Matrix -->
+         <div v-if="ratioTab === 'key_matrix'">
+            <div v-if="keyMetrics && keyMetrics.length > 0" class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+              <div v-for="(val, key) in keyMetrics[0]" :key="key" v-show="!['symbol', 'date', 'period'].includes(key)" class="metric-card" style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
+                <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 5px;">{{ formatKey(key) }}</div>
+                <div style="font-size: 1.1em; font-weight: 600; color: #111827;">{{ formatMetric(val) }}</div>
+              </div>
+            </div>
+            <p v-else class="placeholder-text">No key metrics data available</p>
+         </div>
+
+         <!-- Financial Ratio -->
+         <div v-if="ratioTab === 'financial_ratio'">
+            <div v-if="financialRatios && financialRatios.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="line-item-header">Ratio</th>
+                    <th v-for="company in financialRatios" :key="company.symbol" class="period-header">{{ company.symbol }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="key in getRatioKeys" :key="key" class="data-row">
+                    <td class="line-item-cell">{{ formatKey(key) }}</td>
+                    <td v-for="company in financialRatios" :key="company.symbol + key" class="data-cell">
+                      {{ formatMetric(company[key]) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p v-else class="placeholder-text">No financial ratio comparison data available</p>
+         </div>
       </div>
 
       <!-- Filling Content -->

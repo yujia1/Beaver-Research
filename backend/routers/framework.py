@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any, Optional
 import httpx
 import os
+import asyncio
 from datetime import datetime
 
 router = APIRouter()
@@ -223,6 +224,76 @@ async def get_sec_filings(
     }
 
 
+    return {
+        "ticker": ticker,
+        "data": formatted_data
+    }
+
+
+@router.get("/key-metrics-ttm/{ticker}")
+async def get_key_metrics_ttm(
+    ticker: str
+):
+    """
+    Fetch Key Metrics TTM for a ticker
+    """
+    ticker = ticker.upper()
+    endpoint = "key-metrics-ttm"
+    params = {"symbol": ticker}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    return {
+        "ticker": ticker,
+        "data": data if data else []
+    }
+
+
+async def get_financial_ratios_analysis(ticker: str):
+    """
+    Fetch Financial Ratios for ticker and its peers (Comparison)
+    """
+    ticker = ticker.upper()
+    
+    # 1. Get Peers
+    try:
+        peers_data = await fetch_fmp_data("stock-peers", {"symbol": ticker})
+        peers = []
+        if peers_data and isinstance(peers_data, list) and len(peers_data) > 0:
+            # FMP structure: [{"symbol": "AAPL", "peersList": [...]}]
+            peers = peers_data[0].get("peersList", [])
+    except Exception as e:
+        print(f"Error fetching peers: {e}")
+        peers = []
+
+    # Limit peers to keep table manageable (e.g. 4 peers)
+    target_tickers = [ticker] + peers[:4]
+    
+    # 2. Fetch Ratios for each
+    tasks = []
+    for t in target_tickers:
+        # ratios-ttm
+        tasks.append(fetch_fmp_data("ratios-ttm", {"symbol": t}))
+    
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    final_data = []
+    for i, res in enumerate(results):
+        symbol = target_tickers[i]
+        if isinstance(res, Exception):
+            print(f"Error fetching ratios for {symbol}: {res}")
+            continue
+            
+        # res is typically [{"dividendYielTTM": ... }]
+        ratio_obj = res[0] if res and isinstance(res, list) and len(res) > 0 else {}
+        if ratio_obj:
+            # Inject symbol into the object for the frontend to identify column
+            ratio_obj["symbol"] = symbol
+            final_data.append(ratio_obj)
+            
+    return final_data
+
+
 @router.get("/revenue-segmentation/{ticker}")
 async def get_revenue_segmentation(
     ticker: str
@@ -262,7 +333,9 @@ async def get_all_statements(
         earnings_calendar = await get_earnings_calendar(ticker)
         employee_count = await get_employee_count(ticker)
         mergers_acquisitions = await get_mergers_acquisitions()
-        filings = await get_sec_filings(ticker)
+        # filings = await get_sec_filings(ticker)
+        key_metrics = await get_key_metrics_ttm(ticker)
+        financial_ratios = await get_financial_ratios_analysis(ticker)
         
         return {
             "ticker": ticker,
@@ -275,7 +348,9 @@ async def get_all_statements(
             "earnings_calendar": earnings_calendar["data"],
             "employee_count": employee_count["data"],
             "mergers_acquisitions": mergers_acquisitions["data"],
-            "filings": filings["data"]
+            "filings": [],
+            "key_metrics": key_metrics["data"],
+            "financial_ratios": financial_ratios
         }
     except HTTPException as e:
         raise e
