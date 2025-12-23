@@ -359,6 +359,80 @@ const keyMatrixCategories = {
   ]
 }
 
+const financialRatioCategories = {
+  "Profitability & Margins": [
+    { label: "Gross Profit Margin TTM", key: "grossProfitMarginTTM" },
+    { label: "EBIT Margin TTM", key: "ebitMarginTTM" },
+    { label: "EBITDA Margin TTM", key: "ebitdaMarginTTM" },
+    { label: "Operating Profit Margin TTM", key: "operatingProfitMarginTTM" },
+    { label: "Pretax Profit Margin TTM", key: "pretaxProfitMarginTTM" },
+    { label: "Continuous Operations Profit Margin TTM", key: "continuousOperationsProfitMarginTTM" },
+    { label: "Net Profit Margin TTM", key: "netProfitMarginTTM" },
+    { label: "Bottom Line Profit Margin TTM", key: "bottomLineProfitMarginTTM" },
+    { label: "Effective Tax Rate TTM", key: "effectiveTaxRateTTM" },
+    { label: "Net Income Per EBT TTM (Tax Burden)", key: "netIncomePerEBTTTM" },
+    { label: "EBT Per EBIT TTM (Interest Burden)", key: "ebtPerEbitTTM" }
+  ],
+  "Valuation Multiples": [
+    { label: "Price To Earnings (P/E) Ratio TTM", key: "priceEarningsRatioTTM" },
+    { label: "Price To Earnings Growth (PEG) Ratio TTM", key: "priceEarningsToGrowthRatioTTM" },
+    { label: "Price To Book (P/B) Ratio TTM", key: "priceToBookRatioTTM" },
+    { label: "Price To Sales (P/S) Ratio TTM", key: "priceToSalesRatioTTM" },
+    { label: "Price To Free Cash Flow Ratio TTM", key: "priceToFreeCashFlowRatioTTM" },
+    { label: "Price To Operating Cash Flow Ratio TTM", key: "priceToOperatingCashFlowRatioTTM" },
+    { label: "Price To Fair Value TTM", key: "priceToFairValueTTM" },
+    { label: "Enterprise Value Multiple TTM", key: "enterpriseValueMultipleTTM" },
+    { label: "Enterprise Value TTM", key: "enterpriseValueTTM" }
+  ],
+  "Efficiency & Turnover": [
+    { label: "Receivables Turnover TTM", key: "receivablesTurnoverTTM" },
+    { label: "Payables Turnover TTM", key: "payablesTurnoverTTM" },
+    { label: "Inventory Turnover TTM", key: "inventoryTurnoverTTM" },
+    { label: "Fixed Asset Turnover TTM", key: "fixedAssetTurnoverTTM" },
+    { label: "Asset Turnover TTM", key: "assetTurnoverTTM" },
+    { label: "Working Capital Turnover Ratio TTM", key: "workingCapitalTurnoverRatioTTM" }
+  ],
+  "Liquidity & Solvency": [
+    { label: "Current Ratio TTM", key: "currentRatioTTM" },
+    { label: "Quick Ratio TTM", key: "quickRatioTTM" },
+    { label: "Cash Ratio TTM", key: "cashRatioTTM" },
+    { label: "Solvency Ratio TTM", key: "solvencyRatioTTM" }
+  ],
+  "Leverage & Debt Structure": [
+    { label: "Debt To Assets Ratio TTM", key: "debtToAssetsRatioTTM" },
+    { label: "Debt To Equity Ratio TTM", key: "debtToEquityRatioTTM" },
+    { label: "Debt To Capital Ratio TTM", key: "debtToCapitalRatioTTM" },
+    { label: "Long Term Debt To Capital Ratio TTM", key: "longTermDebtToCapitalRatioTTM" },
+    { label: "Financial Leverage Ratio TTM", key: "financialLeverageRatioTTM" },
+    { label: "Debt To Market Cap TTM", key: "debtToMarketCapTTM" }
+  ],
+  "Cash Flow & Coverage Ratios": [
+    { label: "Operating Cash Flow Ratio TTM", key: "operatingCashFlowRatioTTM" },
+    { label: "Operating Cash Flow Sales Ratio TTM", key: "operatingCashFlowSalesRatioTTM" },
+    { label: "Free Cash Flow / Operating Cash Flow Ratio TTM", key: "freeCashFlowOperatingCashFlowRatioTTM" },
+    { label: "Debt Service Coverage Ratio TTM", key: "debtServiceCoverageRatioTTM" },
+    { label: "Interest Coverage Ratio TTM", key: "interestCoverageRatioTTM" },
+    { label: "Short Term Operating Cash Flow Coverage Ratio TTM", key: "shortTermOperatingCashFlowCoverageRatioTTM" },
+    { label: "Operating Cash Flow Coverage Ratio TTM", key: "operatingCashFlowCoverageRatioTTM" },
+    { label: "Capital Expenditure Coverage Ratio TTM", key: "capitalExpenditureCoverageRatioTTM" },
+    { label: "Dividend Paid And Capex Coverage Ratio TTM", key: "dividendPaidAndCapexCoverageRatioTTM" },
+    { label: "Dividend Payout Ratio TTM", key: "dividendPayoutRatioTTM" },
+    { label: "Dividend Yield TTM", key: "dividendYieldTTM" }
+  ],
+  "Per Share Data": [
+    { label: "Revenue Per Share TTM", key: "revenuePerShareTTM" },
+    { label: "Net Income Per Share TTM", key: "netIncomePerShareTTM" },
+    { label: "Interest Debt Per Share TTM", key: "interestDebtPerShareTTM" },
+    { label: "Cash Per Share TTM", key: "cashPerShareTTM" },
+    { label: "Book Value Per Share TTM", key: "bookValuePerShareTTM" },
+    { label: "Tangible Book Value Per Share TTM", key: "tangibleBookValuePerShareTTM" },
+    { label: "Shareholders Equity Per Share TTM", key: "shareholdersEquityPerShareTTM" },
+    { label: "Operating Cash Flow Per Share TTM", key: "operatingCashFlowPerShareTTM" },
+    { label: "Capex Per Share TTM", key: "capexPerShareTTM" },
+    { label: "Free Cash Flow Per Share TTM", key: "freeCashFlowPerShareTTM" }
+  ]
+}
+
 const formatMetric = (val) => {
   if (val === null || val === undefined) return '-'
   if (typeof val === 'number') {
@@ -564,12 +638,17 @@ const formatKey = (key) => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="key in getRatioKeys" :key="key" class="data-row">
-                    <td class="line-item-cell">{{ formatKey(key) }}</td>
-                    <td v-for="company in financialRatios" :key="company.symbol + key" class="data-cell">
-                      {{ formatMetric(company[key]) }}
-                    </td>
-                  </tr>
+                  <template v-for="(items, category) in financialRatioCategories" :key="category">
+                    <tr class="section-header" style="background-color: #f3f4f6;">
+                      <td :colspan="financialRatios.length + 1" style="font-weight: 600; color: #374151; padding: 12px 15px;">{{ category }}</td>
+                    </tr>
+                    <tr v-for="item in items" :key="item.key" class="data-row">
+                      <td class="line-item-cell">{{ item.label }}</td>
+                      <td v-for="company in financialRatios" :key="company.symbol + item.key" class="data-cell">
+                        {{ formatMetric(company[item.key]) }}
+                      </td>
+                    </tr>
+                  </template>
                 </tbody>
               </table>
             </div>
