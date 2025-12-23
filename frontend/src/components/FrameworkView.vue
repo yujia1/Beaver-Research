@@ -39,6 +39,7 @@ const {
   earnings,
   dividends,
   splits,
+  businessDescription,
   fetchFinancialData: fetchFinData 
 } = useFinancialData()
 
@@ -804,18 +805,15 @@ const formatKey = (key) => {
             >
               {{ t('framework.profile_tabs.employee_count') }}
             </button>
-            <button
-              :class="['profile-tab', { active: profileTab === 'mergers_acquisitions' }]"
-              @click="profileTab = 'mergers_acquisitions'"
-            >
-              {{ t('framework.profile_tabs.mergers_acquisitions') }}
-            </button>
           </div>
 
           <div class="profile-content">
             <!-- Business Tab -->
             <div v-if="profileTab === 'business'">
-              <p class="placeholder-text">Company business information coming soon...</p>
+              <div v-if="businessDescription" class="business-description">
+                <p style="white-space: pre-line; margin-bottom: 2rem; color: #4b5563; line-height: 1.6;">{{ businessDescription }}</p>
+              </div>
+              <p v-else class="placeholder-text">Company business information coming soon...</p>
             </div>
 
             <!-- Employee Count Tab -->
@@ -831,26 +829,7 @@ const formatKey = (key) => {
               <p v-else class="placeholder-text">No employee count data available</p>
             </div>
 
-            <!-- Mergers & Acquisitions Tab -->
-            <div v-if="profileTab === 'mergers_acquisitions'">
-              <div v-if="mergersAcquisitions.length > 0" class="data-table-wrapper" style="margin-top: 1rem;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th class="line-item-header">Company Name</th>
-                      <th class="period-header">Transaction Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="ma in mergersAcquisitions.slice(0, 10)" :key="ma.transactionDate || ma.symbol" class="data-row">
-                      <td class="line-item-cell">{{ ma.companyName || ma.symbol || 'Unknown' }}</td>
-                      <td class="data-cell">{{ ma.transactionDate || '-' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <p v-else class="placeholder-text">No M&A data available</p>
-            </div>
+
           </div>
         </div>
 

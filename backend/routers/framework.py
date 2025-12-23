@@ -4,6 +4,7 @@ import httpx
 import os
 import asyncio
 from datetime import datetime
+from backend.services.edgar_service import edgar_service
 
 router = APIRouter()
 
@@ -211,20 +212,36 @@ async def get_employee_count(
 
 @router.get("/mergers-acquisitions")
 async def get_mergers_acquisitions(
-    page: int = 0,
+    ticker: str,
     limit: int = 10
 ):
     """
-    Fetch latest mergers and acquisitions
+    Fetch mergers and acquisitions for a specific ticker
+    If specific search is restricted, we fetch latest global and filter.
     """
-    endpoint = f"mergers-acquisitions-latest"
-    params = {"page": page, "limit": limit}
+    # Fallback to latest global feed as specific search is restricted for some keys
+    endpoint = "mergers-acquisitions-latest"
+    # Fetch a larger batch to filter from
+    params = {"limit": 100}
     
-    data = await fetch_fmp_data(endpoint, params)
-    
-    return {
-        "data": data if data else []
-    }
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        
+        if not data:
+            return {"data": []}
+            
+        # Filter for the requested ticker (either as acquirer or target)
+        filtered_data = [
+            item for item in data 
+            if item.get("symbol") == ticker or item.get("targetedSymbol") == ticker
+        ]
+        
+        return {
+            "data": filtered_data[:limit]
+        }
+    except Exception as e:
+        print(f"Error fetching M&A: {e}")
+        return {"data": []}
 
 
 
@@ -390,16 +407,28 @@ async def get_all_statements(
         dcf = await get_dcf(ticker)
         earnings_calendar = await get_earnings_calendar(ticker)
         employee_count = await get_employee_count(ticker)
-        mergers_acquisitions = await get_mergers_acquisitions()
+        mergers_acquisitions = {"data": []} # await get_mergers_acquisitions(ticker)
         # filings = await get_sec_filings(ticker)
         key_metrics = await get_key_metrics_ttm(ticker)
         financial_ratios = await get_financial_ratios_analysis(ticker)
         earnings = await get_earnings_data(ticker)
         dividends = await get_stock_dividends(ticker)
+        dividends = await get_stock_dividends(ticker)
         splits = await get_stock_splits(ticker)
+
+        # Fetch Business Description from 10-K (Item 1)
+        business_description = ""
+        try:
+            loop = asyncio.get_running_loop()
+            ten_k_content = await loop.run_in_executor(None, edgar_service.get_latest_10k_content, ticker)
+            if ten_k_content and "chunk_a" in ten_k_content:
+                business_description = ten_k_content["chunk_a"]
+        except Exception as e:
+            print(f"Error fetching 10-K content: {e}")
         
         return {
             "ticker": ticker,
+            "business_description": business_description,
             "period": period,
             "income_statement": income["data"],
             "cash_flow": cash_flow["data"],
