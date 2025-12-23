@@ -810,9 +810,25 @@
         "subtitle": "财务数据引擎",
         "ticker_placeholder": "输入股票代码 (例如: TSLA)",
         "search": "搜索",
+        "header": {
+            "title": "股价时间轴",
+            "subtitle": "追踪股价走势及关键指标"
+        },
+        "search_stock": "搜索股票：",
+        "search_action": "搜索",
+        "chart": {
+            "price_timeline": "价格时间轴"
+        },
+        "dataset": {
+            "title": "公司财务数据"
+        },
         "main_tabs": {
             "statements": "财务报表",
-            "fundamental_analysis": "基本面分析"
+            "fundamental_analysis": "基本面分析",
+            "ratio": "财务比率",
+            "calendar": "日历",
+            "filling": "公告文件",
+            "insider": "内部交易"
         },
         "tabs": {
             "core": "核心报表",
@@ -853,6 +869,52 @@
             "capex": "资本支出",
             "valuation": "估值",
             "structure": "结构"
+        },
+        "ratio_tabs": {
+            "key_matrix": "关键矩阵",
+            "financial_ratio": "财务比率"
+        },
+        "filings": {
+            "filter_label": "筛选类型：",
+            "all_types": "所有类型",
+            "date": "日期",
+            "type": "类型",
+            "link": "链接",
+            "view_filing": "查看文件",
+            "no_data": "暂无公告数据"
+        },
+        "insider": {
+            "filing_date": "报告日期",
+            "trans_date": "交易日期",
+            "type": "类型",
+            "securities_owned": "持有股数",
+            "reporting_name": "报告人姓名",
+            "owner_type": "持有者类型",
+            "transacted": "交易股数",
+            "price": "价格",
+            "acq_disp": "买入/卖出",
+            "no_data": "暂无内部交易数据"
+        },
+        "calendar_tabs": {
+            "earning": "财报",
+            "dividends": "分红",
+            "splits": "拆股"
+        },
+        "calendar_data": {
+            "date": "日期",
+            "eps_actual": "每股收益(实)",
+            "eps_estimated": "每股收益(预)",
+            "revenue_actual": "营收(实)",
+            "revenue_estimated": "营收(预)",
+            "dividend": "分红",
+            "record_date": "登记日",
+            "payment_date": "支付日",
+            "declaration_date": "公告日",
+            "numerator": "分子",
+            "denominator": "分母",
+            "no_earning": "暂无财报数据",
+            "no_dividend": "暂无分红数据",
+            "no_split": "暂无拆股数据"
         }
     }
 }

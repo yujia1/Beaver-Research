@@ -491,8 +491,8 @@ const formatKey = (key) => {
     <div class="custom-header">
        <div class="header-content">
           <div class="header-left">
-             <h1>STOCK PRICE TIMELINE</h1>
-             <p>Track stock price movements and key metrics over time</p>
+             <h1>{{ t('framework.header.title') }}</h1>
+             <p>{{ t('framework.header.subtitle') }}</p>
           </div>
           <div class="header-right" v-if="latestPriceData">
              <div class="price-top">
@@ -513,7 +513,7 @@ const formatKey = (key) => {
 
     <!-- Search Bar -->
     <div class="search-box-section">
-       <span class="search-label">SEARCH STOCK:</span>
+       <span class="search-label">{{ t('framework.search_stock') }}</span>
        <div class="input-group">
           <input
             v-model="ticker"
@@ -523,7 +523,7 @@ const formatKey = (key) => {
             @keyup.enter="handleSearch"
           />
           <button @click="handleSearch" class="styled-search-btn" :disabled="loading">
-            SEARCH
+            {{ t('framework.search_action') }}
           </button>
        </div>
     </div>
@@ -533,7 +533,7 @@ const formatKey = (key) => {
       <!-- 3. Chart Section -->
       <div class="section-card chart-section-card">
          <div class="section-header-row">
-             <h3>{{ ticker.toUpperCase() }} - {{ new Date().getFullYear() }} PRICE TIMELINE</h3>
+             <h3>{{ ticker.toUpperCase() }} - {{ new Date().getFullYear() }} {{ t('framework.chart.price_timeline') }}</h3>
          </div>
          <PriceVolumeChart 
            :data="historicalPrice" 
@@ -544,10 +544,10 @@ const formatKey = (key) => {
       <!-- 4. Dataset Section -->
       <div class="section-card dataset-section-card">
          <div class="section-header-row">
-             <h3>COMPANY FINANCIAL Data</h3>
+             <h3>{{ t('framework.dataset.title') }}</h3>
              <div v-if="['statements'].includes(mainTab)" class="period-toggle-badge">
-                 <button :class="{ active: period === 'annual' }" @click="changePeriod('annual')">ANNUAL</button>
-                 <button :class="{ active: period === 'quarter' }" @click="changePeriod('quarter')">QUARTERLY</button>
+                 <button :class="{ active: period === 'annual' }" @click="changePeriod('annual')">{{ t('framework.period.annual') }}</button>
+                 <button :class="{ active: period === 'quarter' }" @click="changePeriod('quarter')">{{ t('framework.period.quarterly') }}</button>
              </div>
          </div>
 
@@ -571,25 +571,25 @@ const formatKey = (key) => {
             :class="['main-tab', { active: mainTab === 'ratio' }]"
             @click="mainTab = 'ratio'"
           >
-            Ratio
+            {{ t('framework.main_tabs.ratio') }}
           </button>
           <button
             :class="['main-tab', { active: mainTab === 'calendar' }]"
             @click="mainTab = 'calendar'"
           >
-            Calendar
+             {{ t('framework.main_tabs.calendar') }}
           </button>
           <button
             :class="['main-tab', { active: mainTab === 'filling' }]"
             @click="mainTab = 'filling'"
           >
-            Filling
+             {{ t('framework.main_tabs.filling') }}
           </button>
           <button
             :class="['main-tab', { active: mainTab === 'insider' }]"
             @click="mainTab = 'insider'"
           >
-            Insider
+             {{ t('framework.main_tabs.insider') }}
           </button>
         </div>
 
@@ -688,8 +688,8 @@ const formatKey = (key) => {
       <!-- Ratio Content -->
       <div v-if="mainTab === 'ratio'" class="ratio-analysis">
          <div class="profile-tabs" style="margin-bottom: 20px;">
-           <button class="profile-tab" :class="{ active: ratioTab === 'key_matrix' }" @click="ratioTab = 'key_matrix'">Key Matrix</button>
-           <button class="profile-tab" :class="{ active: ratioTab === 'financial_ratio' }" @click="ratioTab = 'financial_ratio'">Financial Ratio</button>
+           <button class="profile-tab" :class="{ active: ratioTab === 'key_matrix' }" @click="ratioTab = 'key_matrix'">{{ t('framework.ratio_tabs.key_matrix') }}</button>
+           <button class="profile-tab" :class="{ active: ratioTab === 'financial_ratio' }" @click="ratioTab = 'financial_ratio'">{{ t('framework.ratio_tabs.financial_ratio') }}</button>
          </div>
 
          <!-- Key Matrix -->
@@ -740,9 +740,9 @@ const formatKey = (key) => {
       <!-- Calendar Content -->
       <div v-if="mainTab === 'calendar'" class="calendar-analysis">
           <div class="profile-tabs" style="margin-bottom: 20px;">
-             <button class="profile-tab" :class="{ active: calendarTab === 'earning' }" @click="calendarTab = 'earning'">Earning</button>
-             <button class="profile-tab" :class="{ active: calendarTab === 'dividends' }" @click="calendarTab = 'dividends'">Dividends</button>
-             <button class="profile-tab" :class="{ active: calendarTab === 'splits' }" @click="calendarTab = 'splits'">Splits</button>
+             <button class="profile-tab" :class="{ active: calendarTab === 'earning' }" @click="calendarTab = 'earning'">{{ t('framework.calendar_tabs.earning') }}</button>
+             <button class="profile-tab" :class="{ active: calendarTab === 'dividends' }" @click="calendarTab = 'dividends'">{{ t('framework.calendar_tabs.dividends') }}</button>
+             <button class="profile-tab" :class="{ active: calendarTab === 'splits' }" @click="calendarTab = 'splits'">{{ t('framework.calendar_tabs.splits') }}</button>
           </div>
 
           <!-- Earning -->
@@ -751,11 +751,11 @@ const formatKey = (key) => {
                 <table class="data-table">
                    <thead>
                       <tr>
-                         <th class="period-header">Date</th>
-                         <th class="period-header">EPS Actual</th>
-                         <th class="period-header">EPS Estimated</th>
-                         <th class="period-header">Revenue Actual</th>
-                         <th class="period-header">Revenue Estimated</th>
+                         <th class="period-header">{{ t('framework.calendar_data.date') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.eps_actual') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.eps_estimated') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.revenue_actual') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.revenue_estimated') }}</th>
                       </tr>
                    </thead>
                    <tbody>
@@ -769,7 +769,7 @@ const formatKey = (key) => {
                    </tbody>
                 </table>
              </div>
-             <p v-else class="placeholder-text">No earnings data available</p>
+             <p v-else class="placeholder-text">{{ t('framework.calendar_data.no_earning') }}</p>
           </div>
 
           <!-- Dividends -->
@@ -778,11 +778,11 @@ const formatKey = (key) => {
                 <table class="data-table">
                    <thead>
                       <tr>
-                         <th class="period-header">Date</th>
-                         <th class="period-header">Dividend</th>
-                         <th class="period-header">Record Date</th>
-                         <th class="period-header">Payment Date</th>
-                         <th class="period-header">Declaration Date</th>
+                         <th class="period-header">{{ t('framework.calendar_data.date') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.dividend') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.record_date') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.payment_date') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.declaration_date') }}</th>
                       </tr>
                    </thead>
                    <tbody>
@@ -796,7 +796,7 @@ const formatKey = (key) => {
                    </tbody>
                 </table>
              </div>
-             <p v-else class="placeholder-text">No dividends data available</p>
+             <p v-else class="placeholder-text">{{ t('framework.calendar_data.no_dividend') }}</p>
           </div>
 
           <!-- Splits -->
@@ -805,9 +805,9 @@ const formatKey = (key) => {
                 <table class="data-table">
                    <thead>
                       <tr>
-                         <th class="period-header">Date</th>
-                         <th class="period-header">Numerator</th>
-                         <th class="period-header">Denominator</th>
+                         <th class="period-header">{{ t('framework.calendar_data.date') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.numerator') }}</th>
+                         <th class="period-header">{{ t('framework.calendar_data.denominator') }}</th>
                       </tr>
                    </thead>
                    <tbody>
@@ -819,7 +819,7 @@ const formatKey = (key) => {
                    </tbody>
                 </table>
              </div>
-             <p v-else class="placeholder-text">No splits data available</p>
+             <p v-else class="placeholder-text">{{ t('framework.calendar_data.no_split') }}</p>
           </div>
       </div>
 
@@ -827,9 +827,9 @@ const formatKey = (key) => {
       <div v-if="mainTab === 'filling'" class="filling-analysis">
          <div v-if="filings && filings.length > 0" class="filings-container">
             <div class="filings-controls" style="margin-bottom: 1rem; display: flex; align-items: center;">
-              <label style="margin-right: 10px; font-weight: 500; font-size: 0.9em; color: #374151;">Filter by Type:</label>
+              <label style="margin-right: 10px; font-weight: 500; font-size: 0.9em; color: #374151;">{{ t('framework.filings.filter_label') }}</label>
               <select v-model="selectedFilingType" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 0.9em; background-color: white;">
-                <option value="ALL">All Types</option>
+                <option value="ALL">{{ t('framework.filings.all_types') }}</option>
                 <option value="10-K">10-K (Annual Report)</option>
                 <option value="10-Q">10-Q (Quarterly Report)</option>
                 <option value="8-K">8-K (Current Report)</option>
@@ -843,12 +843,12 @@ const formatKey = (key) => {
                    <thead>
                       <tr>
                          <th class="period-header" @click="sortFilings('date')" style="cursor: pointer;">
-                           Date <span class="sort-icon">{{ getSortIcon('date') }}</span>
+                           {{ t('framework.filings.date') }} <span class="sort-icon">{{ getSortIcon('date') }}</span>
                          </th>
                          <th class="period-header" @click="sortFilings('type')" style="cursor: pointer;">
-                           Type <span class="sort-icon">{{ getSortIcon('type') }}</span>
+                           {{ t('framework.filings.type') }} <span class="sort-icon">{{ getSortIcon('type') }}</span>
                          </th>
-                         <th class="period-header">Link</th>
+                         <th class="period-header">{{ t('framework.filings.link') }}</th>
                       </tr>
                    </thead>
                    <tbody>
@@ -858,14 +858,14 @@ const formatKey = (key) => {
                            <span class="filing-type-badge">{{ filing.type }}</span>
                          </td>
                          <td class="data-cell">
-                            <a :href="filing.link" target="_blank" class="filing-link">View Filing</a>
+                            <a :href="filing.link" target="_blank" class="filing-link">{{ t('framework.filings.view_filing') }}</a>
                          </td>
                       </tr>
                    </tbody>
                 </table>
              </div>
          </div>
-         <p v-else class="placeholder-text">No filings data available</p>
+         <p v-else class="placeholder-text">{{ t('framework.filings.no_data') }}</p>
       </div>
 
       <!-- Insider Trading Content -->
@@ -874,15 +874,15 @@ const formatKey = (key) => {
             <table class="data-table">
                <thead>
                   <tr>
-                     <th class="period-header">Filing Date</th>
-                     <th class="period-header">Trans Date</th>
-                     <th class="period-header">Type</th>
-                     <th class="period-header">Securities Owned</th>
-                     <th class="period-header">Reporting Name</th>
-                     <th class="period-header">Owner Type</th>
-                     <th class="period-header">Transacted</th>
-                     <th class="period-header">Price</th>
-                     <th class="period-header">Acq/Disp</th>
+                     <th class="period-header">{{ t('framework.insider.filing_date') }}</th>
+                     <th class="period-header">{{ t('framework.insider.trans_date') }}</th>
+                     <th class="period-header">{{ t('framework.insider.type') }}</th>
+                     <th class="period-header">{{ t('framework.insider.securities_owned') }}</th>
+                     <th class="period-header">{{ t('framework.insider.reporting_name') }}</th>
+                     <th class="period-header">{{ t('framework.insider.owner_type') }}</th>
+                     <th class="period-header">{{ t('framework.insider.transacted') }}</th>
+                     <th class="period-header">{{ t('framework.insider.price') }}</th>
+                     <th class="period-header">{{ t('framework.insider.acq_disp') }}</th>
                      <th class="period-header">Direct/Indirect</th>
                      <th class="period-header">Security Name</th>
                   </tr>
@@ -904,7 +904,7 @@ const formatKey = (key) => {
                </tbody>
             </table>
          </div>
-         <p v-else class="placeholder-text">No insider trading data available</p>
+         <p v-else class="placeholder-text">{{ t('framework.insider.no_data') }}</p>
       </div>
 
       <!-- Fundamental Analysis Tab Content -->

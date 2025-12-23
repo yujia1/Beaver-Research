@@ -812,9 +812,25 @@
         "subtitle": "Financial Data Engine",
         "ticker_placeholder": "Enter ticker symbol (e.g., TSLA)",
         "search": "Search",
+        "header": {
+            "title": "STOCK PRICE TIMELINE",
+            "subtitle": "Track stock price movements and key metrics over time"
+        },
+        "search_stock": "SEARCH STOCK:",
+        "search_action": "SEARCH",
+        "chart": {
+            "price_timeline": "PRICE TIMELINE"
+        },
+        "dataset": {
+            "title": "COMPANY FINANCIAL DATA"
+        },
         "main_tabs": {
             "statements": "FINANCIAL STATEMENTS",
-            "fundamental_analysis": "FUNDAMENTAL ANALYSIS"
+            "fundamental_analysis": "FUNDAMENTAL ANALYSIS",
+            "ratio": "Ratio",
+            "calendar": "Calendar",
+            "filling": "Filling",
+            "insider": "Insider"
         },
         "tabs": {
             "core": "Core Statements",
@@ -824,8 +840,8 @@
             "fundamental_analysis": "FUNDAMENTAL ANALYSIS"
         },
         "period": {
-            "annual": "Annual",
-            "quarterly": "Quarterly",
+            "annual": "ANNUAL",
+            "quarterly": "QUARTERLY",
             "ttm": "TTM"
         },
         "loading": "Loading financial data...",
@@ -855,6 +871,52 @@
             "capex": "CapEx",
             "valuation": "Valuation",
             "structure": "Structure"
+        },
+        "ratio_tabs": {
+            "key_matrix": "Key Matrix",
+            "financial_ratio": "Financial Ratio"
+        },
+        "filings": {
+            "filter_label": "Filter by Type:",
+            "all_types": "All Types",
+            "date": "Date",
+            "type": "Type",
+            "link": "Link",
+            "view_filing": "View Filing",
+            "no_data": "No filings data available"
+        },
+        "insider": {
+            "filing_date": "Filing Date",
+            "trans_date": "Trans Date",
+            "type": "Type",
+            "securities_owned": "Securities Owned",
+            "reporting_name": "Reporting Name",
+            "owner_type": "Owner Type",
+            "transacted": "Transacted",
+            "price": "Price",
+            "acq_disp": "Acq/Disp",
+            "no_data": "No insider trading data available"
+        },
+        "calendar_tabs": {
+            "earning": "Earning",
+            "dividends": "Dividends",
+            "splits": "Splits"
+        },
+        "calendar_data": {
+            "date": "Date",
+            "eps_actual": "EPS Actual",
+            "eps_estimated": "EPS Estimated",
+            "revenue_actual": "Revenue Actual",
+            "revenue_estimated": "Revenue Estimated",
+            "dividend": "Dividend",
+            "record_date": "Record Date",
+            "payment_date": "Payment Date",
+            "declaration_date": "Declaration Date",
+            "numerator": "Numerator",
+            "denominator": "Denominator",
+            "no_earning": "No earnings data available",
+            "no_dividend": "No dividends data available",
+            "no_split": "No splits data available"
         }
     }
 }
