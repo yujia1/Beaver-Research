@@ -62,6 +62,14 @@
 
         <!-- Action Buttons -->
         <div class="header-actions">
+          <button @click="showUploadModal = true" class="action-btn upload-header-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>Upload</span>
+          </button>
           <button @click="publishEditor" class="action-btn publish-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -69,12 +77,7 @@
             </svg>
             <span>{{ t('research.publish') }}</span>
           </button>
-          <button @click="auditReport" class="action-btn audit-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            <span>{{ t('research.audit') }}</span>
-          </button>
+
         </div>
 
         <!-- Report Type Selector -->
@@ -126,10 +129,19 @@
       </div>
 
       <!-- Data Stream Sidebar -->
+      <!-- Resize Handle -->
+      <div 
+        class="resize-handle"
+        @mousedown="startResize"
+        :class="{ 'dragging': isResizing }"
+      ></div>
+
+      <!-- Data Stream Sidebar -->
       <ResearchChatSidebar 
         :active-agent="props.activeAgent"
         :ticker="props.ticker"
         :view-mode="props.viewMode"
+        :style="{ width: sidebarWidth + 'px' }"
       />
     </div>
 
@@ -177,6 +189,52 @@
       </div>
     </div>
 
+    <!-- Upload Modal -->
+    <div v-if="showUploadModal" class="modal-overlay" @click="closeUploadModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Upload Report</h3>
+          <button @click="closeUploadModal" class="close-modal-btn">×</button>
+        </div>
+        <div class="modal-body">
+             <div class="upload-form">
+                <div class="form-group">
+                    <label>Report Title</label>
+                    <input v-model="uploadReportTitle" type="text" class="form-input" placeholder="Enter title">
+                </div>
+                <div class="form-group">
+                    <label>Ticker</label>
+                    <input v-model="uploadReportTicker" type="text" class="form-input" placeholder="e.g. TSLA">
+                </div>
+                <div class="form-group">
+                    <label>Report Type</label>
+                    <select v-model="uploadReportType" class="form-input">
+                        <option value="">Select Type</option>
+                        <option value="daily">Daily</option>
+                        <option value="long">Long Position</option>
+                        <option value="short">Short Position</option>
+                        <option value="market">Market</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>File (PDF)</label>
+                    <input type="file" accept=".pdf" @change="handleFileSelect" class="file-input">
+                    <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+                </div>
+                
+                <div v-if="uploadError" class="error-message">{{ uploadError }}</div>
+                <div v-if="uploadSuccess" class="success-message">{{ uploadSuccess }}</div>
+             </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="uploadReport" class="modal-btn primary" :disabled="!canUpload || uploadingReport">
+            {{ uploadingReport ? 'Uploading...' : 'Upload' }}
+          </button>
+          <button @click="closeUploadModal" class="modal-btn secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Success Modal -->
     <div v-if="showSuccessModal" class="modal-overlay" @click="closeSuccessModal">
       <div class="modal-content" @click.stop>
@@ -218,7 +276,7 @@
 import API_BASE_URL from '@/config/api.js'
 import ResearchChatSidebar from './ResearchChatSidebar.vue'
 
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getDailyCache, setDailyCache } from '../utils/dailyCache.js'
@@ -244,6 +302,43 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:view-mode', 'update:active-agent', 'update:ticker'])
+
+// Sidebar state
+const sidebarWidth = ref(380)
+const isResizing = ref(false)
+
+const startResize = () => {
+  isResizing.value = true
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.userSelect = 'none'
+}
+
+const handleResize = (e) => {
+  if (!isResizing.value) return
+  const container = document.querySelector('.editor-container')
+  if (!container) return
+  
+  const containerRect = container.getBoundingClientRect()
+  const newWidth = containerRect.right - e.clientX
+  
+  // Constraints
+  if (newWidth > 300 && newWidth < 800) {
+    sidebarWidth.value = newWidth
+  }
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+})
 
 // Editor state
 const editorRef = ref(null)
@@ -271,6 +366,84 @@ const publishedReportType = ref('')
 const publishedReportTicker = ref('')
 const publishedReportDate = ref('')
 const publishedReportUuid = ref('')
+
+
+// Upload Modal State
+const showUploadModal = ref(false)
+const uploadReportTitle = ref('')
+const uploadReportTicker = ref('')
+const uploadReportType = ref('')
+const selectedFile = ref(null)
+const uploadingReport = ref(false)
+const uploadError = ref('')
+const uploadSuccess = ref('')
+
+const canUpload = computed(() => {
+  return uploadReportTitle.value.trim() && uploadReportType.value && selectedFile.value
+})
+
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file && file.type === 'application/pdf') {
+    selectedFile.value = file
+    uploadError.value = ''
+  } else {
+    selectedFile.value = null
+    uploadError.value = 'PDF files only'
+  }
+}
+
+const closeUploadModal = () => {
+    showUploadModal.value = false
+    uploadReportTitle.value = ''
+    uploadReportTicker.value = ''
+    uploadReportType.value = ''
+    selectedFile.value = null
+    uploadSuccess.value = ''
+    uploadError.value = ''
+}
+
+const uploadReport = async () => {
+    if (!canUpload.value) return
+    
+    uploadingReport.value = true
+    uploadError.value = ''
+    uploadSuccess.value = ''
+    
+    try {
+        const formData = new FormData()
+        formData.append('pdf_file', selectedFile.value)
+        formData.append('report_name', uploadReportTitle.value.trim())
+        formData.append('ticker', uploadReportTicker.value.trim() || 'GENERAL')
+        formData.append('report_type', uploadReportType.value)
+        
+        const token = localStorage.getItem('access_token')
+        
+        const response = await fetch(`${API_BASE_URL}/api/reports/publish`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        })
+        
+        if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.detail || 'Upload failed')
+        }
+        
+        uploadSuccess.value = 'Report uploaded successfully'
+        
+        // Reset
+        setTimeout(() => {
+            closeUploadModal()
+        }, 2000)
+    } catch (err) {
+        uploadError.value = err.message
+    } finally {
+        uploadingReport.value = false
+    }
+}
 
 // Chatbox state for Research agent
 
@@ -960,7 +1133,7 @@ onMounted(() => {
 
 .switch-track {
   display: flex;
-  width: 90px;
+  width: 180px;
   height: 40px;
   background: rgba(0, 0, 0, 0.05);
   border-radius: 20px;
@@ -1144,46 +1317,7 @@ onMounted(() => {
   background: #38bdf8;
 }
 
-.audit-btn {
-  background: #f59e0b;
-  border-color: #f59e0b;
-  color: #000000;
-  font-weight: 600;
-}
 
-.research-edit-view.preview-mode .audit-btn {
-  background: #22d3ee;
-  border-color: #22d3ee;
-}
-
-.audit-btn:hover {
-  background: #fbbf24;
-  transform: scale(1.02);
-}
-
-.research-edit-view.preview-mode .audit-btn:hover {
-  background: #38bdf8;
-}
-
-.active-agent-display {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85em;
-  color: #737373;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.agent-name-highlight {
-  color: #f59e0b;
-  font-weight: 700;
-}
-
-.research-edit-view.preview-mode .agent-name-highlight {
-  color: #22d3ee;
-}
 
 /* Report Type Selector */
 .report-type-selector {
@@ -1228,6 +1362,26 @@ onMounted(() => {
   flex-direction: row;
   flex: 1;
   overflow: hidden;
+}
+
+.resize-handle {
+  width: 5px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+  z-index: 10;
+  margin: 0 -2px;
+  position: relative;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: rgba(245, 158, 11, 0.5);
+}
+
+.research-edit-view.preview-mode .resize-handle:hover,
+.research-edit-view.preview-mode .resize-handle.dragging {
+  background: rgba(34, 211, 238, 0.5);
 }
 
 /* Editor Panel */
@@ -1395,10 +1549,81 @@ onMounted(() => {
 
 .preview-modal-content {
   max-width: 90%;
-  width: 1200px;
+  width: 90%;
   max-height: 95vh;
   display: flex;
   flex-direction: column;
+}
+
+/* Upload Modal Form */
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85em;
+  color: #525252;
+  font-weight: 600;
+}
+
+.form-input, .file-input {
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9em;
+  width: 100%;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+}
+
+.file-name {
+  font-size: 0.85em;
+  color: #10b981;
+  margin-top: 4px;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
+.success-message {
+  color: #10b981;
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
+.upload-header-btn {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000000;
+  font-weight: 600;
+}
+.upload-header-btn:hover {
+  background: #fbbf24;
+  transform: scale(1.02);
+}
+.research-edit-view.preview-mode .upload-header-btn {
+  background: #22d3ee;
+  border-color: #22d3ee;
+}
+.research-edit-view.preview-mode .upload-header-btn:hover {
+  background: #38bdf8;
 }
 
 @keyframes modalSlideIn {
