@@ -118,31 +118,6 @@ async def get_balance_sheet(
     }
 
 
-@router.get("/key-metrics/{ticker}")
-async def get_key_metrics(
-    ticker: str,
-    period: str = "annual",
-    limit: int = 5
-):
-    """
-    Fetch key metrics for a ticker
-    """
-    ticker = ticker.upper()
-    endpoint = f"key-metrics"
-    params = {"symbol": ticker, "period": period, "limit": limit}
-    
-    data = await fetch_fmp_data(endpoint, params)
-    
-    if not data:
-        raise HTTPException(status_code=404, detail=f"No key metrics data found for {ticker}")
-    
-    return {
-        "ticker": ticker,
-        "period": period,
-        "data": data
-    }
-
-
 @router.get("/dcf/{ticker}")
 async def get_dcf(
     ticker: str
@@ -216,7 +191,6 @@ async def get_all_statements(
         cash_flow = await get_cash_flow(ticker, period, limit)
         balance_sheet = await get_balance_sheet(ticker, period, limit)
         revenue_seg = await get_revenue_segmentation(ticker)
-        key_metrics = await get_key_metrics(ticker, period, limit)
         dcf = await get_dcf(ticker)
         earnings_calendar = await get_earnings_calendar(ticker)
         
@@ -227,7 +201,6 @@ async def get_all_statements(
             "cash_flow": cash_flow["data"],
             "balance_sheet": balance_sheet["data"],
             "revenue_segmentation": revenue_seg["data"],
-            "key_metrics": key_metrics["data"],
             "dcf": dcf["data"],
             "earnings_calendar": earnings_calendar["data"]
         }

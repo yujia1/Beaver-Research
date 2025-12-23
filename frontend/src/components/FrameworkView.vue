@@ -42,7 +42,6 @@ const incomeData = ref([])
 const cashFlowData = ref([])
 const balanceSheetData = ref([])
 const revenueSegmentation = ref([])
-const keyMetrics = ref([])
 const dcfData = ref([])
 const earningsCalendar = ref([])
 
@@ -75,7 +74,6 @@ const fetchFinancialData = async () => {
     cashFlowData.value = data.cash_flow || []
     balanceSheetData.value = data.balance_sheet || []
     revenueSegmentation.value = data.revenue_segmentation || []
-    keyMetrics.value = data.key_metrics || []
     dcfData.value = data.dcf || []
     earningsCalendar.value = data.earnings_calendar || []
   } catch (err) {
@@ -1336,50 +1334,9 @@ const changePeriod = (newPeriod) => {
           <div v-if="analysisTab === 'valuation'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.valuation') }}</h3>
             <div class="section-content">
-              <div v-if="keyMetrics.length > 0 || dcfData.length > 0">
-                <!-- Key Metrics -->
-                <div v-if="keyMetrics.length > 0" class="valuation-subsection">
-                  <h4 class="chart-subtitle">Key Metrics</h4>
-                  <div class="metrics-grid">
-                    <div v-for="metric in keyMetrics.slice(0, 1)" :key="metric.date" class="metric-card">
-                      <div class="metric-row">
-                        <span class="metric-label">P/E Ratio:</span>
-                        <span class="metric-value">{{ metric.peRatio?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">P/B Ratio:</span>
-                        <span class="metric-value">{{ metric.pbRatio?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">P/S Ratio:</span>
-                        <span class="metric-value">{{ metric.priceToSalesRatio?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">EV/EBITDA:</span>
-                        <span class="metric-value">{{ metric.enterpriseValueOverEBITDA?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">ROE:</span>
-                        <span class="metric-value">{{ (metric.roe * 100)?.toFixed(2) || '-' }}%</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">ROA:</span>
-                        <span class="metric-value">{{ (metric.returnOnTangibleAssets * 100)?.toFixed(2) || '-' }}%</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">Debt to Equity:</span>
-                        <span class="metric-value">{{ metric.debtToEquity?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="metric-row">
-                        <span class="metric-label">Current Ratio:</span>
-                        <span class="metric-value">{{ metric.currentRatio?.toFixed(2) || '-' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
+              <div v-if="dcfData.length > 0">
                 <!-- DCF Valuation -->
-                <div v-if="dcfData.length > 0" class="valuation-subsection">
+                <div class="valuation-subsection">
                   <h4 class="chart-subtitle">DCF Valuation</h4>
                   <div class="dcf-grid">
                     <div v-for="dcf in dcfData.slice(0, 1)" :key="dcf.date" class="dcf-card">
@@ -1569,11 +1526,45 @@ const changePeriod = (newPeriod) => {
 }
 
 .tabs-section {
+  margin-bottom: 2rem;
+}
+
+.main-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.main-tab {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  color: #666;
+  font-weight: 500;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.main-tab:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.main-tab.active {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.sub-tabs-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
   gap: 1rem;
 }
 
