@@ -299,7 +299,7 @@ async def get_financial_ratios_analysis(ticker: str):
         print(f"Error fetching peers: {e}")
         peers = []
 
-    # Limit peers to keep table manageable (e.g. 4 peers)
+    # Limit peers to keep table manageable (e.g. 6 peers)
     target_tickers = [ticker] + peers[:6]
     
     # 2. Fetch Ratios for each

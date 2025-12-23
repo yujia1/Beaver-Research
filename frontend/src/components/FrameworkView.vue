@@ -302,6 +302,63 @@ const getRatioKeys = computed(() => {
   return Object.keys(first).filter(k => !['symbol', 'date', 'period', 'calendarYear'].includes(k))
 })
 
+const keyMatrixCategories = {
+  "Valuation Metrics": [
+    { label: "Market Cap", key: "marketCap" },
+    { label: "Enterprise Value (EV) TTM", key: "enterpriseValueTTM" },
+    { label: "EV To Sales TTM", key: "evToSalesTTM" },
+    { label: "EV To Operating Cash Flow TTM", key: "evToOperatingCashFlowTTM" },
+    { label: "EV To Free Cash Flow TTM", key: "evToFreeCashFlowTTM" },
+    { label: "EV To EBITDA TTM", key: "evToEBITDATTM" },
+    { label: "Earnings Yield TTM", key: "earningsYieldTTM" },
+    { label: "Free Cash Flow Yield TTM", key: "freeCashFlowYieldTTM" },
+    { label: "Graham Number TTM", key: "grahamNumberTTM" },
+    { label: "Graham Net Net TTM", key: "grahamNetNetTTM" }
+  ],
+  "Profitability & Returns": [
+    { label: "Return On Assets (ROA) TTM", key: "returnOnAssetsTTM" },
+    { label: "Operating Return On Assets TTM", key: "operatingReturnOnAssetsTTM" },
+    { label: "Return On Tangible Assets TTM", key: "returnOnTangibleAssetsTTM" },
+    { label: "Return On Equity (ROE) TTM", key: "returnOnEquityTTM" },
+    { label: "Return On Invested Capital (ROIC) TTM", key: "returnOnInvestedCapitalTTM" },
+    { label: "Return On Capital Employed (ROCE) TTM", key: "returnOnCapitalEmployedTTM" },
+    { label: "Income Quality TTM", key: "incomeQualityTTM" },
+    { label: "Tax Burden TTM", key: "taxBurdenTTM" },
+    { label: "Interest Burden TTM", key: "interestBurdenTTM" }
+  ],
+  "Operating Efficiency & Working Capital": [
+    { label: "Days Of Sales Outstanding (DSO) TTM", key: "daysOfSalesOutstandingTTM" },
+    { label: "Days Of Payables Outstanding (DPO) TTM", key: "daysOfPayablesOutstandingTTM" },
+    { label: "Days Of Inventory Outstanding (DIO) TTM", key: "daysOfInventoryOutstandingTTM" },
+    { label: "Operating Cycle TTM", key: "operatingCycleTTM" },
+    { label: "Cash Conversion Cycle TTM", key: "cashConversionCycleTTM" },
+    { label: "Average Receivables TTM", key: "averageReceivablesTTM" },
+    { label: "Average Payables TTM", key: "averagePayablesTTM" },
+    { label: "Average Inventory TTM", key: "averageInventoryTTM" }
+  ],
+  "Capital Expenditure & Cost Structure": [
+    { label: "Capex To Operating Cash Flow TTM", key: "capexToOperatingCashFlowTTM" },
+    { label: "Capex To Depreciation TTM", key: "capexToDepreciationTTM" },
+    { label: "Capex To Revenue TTM", key: "capexToRevenueTTM" },
+    { label: "Sales General And Administrative (SG&A) To Revenue TTM", key: "salesGeneralAndAdministrativeToRevenueTTM" },
+    { label: "Research And Developement (R&D) To Revenue TTM", key: "researchAndDevelopementToRevenueTTM" },
+    { label: "Stock Based Compensation To Revenue TTM", key: "stockBasedCompensationToRevenueTTM" }
+  ],
+  "Liquidity & Solvency": [
+    { label: "Current Ratio TTM", key: "currentRatioTTM" },
+    { label: "Net Debt To EBITDA TTM", key: "netDebtToEBITDATTM" },
+    { label: "Intangibles To Total Assets TTM", key: "intangiblesToTotalAssetsTTM" }
+  ],
+  "Absolute Financial Values": [
+    { label: "Working Capital TTM", key: "workingCapitalTTM" },
+    { label: "Invested Capital TTM", key: "investedCapitalTTM" },
+    { label: "Tangible Asset Value TTM", key: "tangibleAssetValueTTM" },
+    { label: "Net Current Asset Value TTM", key: "netCurrentAssetValueTTM" },
+    { label: "Free Cash Flow To Equity TTM", key: "freeCashFlowToEquityTTM" },
+    { label: "Free Cash Flow To Firm TTM", key: "freeCashFlowToFirmTTM" }
+  ]
+}
+
 const formatMetric = (val) => {
   if (val === null || val === undefined) return '-'
   if (typeof val === 'number') {
@@ -482,10 +539,15 @@ const formatKey = (key) => {
 
          <!-- Key Matrix -->
          <div v-if="ratioTab === 'key_matrix'">
-            <div v-if="keyMetrics && keyMetrics.length > 0" class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-              <div v-for="(val, key) in keyMetrics[0]" :key="key" v-show="!['symbol', 'date', 'period'].includes(key)" class="metric-card" style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
-                <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 5px;">{{ formatKey(key) }}</div>
-                <div style="font-size: 1.1em; font-weight: 600; color: #111827;">{{ formatMetric(val) }}</div>
+            <div v-if="keyMetrics && keyMetrics.length > 0" class="metrics-container">
+              <div v-for="(items, category) in keyMatrixCategories" :key="category" class="category-section" style="margin-bottom: 30px;">
+                <h3 style="font-size: 1.1em; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">{{ category }}</h3>
+                <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                  <div v-for="item in items" :key="item.key" class="metric-card" style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 5px;">{{ item.label }}</div>
+                    <div style="font-size: 1.1em; font-weight: 600; color: #111827;">{{ formatMetric(keyMetrics[0][item.key]) }}</div>
+                  </div>
+                </div>
               </div>
             </div>
             <p v-else class="placeholder-text">No key metrics data available</p>
