@@ -2,29 +2,17 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import API_BASE_URL from '@/config/api.js'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js'
+import { useFinancialData } from '@/composables/useFinancialData'
+import { useFrameworkAnalysis } from '@/composables/useFrameworkAnalysis'
+import { 
+  formatCurrency, 
+  formatValue, 
+  formatLineItemName, 
+  formatPercentage, 
+} from '@/utils/financialUtils'
+import FinancialStatementTable from '@/components/framework/FinancialStatementTable.vue'
+import FinancialChart from '@/components/framework/charts/FinancialChart.vue'
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-)
 
 const { t } = useI18n()
 
@@ -35,58 +23,24 @@ const activeTab = ref('income') // income, cash_flow, balance_sheet
 const analysisTab = ref('profile') // profile, pricing_power, financial_health, working_capital, capex, valuation, structure
 const profileTab = ref('business') // business, employee_count, mergers_acquisitions
 const period = ref('annual') // annual or quarter
-const loading = ref(false)
-const error = ref(null)
+// State & Data from Composable
+const { 
+  loading, 
+  error, 
+  incomeData, 
+  cashFlowData, 
+  balanceSheetData, 
+  revenueSegmentation, 
+  dcfData, 
+  earningsCalendar, 
+  employeeCount, 
+  mergersAcquisitions,
+  fetchFinancialData: fetchFinData 
+} = useFinancialData()
 
-// Data
-const incomeData = ref([])
-const cashFlowData = ref([])
-const balanceSheetData = ref([])
-const revenueSegmentation = ref([])
-const dcfData = ref([])
-const earningsCalendar = ref([])
-const employeeCount = ref([])
-const mergersAcquisitions = ref([])
-
-// Fetch financial data
+// Fetch financial data wrapper
 const fetchFinancialData = async () => {
-  if (!ticker.value || ticker.value.trim() === '') {
-    error.value = 'Please enter a ticker symbol'
-    return
-  }
-
-  loading.value = true
-  error.value = null
-
-  try {
-    const token = localStorage.getItem('access_token')
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
-
-    const response = await fetch(
-      `${API_BASE_URL}/api/framework/all/${ticker.value.toUpperCase()}?period=${period.value}&limit=5`,
-      { headers }
-    )
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch data' }))
-      throw new Error(errorData.detail || 'Failed to fetch financial data')
-    }
-
-    const data = await response.json()
-    incomeData.value = data.income_statement || []
-    cashFlowData.value = data.cash_flow || []
-    balanceSheetData.value = data.balance_sheet || []
-    revenueSegmentation.value = data.revenue_segmentation || []
-    dcfData.value = data.dcf || []
-    earningsCalendar.value = data.earnings_calendar || []
-    employeeCount.value = data.employee_count || []
-    mergersAcquisitions.value = data.mergers_acquisitions || []
-  } catch (err) {
-    error.value = err.message
-    console.error('Error fetching financial data:', err)
-  } finally {
-    loading.value = false
-  }
+  await fetchFinData(ticker.value, period.value)
 }
 
 // Get current data based on active tab
@@ -109,97 +63,6 @@ const periods = computed(() => {
   return currentData.value.map(item => item.date || item.calendarYear)
 })
 
-// Format currency
-const formatCurrency = (value) => {
-  if (value === null || value === undefined) return '-'
-  const num = parseFloat(value)
-  if (isNaN(num)) return '-'
-  
-  // Format in billions/millions
-  if (Math.abs(num) >= 1e9) {
-    return `$${(num / 1e9).toFixed(2)}B`
-  } else if (Math.abs(num) >= 1e6) {
-    return `$${(num / 1e6).toFixed(2)}M`
-  } else if (Math.abs(num) >= 1e3) {
-    return `$${(num / 1e3).toFixed(2)}K`
-  }
-  return `$${num.toFixed(2)}`
-}
-
-// Format value based on field type
-const formatValue = (key, value) => {
-  // Date fields should be displayed as-is
-  const dateFields = ['date', 'filingDate', 'acceptedDate', 'fillingDate', 'calendarYear', 'period']
-  if (dateFields.includes(key)) {
-    return value || '-'
-  }
-  
-  // Everything else is currency
-  return formatCurrency(value)
-}
-
-// Convert camelCase to Title Case
-const formatLineItemName = (name) => {
-  // Add space before capital letters and capitalize first letter
-  return name
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
-    .trim()
-}
-
-// Format percentage
-const formatPercentage = (value) => {
-  if (value === null || value === undefined || isNaN(value)) return '-'
-  return `${(value * 100).toFixed(2)}%`
-}
-
-// Calculate Revenue Growth Rate (YoY)
-const calculateRevenueGrowth = (currentRevenue, previousRevenue) => {
-  if (!previousRevenue || previousRevenue === 0) return null
-  return (currentRevenue - previousRevenue) / previousRevenue
-}
-
-// Calculate Gross Margin
-const calculateGrossMargin = (grossProfit, revenue) => {
-  if (!revenue || revenue === 0) return null
-  return grossProfit / revenue
-}
-
-// Calculate Operating Profit Margin (EBITDA / Revenue)
-const calculateOperatingMargin = (ebitda, revenue) => {
-  if (!revenue || revenue === 0) return null
-  return ebitda / revenue
-}
-
-// Calculate Net Profit Margin
-const calculateNetMargin = (netIncome, revenue) => {
-  if (!revenue || revenue === 0) return null
-  return netIncome / revenue
-}
-
-// Calculate Cash Burn Rate (monthly)
-const calculateCashBurnRate = (cashBeginning, cashEnd, period) => {
-  if (cashBeginning === null || cashBeginning === undefined || 
-      cashEnd === null || cashEnd === undefined) return null
-  
-  const cashChange = cashBeginning - cashEnd
-  // Determine number of months based on period
-  const months = period === 'quarter' ? 3 : 12
-  
-  return cashChange / months
-}
-
-// Get revenue segment value for a specific date and product
-const getSegmentValue = (productName, date) => {
-  if (!revenueSegmentation.value || revenueSegmentation.value.length === 0) return null
-  
-  // Find the segment entry for this date
-  const segmentEntry = revenueSegmentation.value.find(seg => seg.date === date)
-  if (!segmentEntry || !segmentEntry.data) return null
-  
-  // Return the value for this product
-  return segmentEntry.data[productName] || null
-}
 
 // Get unique product names from revenue segmentation
 const productNames = computed(() => {
@@ -314,20 +177,6 @@ const balanceSheetCategories = [
   }
 ]
 
-// Track expanded/collapsed state for each category
-const expandedCategories = ref(new Set(['Revenue & Direct Costs', 'Operating Activities (Cash from Operations)', 'Assets (What the Company Owns)']))
-
-const toggleCategory = (categoryName) => {
-  if (expandedCategories.value.has(categoryName)) {
-    expandedCategories.value.delete(categoryName)
-  } else {
-    expandedCategories.value.add(categoryName)
-  }
-}
-
-const isCategoryExpanded = (categoryName) => {
-  return expandedCategories.value.has(categoryName)
-}
 
 // Get categorized line items based on active tab
 const categorizedLineItems = computed(() => {
@@ -371,516 +220,23 @@ const categorizedLineItems = computed(() => {
   })
 })
 
-// Pricing Power Metrics (from Income Statement)
-const pricingPowerData = computed(() => {
-  if (!incomeData.value || incomeData.value.length === 0) return null
-  
-  return {
-    dates: incomeData.value.map(d => d.date).reverse(),
-    revenueGrowth: incomeData.value.map((d, i) => {
-      if (i < incomeData.value.length - 1) {
-        const growth = calculateRevenueGrowth(d.revenue, incomeData.value[i + 1].revenue)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse(),
-    grossMargin: incomeData.value.map(d => {
-      const margin = calculateGrossMargin(d.grossProfit, d.revenue)
-      return margin ? margin * 100 : null
-    }).reverse(),
-    operatingMargin: incomeData.value.map(d => {
-      const margin = calculateOperatingMargin(d.ebitda, d.revenue)
-      return margin ? margin * 100 : null
-    }).reverse()
-  }
-})
 
-// Financial Health Metrics (from Cash Flow)
-const financialHealthData = computed(() => {
-  if (!cashFlowData.value || cashFlowData.value.length === 0) return null
-  
-  return {
-    dates: cashFlowData.value.map(d => d.date).reverse(),
-    netIncome: cashFlowData.value.map(d => d.netIncome).reverse(),
-    operatingCashFlow: cashFlowData.value.map(d => d.netCashProvidedByOperatingActivities).reverse(),
-    freeCashFlow: cashFlowData.value.map(d => d.freeCashFlow).reverse(),
-    capex: cashFlowData.value.map(d => Math.abs(d.capitalExpenditure || 0)).reverse()
-  }
-})
+// Framework Analysis (Charts & Data)
+const {
+    pricingPowerData,
+    financialHealthData,
+    workingCapitalData,
+    capexAnalysisData,
 
-// Working Capital Metrics (from Cash Flow)
-const workingCapitalData = computed(() => {
-  if (!cashFlowData.value || cashFlowData.value.length === 0) return null
-  
-  return {
-    dates: cashFlowData.value.map(d => d.date).reverse(),
-    accountsReceivablesGrowth: cashFlowData.value.map((d, i) => {
-      if (i < cashFlowData.value.length - 1) {
-        const growth = calculateRevenueGrowth(d.accountsReceivables, cashFlowData.value[i + 1].accountsReceivables)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse(),
-    netIncomeGrowth: cashFlowData.value.map((d, i) => {
-      if (i < cashFlowData.value.length - 1) {
-        const growth = calculateRevenueGrowth(d.netIncome, cashFlowData.value[i + 1].netIncome)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse(),
-    inventoryGrowth: cashFlowData.value.map((d, i) => {
-      if (i < cashFlowData.value.length - 1) {
-        const growth = calculateRevenueGrowth(d.inventory, cashFlowData.value[i + 1].inventory)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse(),
-    accountsPayablesGrowth: cashFlowData.value.map((d, i) => {
-      if (i < cashFlowData.value.length - 1) {
-        const growth = calculateRevenueGrowth(d.accountsPayables, cashFlowData.value[i + 1].accountsPayables)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse()
-  }
-})
-
-// CapEx Analysis Metrics (combining Cash Flow and Income data)
-const capexAnalysisData = computed(() => {
-  if (!cashFlowData.value || cashFlowData.value.length === 0 || 
-      !incomeData.value || incomeData.value.length === 0) return null
-  
-  // Use the shorter dataset length to ensure alignment
-  const minLength = Math.min(cashFlowData.value.length, incomeData.value.length)
-  
-  return {
-    dates: cashFlowData.value.slice(0, minLength).map(d => d.date).reverse(),
-    capexGrowth: cashFlowData.value.slice(0, minLength).map((d, i) => {
-      if (i < minLength - 1) {
-        const growth = calculateRevenueGrowth(d.capitalExpenditure, cashFlowData.value[i + 1].capitalExpenditure)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse(),
-    revenueGrowth: incomeData.value.slice(0, minLength).map((d, i) => {
-      if (i < minLength - 1) {
-        const growth = calculateRevenueGrowth(d.revenue, incomeData.value[i + 1].revenue)
-        return growth ? growth * 100 : null
-      }
-      return null
-    }).reverse()
-  }
-})
-
-// Chart refs
-const pricingPowerChart = ref(null)
-const incomeVsCashFlowChart = ref(null)
-const freeCashFlowChart = ref(null)
-const capexChart = ref(null)
-const arVsNiGrowthChart = ref(null)
-const inventoryGrowthChart = ref(null)
-const apGrowthChart = ref(null)
-const capexAnalysisChart = ref(null)
-
-// Chart instances
-let pricingPowerChartInstance = null
-let incomeVsCashFlowChartInstance = null
-let freeCashFlowChartInstance = null
-let capexChartInstance = null
-let arVsNiGrowthChartInstance = null
-let inventoryGrowthChartInstance = null
-let apGrowthChartInstance = null
-let capexAnalysisChartInstance = null
-
-// Create Pricing Power Chart
-const createPricingPowerChart = () => {
-  if (!pricingPowerChart.value || !pricingPowerData.value) return
-  
-  if (pricingPowerChartInstance) {
-    pricingPowerChartInstance.destroy()
-  }
-  
-  const ctx = pricingPowerChart.value.getContext('2d')
-  pricingPowerChartInstance = new ChartJS(ctx, {
-    type: 'line',
-    data: {
-      labels: pricingPowerData.value.dates,
-      datasets: [
-        {
-          label: 'Revenue Growth Rate (%)',
-          data: pricingPowerData.value.revenueGrowth,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          yAxisID: 'y'
-        },
-        {
-          label: 'Gross Margin (%)',
-          data: pricingPowerData.value.grossMargin,
-          borderColor: 'rgb(16, 185, 129)',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          yAxisID: 'y'
-        },
-        {
-          label: 'Operating Margin (%)',
-          data: pricingPowerData.value.operatingMargin,
-          borderColor: 'rgb(245, 158, 11)',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          yAxisID: 'y'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      scales: {
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: 'Percentage (%)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create Income vs Cash Flow Chart
-const createIncomeVsCashFlowChart = () => {
-  if (!incomeVsCashFlowChart.value || !financialHealthData.value) return
-  
-  if (incomeVsCashFlowChartInstance) {
-    incomeVsCashFlowChartInstance.destroy()
-  }
-  
-  const ctx = incomeVsCashFlowChart.value.getContext('2d')
-  incomeVsCashFlowChartInstance = new ChartJS(ctx, {
-    type: 'bar',
-    data: {
-      labels: financialHealthData.value.dates,
-      datasets: [
-        {
-          label: 'Net Income',
-          data: financialHealthData.value.netIncome,
-          backgroundColor: 'rgba(59, 130, 246, 0.7)',
-          borderColor: 'rgb(59, 130, 246)',
-          borderWidth: 1
-        },
-        {
-          label: 'Operating Cash Flow',
-          data: financialHealthData.value.operatingCashFlow,
-          backgroundColor: 'rgba(16, 185, 129, 0.7)',
-          borderColor: 'rgb(16, 185, 129)',
-          borderWidth: 1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Amount ($)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create Free Cash Flow Chart
-const createFreeCashFlowChart = () => {
-  if (!freeCashFlowChart.value || !financialHealthData.value) return
-  
-  if (freeCashFlowChartInstance) {
-    freeCashFlowChartInstance.destroy()
-  }
-  
-  const ctx = freeCashFlowChart.value.getContext('2d')
-  freeCashFlowChartInstance = new ChartJS(ctx, {
-    type: 'line',
-    data: {
-      labels: financialHealthData.value.dates,
-      datasets: [
-        {
-          label: 'Free Cash Flow',
-          data: financialHealthData.value.freeCashFlow,
-          borderColor: 'rgb(139, 92, 246)',
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
-          fill: true
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Amount ($)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create CapEx Chart
-const createCapexChart = () => {
-  if (!capexChart.value || !financialHealthData.value) return
-  
-  if (capexChartInstance) {
-    capexChartInstance.destroy()
-  }
-  
-  const ctx = capexChart.value.getContext('2d')
-  capexChartInstance = new ChartJS(ctx, {
-    type: 'bar',
-    data: {
-      labels: financialHealthData.value.dates,
-      datasets: [
-        {
-          label: 'Capital Expenditure',
-          data: financialHealthData.value.capex,
-          backgroundColor: 'rgba(239, 68, 68, 0.7)',
-          borderColor: 'rgb(239, 68, 68)',
-          borderWidth: 1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Amount ($)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create AR vs NI Growth Chart
-const createARvsNIGrowthChart = () => {
-  if (!arVsNiGrowthChart.value || !workingCapitalData.value) return
-  
-  if (arVsNiGrowthChartInstance) {
-    arVsNiGrowthChartInstance.destroy()
-  }
-  
-  const ctx = arVsNiGrowthChart.value.getContext('2d')
-  arVsNiGrowthChartInstance = new ChartJS(ctx, {
-    type: 'line',
-    data: {
-      labels: workingCapitalData.value.dates,
-      datasets: [
-        {
-          label: 'Accounts Receivables Growth (%)',
-          data: workingCapitalData.value.accountsReceivablesGrowth,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          fill: false
-        },
-        {
-          label: 'Net Income Growth (%)',
-          data: workingCapitalData.value.netIncomeGrowth,
-          borderColor: 'rgb(16, 185, 129)',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      scales: {
-        y: {
-          title: {
-            display: true,
-            text: 'Growth Rate (%)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create Inventory Growth Chart
-const createInventoryGrowthChart = () => {
-  if (!inventoryGrowthChart.value || !workingCapitalData.value) return
-  
-  if (inventoryGrowthChartInstance) {
-    inventoryGrowthChartInstance.destroy()
-  }
-  
-  const ctx = inventoryGrowthChart.value.getContext('2d')
-  inventoryGrowthChartInstance = new ChartJS(ctx, {
-    type: 'bar',
-    data: {
-      labels: workingCapitalData.value.dates,
-      datasets: [
-        {
-          label: 'Inventory Growth (%)',
-          data: workingCapitalData.value.inventoryGrowth,
-          backgroundColor: 'rgba(139, 92, 246, 0.7)',
-          borderColor: 'rgb(139, 92, 246)',
-          borderWidth: 1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          title: {
-            display: true,
-            text: 'Growth Rate (%)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create Accounts Payables Growth Chart
-const createAPGrowthChart = () => {
-  if (!apGrowthChart.value || !workingCapitalData.value) return
-  
-  if (apGrowthChartInstance) {
-    apGrowthChartInstance.destroy()
-  }
-  
-  const ctx = apGrowthChart.value.getContext('2d')
-  apGrowthChartInstance = new ChartJS(ctx, {
-    type: 'bar',
-    data: {
-      labels: workingCapitalData.value.dates,
-      datasets: [
-        {
-          label: 'Accounts Payables Growth (%)',
-          data: workingCapitalData.value.accountsPayablesGrowth,
-          backgroundColor: 'rgba(245, 158, 11, 0.7)',
-          borderColor: 'rgb(245, 158, 11)',
-          borderWidth: 1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          title: {
-            display: true,
-            text: 'Growth Rate (%)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Create CapEx Analysis Chart (CapEx Growth vs Revenue Growth)
-const createCapexAnalysisChart = () => {
-  if (!capexAnalysisChart.value || !capexAnalysisData.value) return
-  
-  if (capexAnalysisChartInstance) {
-    capexAnalysisChartInstance.destroy()
-  }
-  
-  const ctx = capexAnalysisChart.value.getContext('2d')
-  capexAnalysisChartInstance = new ChartJS(ctx, {
-    type: 'line',
-    data: {
-      labels: capexAnalysisData.value.dates,
-      datasets: [
-        {
-          label: 'CapEx Growth Rate (%)',
-          data: capexAnalysisData.value.capexGrowth,
-          borderColor: 'rgb(239, 68, 68)',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          fill: false
-        },
-        {
-          label: 'Revenue Growth Rate (%)',
-          data: capexAnalysisData.value.revenueGrowth,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      scales: {
-        y: {
-          title: {
-            display: true,
-            text: 'Growth Rate (%)'
-          }
-        }
-      }
-    }
-  })
-}
-
-// Watch for data changes and render charts
-watch([pricingPowerData, activeTab], async () => {
-  if (activeTab.value === 'fundamental_analysis' && pricingPowerData.value) {
-    await nextTick()
-    createPricingPowerChart()
-  }
-})
-
-watch([financialHealthData, activeTab], async () => {
-  if (activeTab.value === 'fundamental_analysis' && financialHealthData.value) {
-    await nextTick()
-    createIncomeVsCashFlowChart()
-    createFreeCashFlowChart()
-    createCapexChart()
-  }
-})
-
-watch([workingCapitalData, activeTab], async () => {
-  if (activeTab.value === 'fundamental_analysis' && workingCapitalData.value) {
-    await nextTick()
-    createARvsNIGrowthChart()
-    createInventoryGrowthChart()
-    createAPGrowthChart()
-  }
-})
-
-watch([capexAnalysisData, activeTab], async () => {
-  if (activeTab.value === 'fundamental_analysis' && capexAnalysisData.value) {
-    await nextTick()
-    createCapexAnalysisChart()
-  }
-})
+    pricingPowerChartConfig,
+    incomeVsCashFlowChartConfig,
+    freeCashFlowChartConfig,
+    capexChartConfig,
+    arVsNiGrowthChartConfig,
+    inventoryGrowthChartConfig,
+    apGrowthChartConfig,
+    capexAnalysisChartConfig
+} = useFrameworkAnalysis(incomeData, cashFlowData)
 
 
 // Handle search
@@ -1036,215 +392,19 @@ const changePeriod = (newPeriod) => {
       </div>
 
       <!-- Financial Data Table (only show for statements tab) -->
-      <div v-if="mainTab === 'statements' && currentData.length > 0" class="data-table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="line-item-header">{{ t('framework.line_item') }}</th>
-              <th v-for="periodDate in periods" :key="periodDate" class="period-header">
-                {{ periodDate }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Categorized view for all statements -->
-            <template v-if="categorizedLineItems.length > 0">
-              <template v-for="category in categorizedLineItems" :key="category.name">
-                <!-- Category Header Row -->
-                <tr class="category-header-row" @click="toggleCategory(category.name)">
-                  <td class="category-header-cell" :colspan="periods.length + 1">
-                    <div class="category-header-content">
-                      <svg 
-                        class="category-icon" 
-                        :class="{ expanded: isCategoryExpanded(category.name) }"
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        stroke-width="2" 
-                        stroke-linecap="round" 
-                        stroke-linejoin="round"
-                      >
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                      <span class="category-name">{{ category.name }}</span>
-                    </div>
-                  </td>
-                </tr>
-                
-                <!-- Category Content (when expanded) -->
-                <template v-if="isCategoryExpanded(category.name)">
-                  <!-- Subcategories (for Balance Sheet) -->
-                  <template v-if="category.subcategories && category.subcategories.length > 0">
-                    <template v-for="subcategory in category.subcategories" :key="subcategory.name">
-                      <!-- Subcategory Header -->
-                      <tr class="subcategory-header-row" @click.stop="toggleCategory(subcategory.name)">
-                        <td class="subcategory-header-cell" :colspan="periods.length + 1">
-                          <div class="subcategory-header-content">
-                            <svg 
-                              class="category-icon subcategory-icon" 
-                              :class="{ expanded: isCategoryExpanded(subcategory.name) }"
-                              xmlns="http://www.w3.org/2000/svg" 
-                              width="14" 
-                              height="14" 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              stroke-width="2" 
-                              stroke-linecap="round" 
-                              stroke-linejoin="round"
-                            >
-                              <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
-                            <span class="subcategory-name">{{ subcategory.name }}</span>
-                          </div>
-                        </td>
-                      </tr>
-                      <!-- Subcategory Fields -->
-                      <template v-if="isCategoryExpanded(subcategory.name)">
-                        <tr v-for="field in subcategory.fields" :key="field" class="data-row subcategory-data-row">
-                          <td class="line-item-cell subcategory-item">{{ formatLineItemName(field) }}</td>
-                          <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                            {{ formatValue(field, data[field]) }}
-                          </td>
-                        </tr>
-                      </template>
-                    </template>
-                  </template>
-                  
-                  <!-- Category Fields (direct fields without subcategories) -->
-                  <template v-for="(field, fieldIndex) in category.fields" :key="field">
-                    <tr class="data-row">
-                      <td class="line-item-cell">{{ formatLineItemName(field) }}</td>
-                      <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                        {{ formatValue(field, data[field]) }}
-                      </td>
-                    </tr>
-                    
-                    <!-- Revenue Product Segmentation after Revenue -->
-                    <template v-if="field === 'revenue' && activeTab === 'income' && productNames.length > 0">
-                      <tr v-for="productName in productNames" :key="productName" class="segmentation-row">
-                        <td class="line-item-cell segmentation-item">{{ productName }}</td>
-                        <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                          {{ formatCurrency(getSegmentValue(productName, data.date)) }}
-                        </td>
-                      </tr>
-                    </template>
-                    
-                    <!-- Calculated Metrics for Income Statement -->
-                    <template v-if="activeTab === 'income'">
-                      <!-- Revenue Growth Rate after Revenue -->
-                      <tr v-if="field === 'revenue'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Revenue Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.revenue, currentData[index + 1].revenue)) : '-' }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Gross Margin after Gross Profit -->
-                      <tr v-if="field === 'grossProfit'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Gross Margin</td>
-                        <td v-for="(data, index) in currentData" :key="`gm-${index}`" class="data-cell calculated-value">
-                          {{ formatPercentage(calculateGrossMargin(data.grossProfit, data.revenue)) }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Operating Profit Margin after EBITDA -->
-                      <tr v-if="field === 'ebitda'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Operating Profit Margin</td>
-                        <td v-for="(data, index) in currentData" :key="`opm-${index}`" class="data-cell calculated-value">
-                          {{ formatPercentage(calculateOperatingMargin(data.ebitda, data.revenue)) }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Net Profit Margin after Net Income -->
-                      <tr v-if="field === 'netIncome'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Net Profit Margin</td>
-                        <td v-for="(data, index) in currentData" :key="`npm-${index}`" class="data-cell calculated-value">
-                          {{ formatPercentage(calculateNetMargin(data.netIncome, data.revenue)) }}
-                        </td>
-                      </tr>
-                    </template>
-                    
-                    <!-- Calculated Metrics for Cash Flow Statement -->
-                    <template v-if="activeTab === 'cash_flow'">
-                      <!-- Net Income Growth after Net Income -->
-                      <tr v-if="field === 'netIncome'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Net Income Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`ni-growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.netIncome, currentData[index + 1].netIncome)) : '-' }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Operating Cash Flow Growth after Net Cash Provided By Operating Activities -->
-                      <tr v-if="field === 'netCashProvidedByOperatingActivities'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Operating Cash Flow Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`ocf-growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.netCashProvidedByOperatingActivities, currentData[index + 1].netCashProvidedByOperatingActivities)) : '-' }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Accounts Receivables Growth after Accounts Receivables -->
-                      <tr v-if="field === 'accountsReceivables'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Accounts Receivables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`ar-growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.accountsReceivables, currentData[index + 1].accountsReceivables)) : '-' }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Inventory Growth after Inventory -->
-                      <tr v-if="field === 'inventory'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Inventory Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`inv-growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.inventory, currentData[index + 1].inventory)) : '-' }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Accounts Payables Growth after Accounts Payables -->
-                      <tr v-if="field === 'accountsPayables'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Accounts Payables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`ap-growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.accountsPayables, currentData[index + 1].accountsPayables)) : '-' }}
-                        </td>
-                      </tr>
-                      
-                      <!-- Cash Burn Rate after Cash At End Of Period -->
-                      <tr v-if="field === 'cashAtEndOfPeriod'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Cash Burn Rate (Monthly)</td>
-                        <td v-for="(data, index) in currentData" :key="`burn-${index}`" class="data-cell calculated-value">
-                          {{ formatCurrency(calculateCashBurnRate(data.cashAtBeginningOfPeriod, data.cashAtEndOfPeriod, period)) }}
-                        </td>
-                      </tr>
-                      
-                      <!-- CapEx Growth Rate after Capital Expenditure -->
-                      <tr v-if="field === 'capitalExpenditure'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">CapEx Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
-                        <td v-for="(data, index) in currentData" :key="`capex-growth-${index}`" class="data-cell calculated-value">
-                          {{ index < currentData.length - 1 ? formatPercentage(calculateRevenueGrowth(data.capitalExpenditure, currentData[index + 1].capitalExpenditure)) : '-' }}
-                        </td>
-                      </tr>
-                    </template>
-                  </template>
-                </template>
-              </template>
-            </template>
-            
-            <!-- Fallback regular view (shouldn't be needed) -->
-            <template v-else>
-              <tr v-for="item in lineItems" :key="item">
-                <td class="line-item-cell">{{ formatLineItemName(item) }}</td>
-                <td v-for="(data, index) in currentData" :key="index" class="data-cell">
-                  {{ formatValue(item, data[item]) }}
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-      
-      
+      <FinancialStatementTable 
+        v-if="mainTab === 'statements' && currentData.length > 0"
+        :data="currentData"
+        :periods="periods"
+        :categorized-items="categorizedLineItems"
+        :active-tab="activeTab"
+        :period="period"
+        :product-names="productNames"
+        :line-items="lineItems"
+        :revenue-segmentation="revenueSegmentation"
+      />
+
+
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
         <!-- Profile Sub-tabs (shown directly without section wrapper) -->
@@ -1331,7 +491,12 @@ const changePeriod = (newPeriod) => {
         <!-- Other analysis sections with wrappers removed -->
         <div v-if="analysisTab === 'pricing_power'">
           <div v-if="pricingPowerData" class="chart-container">
-            <canvas ref="pricingPowerChart"></canvas>
+            <FinancialChart 
+              v-if="pricingPowerChartConfig" 
+              :type="pricingPowerChartConfig.type" 
+              :data="pricingPowerChartConfig.data" 
+              :options="pricingPowerChartConfig.options" 
+            />
           </div>
           
           <!-- Pricing Power Data Table -->
@@ -1377,19 +542,34 @@ const changePeriod = (newPeriod) => {
           <div v-if="financialHealthData" class="chart-group">
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Net Income & Operating Cash Flow</h4>
-                  <canvas ref="incomeVsCashFlowChart"></canvas>
+                  <FinancialChart 
+                    v-if="incomeVsCashFlowChartConfig" 
+                    :type="incomeVsCashFlowChartConfig.type" 
+                    :data="incomeVsCashFlowChartConfig.data" 
+                    :options="incomeVsCashFlowChartConfig.options" 
+                  />
                 </div>
                 
                 <!-- Free Cash Flow Chart -->
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Free Cash Flow</h4>
-                  <canvas ref="freeCashFlowChart"></canvas>
+                  <FinancialChart 
+                    v-if="freeCashFlowChartConfig" 
+                    :type="freeCashFlowChartConfig.type" 
+                    :data="freeCashFlowChartConfig.data" 
+                    :options="freeCashFlowChartConfig.options" 
+                  />
                 </div>
                 
                 <!-- Capital Expenditure Chart -->
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Capital Expenditure</h4>
-                  <canvas ref="capexChart"></canvas>
+                  <FinancialChart 
+                    v-if="capexChartConfig" 
+                    :type="capexChartConfig.type" 
+                    :data="capexChartConfig.data" 
+                    :options="capexChartConfig.options" 
+                  />
                 </div>
               </div>
 
@@ -1441,19 +621,34 @@ const changePeriod = (newPeriod) => {
                 <!-- AR vs NI Growth Chart -->
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Accounts Receivables Growth vs Net Income Growth</h4>
-                  <canvas ref="arVsNiGrowthChart"></canvas>
+                  <FinancialChart 
+                    v-if="arVsNiGrowthChartConfig" 
+                    :type="arVsNiGrowthChartConfig.type" 
+                    :data="arVsNiGrowthChartConfig.data" 
+                    :options="arVsNiGrowthChartConfig.options" 
+                  />
                 </div>
                 
                 <!-- Inventory Growth Chart -->
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Inventory Growth</h4>
-                  <canvas ref="inventoryGrowthChart"></canvas>
+                  <FinancialChart 
+                    v-if="inventoryGrowthChartConfig" 
+                    :type="inventoryGrowthChartConfig.type" 
+                    :data="inventoryGrowthChartConfig.data" 
+                    :options="inventoryGrowthChartConfig.options" 
+                  />
                 </div>
                 
                 <!-- Accounts Payables Growth Chart -->
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Accounts Payables Growth</h4>
-                  <canvas ref="apGrowthChart"></canvas>
+                  <FinancialChart 
+                    v-if="apGrowthChartConfig" 
+                    :type="apGrowthChartConfig.type" 
+                    :data="apGrowthChartConfig.data" 
+                    :options="apGrowthChartConfig.options" 
+                  />
                 </div>
               </div>
 
@@ -1503,7 +698,12 @@ const changePeriod = (newPeriod) => {
         <div v-if="analysisTab === 'capex'">
           <div v-if="capexAnalysisData" class="chart-container">
                 <h4 class="chart-subtitle">CapEx Growth vs Revenue Growth</h4>
-                <canvas ref="capexAnalysisChart"></canvas>
+                <FinancialChart 
+                  v-if="capexAnalysisChartConfig" 
+                  :type="capexAnalysisChartConfig.type" 
+                  :data="capexAnalysisChartConfig.data" 
+                  :options="capexAnalysisChartConfig.options" 
+                />
               </div>
 
               <!-- CapEx Analysis Data Table -->
