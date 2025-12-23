@@ -68,6 +68,18 @@ const currentData = computed(() => {
   }
 })
 
+// Price Header Logic
+const latestPriceData = computed(() => {
+  if (!historicalPrice.value || historicalPrice.value.length === 0) return null;
+  // FMP usually returns Descending (newest first), but we ensure it.
+  const data = [...historicalPrice.value].sort((a, b) => new Date(b.date) - new Date(a.date));
+  return data[0]; 
+})
+
+const currentPrice = computed(() => latestPriceData.value ? latestPriceData.value.close : 0);
+const priceChange = computed(() => latestPriceData.value ? latestPriceData.value.change : 0);
+const priceChangePercent = computed(() => latestPriceData.value ? latestPriceData.value.changePercent : 0);
+
 // Get years/periods from data
 const periods = computed(() => {
   if (!currentData.value || currentData.value.length === 0) return []
@@ -474,43 +486,70 @@ const formatKey = (key) => {
 
 <template>
   <div class="framework-container">
+
     <!-- Header -->
-    <div class="header">
-      <div>
-        <h1 class="title">{{ t('framework.title') }}</h1>
-        <p class="subtitle">{{ t('framework.subtitle') }}</p>
-      </div>
+    <div class="custom-header">
+       <div class="header-content">
+          <div class="header-left">
+             <h1>STOCK PRICE TIMELINE</h1>
+             <p>Track stock price movements and key events over time</p>
+          </div>
+          <div class="header-right" v-if="latestPriceData">
+             <div class="price-top">
+                <span class="badge" :class="priceChange >= 0 ? 'bg-red' : 'bg-red'"> <!-- Image puts negative in red. Positive usually green.  -->
+                   {{ priceChangePercent.toFixed(2) }}%
+                </span>
+                <span class="price-val">{{ formatCurrency(currentPrice) }}</span>
+             </div>
+             <div class="price-sub">
+                <span :class="priceChange >= 0 ? 'text-green' : 'text-red'">
+                  {{ priceChange > 0 ? '+' : '' }}{{ priceChange.toFixed(2) }} ({{ priceChangePercent.toFixed(2) }}%) since last close
+                </span>
+             </div>
+          </div>
+       </div>
+       <div class="header-line"></div>
     </div>
 
     <!-- Search Bar -->
-    <div class="search-section">
-      <input
-        v-model="ticker"
-        type="text"
-        :placeholder="t('framework.ticker_placeholder')"
-        class="ticker-input"
-        @keyup.enter="handleSearch"
-      />
-      <button @click="handleSearch" class="search-btn" :disabled="loading">
-        {{ loading ? t('framework.loading') : t('framework.search') }}
-      </button>
+    <div class="search-box-section">
+       <span class="search-label">SEARCH STOCK:</span>
+       <div class="input-group">
+          <input
+            v-model="ticker"
+            type="text"
+            placeholder="TSLA"
+            class="styled-input"
+            @keyup.enter="handleSearch"
+          />
+          <button @click="handleSearch" class="styled-search-btn" :disabled="loading">
+            SEARCH
+          </button>
+       </div>
     </div>
 
     <!-- Content -->
     <div v-if="ticker && !loading && !error" class="content">
-      <!-- Company Header -->
-      <div class="company-header">
-        <h2>{{ ticker.toUpperCase() }}</h2>
-        <p class="dataset-label">{{ period === 'annual' ? 'ANNUAL DATASET' : 'QUARTERLY DATASET' }}</p>
-      </div>
-
-      <!-- Price Chart -->
-      <div class="chart-section" style="margin-bottom: 1.5rem; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: white;">
+      <!-- 3. Chart Section -->
+      <div class="section-card chart-section-card">
+         <div class="section-header-row">
+             <h3>{{ ticker.toUpperCase() }} - {{ new Date().getFullYear() }} PRICE TIMELINE</h3>
+         </div>
          <PriceVolumeChart 
            :data="historicalPrice" 
            :symbol="ticker" 
          />
       </div>
+
+      <!-- 4. Dataset Section -->
+      <div class="section-card dataset-section-card">
+         <div class="section-header-row">
+             <h3>COMPANY BASIC</h3>
+             <div v-if="['statements'].includes(mainTab)" class="period-toggle-badge">
+                 <button :class="{ active: period === 'annual' }" @click="changePeriod('annual')">ANNUAL</button>
+                 <button :class="{ active: period === 'quarter' }" @click="changePeriod('quarter')">QUARTERLY</button>
+             </div>
+         </div>
 
       <!-- Tab Navigation -->
       <div class="tabs-section">
@@ -1153,7 +1192,8 @@ const formatKey = (key) => {
             </div>
 
 
-        </div>
+          </div>
+    </div>
     </div>
 
     <!-- Loading State -->
@@ -1859,5 +1899,177 @@ const formatKey = (key) => {
   color: #1e293b;
   text-align: left !important;
   vertical-align: middle !important;
+}
+</style>
+
+<style scoped>
+/* New Layout Styles */
+.custom-header {
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.header-left h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+  color: #000000;
+}
+
+.header-left p {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  margin: 0.25rem 0 0 0;
+}
+
+.header-right {
+  text-align: right;
+}
+
+.price-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.bg-red { background: #fee2e2; color: #ef4444; }
+.bg-green { background: #dcfce7; color: #22c55e; }
+
+.price-val {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.price-sub {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.text-red { color: #ef4444; }
+.text-green { color: #22c55e; }
+
+.header-line {
+  height: 2px;
+  background: #000;
+  width: 100%;
+}
+
+/* Search Box */
+.search-box-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.search-label {
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.styled-input {
+  flex: 0 0 300px;
+  padding: 8px 12px;
+  background: #eef2ff; /* Light blueish tint */
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.styled-search-btn {
+  background: #000;
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+.styled-search-btn:hover {
+  background: #333;
+}
+
+/* Sections */
+.section-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 1rem;
+}
+
+.section-header-row h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.period-toggle-badge {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.period-toggle-badge button {
+  border: none;
+  background: transparent;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.period-toggle-badge button.active {
+  background: white;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 </style>
