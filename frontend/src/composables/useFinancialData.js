@@ -10,8 +10,6 @@ export function useFinancialData() {
     const cashFlowData = ref([])
     const balanceSheetData = ref([])
     const revenueSegmentation = ref([])
-    const dcfData = ref([])
-    const earningsCalendar = ref([])
     const employeeCount = ref([])
     const mergersAcquisitions = ref([])
 
@@ -43,8 +41,6 @@ export function useFinancialData() {
             cashFlowData.value = data.cash_flow || []
             balanceSheetData.value = data.balance_sheet || []
             revenueSegmentation.value = data.revenue_segmentation || []
-            dcfData.value = data.dcf || []
-            earningsCalendar.value = data.earnings_calendar || []
             employeeCount.value = data.employee_count || []
             mergersAcquisitions.value = data.mergers_acquisitions || []
         } catch (err) {
@@ -62,8 +58,6 @@ export function useFinancialData() {
         cashFlowData,
         balanceSheetData,
         revenueSegmentation,
-        dcfData,
-        earningsCalendar,
         employeeCount,
         mergersAcquisitions,
         fetchFinancialData

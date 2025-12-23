@@ -6,7 +6,7 @@ import {
     calculateNetMargin
 } from '@/utils/financialUtils'
 
-export function useFrameworkAnalysis(incomeData, cashFlowData) {
+export function useFrameworkAnalysis(incomeData, cashFlowData, employeeCount) {
     // --- Data Computations ---
 
     // Pricing Power Data
@@ -211,6 +211,41 @@ export function useFrameworkAnalysis(incomeData, cashFlowData) {
         }
     })
 
+    // Employee Count Chart
+    const employeeCountChartConfig = computed(() => {
+        if (!employeeCount.value || employeeCount.value.length === 0) return null
+
+        // Sort ascending for chart
+        const sortedData = [...employeeCount.value].sort((a, b) => new Date(a.filingDate) - new Date(b.filingDate))
+
+        return {
+            type: 'line',
+            data: {
+                labels: sortedData.map(d => d.filingDate),
+                datasets: [
+                    {
+                        label: 'Employee Count',
+                        data: sortedData.map(d => d.employeeCount),
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: { display: true, text: 'Count' }
+                    }
+                }
+            }
+        }
+    })
+
     return {
         pricingPowerData,
         financialHealthData,
@@ -224,6 +259,7 @@ export function useFrameworkAnalysis(incomeData, cashFlowData) {
         arVsNiGrowthChartConfig,
         inventoryGrowthChartConfig,
         apGrowthChartConfig,
-        capexAnalysisChartConfig
+        capexAnalysisChartConfig,
+        employeeCountChartConfig
     }
 }

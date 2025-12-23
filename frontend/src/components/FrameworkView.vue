@@ -31,8 +31,6 @@ const {
   cashFlowData, 
   balanceSheetData, 
   revenueSegmentation, 
-  dcfData, 
-  earningsCalendar, 
   employeeCount, 
   mergersAcquisitions,
   fetchFinancialData: fetchFinData 
@@ -235,8 +233,9 @@ const {
     arVsNiGrowthChartConfig,
     inventoryGrowthChartConfig,
     apGrowthChartConfig,
-    capexAnalysisChartConfig
-} = useFrameworkAnalysis(incomeData, cashFlowData)
+    capexAnalysisChartConfig,
+    employeeCountChartConfig
+} = useFrameworkAnalysis(incomeData, cashFlowData, employeeCount)
 
 
 // Handle search
@@ -301,6 +300,18 @@ const changePeriod = (newPeriod) => {
           >
             {{ t('framework.main_tabs.fundamental_analysis') }}
           </button>
+          <button
+            :class="['main-tab', { active: mainTab === 'ratio' }]"
+            @click="mainTab = 'ratio'"
+          >
+            Ratio
+          </button>
+          <button
+            :class="['main-tab', { active: mainTab === 'filling' }]"
+            @click="mainTab = 'filling'"
+          >
+            Filling
+          </button>
         </div>
 
         <!-- Sub-tabs and Period Toggle Container -->
@@ -359,18 +370,7 @@ const changePeriod = (newPeriod) => {
             >
               {{ t('framework.analysis_tabs.capex') }}
             </button>
-            <button
-              :class="['tab', { active: analysisTab === 'valuation' }]"
-              @click="analysisTab = 'valuation'"
-            >
-              {{ t('framework.analysis_tabs.valuation') }}
-            </button>
-            <button
-              :class="['tab', { active: analysisTab === 'structure' }]"
-              @click="analysisTab = 'structure'"
-            >
-              {{ t('framework.analysis_tabs.structure') }}
-            </button>
+
           </div>
 
           <!-- Period Toggle -->
@@ -405,6 +405,17 @@ const changePeriod = (newPeriod) => {
       />
 
 
+
+      <!-- Ratio Content -->
+      <div v-if="mainTab === 'ratio'" class="ratio-analysis">
+         <p class="placeholder-text">Ratio analysis coming soon...</p>
+      </div>
+
+      <!-- Filling Content -->
+      <div v-if="mainTab === 'filling'" class="filling-analysis">
+         <p class="placeholder-text">Filling analysis coming soon...</p>
+      </div>
+
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
         <!-- Profile Sub-tabs (shown directly without section wrapper) -->
@@ -438,50 +449,34 @@ const changePeriod = (newPeriod) => {
 
             <!-- Employee Count Tab -->
             <div v-if="profileTab === 'employee_count'">
-              <div v-if="employeeCount.length > 0" class="employee-table">
-                <table class="simple-table">
-                  <thead>
-                    <tr>
-                      <th>Year</th>
-                      <th>Employee Count</th>
-                      <th>Filing Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="emp in employeeCount" :key="emp.filingDate">
-                      <td>{{ emp.year || '-' }}</td>
-                      <td>{{ emp.employeeCount?.toLocaleString() || '-' }}</td>
-                      <td>{{ emp.filingDate || '-' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div v-if="employeeCount.length > 0" class="chart-container" style="height: 400px; padding: 1rem;">
+                <FinancialChart 
+                  v-if="employeeCountChartConfig"
+                  :type="employeeCountChartConfig.type"
+                  :data="employeeCountChartConfig.data"
+                  :options="employeeCountChartConfig.options"
+                />
               </div>
               <p v-else class="placeholder-text">No employee count data available</p>
             </div>
 
             <!-- Mergers & Acquisitions Tab -->
             <div v-if="profileTab === 'mergers_acquisitions'">
-              <div v-if="mergersAcquisitions.length > 0" class="ma-list">
-                <div v-for="ma in mergersAcquisitions.slice(0, 10)" :key="ma.transactionDate" class="ma-card">
-                  <div class="ma-header">
-                    <h4>{{ ma.companyName || 'Unknown Company' }}</h4>
-                    <span class="ma-date">{{ ma.transactionDate || '-' }}</span>
-                  </div>
-                  <div class="ma-details">
-                    <div class="ma-row">
-                      <span class="ma-label">Target:</span>
-                      <span>{{ ma.targetedCompany || '-' }}</span>
-                    </div>
-                    <div class="ma-row">
-                      <span class="ma-label">Price:</span>
-                      <span>{{ ma.price ? '$' + ma.price.toLocaleString() : '-' }}</span>
-                    </div>
-                    <div class="ma-row">
-                      <span class="ma-label">Type:</span>
-                      <span>{{ ma.transactionType || '-' }}</span>
-                    </div>
-                  </div>
-                </div>
+              <div v-if="mergersAcquisitions.length > 0" class="data-table-wrapper" style="margin-top: 1rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="line-item-header">Company Name</th>
+                      <th class="period-header">Transaction Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="ma in mergersAcquisitions.slice(0, 10)" :key="ma.transactionDate || ma.symbol" class="data-row">
+                      <td class="line-item-cell">{{ ma.companyName || ma.symbol || 'Unknown' }}</td>
+                      <td class="data-cell">{{ ma.transactionDate || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               <p v-else class="placeholder-text">No M&A data available</p>
             </div>
@@ -727,67 +722,7 @@ const changePeriod = (newPeriod) => {
               <p v-else class="placeholder-text">No CapEx analysis data available</p>
             </div>
 
-          <!-- Valuation Analysis -->
-        <div v-if="analysisTab === 'valuation'">
-          <div v-if="dcfData.length > 0">
-                <!-- DCF Valuation -->
-                <div class="valuation-subsection">
-                  <h4 class="chart-subtitle">DCF Valuation</h4>
-                  <div class="dcf-grid">
-                    <div v-for="dcf in dcfData.slice(0, 1)" :key="dcf.date" class="dcf-card">
-                      <div class="dcf-row">
-                        <span class="dcf-label">Stock Price:</span>
-                        <span class="dcf-value">${{ dcf.Stock_Price?.toFixed(2) || dcf.price?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="dcf-row">
-                        <span class="dcf-label">DCF Value:</span>
-                        <span class="dcf-value">${{ dcf.dcf?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="dcf-row">
-                        <span class="dcf-label">Date:</span>
-                        <span class="dcf-value">{{ dcf.date || '-' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p v-else class="placeholder-text">No valuation data available</p>
-            </div>
 
-          <!-- Structure (formerly Calendar) -->
-        <div v-if="analysisTab === 'structure'">
-          <div v-if="earningsCalendar.length > 0">
-                <!-- Earnings Calendar -->
-                <div class="calendar-subsection">
-                  <h4 class="chart-subtitle">Earnings Calendar</h4>
-                  <div class="calendar-grid">
-                    <div v-for="event in earningsCalendar.slice(0, 5)" :key="event.date" class="calendar-card">
-                      <div class="calendar-row">
-                        <span class="calendar-label">Date:</span>
-                        <span class="calendar-value">{{ event.date || '-' }}</span>
-                      </div>
-                      <div class="calendar-row">
-                        <span class="calendar-label">EPS Estimate:</span>
-                        <span class="calendar-value">${{ event.epsEstimated?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="calendar-row">
-                        <span class="calendar-label">EPS Actual:</span>
-                        <span class="calendar-value">${{ event.eps?.toFixed(2) || '-' }}</span>
-                      </div>
-                      <div class="calendar-row">
-                        <span class="calendar-label">Revenue Estimate:</span>
-                        <span class="calendar-value">${{ event.revenueEstimated ? (event.revenueEstimated / 1000000).toFixed(2) + 'M' : '-' }}</span>
-                      </div>
-                      <div class="calendar-row">
-                        <span class="calendar-label">Revenue Actual:</span>
-                        <span class="calendar-value">${{ event.revenue ? (event.revenue / 1000000).toFixed(2) + 'M' : '-' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p v-else class="placeholder-text">No calendar data available</p>
-            </div>
         </div>
     </div>
 
@@ -1261,98 +1196,6 @@ const changePeriod = (newPeriod) => {
   margin: 0 0 1rem 0;
 }
 
-.valuation-subsection {
-  margin-bottom: 2rem;
-}
-
-.valuation-subsection:last-child {
-  margin-bottom: 0;
-}
-
-.metrics-grid,
-.dcf-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.metric-card,
-.dcf-card {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.metric-row,
-.dcf-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.metric-row:last-child,
-.dcf-row:last-child {
-  border-bottom: none;
-}
-
-.metric-label,
-.dcf-label {
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.metric-value,
-.dcf-value {
-  font-weight: 600;
-  color: #111827;
-  font-size: 1.125rem;
-}
-
-.calendar-subsection {
-  margin-bottom: 2rem;
-}
-
-.calendar-subsection:last-child {
-  margin-bottom: 0;
-}
-
-.calendar-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.calendar-card {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.calendar-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.calendar-row:last-child {
-  border-bottom: none;
-}
-
-.calendar-label {
-  font-weight: 500;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.calendar-value {
-  font-weight: 600;
-  color: #111827;
-}
-
 .profile-tabs {
   display: flex;
   gap: 0.5rem;
@@ -1382,71 +1225,7 @@ const changePeriod = (newPeriod) => {
   border-bottom-color: #3b82f6;
 }
 
-.simple-table {
-  width: 100%;
-  border-collapse: collapse;
-}
 
-.simple-table th,
-.simple-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.simple-table th {
-  background: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-}
-
-.ma-list {
-  display: grid;
-  gap: 1rem;
-}
-
-.ma-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.ma-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.ma-header h4 {
-  margin: 0;
-  font-size: 1rem;
-  color: #111827;
-}
-
-.ma-date {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.ma-details {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.ma-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.ma-label {
-  font-weight: 600;
-  color: #6b7280;
-  min-width: 80px;
-}
 
 .loading-state,
 .error-state,
