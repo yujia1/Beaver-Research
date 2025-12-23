@@ -9,7 +9,7 @@ from services.edgar_service import edgar_service
 router = APIRouter()
 
 # Get FMP API key from environment
-FMP_API_KEY = os.getenv("FMP_API_KEY", "l4DHwKBRg3uFTkojVxlRAV1KE90I9gOm")
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
 FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 
 
@@ -432,6 +432,25 @@ async def get_revenue_segmentation(
     }
 
 
+@router.get("/insider-trading/{ticker}")
+async def get_insider_trading(ticker: str, page: int = 0, limit: int = 50):
+    """
+    Fetch insider trading data
+    """
+    ticker = ticker.upper()
+    # Endpoint: insider-trading/search?symbol=AAPL&page=0&limit=50
+    # Base URL is stable (v3), so we pass "insider-trading/search"
+    endpoint = "insider-trading/search"
+    params = {"symbol": ticker, "page": page, "limit": limit}
+    
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching insider trading: {e}")
+        return {"ticker": ticker, "data": []}
+
+
 @router.get("/all/{ticker}")
 async def get_all_statements(
     ticker: str,
@@ -456,8 +475,6 @@ async def get_all_statements(
         # Fetch Filings
         filings_data = []
         try:
-             # Loop is already defined below for 10-K, but let's ensure we use it or get it
-             # It's better to group thread pool calls if possible, but sequential is fine for now
              if 'loop' not in locals():
                  loop = asyncio.get_running_loop()
              filings_data = await loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
@@ -469,8 +486,8 @@ async def get_all_statements(
         financial_ratios = await get_financial_ratios_analysis(ticker)
         earnings = await get_earnings_data(ticker)
         dividends = await get_stock_dividends(ticker)
-        dividends = await get_stock_dividends(ticker)
         splits = await get_stock_splits(ticker)
+        insider_trading = await get_insider_trading(ticker)
 
         # Fetch Business Description from 10-K (Item 1)
         business_description = ""
@@ -497,14 +514,14 @@ async def get_all_statements(
             "dcf": dcf["data"],
             "earnings_calendar": earnings_calendar["data"],
             "employee_count": employee_count["data"],
-            "employee_count": employee_count["data"],
             "mergers_acquisitions": mergers_acquisitions["data"],
             "filings": filings_data,
             "key_metrics": key_metrics["data"],
             "financial_ratios": financial_ratios,
             "earnings": earnings["data"],
             "dividends": dividends["data"],
-            "splits": splits["data"]
+            "splits": splits["data"],
+            "insider_trading": insider_trading["data"]
         }
     except HTTPException as e:
         raise e

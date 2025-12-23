@@ -41,6 +41,7 @@ const {
   earnings,
   dividends,
   splits,
+  insiderTrading,
   businessDescription,
   historicalPrice,
   fetchFinancialData: fetchFinData 
@@ -545,6 +546,12 @@ const formatKey = (key) => {
           >
             Filling
           </button>
+          <button
+            :class="['main-tab', { active: mainTab === 'insider' }]"
+            @click="mainTab = 'insider'"
+          >
+            Insider
+          </button>
         </div>
 
         <!-- Sub-tabs and Period Toggle Container -->
@@ -792,34 +799,73 @@ const formatKey = (key) => {
                 <option value="4">Form 4 (Insider Trading)</option>
               </select>
             </div>
-            <table class="filings-table">
-              <thead>
-                <tr>
-                  <th @click="sortFilings('type')" class="sortable">
-                    Type 
-                    <span class="sort-icon">{{ getSortIcon('type') }}</span>
-                  </th>
-                  <th @click="sortFilings('date')" class="sortable">
-                    Date 
-                    <span class="sort-icon">{{ getSortIcon('date') }}</span>
-                  </th>
-                  <th>Link</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(filing, index) in sortedFilings" :key="index">
-                  <td class="filing-type">{{ filing.type }}</td>
-                  <td class="filing-date">{{ formatFilingDate(filing.date) }}</td>
-                  <td class="filing-link">
-                    <a v-if="filing.link" :href="filing.link" target="_blank" rel="noopener noreferrer">
-                      View →
-                    </a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+             <div class="data-table-wrapper" style="overflow-x: auto;">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header" @click="sortFilings('date')" style="cursor: pointer;">
+                           Date <span class="sort-icon">{{ getSortIcon('date') }}</span>
+                         </th>
+                         <th class="period-header" @click="sortFilings('type')" style="cursor: pointer;">
+                           Type <span class="sort-icon">{{ getSortIcon('type') }}</span>
+                         </th>
+                         <th class="period-header">Link</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(filing, index) in sortedFilings" :key="index" class="data-row">
+                         <td class="data-cell">{{ formatFilingDate(filing.date) }}</td>
+                         <td class="data-cell">
+                           <span class="filing-type-badge">{{ filing.type }}</span>
+                         </td>
+                         <td class="data-cell">
+                            <a :href="filing.link" target="_blank" class="filing-link">View Filing</a>
+                         </td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
          </div>
          <p v-else class="placeholder-text">No filings data available</p>
+      </div>
+
+      <!-- Insider Trading Content -->
+      <div v-if="mainTab === 'insider'" class="insider-analysis">
+         <div v-if="insiderTrading && insiderTrading.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+            <table class="data-table">
+               <thead>
+                  <tr>
+                     <th class="period-header">Filing Date</th>
+                     <th class="period-header">Trans Date</th>
+                     <th class="period-header">Type</th>
+                     <th class="period-header">Securities Owned</th>
+                     <th class="period-header">Reporting Name</th>
+                     <th class="period-header">Owner Type</th>
+                     <th class="period-header">Transacted</th>
+                     <th class="period-header">Price</th>
+                     <th class="period-header">Acq/Disp</th>
+                     <th class="period-header">Direct/Indirect</th>
+                     <th class="period-header">Security Name</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr v-for="(item, index) in insiderTrading" :key="index" class="data-row">
+                     <td class="data-cell">{{ formatFilingDate(item.filingDate) }}</td>
+                     <td class="data-cell">{{ formatFilingDate(item.transactionDate) }}</td>
+                     <td class="data-cell">{{ item.transactionType }}</td>
+                     <td class="data-cell">{{ item.securitiesOwned !== null ? item.securitiesOwned.toLocaleString() : '-' }}</td>
+                     <td class="data-cell">{{ item.reportingName }}</td>
+                     <td class="data-cell">{{ item.typeOfOwner }}</td>
+                     <td class="data-cell">{{ item.securitiesTransacted !== null ? item.securitiesTransacted.toLocaleString() : '-' }}</td>
+                     <td class="data-cell">{{ item.price !== null ? formatCurrency(item.price) : '-' }}</td>
+                     <td class="data-cell">{{ item.acquisitionOrDisposition }}</td>
+                     <td class="data-cell">{{ item.directOrIndirect }}</td>
+                     <td class="data-cell">{{ item.securityName }}</td>
+                  </tr>
+               </tbody>
+            </table>
+         </div>
+         <p v-else class="placeholder-text">No insider trading data available</p>
       </div>
 
       <!-- Fundamental Analysis Tab Content -->

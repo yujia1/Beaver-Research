@@ -18,6 +18,7 @@ export function useFinancialData() {
     const earnings = ref([])
     const dividends = ref([])
     const splits = ref([])
+    const insiderTrading = ref([])
     const businessDescription = ref('')
     const historicalPrice = ref([])
 
@@ -57,6 +58,7 @@ export function useFinancialData() {
             earnings.value = data.earnings || []
             dividends.value = data.dividends || []
             splits.value = data.splits || []
+            insiderTrading.value = data.insider_trading || []
             businessDescription.value = data.business_description || ''
             historicalPrice.value = data.historical_price || []
         } catch (err) {
@@ -83,8 +85,8 @@ export function useFinancialData() {
         financialRatios,
         earnings,
         dividends,
-        dividends,
         splits,
+        insiderTrading,
         businessDescription,
         historicalPrice,
         fetchFinancialData
