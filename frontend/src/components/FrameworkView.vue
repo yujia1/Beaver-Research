@@ -1244,6 +1244,11 @@ const changePeriod = (newPeriod) => {
         </table>
       </div>
       
+      <!-- No Data Message (only for statements tab) -->
+      <div v-if="mainTab === 'statements' && currentData.length === 0" class="no-data-message">
+        <p>{{ t('framework.no_data') }}</p>
+      </div>
+      
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
         <!-- Profile Sub-tabs (shown directly without section wrapper) -->
@@ -1332,6 +1337,41 @@ const changePeriod = (newPeriod) => {
           <div v-if="pricingPowerData" class="chart-container">
             <canvas ref="pricingPowerChart"></canvas>
           </div>
+          
+          <!-- Pricing Power Data Table -->
+          <div v-if="pricingPowerData" class="data-table-wrapper" style="margin-top: 2rem;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="line-item-header">{{ t('framework.line_item') }}</th>
+                  <th v-for="date in pricingPowerData.dates" :key="date" class="period-header">
+                    {{ date }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="calculated-metric-row">
+                  <td class="line-item-cell calculated-metric">Revenue Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                  <td v-for="(val, index) in pricingPowerData.revenueGrowth" :key="`rev-growth-${index}`" class="data-cell calculated-value">
+                    {{ formatPercentage(val / 100) }}
+                  </td>
+                </tr>
+                <tr class="calculated-metric-row">
+                  <td class="line-item-cell calculated-metric">Gross Margin</td>
+                  <td v-for="(val, index) in pricingPowerData.grossMargin" :key="`gross-margin-${index}`" class="data-cell calculated-value">
+                    {{ formatPercentage(val / 100) }}
+                  </td>
+                </tr>
+                <tr class="calculated-metric-row">
+                  <td class="line-item-cell calculated-metric">Operating Profit Margin</td>
+                  <td v-for="(val, index) in pricingPowerData.operatingMargin" :key="`op-margin-${index}`" class="data-cell calculated-value">
+                    {{ formatPercentage(val / 100) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
           <p v-else class="placeholder-text">No pricing power data available</p>
         </div>
 
@@ -1355,6 +1395,46 @@ const changePeriod = (newPeriod) => {
                   <h4 class="chart-subtitle">Capital Expenditure</h4>
                   <canvas ref="capexChart"></canvas>
                 </div>
+              </div>
+
+              <!-- Financial Health Data Table -->
+              <div v-if="financialHealthData" class="data-table-wrapper" style="margin-top: 2rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="line-item-header">{{ t('framework.line_item') }}</th>
+                      <th v-for="date in financialHealthData.dates" :key="date" class="period-header">
+                        {{ date }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="data-row">
+                      <td class="line-item-cell">Net Income</td>
+                      <td v-for="(val, index) in financialHealthData.netIncome" :key="`ni-${index}`" class="data-cell">
+                        {{ formatCurrency(val) }}
+                      </td>
+                    </tr>
+                    <tr class="data-row">
+                      <td class="line-item-cell">Operating Cash Flow</td>
+                      <td v-for="(val, index) in financialHealthData.operatingCashFlow" :key="`ocf-${index}`" class="data-cell">
+                        {{ formatCurrency(val) }}
+                      </td>
+                    </tr>
+                    <tr class="data-row">
+                      <td class="line-item-cell">Free Cash Flow</td>
+                      <td v-for="(val, index) in financialHealthData.freeCashFlow" :key="`fcf-${index}`" class="data-cell">
+                        {{ formatCurrency(val) }}
+                      </td>
+                    </tr>
+                    <tr class="data-row">
+                      <td class="line-item-cell">Capital Expenditure</td>
+                      <td v-for="(val, index) in financialHealthData.capex" :key="`capex-${index}`" class="data-cell">
+                        {{ formatCurrency(val) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               <p v-else class="placeholder-text">No financial health data available</p>
         </div>
@@ -1380,6 +1460,46 @@ const changePeriod = (newPeriod) => {
                   <canvas ref="apGrowthChart"></canvas>
                 </div>
               </div>
+
+              <!-- Working Capital Data Table -->
+              <div v-if="workingCapitalData" class="data-table-wrapper" style="margin-top: 2rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="line-item-header">{{ t('framework.line_item') }}</th>
+                      <th v-for="date in workingCapitalData.dates" :key="date" class="period-header">
+                        {{ date }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="calculated-metric-row">
+                      <td class="line-item-cell calculated-metric">Accounts Receivables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                      <td v-for="(val, index) in workingCapitalData.accountsReceivablesGrowth" :key="`ar-growth-${index}`" class="data-cell calculated-value">
+                        {{ formatPercentage(val / 100) }}
+                      </td>
+                    </tr>
+                    <tr class="calculated-metric-row">
+                      <td class="line-item-cell calculated-metric">Net Income Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                      <td v-for="(val, index) in workingCapitalData.netIncomeGrowth" :key="`ni-growth-${index}`" class="data-cell calculated-value">
+                        {{ formatPercentage(val / 100) }}
+                      </td>
+                    </tr>
+                    <tr class="calculated-metric-row">
+                      <td class="line-item-cell calculated-metric">Inventory Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                      <td v-for="(val, index) in workingCapitalData.inventoryGrowth" :key="`inv-growth-${index}`" class="data-cell calculated-value">
+                        {{ formatPercentage(val / 100) }}
+                      </td>
+                    </tr>
+                    <tr class="calculated-metric-row">
+                      <td class="line-item-cell calculated-metric">Accounts Payables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                      <td v-for="(val, index) in workingCapitalData.accountsPayablesGrowth" :key="`ap-growth-${index}`" class="data-cell calculated-value">
+                        {{ formatPercentage(val / 100) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <p v-else class="placeholder-text">No working capital data available</p>
             </div>
 
@@ -1388,6 +1508,34 @@ const changePeriod = (newPeriod) => {
           <div v-if="capexAnalysisData" class="chart-container">
                 <h4 class="chart-subtitle">CapEx Growth vs Revenue Growth</h4>
                 <canvas ref="capexAnalysisChart"></canvas>
+              </div>
+
+              <!-- CapEx Analysis Data Table -->
+              <div v-if="capexAnalysisData" class="data-table-wrapper" style="margin-top: 2rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="line-item-header">{{ t('framework.line_item') }}</th>
+                      <th v-for="date in capexAnalysisData.dates" :key="date" class="period-header">
+                        {{ date }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="calculated-metric-row">
+                      <td class="line-item-cell calculated-metric">CapEx Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                      <td v-for="(val, index) in capexAnalysisData.capexGrowth" :key="`capex-growth-${index}`" class="data-cell calculated-value">
+                        {{ formatPercentage(val / 100) }}
+                      </td>
+                    </tr>
+                    <tr class="calculated-metric-row">
+                      <td class="line-item-cell calculated-metric">Revenue Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                      <td v-for="(val, index) in capexAnalysisData.revenueGrowth" :key="`rev-growth-${index}`" class="data-cell calculated-value">
+                        {{ formatPercentage(val / 100) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               <p v-else class="placeholder-text">No CapEx analysis data available</p>
             </div>
@@ -1454,7 +1602,6 @@ const changePeriod = (newPeriod) => {
               <p v-else class="placeholder-text">No calendar data available</p>
             </div>
         </div>
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -1871,7 +2018,7 @@ const changePeriod = (newPeriod) => {
 }
 
 .fundamental-analysis {
-  padding: 2rem 0;
+  padding: 0.5rem 0;
 }
 
 .analysis-sections {
@@ -2143,6 +2290,18 @@ const changePeriod = (newPeriod) => {
 
 .error-state {
   color: #ef4444;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 3rem 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.no-data-message p {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .empty-state svg {
