@@ -4,7 +4,7 @@ import httpx
 import os
 import asyncio
 from datetime import datetime
-from backend.services.edgar_service import edgar_service
+from services.edgar_service import edgar_service
 
 router = APIRouter()
 

@@ -161,14 +161,14 @@ origins = [
     "http://localhost:8080",
     "http://localhost:80",  # Docker frontend (nginx)
     "http://frontend:80",  # Docker internal network
-    "https://beaver-research-frontend-production.up.railway.app",  # Railway production frontend (old)
-    "https://beaver-research.up.railway.app",  # Railway production frontend (new custom domain)
+    "https://beaver-research-frontend-production.up.railway.app",
+    "https://beaver-research.up.railway.app",
+    "https://www.beaver-research.up.railway.app", 
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex="https://.*\.railway\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
