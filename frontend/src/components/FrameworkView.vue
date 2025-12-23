@@ -1329,21 +1329,16 @@ const changePeriod = (newPeriod) => {
 
         <!-- Other analysis sections with wrappers removed -->
         <div v-if="analysisTab === 'pricing_power'">
-            <h3 class="section-title">{{ t('framework.analysis.pricing_power') }}</h3>
-            <div class="section-content">
-              <div v-if="pricingPowerData" class="chart-container">
-                <canvas ref="pricingPowerChart"></canvas>
-              </div>
-              <p v-else class="placeholder-text">No pricing power data available</p>
-            </div>
+          <div v-if="pricingPowerData" class="chart-container">
+            <canvas ref="pricingPowerChart"></canvas>
           </div>
+          <p v-else class="placeholder-text">No pricing power data available</p>
+        </div>
 
           <!-- Financial Health -->
         <div v-if="analysisTab === 'financial_health'">
-            <h3 class="section-title">{{ t('framework.analysis.financial_health') }}</h3>
-            <div class="section-content">
-              <!-- Net Income & Operating Cash Flow Chart -->
-              <div v-if="financialHealthData" class="chart-group">
+          <!-- Net Income & Operating Cash Flow Chart -->
+          <div v-if="financialHealthData" class="chart-group">
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Net Income & Operating Cash Flow</h4>
                   <canvas ref="incomeVsCashFlowChart"></canvas>
@@ -1362,14 +1357,11 @@ const changePeriod = (newPeriod) => {
                 </div>
               </div>
               <p v-else class="placeholder-text">No financial health data available</p>
-            </div>
-          </div>
+        </div>
 
-          <!-- Working Capital Analysis -->
+        <!-- Working Capital Analysis -->
         <div v-if="analysisTab === 'working_capital'">
-            <h3 class="section-title">{{ t('framework.analysis.working_capital') }}</h3>
-            <div class="section-content">
-              <div v-if="workingCapitalData" class="chart-group">
+          <div v-if="workingCapitalData" class="chart-group">
                 <!-- AR vs NI Growth Chart -->
                 <div class="chart-container">
                   <h4 class="chart-subtitle">Accounts Receivables Growth vs Net Income Growth</h4>
@@ -1390,25 +1382,19 @@ const changePeriod = (newPeriod) => {
               </div>
               <p v-else class="placeholder-text">No working capital data available</p>
             </div>
-          </div>
 
           <!-- CapEx Analysis -->
         <div v-if="analysisTab === 'capex'">
-            <h3 class="section-title">{{ t('framework.analysis.capex') }}</h3>
-            <div class="section-content">
-              <div v-if="capexAnalysisData" class="chart-container">
+          <div v-if="capexAnalysisData" class="chart-container">
                 <h4 class="chart-subtitle">CapEx Growth vs Revenue Growth</h4>
                 <canvas ref="capexAnalysisChart"></canvas>
               </div>
               <p v-else class="placeholder-text">No CapEx analysis data available</p>
             </div>
-          </div>
 
           <!-- Valuation Analysis -->
         <div v-if="analysisTab === 'valuation'">
-            <h3 class="section-title">{{ t('framework.analysis.valuation') }}</h3>
-            <div class="section-content">
-              <div v-if="dcfData.length > 0">
+          <div v-if="dcfData.length > 0">
                 <!-- DCF Valuation -->
                 <div class="valuation-subsection">
                   <h4 class="chart-subtitle">DCF Valuation</h4>
@@ -1432,13 +1418,10 @@ const changePeriod = (newPeriod) => {
               </div>
               <p v-else class="placeholder-text">No valuation data available</p>
             </div>
-          </div>
 
           <!-- Structure (formerly Calendar) -->
         <div v-if="analysisTab === 'structure'">
-            <h3 class="section-title">{{ t('framework.analysis.structure') }}</h3>
-            <div class="section-content">
-              <div v-if="earningsCalendar.length > 0">
+          <div v-if="earningsCalendar.length > 0">
                 <!-- Earnings Calendar -->
                 <div class="calendar-subsection">
                   <h4 class="chart-subtitle">Earnings Calendar</h4>
@@ -1470,7 +1453,6 @@ const changePeriod = (newPeriod) => {
               </div>
               <p v-else class="placeholder-text">No calendar data available</p>
             </div>
-          </div>
         </div>
       </div>
     </div>
@@ -1484,17 +1466,6 @@ const changePeriod = (newPeriod) => {
     <!-- Error State -->
     <div v-if="error && !loading" class="error-state">
       <p>{{ t('framework.error') }}: {{ error }}</p>
-    </div>
-
-    <!-- Empty State -->
-    <div v-if="!ticker && !loading" class="empty-state">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="7" height="7"></rect>
-        <rect x="14" y="3" width="7" height="7"></rect>
-        <rect x="14" y="14" width="7" height="7"></rect>
-        <rect x="3" y="14" width="7" height="7"></rect>
-      </svg>
-      <p>{{ t('framework.ticker_placeholder') }}</p>
     </div>
   </div>
 </template>
