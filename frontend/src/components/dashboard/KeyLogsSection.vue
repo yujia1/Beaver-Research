@@ -749,6 +749,35 @@
                     <p class="error-message">{{ calendarError }}</p>
                 </div>
                 <div v-else class="calendar-data">
+                    <div class="calendar-filters">
+                        <div class="filter-group">
+                            <span class="filter-label">Impact:</span>
+                            <div class="filter-options">
+                                <button 
+                                    v-for="impact in calendarImpacts" 
+                                    :key="impact" 
+                                    :class="['filter-btn', { active: selectedImpacts.includes(impact) }]"
+                                    @click="toggleImpact(impact)"
+                                >
+                                    {{ impact }}
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <span class="filter-label">Country:</span>
+                            <div class="filter-options">
+                                <button 
+                                    v-for="country in calendarCountries" 
+                                    :key="country" 
+                                    :class="['filter-btn', { active: selectedCountries.includes(country) }]"
+                                    @click="toggleCountry(country)"
+                                >
+                                    {{ country }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <table class="liquidity-table">
                         <thead>
                             <tr>
@@ -762,7 +791,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(item, index) in calendarData" :key="index">
+                            <tr v-for="(item, index) in filteredCalendarData" :key="index">
                                 <td>{{ item.date }}</td>
                                 <td>{{ item.country }}</td>
                                 <td>{{ item.event }}</td>
@@ -771,8 +800,8 @@
                                 <td>{{ item.estimate !== null ? item.estimate : '-' }}</td>
                                 <td>{{ item.impact }}</td>
                             </tr>
-                            <tr v-if="calendarData.length === 0">
-                                <td colspan="7" class="no-data">No economic events found for today.</td>
+                            <tr v-if="filteredCalendarData.length === 0">
+                                <td colspan="7" class="no-data">No events match filters.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -2214,6 +2243,42 @@ watch(activeTab, (newTab) => {
   }
 });
 
+// Calendar Filtering
+const calendarImpacts = ['Low', 'Medium', 'High', 'None'];
+const selectedImpacts = ref(['High']);
+const calendarCountries = computed(() => {
+    if (!calendarData.value) return ['US', 'JP'];
+    const countries = new Set(calendarData.value.map(item => item.country).filter(c => c));
+    // Ensure defaults are in the list if not present, or just show all available
+    return Array.from(countries).sort();
+});
+const selectedCountries = ref(['US', 'JP']);
+
+const filteredCalendarData = computed(() => {
+    if (!calendarData.value) return [];
+    return calendarData.value.filter(item => {
+        const impactMatch = selectedImpacts.value.length === 0 || selectedImpacts.value.includes(item.impact);
+        const countryMatch = selectedCountries.value.length === 0 || selectedCountries.value.includes(item.country);
+        return impactMatch && countryMatch;
+    });
+});
+
+const toggleImpact = (impact) => {
+    if (selectedImpacts.value.includes(impact)) {
+        selectedImpacts.value = selectedImpacts.value.filter(i => i !== impact);
+    } else {
+        selectedImpacts.value.push(impact);
+    }
+}
+
+const toggleCountry = (country) => {
+    if (selectedCountries.value.includes(country)) {
+        selectedCountries.value = selectedCountries.value.filter(c => c !== country);
+    } else {
+        selectedCountries.value.push(country);
+    }
+}
+
 onMounted(() => {
     updateData(); // Load all data including sub-components
 });
@@ -3302,5 +3367,58 @@ onMounted(() => {
 .short-interest-pagination-info {
     color: #666666;
     font-size: 0.9rem;
+}
+</style>
+
+<style scoped>
+.calendar-filters {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e5e5e5;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 0.9rem;
+}
+
+.filter-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 6px 14px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4b5563;
+}
+
+.filter-btn.active {
+    background: #111827; /* Dark black/grey like title */
+    color: white;
+    border-color: #111827;
+}
+
+.filter-btn:hover:not(.active) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
 }
 </style>

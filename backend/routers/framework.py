@@ -9,7 +9,7 @@ from services.edgar_service import edgar_service
 router = APIRouter()
 
 # Get FMP API key from environment
-FMP_API_KEY = os.getenv("FMP_API_KEY", "")
+FMP_API_KEY = os.getenv("FMP_API_KEY", "l4DHwKBRg3uFTkojVxlRAV1KE90I9gOm")
 FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 
 
@@ -35,9 +35,11 @@ async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[D
             data = response.json()
             
             if isinstance(data, dict) and "Error Message" in data:
+                # Some errors are dicts
                 raise HTTPException(status_code=400, detail=data["Error Message"])
             
-            return data if isinstance(data, list) else []
+            # Return data directly; caller handles dict vs list
+            return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"FMP API error: {str(e)}")
     except Exception as e:
