@@ -1771,8 +1771,8 @@ const formatKey = (key) => {
   border-collapse: collapse;
 }
 
-/* Calendar Analysis Specific Styles */
-.calendar-analysis .period-header {
+/* Global Data Table Styles within Component */
+.period-header {
   background: #f8fafc;
   padding: 1rem;
   text-align: left !important;
@@ -1783,19 +1783,19 @@ const formatKey = (key) => {
   white-space: nowrap;
 }
 
-.calendar-analysis .data-row {
+.data-row {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.calendar-analysis .data-row:last-child {
+.data-row:last-child {
   border-bottom: none;
 }
 
-.calendar-analysis .data-row:hover {
+.data-row:hover {
   background: #f8fafc;
 }
 
-.calendar-analysis .data-cell {
+.data-cell {
   padding: 1rem;
   color: #1e293b;
   text-align: left !important;

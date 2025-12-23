@@ -236,12 +236,12 @@ const getSegmentValue = (productName, date) => {
 .data-table thead { background: #f8f8f8; position: sticky; top: 0; z-index: 10; }
 .data-table th { padding: 1rem; text-align: left; font-weight: 600; color: #000; border-bottom: 2px solid #e0e0e0; white-space: nowrap; }
 .line-item-header { position: sticky; left: 0; background: #f8f8f8; z-index: 11; min-width: 250px; }
-.period-header { text-align: right; min-width: 120px; }
+.period-header { text-align: left; min-width: 120px; }
 .data-table tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
 .data-table tbody tr:hover { background: #fafafa; }
 .line-item-cell { padding: 1rem; font-weight: 500; color: #333; position: sticky; left: 0; background: #fff; border-right: 1px solid #f0f0f0; }
 .data-table tbody tr:hover .line-item-cell { background: #fafafa; }
-.data-cell { padding: 1rem; text-align: right; color: #666; font-family: 'Courier New', monospace; }
+.data-cell { padding: 1rem; text-align: left; color: #666; font-family: 'Courier New', monospace; }
 .category-header-row { background: #f8f8f8; cursor: pointer; transition: background 0.2s; border-top: 2px solid #e0e0e0; }
 .category-header-row:hover { background: #f0f0f0; }
 .category-header-cell { padding: 0.875rem 1rem !important; font-weight: 600; color: #000; text-align: left !important; }
