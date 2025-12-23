@@ -811,6 +811,10 @@
         "subtitle": "Financial Data Engine",
         "ticker_placeholder": "Enter ticker symbol (e.g., TSLA)",
         "search": "Search",
+        "main_tabs": {
+            "statements": "FINANCIAL STATEMENTS",
+            "fundamental_analysis": "FUNDAMENTAL ANALYSIS"
+        },
         "tabs": {
             "core": "Core Statements",
             "income": "Income",
@@ -827,14 +831,24 @@
         "error": "Error loading data",
         "no_data": "No data available for this ticker",
         "line_item": "Line Item",
+        "analysis_tabs": {
+            "profile": "Profile",
+            "pricing_power": "Pricing Power",
+            "financial_health": "Financial Health",
+            "working_capital": "Working Capital",
+            "capex": "CapEx",
+            "valuation": "Valuation",
+            "structure": "Structure"
+        },
         "analysis": {
+            "profile": "Company Profile",
             "pricing_power": "Pricing Power",
             "financial_health": "Financial Health",
             "balance_sheet": "Balance Sheet",
             "working_capital": "Working Capital",
             "capex": "CapEx",
             "valuation": "Valuation",
-            "calendar": "Calendar"
+            "structure": "Structure"
         }
     }
 }

@@ -30,7 +30,9 @@ const { t } = useI18n()
 
 // State
 const ticker = ref('')
+const mainTab = ref('statements') // statements or fundamental_analysis
 const activeTab = ref('income') // income, cash_flow, balance_sheet
+const analysisTab = ref('profile') // profile, pricing_power, financial_health, working_capital, capex, valuation, structure
 const period = ref('annual') // annual or quarter
 const loading = ref(false)
 const error = ref(null)
@@ -926,35 +928,94 @@ const changePeriod = (newPeriod) => {
 
       <!-- Tab Navigation -->
       <div class="tabs-section">
-        <div class="tabs">
+        <!-- Main Tabs -->
+        <div class="main-tabs">
           <button
-            :class="['tab', { active: activeTab === 'income' }]"
-            @click="activeTab = 'income'"
+            :class="['main-tab', { active: mainTab === 'statements' }]"
+            @click="mainTab = 'statements'"
           >
-            {{ t('framework.tabs.income') }}
+            {{ t('framework.main_tabs.statements') }}
           </button>
           <button
-            :class="['tab', { active: activeTab === 'cash_flow' }]"
-            @click="activeTab = 'cash_flow'"
+            :class="['main-tab', { active: mainTab === 'fundamental_analysis' }]"
+            @click="mainTab = 'fundamental_analysis'"
           >
-            {{ t('framework.tabs.cash_flow') }}
-          </button>
-          <button
-            :class="['tab', { active: activeTab === 'balance_sheet' }]"
-            @click="activeTab = 'balance_sheet'"
-          >
-            {{ t('framework.tabs.balance_sheet') }}
-          </button>
-          <button
-            :class="['tab', { active: activeTab === 'fundamental_analysis' }]"
-            @click="activeTab = 'fundamental_analysis'"
-          >
-            {{ t('framework.tabs.fundamental_analysis') }}
+            {{ t('framework.main_tabs.fundamental_analysis') }}
           </button>
         </div>
 
-        <!-- Period Toggle -->
-        <div class="period-toggle">
+        <!-- Sub-tabs and Period Toggle Container -->
+        <div class="sub-tabs-container">
+          <!-- Sub-tabs (only show for Financial Statements) -->
+          <div v-if="mainTab === 'statements'" class="tabs">
+            <button
+              :class="['tab', { active: activeTab === 'income' }]"
+              @click="activeTab = 'income'"
+            >
+              {{ t('framework.tabs.income') }}
+            </button>
+            <button
+              :class="['tab', { active: activeTab === 'cash_flow' }]"
+              @click="activeTab = 'cash_flow'"
+            >
+              {{ t('framework.tabs.cash_flow') }}
+            </button>
+            <button
+              :class="['tab', { active: activeTab === 'balance_sheet' }]"
+              @click="activeTab = 'balance_sheet'"
+            >
+              {{ t('framework.tabs.balance_sheet') }}
+            </button>
+          </div>
+
+          <!-- Analysis Sub-tabs (only show for Fundamental Analysis) -->
+          <div v-if="mainTab === 'fundamental_analysis'" class="tabs">
+            <button
+              :class="['tab', { active: analysisTab === 'profile' }]"
+              @click="analysisTab = 'profile'"
+            >
+              {{ t('framework.analysis_tabs.profile') }}
+            </button>
+            <button
+              :class="['tab', { active: analysisTab === 'pricing_power' }]"
+              @click="analysisTab = 'pricing_power'"
+            >
+              {{ t('framework.analysis_tabs.pricing_power') }}
+            </button>
+            <button
+              :class="['tab', { active: analysisTab === 'financial_health' }]"
+              @click="analysisTab = 'financial_health'"
+            >
+              {{ t('framework.analysis_tabs.financial_health') }}
+            </button>
+            <button
+              :class="['tab', { active: analysisTab === 'working_capital' }]"
+              @click="analysisTab = 'working_capital'"
+            >
+              {{ t('framework.analysis_tabs.working_capital') }}
+            </button>
+            <button
+              :class="['tab', { active: analysisTab === 'capex' }]"
+              @click="analysisTab = 'capex'"
+            >
+              {{ t('framework.analysis_tabs.capex') }}
+            </button>
+            <button
+              :class="['tab', { active: analysisTab === 'valuation' }]"
+              @click="analysisTab = 'valuation'"
+            >
+              {{ t('framework.analysis_tabs.valuation') }}
+            </button>
+            <button
+              :class="['tab', { active: analysisTab === 'structure' }]"
+              @click="analysisTab = 'structure'"
+            >
+              {{ t('framework.analysis_tabs.structure') }}
+            </button>
+          </div>
+
+          <!-- Period Toggle -->
+          <div class="period-toggle">
           <button
             :class="['period-btn', { active: period === 'annual' }]"
             @click="changePeriod('annual')"
@@ -968,10 +1029,11 @@ const changePeriod = (newPeriod) => {
             {{ t('framework.period.quarterly') }}
           </button>
         </div>
+        </div>
       </div>
 
-      <!-- Financial Data Table -->
-      <div v-if="currentData.length > 0" class="data-table-wrapper">
+      <!-- Financial Data Table (only show for statements tab) -->
+      <div v-if="mainTab === 'statements' && currentData.length > 0" class="data-table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -1183,10 +1245,18 @@ const changePeriod = (newPeriod) => {
       </div>
       
       <!-- Fundamental Analysis Tab Content -->
-      <div v-if="activeTab === 'fundamental_analysis'" class="fundamental-analysis">
+      <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
         <div class="analysis-sections">
-          <!-- Pricing Power (formerly Income Statement) -->
-          <div class="analysis-section">
+          <!-- Profile (placeholder for now) -->
+          <div v-if="analysisTab === 'profile'" class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.profile') }}</h3>
+            <div class="section-content">
+              <p class="placeholder-text">Company profile coming soon...</p>
+            </div>
+          </div>
+
+          <!-- Pricing Power -->
+          <div v-if="analysisTab === 'pricing_power'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.pricing_power') }}</h3>
             <div class="section-content">
               <div v-if="pricingPowerData" class="chart-container">
@@ -1196,8 +1266,8 @@ const changePeriod = (newPeriod) => {
             </div>
           </div>
 
-          <!-- Financial Health (formerly Cash Flow) -->
-          <div class="analysis-section">
+          <!-- Financial Health -->
+          <div v-if="analysisTab === 'financial_health'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.financial_health') }}</h3>
             <div class="section-content">
               <!-- Net Income & Operating Cash Flow Chart -->
@@ -1223,16 +1293,8 @@ const changePeriod = (newPeriod) => {
             </div>
           </div>
 
-          <!-- Balance Sheet Analysis -->
-          <div class="analysis-section">
-            <h3 class="section-title">{{ t('framework.analysis.balance_sheet') }}</h3>
-            <div class="section-content">
-              <p class="placeholder-text">Balance Sheet analysis coming soon...</p>
-            </div>
-          </div>
-
           <!-- Working Capital Analysis -->
-          <div class="analysis-section">
+          <div v-if="analysisTab === 'working_capital'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.working_capital') }}</h3>
             <div class="section-content">
               <div v-if="workingCapitalData" class="chart-group">
@@ -1259,7 +1321,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- CapEx Analysis -->
-          <div class="analysis-section">
+          <div v-if="analysisTab === 'capex'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.capex') }}</h3>
             <div class="section-content">
               <div v-if="capexAnalysisData" class="chart-container">
@@ -1271,7 +1333,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- Valuation Analysis -->
-          <div class="analysis-section">
+          <div v-if="analysisTab === 'valuation'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.valuation') }}</h3>
             <div class="section-content">
               <div v-if="keyMetrics.length > 0 || dcfData.length > 0">
@@ -1341,9 +1403,9 @@ const changePeriod = (newPeriod) => {
             </div>
           </div>
 
-          <!-- Calendar -->
-          <div class="analysis-section">
-            <h3 class="section-title">{{ t('framework.analysis.calendar') }}</h3>
+          <!-- Structure (formerly Calendar) -->
+          <div v-if="analysisTab === 'structure'" class="analysis-section">
+            <h3 class="section-title">{{ t('framework.analysis.structure') }}</h3>
             <div class="section-content">
               <div v-if="earningsCalendar.length > 0">
                 <!-- Earnings Calendar -->

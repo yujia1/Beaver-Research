@@ -810,6 +810,10 @@
         "subtitle": "财务数据引擎",
         "ticker_placeholder": "输入股票代码 (例如: TSLA)",
         "search": "搜索",
+        "main_tabs": {
+            "statements": "财务报表",
+            "fundamental_analysis": "基本面分析"
+        },
         "tabs": {
             "core": "核心报表",
             "income": "损益表",
@@ -826,14 +830,24 @@
         "error": "加载数据出错",
         "no_data": "该股票代码无可用数据",
         "line_item": "项目",
+        "analysis_tabs": {
+            "profile": "简介",
+            "pricing_power": "定价能力",
+            "financial_health": "财务健康",
+            "working_capital": "营运资本",
+            "capex": "资本支出",
+            "valuation": "估值",
+            "structure": "结构"
+        },
         "analysis": {
+            "profile": "公司简介",
             "pricing_power": "定价能力",
             "financial_health": "财务健康",
             "balance_sheet": "资产负债表",
             "working_capital": "营运资本",
             "capex": "资本支出",
             "valuation": "估值",
-            "calendar": "日历"
+            "structure": "结构"
         }
     }
 }
