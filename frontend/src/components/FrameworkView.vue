@@ -492,7 +492,7 @@ const formatKey = (key) => {
        <div class="header-content">
           <div class="header-left">
              <h1>STOCK PRICE TIMELINE</h1>
-             <p>Track stock price movements and key events over time</p>
+             <p>Track stock price movements and key metrics over time</p>
           </div>
           <div class="header-right" v-if="latestPriceData">
              <div class="price-top">
@@ -544,7 +544,7 @@ const formatKey = (key) => {
       <!-- 4. Dataset Section -->
       <div class="section-card dataset-section-card">
          <div class="section-header-row">
-             <h3>COMPANY BASIC</h3>
+             <h3>COMPANY FINANCIAL Data</h3>
              <div v-if="['statements'].includes(mainTab)" class="period-toggle-badge">
                  <button :class="{ active: period === 'annual' }" @click="changePeriod('annual')">ANNUAL</button>
                  <button :class="{ active: period === 'quarter' }" @click="changePeriod('quarter')">QUARTERLY</button>
@@ -1956,6 +1956,7 @@ const formatKey = (key) => {
   font-size: 2.5rem;
   font-weight: 800;
   line-height: 1;
+  color: #000000;
 }
 
 .price-sub {
@@ -1989,6 +1990,7 @@ const formatKey = (key) => {
   font-size: 0.9rem;
   text-transform: uppercase;
   white-space: nowrap;
+  color: #000000;
 }
 
 .input-group {
@@ -2047,6 +2049,7 @@ const formatKey = (key) => {
   font-weight: 800;
   margin: 0;
   text-transform: uppercase;
+  color: #000000;
 }
 
 .period-toggle-badge {
