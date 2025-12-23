@@ -352,15 +352,23 @@ async def get_financial_ratios_analysis(ticker: str):
 
 
 
-async def get_historical_price_full(ticker: str) -> Dict[str, Any]:
+async def get_historical_price_full(ticker: str, from_date: str = None, to_date: str = None) -> Dict[str, Any]:
     """
     Fetch full historical price data (Daily)
     """
     endpoint = "historical-price-eod/full"
+    params = {"symbol": ticker}
+    if from_date:
+        params["from"] = from_date
+    if to_date:
+        params["to"] = to_date
+        
     try:
-        data = await fetch_fmp_data(endpoint, {"symbol": ticker})
+        data = await fetch_fmp_data(endpoint, params)
         if isinstance(data, dict):
              return data
+        if isinstance(data, list):
+             return {"historical": data}
         return {"historical": []}
     except Exception as e:
         print(f"Error fetching historical price: {e}")
