@@ -489,16 +489,7 @@ const changePeriod = (newPeriod) => {
         </div>
 
         <!-- Other analysis sections with wrappers removed -->
-        <div v-if="analysisTab === 'pricing_power'">
-          <div v-if="pricingPowerData" class="chart-container">
-            <FinancialChart 
-              v-if="pricingPowerChartConfig" 
-              :type="pricingPowerChartConfig.type" 
-              :data="pricingPowerChartConfig.data" 
-              :options="pricingPowerChartConfig.options" 
-            />
-          </div>
-          
+        <div v-if="analysisTab === 'pricing_power'">          
           <!-- Pricing Power Data Table -->
           <div v-if="pricingPowerData" class="data-table-wrapper" style="margin-top: 2rem;">
             <table class="data-table">
