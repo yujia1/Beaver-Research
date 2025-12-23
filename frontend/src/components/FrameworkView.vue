@@ -1244,10 +1244,6 @@ const changePeriod = (newPeriod) => {
         </table>
       </div>
       
-      <!-- No Data Message (only for statements tab) -->
-      <div v-if="mainTab === 'statements' && currentData.length === 0" class="no-data-message">
-        <p>{{ t('framework.no_data') }}</p>
-      </div>
       
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
