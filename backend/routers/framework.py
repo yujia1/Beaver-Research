@@ -75,6 +75,10 @@ async def fetch_fmp_v4_data(endpoint: str, params: Dict[str, Any] = None) -> Lis
         print(f"Error fetching v4 data: {str(e)}")
         return []
 
+    except Exception as e:
+        print(f"Error fetching v4 data: {str(e)}")
+        return []
+
 
 
 @router.get("/income-statement/{ticker}")
@@ -350,9 +354,9 @@ async def get_historical_price_full(ticker: str) -> Dict[str, Any]:
     """
     Fetch full historical price data (Daily)
     """
-    endpoint = f"historical-price-full/{ticker}"
+    endpoint = "historical-price-eod/full"
     try:
-        data = await fetch_fmp_data(endpoint)
+        data = await fetch_fmp_data(endpoint, {"symbol": ticker})
         if isinstance(data, dict):
              return data
         return {"historical": []}
@@ -368,9 +372,9 @@ async def get_historical_chart_intraday(interval: str, ticker: str):
     Intervals: 1min, 5min, 15min, 30min, 1hour, 4hour
     """
     ticker = ticker.upper()
-    endpoint = f"historical-chart/{interval}/{ticker}"
+    endpoint = f"historical-chart/{interval}"
     try:
-        data = await fetch_fmp_data(endpoint)
+        data = await fetch_fmp_data(endpoint, {"symbol": ticker})
         return {"data": data if isinstance(data, list) else []}
     except Exception as e:
         print(f"Error fetching intraday data: {e}")
