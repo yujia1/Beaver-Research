@@ -1243,99 +1243,92 @@ const changePeriod = (newPeriod) => {
           </tbody>
         </table>
       </div>
-      <div v-else class="no-data">
-        {{ t('framework.no_data') }}
-      </div>
       
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
-        <div class="analysis-sections">
-          <!-- Profile (with sub-tabs) -->
-          <div v-if="analysisTab === 'profile'" class="analysis-section">
-            <h3 class="section-title">{{ t('framework.analysis.profile') }}</h3>
-            
-            <!-- Profile Sub-tabs -->
-            <div class="profile-tabs">
-              <button
-                :class="['profile-tab', { active: profileTab === 'business' }]"
-                @click="profileTab = 'business'"
-              >
-                {{ t('framework.profile_tabs.business') }}
-              </button>
-              <button
-                :class="['profile-tab', { active: profileTab === 'employee_count' }]"
-                @click="profileTab = 'employee_count'"
-              >
-                {{ t('framework.profile_tabs.employee_count') }}
-              </button>
-              <button
-                :class="['profile-tab', { active: profileTab === 'mergers_acquisitions' }]"
-                @click="profileTab = 'mergers_acquisitions'"
-              >
-                {{ t('framework.profile_tabs.mergers_acquisitions') }}
-              </button>
+        <!-- Profile Sub-tabs (shown directly without section wrapper) -->
+        <div v-if="analysisTab === 'profile'">
+          <div class="profile-tabs">
+            <button
+              :class="['profile-tab', { active: profileTab === 'business' }]"
+              @click="profileTab = 'business'"
+            >
+              {{ t('framework.profile_tabs.business') }}
+            </button>
+            <button
+              :class="['profile-tab', { active: profileTab === 'employee_count' }]"
+              @click="profileTab = 'employee_count'"
+            >
+              {{ t('framework.profile_tabs.employee_count') }}
+            </button>
+            <button
+              :class="['profile-tab', { active: profileTab === 'mergers_acquisitions' }]"
+              @click="profileTab = 'mergers_acquisitions'"
+            >
+              {{ t('framework.profile_tabs.mergers_acquisitions') }}
+            </button>
+          </div>
+
+          <div class="profile-content">
+            <!-- Business Tab -->
+            <div v-if="profileTab === 'business'">
+              <p class="placeholder-text">Company business information coming soon...</p>
             </div>
 
-            <div class="section-content">
-              <!-- Business Tab -->
-              <div v-if="profileTab === 'business'">
-                <p class="placeholder-text">Company business information coming soon...</p>
+            <!-- Employee Count Tab -->
+            <div v-if="profileTab === 'employee_count'">
+              <div v-if="employeeCount.length > 0" class="employee-table">
+                <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th>Employee Count</th>
+                      <th>Filing Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="emp in employeeCount" :key="emp.filingDate">
+                      <td>{{ emp.year || '-' }}</td>
+                      <td>{{ emp.employeeCount?.toLocaleString() || '-' }}</td>
+                      <td>{{ emp.filingDate || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+              <p v-else class="placeholder-text">No employee count data available</p>
+            </div>
 
-              <!-- Employee Count Tab -->
-              <div v-if="profileTab === 'employee_count'">
-                <div v-if="employeeCount.length > 0" class="employee-table">
-                  <table class="simple-table">
-                    <thead>
-                      <tr>
-                        <th>Year</th>
-                        <th>Employee Count</th>
-                        <th>Filing Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="emp in employeeCount" :key="emp.filingDate">
-                        <td>{{ emp.year || '-' }}</td>
-                        <td>{{ emp.employeeCount?.toLocaleString() || '-' }}</td>
-                        <td>{{ emp.filingDate || '-' }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <p v-else class="placeholder-text">No employee count data available</p>
-              </div>
-
-              <!-- Mergers & Acquisitions Tab -->
-              <div v-if="profileTab === 'mergers_acquisitions'">
-                <div v-if="mergersAcquisitions.length > 0" class="ma-list">
-                  <div v-for="ma in mergersAcquisitions.slice(0, 10)" :key="ma.transactionDate" class="ma-card">
-                    <div class="ma-header">
-                      <h4>{{ ma.companyName || 'Unknown Company' }}</h4>
-                      <span class="ma-date">{{ ma.transactionDate || '-' }}</span>
+            <!-- Mergers & Acquisitions Tab -->
+            <div v-if="profileTab === 'mergers_acquisitions'">
+              <div v-if="mergersAcquisitions.length > 0" class="ma-list">
+                <div v-for="ma in mergersAcquisitions.slice(0, 10)" :key="ma.transactionDate" class="ma-card">
+                  <div class="ma-header">
+                    <h4>{{ ma.companyName || 'Unknown Company' }}</h4>
+                    <span class="ma-date">{{ ma.transactionDate || '-' }}</span>
+                  </div>
+                  <div class="ma-details">
+                    <div class="ma-row">
+                      <span class="ma-label">Target:</span>
+                      <span>{{ ma.targetedCompany || '-' }}</span>
                     </div>
-                    <div class="ma-details">
-                      <div class="ma-row">
-                        <span class="ma-label">Target:</span>
-                        <span>{{ ma.targetedCompany || '-' }}</span>
-                      </div>
-                      <div class="ma-row">
-                        <span class="ma-label">Price:</span>
-                        <span>{{ ma.price ? '$' + ma.price.toLocaleString() : '-' }}</span>
-                      </div>
-                      <div class="ma-row">
-                        <span class="ma-label">Type:</span>
-                        <span>{{ ma.transactionType || '-' }}</span>
-                      </div>
+                    <div class="ma-row">
+                      <span class="ma-label">Price:</span>
+                      <span>{{ ma.price ? '$' + ma.price.toLocaleString() : '-' }}</span>
+                    </div>
+                    <div class="ma-row">
+                      <span class="ma-label">Type:</span>
+                      <span>{{ ma.transactionType || '-' }}</span>
                     </div>
                   </div>
                 </div>
-                <p v-else class="placeholder-text">No M&A data available</p>
               </div>
+              <p v-else class="placeholder-text">No M&A data available</p>
             </div>
           </div>
+        </div>
 
-          <!-- Pricing Power -->
-          <div v-if="analysisTab === 'pricing_power'" class="analysis-section">
+        <!-- Other analysis sections with wrappers removed -->
+        <div v-if="analysisTab === 'pricing_power'">
             <h3 class="section-title">{{ t('framework.analysis.pricing_power') }}</h3>
             <div class="section-content">
               <div v-if="pricingPowerData" class="chart-container">
@@ -1346,7 +1339,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- Financial Health -->
-          <div v-if="analysisTab === 'financial_health'" class="analysis-section">
+        <div v-if="analysisTab === 'financial_health'">
             <h3 class="section-title">{{ t('framework.analysis.financial_health') }}</h3>
             <div class="section-content">
               <!-- Net Income & Operating Cash Flow Chart -->
@@ -1373,7 +1366,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- Working Capital Analysis -->
-          <div v-if="analysisTab === 'working_capital'" class="analysis-section">
+        <div v-if="analysisTab === 'working_capital'">
             <h3 class="section-title">{{ t('framework.analysis.working_capital') }}</h3>
             <div class="section-content">
               <div v-if="workingCapitalData" class="chart-group">
@@ -1400,7 +1393,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- CapEx Analysis -->
-          <div v-if="analysisTab === 'capex'" class="analysis-section">
+        <div v-if="analysisTab === 'capex'">
             <h3 class="section-title">{{ t('framework.analysis.capex') }}</h3>
             <div class="section-content">
               <div v-if="capexAnalysisData" class="chart-container">
@@ -1412,7 +1405,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- Valuation Analysis -->
-          <div v-if="analysisTab === 'valuation'" class="analysis-section">
+        <div v-if="analysisTab === 'valuation'">
             <h3 class="section-title">{{ t('framework.analysis.valuation') }}</h3>
             <div class="section-content">
               <div v-if="dcfData.length > 0">
@@ -1442,7 +1435,7 @@ const changePeriod = (newPeriod) => {
           </div>
 
           <!-- Structure (formerly Calendar) -->
-          <div v-if="analysisTab === 'structure'" class="analysis-section">
+        <div v-if="analysisTab === 'structure'">
             <h3 class="section-title">{{ t('framework.analysis.structure') }}</h3>
             <div class="section-content">
               <div v-if="earningsCalendar.length > 0">
