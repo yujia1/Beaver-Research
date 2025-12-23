@@ -33,6 +33,7 @@ const ticker = ref('')
 const mainTab = ref('statements') // statements or fundamental_analysis
 const activeTab = ref('income') // income, cash_flow, balance_sheet
 const analysisTab = ref('profile') // profile, pricing_power, financial_health, working_capital, capex, valuation, structure
+const profileTab = ref('business') // business, employee_count, mergers_acquisitions
 const period = ref('annual') // annual or quarter
 const loading = ref(false)
 const error = ref(null)
@@ -44,6 +45,8 @@ const balanceSheetData = ref([])
 const revenueSegmentation = ref([])
 const dcfData = ref([])
 const earningsCalendar = ref([])
+const employeeCount = ref([])
+const mergersAcquisitions = ref([])
 
 // Fetch financial data
 const fetchFinancialData = async () => {
@@ -76,6 +79,8 @@ const fetchFinancialData = async () => {
     revenueSegmentation.value = data.revenue_segmentation || []
     dcfData.value = data.dcf || []
     earningsCalendar.value = data.earnings_calendar || []
+    employeeCount.value = data.employee_count || []
+    mergersAcquisitions.value = data.mergers_acquisitions || []
   } catch (err) {
     error.value = err.message
     console.error('Error fetching financial data:', err)
@@ -1245,11 +1250,87 @@ const changePeriod = (newPeriod) => {
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
         <div class="analysis-sections">
-          <!-- Profile (placeholder for now) -->
+          <!-- Profile (with sub-tabs) -->
           <div v-if="analysisTab === 'profile'" class="analysis-section">
             <h3 class="section-title">{{ t('framework.analysis.profile') }}</h3>
+            
+            <!-- Profile Sub-tabs -->
+            <div class="profile-tabs">
+              <button
+                :class="['profile-tab', { active: profileTab === 'business' }]"
+                @click="profileTab = 'business'"
+              >
+                {{ t('framework.profile_tabs.business') }}
+              </button>
+              <button
+                :class="['profile-tab', { active: profileTab === 'employee_count' }]"
+                @click="profileTab = 'employee_count'"
+              >
+                {{ t('framework.profile_tabs.employee_count') }}
+              </button>
+              <button
+                :class="['profile-tab', { active: profileTab === 'mergers_acquisitions' }]"
+                @click="profileTab = 'mergers_acquisitions'"
+              >
+                {{ t('framework.profile_tabs.mergers_acquisitions') }}
+              </button>
+            </div>
+
             <div class="section-content">
-              <p class="placeholder-text">Company profile coming soon...</p>
+              <!-- Business Tab -->
+              <div v-if="profileTab === 'business'">
+                <p class="placeholder-text">Company business information coming soon...</p>
+              </div>
+
+              <!-- Employee Count Tab -->
+              <div v-if="profileTab === 'employee_count'">
+                <div v-if="employeeCount.length > 0" class="employee-table">
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th>Year</th>
+                        <th>Employee Count</th>
+                        <th>Filing Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="emp in employeeCount" :key="emp.filingDate">
+                        <td>{{ emp.year || '-' }}</td>
+                        <td>{{ emp.employeeCount?.toLocaleString() || '-' }}</td>
+                        <td>{{ emp.filingDate || '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p v-else class="placeholder-text">No employee count data available</p>
+              </div>
+
+              <!-- Mergers & Acquisitions Tab -->
+              <div v-if="profileTab === 'mergers_acquisitions'">
+                <div v-if="mergersAcquisitions.length > 0" class="ma-list">
+                  <div v-for="ma in mergersAcquisitions.slice(0, 10)" :key="ma.transactionDate" class="ma-card">
+                    <div class="ma-header">
+                      <h4>{{ ma.companyName || 'Unknown Company' }}</h4>
+                      <span class="ma-date">{{ ma.transactionDate || '-' }}</span>
+                    </div>
+                    <div class="ma-details">
+                      <div class="ma-row">
+                        <span class="ma-label">Target:</span>
+                        <span>{{ ma.targetedCompany || '-' }}</span>
+                      </div>
+                      <div class="ma-row">
+                        <span class="ma-label">Price:</span>
+                        <span>{{ ma.price ? '$' + ma.price.toLocaleString() : '-' }}</span>
+                      </div>
+                      <div class="ma-row">
+                        <span class="ma-label">Type:</span>
+                        <span>{{ ma.transactionType || '-' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p v-else class="placeholder-text">No M&A data available</p>
+              </div>
             </div>
           </div>
 
@@ -1972,6 +2053,101 @@ const changePeriod = (newPeriod) => {
 .calendar-value {
   font-weight: 600;
   color: #111827;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.profile-tab {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-tab:hover {
+  color: #111827;
+}
+
+.profile-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.simple-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.simple-table th,
+.simple-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.simple-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ma-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.ma-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.ma-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ma-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.ma-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.ma-details {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ma-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ma-label {
+  font-weight: 600;
+  color: #6b7280;
+  min-width: 80px;
 }
 
 .loading-state,

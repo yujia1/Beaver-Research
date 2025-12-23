@@ -840,6 +840,11 @@
             "valuation": "Valuation",
             "structure": "Structure"
         },
+        "profile_tabs": {
+            "business": "Business",
+            "employee_count": "Employee Count",
+            "mergers_acquisitions": "Mergers & Acquisitions"
+        },
         "analysis": {
             "profile": "Company Profile",
             "pricing_power": "Pricing Power",

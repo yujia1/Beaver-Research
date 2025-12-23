@@ -839,6 +839,11 @@
             "valuation": "估值",
             "structure": "结构"
         },
+        "profile_tabs": {
+            "business": "业务",
+            "employee_count": "员工数量",
+            "mergers_acquisitions": "并购"
+        },
         "analysis": {
             "profile": "公司简介",
             "pricing_power": "定价能力",

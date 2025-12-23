@@ -156,6 +156,43 @@ async def get_earnings_calendar(
     }
 
 
+@router.get("/employee-count/{ticker}")
+async def get_employee_count(
+    ticker: str
+):
+    """
+    Fetch historical employee count for a ticker
+    """
+    ticker = ticker.upper()
+    endpoint = f"historical-employee-count"
+    params = {"symbol": ticker}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    return {
+        "ticker": ticker,
+        "data": data if data else []
+    }
+
+
+@router.get("/mergers-acquisitions")
+async def get_mergers_acquisitions(
+    page: int = 0,
+    limit: int = 10
+):
+    """
+    Fetch latest mergers and acquisitions
+    """
+    endpoint = f"mergers-acquisitions-latest"
+    params = {"page": page, "limit": limit}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    return {
+        "data": data if data else []
+    }
+
+
 @router.get("/revenue-segmentation/{ticker}")
 async def get_revenue_segmentation(
     ticker: str
@@ -193,6 +230,8 @@ async def get_all_statements(
         revenue_seg = await get_revenue_segmentation(ticker)
         dcf = await get_dcf(ticker)
         earnings_calendar = await get_earnings_calendar(ticker)
+        employee_count = await get_employee_count(ticker)
+        mergers_acquisitions = await get_mergers_acquisitions()
         
         return {
             "ticker": ticker,
@@ -202,7 +241,9 @@ async def get_all_statements(
             "balance_sheet": balance_sheet["data"],
             "revenue_segmentation": revenue_seg["data"],
             "dcf": dcf["data"],
-            "earnings_calendar": earnings_calendar["data"]
+            "earnings_calendar": earnings_calendar["data"],
+            "employee_count": employee_count["data"],
+            "mergers_acquisitions": mergers_acquisitions["data"]
         }
     except HTTPException as e:
         raise e
