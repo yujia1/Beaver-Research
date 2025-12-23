@@ -1,27 +1,14 @@
 <template>
   <div class="price-volume-chart">
     <div class="chart-controls">
-      <div class="tf-group">
-        <button 
-          v-for="tf in intradayTimeframes" 
-          :key="tf" 
-          :class="['tf-btn', { active: selectedTimeframe === tf }]"
-          @click="setTimeframe(tf)"
-        >
-          {{ tf }}
-        </button>
-      </div>
-      <div class="separator">|</div>
-      <div class="tf-group">
-        <button 
-          v-for="tf in dailyTimeframes" 
-          :key="tf" 
-          :class="['tf-btn', { active: selectedTimeframe === tf }]"
-          @click="setTimeframe(tf)"
-        >
-          {{ tf }}
-        </button>
-      </div>
+      <button 
+        v-for="tf in timeframes" 
+        :key="tf" 
+        :class="['tf-btn', { active: selectedTimeframe === tf }]"
+        @click="selectedTimeframe = tf"
+      >
+        {{ tf }}
+      </button>
     </div>
     <div class="canvas-wrapper">
       <canvas ref="canvasRef"></canvas>
@@ -67,45 +54,15 @@ const props = defineProps({
   }
 })
 
-const emits = defineEmits(['fetch-intraday', 'reset-daily'])
-
 const canvasRef = ref(null)
 let chartInstance = null
 const selectedTimeframe = ref('ALL')
-
-const intradayTimeframes = ['5m', '15m', '30m', '1H', '4H']
-const dailyTimeframes = ['1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y', 'ALL']
-
-const setTimeframe = (tf) => {
-  if (selectedTimeframe.value === tf) return
-  selectedTimeframe.value = tf
-  
-  if (intradayTimeframes.includes(tf)) {
-    let interval = '5min'
-    if (tf === '5m') interval = '5min'
-    if (tf === '15m') interval = '15min'
-    if (tf === '30m') interval = '30min'
-    if (tf === '1H') interval = '1hour'
-    if (tf === '4H') interval = '4hour'
-    emits('fetch-intraday', interval)
-  } else {
-    // Check if we were in intraday mode before (to reset data)
-    // Or just always reset to be safe
-    emits('reset-daily')
-  }
-}
+const timeframes = ['1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y', 'ALL']
 
 const filteredData = computed(() => {
   if (!props.data || props.data.length === 0) return []
   
-  // If we are in intraday mode (selectedTimeframe is one of them), just return data
-  // Assuming props.data IS the intraday data
-  if (intradayTimeframes.includes(selectedTimeframe.value)) {
-     // Sort usually helpful
-     return [...props.data].sort((a, b) => new Date(a.date) - new Date(b.date))
-  }
-  
-  // Daily logic
+  // Daily data logic
   // Data is usually sorted by date desc or asc. FMP usually returns desc (newest first).
   // We need to sort asc for chart.
   const sorted = [...props.data].sort((a, b) => new Date(a.date) - new Date(b.date))

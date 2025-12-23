@@ -66,10 +66,10 @@
                 </button>
                 <button 
                     class="tab-btn" 
-                    :class="{ active: activeTab === 'short-interest' }"
-                    @click="activeTab = 'short-interest'"
+                    :class="{ active: activeTab === 'calendar' }"
+                    @click="activeTab = 'calendar'"
                 >
-                    {{ t('dashboard.tabs.short_interest') }}
+                    {{ t('dashboard.tabs.calendar') }}
                 </button>
             </div>
 
@@ -739,108 +739,43 @@
     </div>
     </div>
 
-            <!-- Short Interest Tab Content -->
-            <div v-if="activeTab === 'short-interest'" class="tab-content short-interest-tab-content">
-                <div class="short-interest-category-tabs">
-                    <button 
-                        v-for="category in shortInterestCategories" 
-                        :key="category.value" 
-                        :class="{ active: activeShortInterestCategory === category.value }"
-                        @click="activeShortInterestCategory = category.value; shortInterestCurrentPage = 1; fetchShortInterestData(1)"
-                    >
-                        {{ category.label }}
-                    </button>
-                </div>
-
-                <div v-if="shortInterestLoading" class="loading-state">
+            <!-- Calendar Tab Content -->
+            <div v-if="activeTab === 'calendar'" class="tab-content calendar-tab-content">
+                <div v-if="calendarLoading" class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p>{{ t('dashboard.loading_states.short_interest') }}</p>
+                    <p>Loading Economic Calendar...</p>
                 </div>
-
-                <div v-else-if="shortInterestError" class="error-state">
-                    <p class="error-message">{{ shortInterestError }}</p>
-                    <button @click="fetchShortInterestData" class="retry-btn">{{ t('dashboard.retry') }}</button>
+                <div v-else-if="calendarError" class="error-state">
+                    <p class="error-message">{{ calendarError }}</p>
                 </div>
-
-                <div v-else class="short-interest-content-section">
-                    <div class="short-interest-table-container">
-                        <table class="short-interest-table">
-                            <thead>
-                                <tr>
-                                    <th>{{ t('dashboard.headers.symbol') }}</th>
-                                    <th>{{ t('dashboard.headers.current_short_int') }}</th>
-                                    <th>{{ t('dashboard.headers.previous_short_int') }}</th>
-                                    <th>{{ t('dashboard.headers.short_int_change') }}</th>
-                                    <th>{{ t('dashboard.headers.short_int_pct_change') }}</th>
-                                    <th>{{ t('dashboard.headers.days_to_cover') }}</th>
-                                    <th>{{ t('dashboard.headers.shares_short_value') }}</th>
-                                    <th>{{ t('dashboard.headers.avg_daily_volume') }}</th>
-                                    <th>{{ t('dashboard.headers.market_cap') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(row, index) in shortInterestTableData" :key="index">
-                                    <td class="symbol-cell">
-                                        <strong>{{ row.symbol }}</strong>
-                                    </td>
-                                    <td>{{ formatShortInterestPercentage(row.current_short_int) }}</td>
-                                    <td>{{ formatShortInterestPercentage(row.previous_short_int) }}</td>
-                                    <td>{{ formatShortInterestNumber(row.short_int_change) }}</td>
-                                    <td :class="getShortInterestChangeClass(row.short_int_pct_change)">
-                                        {{ formatShortInterestPercentage(row.short_int_pct_change) }}
-                                    </td>
-                                    <td>{{ formatShortInterestNumber(row.days_to_cover) }}</td>
-                                    <td>{{ row.shares_short_value || '-' }}</td>
-                                    <td>{{ row.avg_daily_volume || '-' }}</td>
-                                    <td>{{ row.market_cap || '-' }}</td>
-                                </tr>
-                                <tr v-if="shortInterestTableData.length === 0">
-                                    <td colspan="9" class="no-data">No data available</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination Controls -->
-                    <div v-if="shortInterestTotalPages > 1" class="short-interest-pagination-container">
-                        <div class="short-interest-pagination">
-                            <button 
-                                @click="goToShortInterestPage(shortInterestCurrentPage - 1)" 
-                                :disabled="shortInterestCurrentPage === 1"
-                                class="short-interest-pagination-btn"
-                            >
-                                &lt;
-                            </button>
-                            
-                            <template v-for="pageNum in shortInterestVisiblePages" :key="pageNum">
-                                <button
-                                    v-if="pageNum !== '...'"
-                                    @click="goToShortInterestPage(pageNum)"
-                                    :class="{ active: shortInterestCurrentPage === pageNum }"
-                                    class="short-interest-pagination-btn short-interest-page-number"
-                                >
-                                    {{ pageNum }}
-                                </button>
-                                <span v-else class="short-interest-pagination-ellipsis">...</span>
-                            </template>
-                            
-                            <button 
-                                @click="goToShortInterestPage(shortInterestCurrentPage + 1)" 
-                                :disabled="shortInterestCurrentPage === shortInterestTotalPages"
-                                class="short-interest-pagination-btn"
-                            >
-                                &gt;
-                            </button>
-                        </div>
-                        
-                        <div class="short-interest-pagination-info">
-                            <span>100 / page</span>
-                        </div>
-                    </div>
-
-                    <div v-if="shortInterestUpdatedAt" class="short-interest-data-footer">
-                        <p class="short-interest-update-time">Last updated: {{ formatShortInterestDate(shortInterestUpdatedAt) }}</p>
-                    </div>
+                <div v-else class="calendar-data">
+                    <table class="liquidity-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Country</th>
+                                <th>Event</th>
+                                <th>Actual</th>
+                                <th>Previous</th>
+                                <th>Estimate</th>
+                                <th>Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, index) in calendarData" :key="index">
+                                <td>{{ item.date }}</td>
+                                <td>{{ item.country }}</td>
+                                <td>{{ item.event }}</td>
+                                <td>{{ item.actual !== null ? item.actual : '-' }}</td>
+                                <td>{{ item.previous !== null ? item.previous : '-' }}</td>
+                                <td>{{ item.estimate !== null ? item.estimate : '-' }}</td>
+                                <td>{{ item.impact }}</td>
+                            </tr>
+                            <tr v-if="calendarData.length === 0">
+                                <td colspan="7" class="no-data">No economic events found for today.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -2250,9 +2185,32 @@ const updateIndicatorTimeframe = async (item, timeframe) => {
 };
 
 // Watch for tab changes to fetch short interest data
+// Calendar data fetching
+const calendarLoading = ref(false);
+const calendarError = ref(null);
+const calendarData = ref([]);
+
+const fetchCalendarData = async () => {
+    calendarLoading.value = true;
+    calendarError.value = null;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/framework/economic-calendar`);
+        if (!response.ok) throw new Error('Failed to fetch calendar data');
+        const data = await response.json();
+        calendarData.value = data;
+    } catch (err) {
+        console.error('Error fetching calendar data:', err);
+        calendarError.value = err.message;
+    } finally {
+        calendarLoading.value = false;
+    }
+}
+
+// Watch for tab changes
 watch(activeTab, (newTab) => {
-  if (newTab === 'short-interest' && shortInterestTableData.value.length === 0) {
-    fetchShortInterestData();
+  if (newTab === 'calendar' && calendarData.value.length === 0) {
+    fetchCalendarData();
   }
 });
 

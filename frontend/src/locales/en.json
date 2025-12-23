@@ -34,6 +34,7 @@
             "commodity": "Commodity",
             "crypto": "Crypto",
             "policy": "Policy",
+            "calendar": "Calendar",
             "short_interest": "Short Interest"
         },
         "loading_states": {

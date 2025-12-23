@@ -43,18 +43,10 @@ const {
   splits,
   businessDescription,
   historicalPrice,
-  fetchIntradayData,
-  resetToDailyPrice,
   fetchFinancialData: fetchFinData 
 } = useFinancialData()
 
-const handleFetchIntraday = (interval) => {
-  fetchIntradayData(ticker.value, interval)
-}
 
-const handleResetDaily = () => {
-  resetToDailyPrice()
-}
 
 // Fetch financial data wrapper
 const fetchFinancialData = async () => {
@@ -516,8 +508,6 @@ const formatKey = (key) => {
          <PriceVolumeChart 
            :data="historicalPrice" 
            :symbol="ticker" 
-           @fetch-intraday="handleFetchIntraday"
-           @reset-daily="handleResetDaily"
          />
       </div>
 

@@ -365,20 +365,26 @@ async def get_historical_price_full(ticker: str) -> Dict[str, Any]:
         return {"historical": []}
 
 
-@router.get("/historical-chart/{interval}/{ticker}")
-async def get_historical_chart_intraday(interval: str, ticker: str):
+
+
+@router.get("/economic-calendar")
+async def get_economic_calendar(from_date: Optional[str] = None, to_date: Optional[str] = None):
     """
-    Fetch intraday historical chart data.
-    Intervals: 1min, 5min, 15min, 30min, 1hour, 4hour
+    Fetch economic calendar from FMP.
+    If no dates provided, defaults to today.
     """
-    ticker = ticker.upper()
-    endpoint = f"historical-chart/{interval}"
+    if not from_date:
+        from_date = datetime.now().strftime("%Y-%m-%d")
+    if not to_date:
+        to_date = datetime.now().strftime("%Y-%m-%d")
+
+    params = {"from": from_date, "to": to_date}
     try:
-        data = await fetch_fmp_data(endpoint, {"symbol": ticker})
-        return {"data": data if isinstance(data, list) else []}
+        data = await fetch_fmp_data("economic-calendar", params)
+        return data if isinstance(data, list) else []
     except Exception as e:
-        print(f"Error fetching intraday data: {e}")
-        return {"data": []}
+        print(f"Error fetching economic calendar: {e}")
+        return []
 
 
 @router.get("/earnings/{ticker}")
