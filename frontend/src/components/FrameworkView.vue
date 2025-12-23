@@ -11,7 +11,9 @@ import {
   formatPercentage, 
 } from '@/utils/financialUtils'
 import FinancialStatementTable from '@/components/framework/FinancialStatementTable.vue'
+
 import FinancialChart from '@/components/framework/charts/FinancialChart.vue'
+import PriceVolumeChart from '@/components/framework/charts/PriceVolumeChart.vue'
 
 
 const { t } = useI18n()
@@ -40,8 +42,19 @@ const {
   dividends,
   splits,
   businessDescription,
+  historicalPrice,
+  fetchIntradayData,
+  resetToDailyPrice,
   fetchFinancialData: fetchFinData 
 } = useFinancialData()
+
+const handleFetchIntraday = (interval) => {
+  fetchIntradayData(ticker.value, interval)
+}
+
+const handleResetDaily = () => {
+  resetToDailyPrice()
+}
 
 // Fetch financial data wrapper
 const fetchFinancialData = async () => {
@@ -496,6 +509,16 @@ const formatKey = (key) => {
       <div class="company-header">
         <h2>{{ ticker.toUpperCase() }}</h2>
         <p class="dataset-label">{{ period === 'annual' ? 'ANNUAL DATASET' : 'QUARTERLY DATASET' }}</p>
+      </div>
+
+      <!-- Price Chart -->
+      <div class="chart-section" style="margin-bottom: 1.5rem; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: white;">
+         <PriceVolumeChart 
+           :data="historicalPrice" 
+           :symbol="ticker" 
+           @fetch-intraday="handleFetchIntraday"
+           @reset-daily="handleResetDaily"
+         />
       </div>
 
       <!-- Tab Navigation -->

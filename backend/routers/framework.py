@@ -345,6 +345,38 @@ async def get_financial_ratios_analysis(ticker: str):
 
 
 
+
+async def get_historical_price_full(ticker: str) -> Dict[str, Any]:
+    """
+    Fetch full historical price data (Daily)
+    """
+    endpoint = f"historical-price-full/{ticker}"
+    try:
+        data = await fetch_fmp_data(endpoint)
+        if isinstance(data, dict):
+             return data
+        return {"historical": []}
+    except Exception as e:
+        print(f"Error fetching historical price: {e}")
+        return {"historical": []}
+
+
+@router.get("/historical-chart/{interval}/{ticker}")
+async def get_historical_chart_intraday(interval: str, ticker: str):
+    """
+    Fetch intraday historical chart data.
+    Intervals: 1min, 5min, 15min, 30min, 1hour, 4hour
+    """
+    ticker = ticker.upper()
+    endpoint = f"historical-chart/{interval}/{ticker}"
+    try:
+        data = await fetch_fmp_data(endpoint)
+        return {"data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching intraday data: {e}")
+        return {"data": []}
+
+
 @router.get("/earnings/{ticker}")
 async def get_earnings_data(ticker: str):
     """Fetch earnings data"""
@@ -437,10 +469,14 @@ async def get_all_statements(
                 business_description = ten_k_content["chunk_a"]
         except Exception as e:
             print(f"Error fetching 10-K content: {e}")
+
+        # Fetch Historical Price
+        historical_price = await get_historical_price_full(ticker)
         
         return {
             "ticker": ticker,
             "business_description": business_description,
+            "historical_price": historical_price.get("historical", []),
             "period": period,
             "income_statement": income["data"],
             "cash_flow": cash_flow["data"],
