@@ -54,6 +54,59 @@ class EdgarService:
         except Exception as e:
             return {"error": str(e)}
 
+    def get_recent_filings(self, ticker: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get recent filings (10-K, 10-Q, 8-K, etc.) formatted for frontend display.
+        """
+        cik = self.get_cik(ticker)
+        if not cik:
+            self._load_cik_map()
+            cik = self.get_cik(ticker)
+            if not cik:
+                return []
+
+        try:
+            submissions = self.get_company_submissions(ticker)
+            if "error" in submissions:
+                return []
+
+            filings = submissions.get("filings", {}).get("recent", {})
+            if not filings:
+                return []
+
+            forms = filings.get("form", [])
+            dates = filings.get("filingDate", [])
+            accession_numbers = filings.get("accessionNumber", [])
+            primary_docs = filings.get("primaryDocument", [])
+            
+            formatted_filings = []
+            count = 0
+            
+            for i in range(len(forms)):
+                if count >= limit:
+                    break
+                    
+                form = forms[i]
+                # Filter for common useful forms if desired, or return all
+                # returning all for now as frontend will filter
+                
+                accession = accession_numbers[i].replace("-", "")
+                primary_doc = primary_docs[i]
+                filing_url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{primary_doc}"
+                
+                formatted_filings.append({
+                    "type": form,
+                    "date": dates[i],
+                    "link": filing_url,
+                    "symbol": ticker.upper()
+                })
+                count += 1
+                
+            return formatted_filings
+        except Exception as e:
+            print(f"Error getting recent filings for {ticker}: {e}")
+            return []
+
     def get_institutional_holdings(self, ticker: str) -> List[Dict[str, Any]]:
         """
         Get institutional holdings from 13F filings.

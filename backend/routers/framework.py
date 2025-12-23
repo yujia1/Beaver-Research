@@ -408,7 +408,19 @@ async def get_all_statements(
         earnings_calendar = await get_earnings_calendar(ticker)
         employee_count = await get_employee_count(ticker)
         mergers_acquisitions = {"data": []} # await get_mergers_acquisitions(ticker)
-        # filings = await get_sec_filings(ticker)
+        
+        # Fetch Filings
+        filings_data = []
+        try:
+             # Loop is already defined below for 10-K, but let's ensure we use it or get it
+             # It's better to group thread pool calls if possible, but sequential is fine for now
+             if 'loop' not in locals():
+                 loop = asyncio.get_running_loop()
+             filings_data = await loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
+        except Exception as e:
+             print(f"Error fetching filings: {e}")
+             filings_data = []
+
         key_metrics = await get_key_metrics_ttm(ticker)
         financial_ratios = await get_financial_ratios_analysis(ticker)
         earnings = await get_earnings_data(ticker)
@@ -437,8 +449,9 @@ async def get_all_statements(
             "dcf": dcf["data"],
             "earnings_calendar": earnings_calendar["data"],
             "employee_count": employee_count["data"],
+            "employee_count": employee_count["data"],
             "mergers_acquisitions": mergers_acquisitions["data"],
-            "filings": [],
+            "filings": filings_data,
             "key_metrics": key_metrics["data"],
             "financial_ratios": financial_ratios,
             "earnings": earnings["data"],

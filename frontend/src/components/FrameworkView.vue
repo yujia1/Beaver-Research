@@ -262,9 +262,18 @@ const changePeriod = (newPeriod) => {
 const filingsSortField = ref('date')
 const filingsSortDirection = ref('desc')
 
+const selectedFilingType = ref('ALL')
+
 const sortedFilings = computed(() => {
   if (!filings.value) return []
-  return [...filings.value].sort((a, b) => {
+  
+  let data = [...filings.value]
+  
+  if (selectedFilingType.value !== 'ALL') {
+    data = data.filter(f => f.type === selectedFilingType.value)
+  }
+  
+  return data.sort((a, b) => {
     let valA = a[filingsSortField.value]
     let valB = b[filingsSortField.value]
     
@@ -758,6 +767,18 @@ const formatKey = (key) => {
       <!-- Filling Content -->
       <div v-if="mainTab === 'filling'" class="filling-analysis">
          <div v-if="filings && filings.length > 0" class="filings-container">
+            <div class="filings-controls" style="margin-bottom: 1rem; display: flex; align-items: center;">
+              <label style="margin-right: 10px; font-weight: 500; font-size: 0.9em; color: #374151;">Filter by Type:</label>
+              <select v-model="selectedFilingType" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 0.9em; background-color: white;">
+                <option value="ALL">All Types</option>
+                <option value="10-K">10-K (Annual Report)</option>
+                <option value="10-Q">10-Q (Quarterly Report)</option>
+                <option value="8-K">8-K (Current Report)</option>
+                <option value="SC 13G">SC 13G (Statement of Ownership)</option>
+                <option value="SD">SD (Specialized Disclosure)</option>
+                <option value="4">Form 4 (Insider Trading)</option>
+              </select>
+            </div>
             <table class="filings-table">
               <thead>
                 <tr>
