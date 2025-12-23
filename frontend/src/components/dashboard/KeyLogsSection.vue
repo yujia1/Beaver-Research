@@ -752,28 +752,42 @@
                     <div class="calendar-filters">
                         <div class="filter-group">
                             <span class="filter-label">Impact:</span>
-                            <div class="filter-options">
-                                <button 
-                                    v-for="impact in calendarImpacts" 
-                                    :key="impact" 
-                                    :class="['filter-btn', { active: selectedImpacts.includes(impact) }]"
-                                    @click="toggleImpact(impact)"
-                                >
-                                    {{ impact }}
+                            <div class="custom-dropdown" :class="{ open: showImpactDropdown }">
+                                <button class="dropdown-toggle" @click="showImpactDropdown = !showImpactDropdown">
+                                    {{ selectedImpacts.length > 0 ? (selectedImpacts.length <= 2 ? selectedImpacts.join(', ') : selectedImpacts.length + ' Selected') : 'Select Impact' }}
+                                    <span class="chevron">▼</span>
                                 </button>
+                                <div class="dropdown-menu" v-if="showImpactDropdown">
+                                    <div 
+                                        v-for="impact in calendarImpacts" :key="impact" 
+                                        class="dropdown-item" 
+                                        @click="toggleImpact(impact)"
+                                        :class="{ selected: selectedImpacts.includes(impact) }"
+                                    >
+                                        <span class="check-box">{{ selectedImpacts.includes(impact) ? '☑' : '☐' }}</span>
+                                        {{ impact }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="filter-group">
                             <span class="filter-label">Country:</span>
-                            <div class="filter-options">
-                                <button 
-                                    v-for="country in calendarCountries" 
-                                    :key="country" 
-                                    :class="['filter-btn', { active: selectedCountries.includes(country) }]"
-                                    @click="toggleCountry(country)"
-                                >
-                                    {{ country }}
+                             <div class="custom-dropdown" :class="{ open: showCountryDropdown }">
+                                <button class="dropdown-toggle" @click="showCountryDropdown = !showCountryDropdown">
+                                    {{ selectedCountries.length > 0 ? selectedCountries.length + ' Selected' : 'Select Country' }}
+                                    <span class="chevron">▼</span>
                                 </button>
+                                <div class="dropdown-menu" v-if="showCountryDropdown">
+                                    <div 
+                                        v-for="country in calendarCountries" :key="country" 
+                                        class="dropdown-item" 
+                                        @click="toggleCountry(country)"
+                                        :class="{ selected: selectedCountries.includes(country) }"
+                                    >
+                                        <span class="check-box">{{ selectedCountries.includes(country) ? '☑' : '☐' }}</span>
+                                        {{ country }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2253,6 +2267,8 @@ const calendarCountries = computed(() => {
     return Array.from(countries).sort();
 });
 const selectedCountries = ref(['US', 'JP']);
+const showImpactDropdown = ref(false);
+const showCountryDropdown = ref(false);
 
 const filteredCalendarData = computed(() => {
     if (!calendarData.value) return [];
@@ -3420,5 +3436,77 @@ onMounted(() => {
 .filter-btn:hover:not(.active) {
     background: #f3f4f6;
     border-color: #9ca3af;
+}
+
+/* Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 150px;
+}
+
+.dropdown-toggle {
+    width: 100%;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #374151;
+}
+
+.dropdown-toggle:hover {
+    background: #f9fafb;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    margin-top: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    width: max-content;
+    min-width: 100%;
+}
+
+.dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: #374151;
+}
+
+.dropdown-item:hover {
+    background: #f3f4f6;
+}
+
+.dropdown-item.selected {
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 500;
+}
+
+.check-box {
+    width: 16px;
+    display: inline-block;
+}
+
+.chevron {
+    font-size: 0.8em;
+    margin-left: 8px;
+    color: #6b7280;
 }
 </style>
