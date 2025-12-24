@@ -55,7 +55,8 @@ from routers import (
 from database import engine, SessionLocal, check_db_connection
 import models
 import bcrypt
-from services.scheduler_13f import setup_13f_scheduler
+
+# from services.scheduler_13f import setup_13f_scheduler # Disabled
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -134,18 +135,13 @@ def init_default_users():
         db.close()
 
 # Initialize default users on startup
-init_default_users()
 
-# Setup 13F filing scheduler
-try:
-    scheduler = setup_13f_scheduler()
-except Exception as e:
-    logger.error(f"Failed to start 13F scheduler: {e}")
-    # Mock scheduler object to prevent 'scheduler' variable error downstream
-    class MockScheduler: 
-        running = False
-        def shutdown(self): pass
-    scheduler = MockScheduler()
+
+# 13F Scheduler disabled
+scheduler = None
+
+# We will initialize these in the startup event
+
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -172,7 +168,6 @@ origins = [
     "https://beaver-research-frontend-production.up.railway.app",
     "https://beaver-research.up.railway.app",
     "https://www.beaver-research.up.railway.app", 
-    "*"  # TEMPORARY WILDCARD to fix production connectivity issues
 ]
 
 app.add_middleware(
@@ -183,6 +178,27 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    try:
+        logger.info("Running startup initialization...")
+        # 1. Init Users
+        try:
+            init_default_users()
+        except Exception as e:
+            logger.error(f"Failed to init default users (non-fatal): {e}")
+
+        # 2. Init Scheduler - Disabled for stability
+        # try:
+        #     global scheduler
+        #     scheduler = setup_13f_scheduler()
+        # except Exception as e:
+        #     logger.error(f"Failed to start 13F scheduler (non-fatal): {e}")
+            
+    except Exception as e:
+        logger.error(f"Critical startup error (suppressed to allow API boot): {e}")
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(internal.router, prefix="/api/internal", tags=["Internal Data"])
@@ -226,11 +242,7 @@ async def health_check(request: Request):
         health_status["status"] = "degraded"
     
     # Check scheduler status
-    try:
-        health_status["scheduler"] = "running" if scheduler.running else "stopped"
-    except Exception as e:
-        logger.error(f"Scheduler health check failed: {e}")
-        health_status["scheduler"] = "unknown"
+    health_status["scheduler"] = "disabled"
     
     # Return appropriate status code
     status_code = 200 if health_status["status"] == "healthy" else 503
