@@ -274,7 +274,7 @@
 
 <script setup>
 import API_BASE_URL from '@/config/api.js'
-import ResearchChatSidebar from './ResearchChatSidebar.vue'
+import ResearchChatSidebar from '@/components/ResearchChatSidebar.vue'
 
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'

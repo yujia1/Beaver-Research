@@ -21,7 +21,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ResearchEditView from './ResearchEditView.vue'
-import PaymentGate from './PaymentGate.vue'
+import PaymentGate from '@/components/PaymentGate.vue'
 import { usePayment } from '@/composables/usePayment.js'
 
 const { t } = useI18n()

@@ -157,27 +157,19 @@ const getUserInfo = async () => {
   }
 }
 
-import { permissionStore } from './stores/permissions.js'
+import { usePermissionStore } from '@/stores/permissionStore'
+import { useUserStore } from '@/stores/userStore'
 
-// Fetch permissions from API and update store
-const fetchPermissions = async () => {
-    await permissionStore.fetch(API_BASE_URL)
-    // Update local reactive state from store
-    allowedResources.value = permissionStore.get()
-}
+const permissionStore = usePermissionStore()
+const userStore = useUserStore()
+
+// Reactivity from store
+// Note: We need to destructure or access properties directly in template
+// userStore.user, userStore.isAuthenticated
 
 const logout = (e) => {
-  // Prevent navigation if event is provided
-  if (e) {
-    e.preventDefault()
-  }
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('user')
-  permissionStore.clear() // Clear permission store
-  user.value = null
-  allowedResources.value = []
-  isAuthenticated.value = false
-  router.push('/login')
+  if (e) e.preventDefault()
+  userStore.logout()
 }
 
 const getRoleBadgeColor = (role) => {
@@ -190,128 +182,34 @@ const getRoleBadgeColor = (role) => {
   return colors[role] || colors.user
 }
 
-// Update user state from localStorage
-const updateUserState = () => {
-  const token = localStorage.getItem('access_token')
-  isAuthenticated.value = !!token
+// Watch for authentication changes if needed, but Pinia is reactive within template
+// We might need to handle 'storage' events for multi-tab sync if store doesn't handle it
+// userStore handles localStorage read on init, but not 'storage' event listener?
+// We can move that logic to userStore later or keep it simple here.
+// For now, let's keep the template robust.
 
-  // Load user from localStorage
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      user.value = JSON.parse(userStr)
-    } catch (e) {
-      console.error('Error parsing user data:', e)
-      user.value = null
-    }
-  } else {
-    user.value = null
-  }
-
-  // Load permissions from store (which checks localStorage)
-  allowedResources.value = permissionStore.get()
-  
-  // Clear if logged out
-  if (!token) {
-    allowedResources.value = []
-    permissionStore.clear()
-  }
-}
-
+// Update stores on mount
 onMounted(() => {
-  updateUserState()
-  updateUserState()
-  if (isAuthenticated.value) {
-    getUserInfo()
-    // Only fetch permissions from API if not already cached
-    if (!allowedResources.value || allowedResources.value.length === 0) {
-      fetchPermissions()
-    }
-  }
-  
-  // Listen for storage changes (when login happens in another component)
-  window.addEventListener('storage', updateUserState)
-  
-  // Listen for custom login event
-  const handleLoginEvent = () => {
-    isAuthenticated.value = !!localStorage.getItem('access_token')
-    updateUserState()
-    if (isAuthenticated.value) {
-      getUserInfo()
-      // Only fetch if not cached (updateUserState already loaded from localStorage)
-      if (!allowedResources.value || allowedResources.value.length === 0) {
-        fetchPermissions()
-      }
-    }
-  }
-  window.addEventListener('user-logged-in', handleLoginEvent)
-  
-  // Cleanup on unmount
-  return () => {
-    window.removeEventListener('storage', updateUserState)
-    window.removeEventListener('user-logged-in', handleLoginEvent)
+  // Check if we have token
+  if (userStore.isAuthenticated && !userStore.user) {
+    userStore.fetchUser(API_BASE_URL)
+    permissionStore.fetch(API_BASE_URL)
   }
 })
 
-// Watch for route changes to update user state
-watch(() => route.path, () => {
-  // Small delay to ensure localStorage is updated
-  setTimeout(() => {
-    updateUserState()
-    if (isAuthenticated.value && !user.value) {
-      getUserInfo()
-      // Only fetch if not cached
-      if (!allowedResources.value || allowedResources.value.length === 0) {
-        fetchPermissions()
-      }
-    }
-  }, 100)
-}, { immediate: false })
+// Expose to template
+const user = computed(() => userStore.user)
+const isAuthenticated = computed(() => userStore.isAuthenticated)
+const allowedResources = computed(() => permissionStore.permissions)
+const hasAccess = (resource) => permissionStore.hasAccess(resource)
+// hasAccess was defined as function using allowedResources.value previously
+// Now we use store method or computed?
+// Step 2054 Line 114: const hasAccess = (resource) => ...
+// Step 2054 Line 122: return allowedResources.value.includes(resource)
 
-// Also watch isAuthenticated to update user when token appears
-watch(isAuthenticated, (newVal) => {
-  if (newVal) {
-    updateUserState()
-    if (!user.value) {
-      getUserInfo()
-      // Only fetch if not cached
-      if (!allowedResources.value || allowedResources.value.length === 0) {
-        fetchPermissions()
-      }
-    }
-  } else {
-    user.value = null
-  }
-}, { immediate: true })
+// So we can redefine hasAccess
+// const hasAccess = (resource) => permissionStore.hasAccess(resource)
 
-// Poll localStorage periodically to catch changes from other tabs/components
-setInterval(() => {
-  const token = localStorage.getItem('access_token')
-  const storedUser = localStorage.getItem('user')
-  
-  // Update authentication state
-  const wasAuthenticated = isAuthenticated.value
-  isAuthenticated.value = !!token
-  
-  if (token && storedUser) {
-    try {
-      const parsedUser = JSON.parse(storedUser)
-      if (!user.value || user.value.username !== parsedUser.username) {
-        updateUserState()
-      }
-    } catch (e) {
-      console.error('Error parsing user data:', e)
-    }
-  } else if (!token && user.value) {
-    user.value = null
-    isAuthenticated.value = false
-  }
-  
-  // If authentication state changed, update user state
-  if (wasAuthenticated !== isAuthenticated.value) {
-    updateUserState()
-  }
-}, 500) // Check every 500ms
 </script>
 
 <template>

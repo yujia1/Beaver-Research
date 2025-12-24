@@ -50,6 +50,7 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/userStore'
 
 const router = useRouter()
 const username = ref('')
@@ -62,51 +63,12 @@ const handleLogin = async () => {
   error.value = null
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username: username.value,
-        password: password.value
-      })
-    })
+    const userStore = useUserStore()
+    await userStore.login(username.value, password.value, API_BASE_URL)
     
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.detail || 'Login failed')
-    }
-    
-    const data = await response.json()
-    
-    // Store token in localStorage
-    localStorage.setItem('access_token', data.access_token)
-    
-    // Fetch user info to get role
-    try {
-      const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${data.access_token}`
-        }
-      })
-      if (userResponse.ok) {
-        const userData = await userResponse.json()
-        localStorage.setItem('user', JSON.stringify(userData))
-      }
-    } catch (err) {
-      console.error('Failed to fetch user info:', err)
-    }
-
-    // Fetch and store permissions immediately to ensure navigation is correct on redirect
-    try {
-      const { permissionStore } = await import('../stores/permissions.js')
-      await permissionStore.fetch(API_BASE_URL)
-    } catch (err) {
-      console.error('Failed to fetch permissions:', err)
-    }
-    
-    // Dispatch custom event to notify App.vue of login
+    // Dispatch custom event to notify App.vue of login (Legacy support or remove?)
+    // App.vue will likely use userStore too, so event might be redundant if App.vue is reactive.
+    // Keeping it just in case non-store listeners exist.
     window.dispatchEvent(new CustomEvent('user-logged-in'))
     
     // Redirect to home page

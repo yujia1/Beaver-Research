@@ -3,8 +3,8 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import AddTradeLotModal from './AddTradeLotModal.vue'
-import EditTradeLotModal from './EditTradeLotModal.vue'
+import AddTradeLotModal from '@/components/AddTradeLotModal.vue'
+import EditTradeLotModal from '@/components/EditTradeLotModal.vue'
 
 const showAddLotModal = ref(false)
 const showEditLotModal = ref(false)

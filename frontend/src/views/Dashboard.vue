@@ -17,7 +17,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import KeyLogsSection from './dashboard/KeyLogsSection.vue';
+import KeyLogsSection from '@/components/dashboard/KeyLogsSection.vue';
 
 const { t } = useI18n();
 const loading = ref(false);

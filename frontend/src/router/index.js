@@ -1,16 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Dashboard from '../components/Dashboard.vue'
-import TimelineView from '../components/TimelineView.vue'
-import LoginView from '../components/LoginView.vue'
-import SignUpView from '../components/SignUpView.vue'
-import ResearchView from '../components/ResearchView.vue'
-import AdminView from '../components/AdminView.vue'
-import ReportView from '../components/ReportView.vue'
-import ShortInterestView from '../components/ShortInterestView.vue'
-import AlphaTradeView from '../components/AlphaTradeView.vue'
-import AcademyView from '../components/AcademyView.vue'
-import FrameworkView from '../components/FrameworkView.vue'
-import WhaleWatchingView from '../components/WhaleWatchingView.vue'
+import Dashboard from '../views/Dashboard.vue'
+import TimelineView from '../views/TimelineView.vue'
+import LoginView from '../views/LoginView.vue'
+import SignUpView from '../views/SignUpView.vue'
+import ResearchView from '../views/ResearchView.vue'
+import AdminView from '../views/AdminView.vue'
+import ReportView from '../views/ReportView.vue'
+import ShortInterestView from '../views/ShortInterestView.vue'
+import AlphaTradeView from '../views/AlphaTradeView.vue'
+import AcademyView from '../views/AcademyView.vue'
+import FrameworkView from '../views/FrameworkView.vue'
+import WhaleWatchingView from '../views/WhaleWatchingView.vue'
 import API_BASE_URL from '@/config/api.js'
 
 const router = createRouter({
@@ -91,7 +91,7 @@ const router = createRouter({
   ]
 })
 
-import { permissionStore } from '../stores/permissions.js'
+import { usePermissionStore } from '@/stores/permissionStore'
 
 // Helper to check permission (no API calls, uses cached permissions)
 function checkPermission(user, resource) {
@@ -99,6 +99,7 @@ function checkPermission(user, resource) {
   if (user && user.role === 'admin') return true
 
   // Check cached permissions
+  const permissionStore = usePermissionStore()
   return permissionStore.hasAccess(resource)
 }
 
