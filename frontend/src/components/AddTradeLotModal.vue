@@ -225,6 +225,7 @@ const handleBackdropClick = (e) => {
 }
 
 .modal-header {
+  color: #000;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;

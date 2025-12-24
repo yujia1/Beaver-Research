@@ -486,6 +486,17 @@ const formatKey = (key) => {
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
 }
 
+const getHouseRepName = (trade) => {
+    if (trade.firstName && trade.lastName) return `${trade.firstName} ${trade.lastName}`
+    return trade.representative || ''
+}
+
+const getHouseRepFirstName = (trade) => {
+    if (trade.firstName) return trade.firstName
+    if (trade.representative) return trade.representative.split(' ')[0]
+    return ''
+}
+
 const getActionClass = (type) => {
     if (!type) return ''
     const t = type.toLowerCase()
@@ -493,6 +504,17 @@ const getActionClass = (type) => {
     if (t.includes('sale') || t.includes('sell')) return 'text-red'
     return ''
 }
+
+// Computed properties for sorting trades
+const sortedSenateTrades = computed(() => {
+    if (!senateTrades.value) return []
+    return [...senateTrades.value].sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate))
+})
+
+const sortedHouseTrades = computed(() => {
+    if (!houseTrades.value) return []
+    return [...houseTrades.value].sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate))
+})
 
 // Politician Modal Logic
 const showPoliticianModal = ref(false)
@@ -969,7 +991,7 @@ const closePoliticianModal = () => {
                       </tr>
                    </thead>
                    <tbody>
-                      <tr v-for="(trade, index) in senateTrades" :key="index" class="data-row">
+                      <tr v-for="(trade, index) in sortedSenateTrades" :key="index" class="data-row">
                          <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(trade.firstName, 'senate')">
                             {{ trade.firstName }} {{ trade.lastName }}
                          </td>
@@ -1008,9 +1030,9 @@ const closePoliticianModal = () => {
                       </tr>
                    </thead>
                    <tbody>
-                      <tr v-for="(trade, index) in houseTrades" :key="index" class="data-row">
-                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(trade.firstName, 'house')">
-                             {{ trade.firstName }} {{ trade.lastName }}
+                      <tr v-for="(trade, index) in sortedHouseTrades" :key="index" class="data-row">
+                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(getHouseRepFirstName(trade), 'house')">
+                             {{ getHouseRepName(trade) }}
                          </td>
                          <td class="data-cell">{{ trade.district }}</td>
                          <td class="data-cell">{{ trade.owner }}</td>
@@ -2298,6 +2320,7 @@ const closePoliticianModal = () => {
 }
 
 .modal-header {
+    color: #000;
     padding: 1.5rem;
     border-bottom: 1px solid #e5e7eb;
     display: flex;
