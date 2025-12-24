@@ -15,6 +15,8 @@ const expandedPositions = ref(new Set())
 const loading = ref(false)
 const activeTab = ref({}) // Track active tab per position: { ticker: 'lot' | 'fundamental' | 'scenario' }
 const hypotheticalAdjustment = ref({}) // Track hypothetical price adjustment per position: { ticker: percentage }
+const viewTab = ref('portfolio') // 'portfolio' or 'watchlist'
+const searchQuery = ref('')
 
 // Drag and drop state
 const draggedIndex = ref(null)
@@ -799,11 +801,48 @@ const handleDragEnd = () => {
         <h1 class="title">{{ t('alphatrade.title') }}</h1>
         <p class="subtitle">{{ t('alphatrade.subtitle') }}</p>
       </div>
-      <button class="add-lot-btn" @click="showAddLotModal = true">
-        <span class="btn-icon">+</span>
-        <span class="btn-text">{{ t('alphatrade.new_execution') }}</span>
-      </button>
     </div>
+
+    <!-- Main View Tabs -->
+    <div class="view-tabs">
+        <button 
+            class="view-tab" 
+            :class="{ active: viewTab === 'portfolio' }"
+            @click="viewTab = 'portfolio'"
+        >
+            PORTFOLIO
+        </button>
+        <button 
+            class="view-tab"
+            :class="{ active: viewTab === 'watchlist' }"
+            @click="viewTab = 'watchlist'"
+        >
+            WATCH-LIST
+        </button>
+    </div>
+
+    <div class="controls-row">
+        <div class="search-wrapper">
+             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+                type="text" 
+                v-model="searchQuery" 
+                placeholder="Search portfolio..." 
+                class="search-input"
+            />
+        </div>
+
+        <button class="add-lot-btn" @click="showAddLotModal = true">
+            <span class="btn-icon">+</span>
+            <span class="btn-text">{{ t('alphatrade.new_execution') }}</span>
+        </button>
+    </div>
+
+    <!-- Portfolio View -->
+    <div v-if="viewTab === 'portfolio'">
 
     <!-- Portfolio Summary Cards -->
     <div v-if="positions.length > 0" class="summary-cards">
@@ -1304,6 +1343,15 @@ const handleDragEnd = () => {
       </div>
     </div>
 
+    </div>
+
+    <!-- Watchlist View -->
+    <div v-if="viewTab === 'watchlist'" class="watchlist-view">
+        <div class="watchlist-placeholder">
+            <p>Watchlist feature coming soon...</p>
+        </div>
+    </div>
+
     <AddTradeLotModal 
       v-if="showAddLotModal" 
       @close="showAddLotModal = false"
@@ -1396,9 +1444,93 @@ const handleDragEnd = () => {
 
 .summary-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.4);
 }
 
+.view-tabs {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.view-tab {
+    background: none;
+    border: none;
+    padding: 0.75rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #9ca3af;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.view-tab:hover {
+    color: #374151;
+}
+
+.view-tab.active {
+    color: #111827;
+}
+
+.view-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #2563eb;
+}
+
+.controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.search-wrapper {
+    position: relative;
+    width: 300px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 10px 10px 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #374151;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.search-input:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.watchlist-placeholder {
+    text-align: center;
+    padding: 4rem;
+    color: #6b7280;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px dashed #e5e7eb;
+}
 .summary-card .card-header {
   display: flex;
   align-items: center;
