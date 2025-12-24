@@ -747,7 +747,7 @@ const formatKey = (key) => {
 
           <!-- Earning -->
           <div v-if="calendarTab === 'earning'">
-             <div v-if="earnings && earnings.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+             <div v-if="earnings && earnings.length > 0" class="data-table-wrapper scrollable-table-container" style="overflow-x: auto;">
                 <table class="data-table">
                    <thead>
                       <tr>
@@ -838,7 +838,7 @@ const formatKey = (key) => {
                 <option value="4">Form 4 (Insider Trading)</option>
               </select>
             </div>
-             <div class="data-table-wrapper" style="overflow-x: auto;">
+             <div class="data-table-wrapper scrollable-table-container" style="overflow-x: auto;">
                 <table class="data-table">
                    <thead>
                       <tr>
@@ -870,7 +870,7 @@ const formatKey = (key) => {
 
       <!-- Insider Trading Content -->
       <div v-if="mainTab === 'insider'" class="insider-analysis">
-         <div v-if="insiderTrading && insiderTrading.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+         <div v-if="insiderTrading && insiderTrading.length > 0" class="data-table-wrapper scrollable-table-container" style="overflow-x: auto;">
             <table class="data-table">
                <thead>
                   <tr>
@@ -1418,6 +1418,12 @@ const formatKey = (key) => {
 .data-table-wrapper {
   overflow-x: auto;
   margin-top: 1.5rem;
+}
+
+.scrollable-table-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border-bottom: 1px solid #e0e0e0; /* Optional: adds closure to the scroll area */
 }
 
 .data-table {
