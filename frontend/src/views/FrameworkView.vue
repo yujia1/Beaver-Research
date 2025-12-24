@@ -970,7 +970,7 @@ const closePoliticianModal = () => {
                    </thead>
                    <tbody>
                       <tr v-for="(trade, index) in senateTrades" :key="index" class="data-row">
-                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(`${trade.firstName} ${trade.lastName}`, 'senate')">
+                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(trade.firstName, 'senate')">
                             {{ trade.firstName }} {{ trade.lastName }}
                          </td>
                          <td class="data-cell">{{ trade.district }}</td>
@@ -1009,7 +1009,7 @@ const closePoliticianModal = () => {
                    </thead>
                    <tbody>
                       <tr v-for="(trade, index) in houseTrades" :key="index" class="data-row">
-                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(`${trade.firstName} ${trade.lastName}`, 'house')">
+                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(trade.firstName, 'house')">
                              {{ trade.firstName }} {{ trade.lastName }}
                          </td>
                          <td class="data-cell">{{ trade.district }}</td>

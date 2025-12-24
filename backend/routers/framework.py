@@ -493,7 +493,7 @@ async def get_senate_trades_by_name(name: str):
     """
     Fetch Senate trades by Name
     """
-    endpoint = "senate-trades"
+    endpoint = "senate-trades-by-name"
     params = {"name": name}
     
     try:
@@ -509,7 +509,7 @@ async def get_house_trades_by_name(name: str):
     """
     Fetch House trades by Name
     """
-    endpoint = "house-trades"
+    endpoint = "house-trades-by-name"
     params = {"name": name}
     
     try:
