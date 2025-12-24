@@ -139,7 +139,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { marked } from 'marked';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import PaymentGate from './PaymentGate.vue';
+import PaymentGate from '../components/PaymentGate.vue';
 
 const router = useRouter();
 const { t, locale } = useI18n();
