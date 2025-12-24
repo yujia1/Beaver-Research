@@ -21,6 +21,10 @@ export function useFinancialData() {
     const insiderTrading = ref([])
     const businessDescription = ref('')
     const historicalPrice = ref([])
+    const senateTrades = ref([])
+    const houseTrades = ref([])
+
+    const politicianTrades = ref([]) // For detail view
 
     const fetchFinancialData = async (tickerValue, periodValue) => {
         if (!tickerValue || String(tickerValue).trim() === '') {
@@ -59,6 +63,8 @@ export function useFinancialData() {
             dividends.value = data.dividends || []
             splits.value = data.splits || []
             insiderTrading.value = data.insider_trading || []
+            senateTrades.value = data.senate_trades || []
+            houseTrades.value = data.house_trades || []
             businessDescription.value = data.business_description || ''
             historicalPrice.value = data.historical_price || []
         } catch (err) {
@@ -69,6 +75,37 @@ export function useFinancialData() {
         }
     }
 
+    const fetchPoliticianTrades = async (name, chamber) => {
+        if (!name) return
+
+        loading.value = true
+        // Keep main error separate, or reuse? Let's reuse for simplicity but careful not to block main view
+        // Maybe better to have local error for modal or just log it.
+
+        try {
+            const token = localStorage.getItem('access_token')
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+
+            const endpoint = chamber === 'senate' ? 'senate-trades-by-name' : 'house-trades-by-name'
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/framework/${endpoint}?name=${encodeURIComponent(name)}`,
+                { headers }
+            )
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch politician trades')
+            }
+
+            const data = await response.json()
+            politicianTrades.value = data.data || []
+        } catch (err) {
+            console.error('Error fetching politician trades:', err)
+            politicianTrades.value = []
+        } finally {
+            loading.value = false
+        }
+    }
 
 
     return {
@@ -87,8 +124,12 @@ export function useFinancialData() {
         dividends,
         splits,
         insiderTrading,
+        senateTrades,
+        houseTrades,
+        politicianTrades,
         businessDescription,
         historicalPrice,
-        fetchFinancialData
+        fetchFinancialData,
+        fetchPoliticianTrades
     }
 }

@@ -24,6 +24,7 @@ const mainTab = ref('statements') // statements or fundamental_analysis
 const activeTab = ref('income') // income, cash_flow, balance_sheet
 const analysisTab = ref('profile') // profile, pricing_power, financial_health, working_capital, capex, valuation, structure
 const profileTab = ref('business') // business, employee_count, mergers_acquisitions
+const politicianTab = ref('senate') // senate, house
 const period = ref('annual') // annual or quarter
 // State & Data from Composable
 const { 
@@ -42,9 +43,13 @@ const {
   dividends,
   splits,
   insiderTrading,
+  senateTrades,
+  houseTrades,
+  politicianTrades,
   businessDescription,
   historicalPrice,
-  fetchFinancialData: fetchFinData 
+  fetchFinancialData: fetchFinData,
+  fetchPoliticianTrades 
 } = useFinancialData()
 
 
@@ -478,9 +483,34 @@ const formatMetric = (val) => {
 }
 
 const formatKey = (key) => {
-  if (!key) return ''
-  // Split camelCase and capitalize
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+}
+
+const getActionClass = (type) => {
+    if (!type) return ''
+    const t = type.toLowerCase()
+    if (t.includes('purchase') || t.includes('buy')) return 'text-green'
+    if (t.includes('sale') || t.includes('sell')) return 'text-red'
+    return ''
+}
+
+// Politician Modal Logic
+const showPoliticianModal = ref(false)
+const selectedPoliticianName = ref('')
+const selectedChamber = ref('')
+
+const openPoliticianModal = async (name, chamber) => {
+    selectedPoliticianName.value = name
+    selectedChamber.value = chamber
+    showPoliticianModal.value = true
+    politicianTrades.value = [] // Clear previous
+    await fetchPoliticianTrades(name, chamber)
+}
+
+const closePoliticianModal = () => {
+    showPoliticianModal.value = false
+    politicianTrades.value = []
+    selectedPoliticianName.value = ''
 }
 </script>
 
@@ -590,6 +620,12 @@ const formatKey = (key) => {
             @click="mainTab = 'insider'"
           >
              {{ t('framework.main_tabs.insider') }}
+          </button>
+          <button
+            :class="['main-tab', { active: mainTab === 'politicians' }]"
+            @click="mainTab = 'politicians'"
+          >
+             {{ t('framework.main_tabs.politicians') }}
           </button>
         </div>
 
@@ -907,6 +943,80 @@ const formatKey = (key) => {
          <p v-else class="placeholder-text">{{ t('framework.insider.no_data') }}</p>
       </div>
 
+      <!-- Politicians Content -->
+      <div v-if="mainTab === 'politicians'" class="politicians-analysis">
+          <div class="profile-tabs" style="margin-bottom: 20px;">
+             <button class="profile-tab" :class="{ active: politicianTab === 'senate' }" @click="politicianTab = 'senate'">{{ t('framework.politicians_tabs.senate') }}</button>
+             <button class="profile-tab" :class="{ active: politicianTab === 'house' }" @click="politicianTab = 'house'">{{ t('framework.politicians_tabs.house') }}</button>
+          </div>
+
+          <!-- Senate Trades -->
+          <div v-if="politicianTab === 'senate'">
+              <div v-if="senateTrades && senateTrades.length > 0" class="data-table-wrapper scrollable-table-container" style="overflow-x: auto;">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header" style="text-align: left;">Senator</th>
+                         <th class="period-header">Party</th>
+                         <th class="period-header">Date</th>
+                         <th class="period-header">Received</th>
+                         <th class="period-header">Type</th>
+                         <th class="period-header">Amount</th>
+                         <th class="period-header" style="text-align: left;">Asset</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(trade, index) in senateTrades" :key="index" class="data-row">
+                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(`${trade.firstName} ${trade.lastName}`, 'senate')">
+                            {{ trade.firstName }} {{ trade.lastName }}
+                         </td>
+                         <td class="data-cell">{{ trade.party || '-' }}</td> <!-- FMP sometimes returns party or extraction needed -->
+                         <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
+                         <td class="data-cell">{{ formatFilingDate(trade.dateRecieved) }}</td>
+                         <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
+                         <td class="data-cell">{{ trade.amount }}</td>
+                         <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else class="placeholder-text">{{ t('framework.politicians_tabs.no_senate_data') || 'No Senate trading data available' }}</p>
+          </div>
+
+          <!-- House Trades -->
+          <div v-if="politicianTab === 'house'">
+              <div v-if="houseTrades && houseTrades.length > 0" class="data-table-wrapper scrollable-table-container" style="overflow-x: auto;">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header" style="text-align: left;">Representative</th>
+                         <th class="period-header">District</th>
+                         <th class="period-header">Date</th>
+                         <th class="period-header">Disclosure</th>
+                         <th class="period-header">Type</th>
+                         <th class="period-header">Amount</th>
+                         <th class="period-header" style="text-align: left;">Asset</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(trade, index) in houseTrades" :key="index" class="data-row">
+                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(trade.representative, 'house')">
+                             {{ trade.representative }}
+                         </td>
+                         <td class="data-cell">{{ trade.district }}</td>
+                         <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
+                         <td class="data-cell">{{ formatFilingDate(trade.disclosureDate) }}</td>
+                         <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
+                         <td class="data-cell">{{ trade.amount }}</td>
+                         <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else class="placeholder-text">{{ t('framework.politicians_tabs.no_house_data') || 'No House trading data available' }}</p>
+          </div>
+      </div>
+
       <!-- Fundamental Analysis Tab Content -->
       <div v-if="mainTab === 'fundamental_analysis'" class="fundamental-analysis">
         <!-- Profile Sub-tabs (shown directly without section wrapper) -->
@@ -1205,6 +1315,47 @@ const formatKey = (key) => {
     <!-- Error State -->
     <div v-if="error && !loading" class="error-state">
       <p>{{ t('framework.error') }}: {{ error }}</p>
+    </div>
+
+    <!-- Politician Modal -->
+    <div v-if="showPoliticianModal" class="modal-overlay" @click.self="closePoliticianModal">
+       <div class="modal-content">
+          <div class="modal-header">
+             <h2>{{ selectedPoliticianName }} ({{ selectedChamber === 'senate' ? 'Senate' : 'House' }}) - Detailed Trades</h2>
+             <button class="close-btn" @click="closePoliticianModal">&times;</button>
+          </div>
+          <div class="modal-body">
+             <div v-if="loading" class="modal-loading">{{ t('framework.loading') }}</div>
+             <div v-else-if="politicianTrades && politicianTrades.length > 0" class="data-table-wrapper scrollable-table-container">
+                <table class="data-table">
+                   <thead>
+                      <tr>
+                         <th class="period-header" style="text-align: left;">Symbol</th>
+                         <th class="period-header">Date</th>
+                         <th class="period-header">Type</th>
+                         <th class="period-header">Amount</th>
+                         <th class="period-header">Price</th>
+                         <th class="period-header" style="text-align: left;">Asset</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      <tr v-for="(trade, index) in politicianTrades" :key="index" class="data-row">
+                         <td class="data-cell" style="text-align: left;">
+                             <a v-if="trade.symbol" :href="'/framework?ticker=' + trade.symbol" target="_blank" class="symbol-link">{{ trade.symbol }}</a>
+                             <span v-else>-</span>
+                         </td>
+                         <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
+                         <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
+                         <td class="data-cell">{{ trade.amount }}</td>
+                         <td class="data-cell">{{ trade.price ? formatCurrency(trade.price) : '-' }}</td>
+                         <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
+                      </tr>
+                   </tbody>
+                </table>
+             </div>
+             <p v-else class="placeholder-text">No trades found for this politician.</p>
+          </div>
+       </div>
     </div>
   </div>
 </template>
@@ -2080,5 +2231,97 @@ const formatKey = (key) => {
   background: white;
   color: #000;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.text-green {
+    color: #10b981;
+    font-weight: 600;
+}
+.text-red {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.clickable-name {
+    color: #2563eb;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.clickable-name:hover {
+    text-decoration: underline;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.close-btn:hover {
+    color: #000;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.symbol-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.symbol-link:hover {
+    text-decoration: underline;
 }
 </style>

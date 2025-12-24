@@ -454,6 +454,72 @@ async def get_insider_trading(ticker: str, page: int = 0, limit: int = 50):
 
 
 
+@router.get("/senate-trades/{ticker}")
+async def get_senate_trades(ticker: str):
+    """
+    Fetch Senate trades
+    """
+    ticker = ticker.upper()
+    endpoint = "senate-trades"
+    params = {"symbol": ticker}
+    
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching senate trades: {e}")
+        return {"ticker": ticker, "data": []}
+
+
+@router.get("/house-trades/{ticker}")
+async def get_house_trades(ticker: str):
+    """
+    Fetch House trades
+    """
+    ticker = ticker.upper()
+    endpoint = "house-trades"
+    params = {"symbol": ticker}
+    
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching house trades: {e}")
+        return {"ticker": ticker, "data": []}
+
+
+@router.get("/senate-trades-by-name")
+async def get_senate_trades_by_name(name: str):
+    """
+    Fetch Senate trades by Name
+    """
+    endpoint = "senate-trades"
+    params = {"name": name}
+    
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        return {"name": name, "data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching senate trades by name: {e}")
+        return {"name": name, "data": []}
+
+
+@router.get("/house-trades-by-name")
+async def get_house_trades_by_name(name: str):
+    """
+    Fetch House trades by Name
+    """
+    endpoint = "house-trades"
+    params = {"name": name}
+    
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        return {"name": name, "data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching house trades by name: {e}")
+        return {"name": name, "data": []}
+
+
 @router.get("/all/{ticker}")
 async def get_all_statements(
     ticker: str,
@@ -490,6 +556,8 @@ async def get_all_statements(
         dividends = await get_stock_dividends(ticker)
         splits = await get_stock_splits(ticker)
         insider_trading = await get_insider_trading(ticker)
+        senate_trades = await get_senate_trades(ticker)
+        house_trades = await get_house_trades(ticker)
 
         # Fetch Business Description from 10-K (Item 1)
         business_description = ""
@@ -523,7 +591,9 @@ async def get_all_statements(
             "earnings": earnings["data"],
             "dividends": dividends["data"],
             "splits": splits["data"],
-            "insider_trading": insider_trading["data"]
+            "insider_trading": insider_trading["data"],
+            "senate_trades": senate_trades["data"],
+            "house_trades": house_trades["data"]
         }
     except HTTPException as e:
         raise e

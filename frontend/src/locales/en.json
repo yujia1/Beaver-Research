@@ -831,7 +831,8 @@
             "ratio": "Ratio",
             "calendar": "Calendar",
             "filling": "Filling",
-            "insider": "Insider"
+            "insider": "Insider",
+            "politicians": "Politicians"
         },
         "tabs": {
             "core": "Core Statements",
@@ -897,6 +898,12 @@
             "price": "Price",
             "acq_disp": "Acq/Disp",
             "no_data": "No insider trading data available"
+        },
+        "politicians_tabs": {
+            "senate": "Senate",
+            "house": "House",
+            "no_senate_data": "No Senate trading data available",
+            "no_house_data": "No House trading data available"
         },
         "calendar_tabs": {
             "earning": "Earning",
