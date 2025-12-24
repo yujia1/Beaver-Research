@@ -99,9 +99,6 @@
       <!-- Editor Panel -->
       <div class="editor-panel">
         <div v-if="editorContent.trim() === ''" class="editor-placeholder">
-            <h2 class="placeholder-title">
-              {{ t('research.editor_placeholder.title', { company: companyName || 'Company' }) }}
-            </h2>
             <div class="placeholder-instructions">
               <div class="instruction-item">
                 <span class="instruction-number">1.</span>
