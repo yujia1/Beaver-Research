@@ -243,7 +243,7 @@ async def get_positions(
         # 2. Try uppercase match
         # 3. Fallback
         current_ticker = pos.ticker.upper()
-        current_price = realtime_prices.get(current_ticker, pos.current_price)
+        current_price = realtime_prices.get(current_ticker, 0.0)
         
         result.append({
             "ticker": pos.ticker,
@@ -287,8 +287,7 @@ def create_position(
     db_position = AlphaTradePosition(
         user_id=current_user.id,
         ticker=position.ticker,
-        sector=position.sector,
-        current_price=0.0 # Placeholder, we fetch realtime on read
+        sector=position.sector
     )
     db.add(db_position)
     db.commit()
@@ -324,25 +323,7 @@ def delete_position(
     return {"message": "Position deleted successfully"}
 
 
-@router.put("/positions/{ticker}/price")
-def update_position_price(
-    ticker: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Update position current price from yfinance for the current user"""
-    position = db.query(AlphaTradePosition).filter(
-        AlphaTradePosition.user_id == current_user.id,
-        AlphaTradePosition.ticker == ticker
-    ).first()
-    if not position:
-        raise HTTPException(status_code=404, detail="Position not found")
-    
-    current_price = get_stock_price(ticker)
-    position.current_price = current_price
-    db.commit()
-    
-    return {"ticker": ticker, "currentPrice": current_price}
+
 
 
 # Trade Lot endpoints
