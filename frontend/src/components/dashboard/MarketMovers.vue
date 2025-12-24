@@ -1,26 +1,5 @@
 <template>
   <div class="market-movers">
-    <div class="movers-tabs">
-      <button 
-        :class="{ active: activeTab === 'most-actives' }" 
-        @click="activeTab = 'most-actives'"
-      >
-        {{ t('dashboard.market_movers.most_actives') || 'Top Trade' }}
-      </button>
-      <button 
-        :class="{ active: activeTab === 'gainers' }" 
-        @click="activeTab = 'gainers'"
-      >
-        {{ t('dashboard.market_movers.top_gainers') || 'Top Gainers' }}
-      </button>
-      <button 
-        :class="{ active: activeTab === 'losers' }" 
-        @click="activeTab = 'losers'"
-      >
-        {{ t('dashboard.market_movers.top_losers') || 'Top Losers' }}
-      </button>
-    </div>
-
     <div class="movers-content">
       <div v-if="loading" class="loading-state">
         <div class="loading-spinner"></div>
@@ -38,7 +17,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="stock in displayedData" :key="stock.ticker">
+          <tr v-for="stock in items" :key="stock.ticker">
             <td class="symbol">{{ stock.ticker }}</td>
             <td class="name" :title="stock.name">{{ stock.name }}</td>
             <td class="text-right">${{ formatNumber(stock.price) }}</td>
@@ -56,27 +35,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, onMounted, watch } from 'vue'
 import API_BASE_URL from '@/config/api'
 
-const { t } = useI18n()
-
-const activeTab = ref('most-actives')
-const data = ref({
-  'most-actives': [],
-  'gainers': [],
-  'losers': []
+const props = defineProps({
+  moverType: {
+    type: String,
+    required: true
+  }
 })
+
+const items = ref([])
 const loading = ref(false)
 const error = ref(null)
 
-const displayedData = computed(() => {
-  return data.value[activeTab.value] || []
-})
+// Simple in-memory cache to prevent re-fetching if prop changes back and forth quickly in same session context (if kept alive)
+const cache = new Map()
 
-const fetchMarketMovers = async (type) => {
-  if (data.value[type].length > 0) return // Return if already cached
+const fetchMarketMovers = async () => {
+  const type = props.moverType
+  
+  if (cache.has(type)) {
+    items.value = cache.get(type)
+    return
+  }
   
   loading.value = true
   error.value = null
@@ -86,7 +68,8 @@ const fetchMarketMovers = async (type) => {
     if (!response.ok) throw new Error('Failed to fetch data')
     
     const result = await response.json()
-    data.value[type] = result.slice(0, 10) // Limit to top 10
+    items.value = result.slice(0, 10) // Limit to top 10
+    cache.set(type, items.value)
   } catch (err) {
     console.error(`Error fetching ${type}:`, err)
     error.value = "Failed to load market data"
@@ -99,56 +82,25 @@ const formatNumber = (num) => {
   return num ? num.toFixed(2) : '0.00'
 }
 
-watch(activeTab, (newTab) => {
-  fetchMarketMovers(newTab)
+watch(() => props.moverType, () => {
+  fetchMarketMovers()
 })
 
 onMounted(() => {
-  fetchMarketMovers(activeTab.value)
+  fetchMarketMovers()
 })
 </script>
 
 <style scoped>
 .market-movers {
-  margin-top: 2rem;
   background: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
+  /* Removed top margin to fit better in tabbed content */
 }
 
-.movers-tabs {
-  display: flex;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.movers-tabs button {
-  flex: 1;
-  padding: 1rem;
-  border: none;
-  background: none;
-  font-weight: 600;
-  color: #666;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.5px;
-}
-
-.movers-tabs button.active {
-  color: #000;
-  border-bottom-color: #000;
-  background: #ffffff;
-}
-
-.movers-tabs button:hover:not(.active) {
-  background: #eeeeee;
-  color: #333;
-}
+/* Removed tab styles */
 
 .movers-content {
   padding: 0;

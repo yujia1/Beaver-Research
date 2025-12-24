@@ -76,8 +76,37 @@
             <!-- Equity Tab Content -->
             <div v-if="activeTab === 'equity'" class="tab-content">
         <!-- Index Charts Section -->
-                <IndicesSection ref="indicesRef" />
-                <MarketMovers />
+                <div class="category-tabs">
+                    <button 
+                        :class="{ active: activeEquityCategory === 'indices' }"
+                        @click="activeEquityCategory = 'indices'"
+                    >
+                        {{ t('dashboard.access_equity') || 'Indices' }}
+                    </button>
+                    <button 
+                        :class="{ active: activeEquityCategory === 'most-actives' }"
+                        @click="activeEquityCategory = 'most-actives'"
+                    >
+                        {{ t('dashboard.market_movers.most_actives') || 'Top Trade' }}
+                    </button>
+                    <button 
+                        :class="{ active: activeEquityCategory === 'gainers' }"
+                        @click="activeEquityCategory = 'gainers'"
+                    >
+                        {{ t('dashboard.market_movers.top_gainers') || 'Top Gainers' }}
+                    </button>
+                    <button 
+                        :class="{ active: activeEquityCategory === 'losers' }"
+                        @click="activeEquityCategory = 'losers'"
+                    >
+                        {{ t('dashboard.market_movers.top_losers') || 'Top Losers' }}
+                    </button>
+                </div>
+
+                <IndicesSection v-if="activeEquityCategory === 'indices'" ref="indicesRef" />
+                <MarketMovers v-if="activeEquityCategory === 'most-actives'" moverType="most-actives" />
+                <MarketMovers v-if="activeEquityCategory === 'gainers'" moverType="gainers" />
+                <MarketMovers v-if="activeEquityCategory === 'losers'" moverType="losers" />
 
             </div>
 
@@ -923,6 +952,7 @@ ChartJS.register(
 
 const loading = ref(false);
 const activeTab = ref('equity');
+const activeEquityCategory = ref('indices');
 const indicesRef = ref(null);
 const bondRef = ref(null);
 

@@ -98,6 +98,12 @@
             "largest_increase": "Largest Increase",
             "largest_decrease": "Largest Decrease"
         },
+        "market_movers": {
+            "most_actives": "Most Actives",
+            "top_gainers": "Top Gainers",
+            "top_losers": "Top Losers"
+        },
+        "access_equity": "Indices",
         "timeframes": {
             "daily": "Daily",
             "weekly": "Weekly",

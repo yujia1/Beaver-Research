@@ -97,6 +97,12 @@
             "largest_increase": "增幅最大",
             "largest_decrease": "降幅最大"
         },
+        "market_movers": {
+            "most_actives": "主要交易",
+            "top_gainers": "涨幅榜",
+            "top_losers": "跌幅榜"
+        },
+        "access_equity": "主要指数",
         "timeframes": {
             "daily": "日",
             "weekly": "周",
