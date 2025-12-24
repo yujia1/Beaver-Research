@@ -1,10 +1,73 @@
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
 import yfinance as yf
+import os
+import httpx
+
+# Get FMP API key from environment
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+
+async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[Dict]:
+    """
+    Fetch data from Financial Modeling Prep API (Async)
+    """
+    if not FMP_API_KEY:
+        # Don't raise error to avoid crashing entire app if key missing, just return empty
+        print("FMP_API_KEY not configured")
+        return []
+    
+    if params is None:
+        params = {}
+    
+    params["apikey"] = FMP_API_KEY
+    
+    url = f"{FMP_BASE_URL}/{endpoint}"
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params)
+            # We treat 404/others as empty result for resilience in alphatrade context
+            if response.status_code != 200:
+                print(f"FMP API error {response.status_code}: {response.text}")
+                return []
+                
+            data = response.json()
+            
+            if isinstance(data, dict) and "Error Message" in data:
+                print(f"FMP API error message: {data['Error Message']}")
+                return []
+            
+            # Return data directly; caller handles dict vs list
+            # FMP usually returns list for data endpoints
+            return data if isinstance(data, list) else [data] if data else []
+            
+    except Exception as e:
+        print(f"Error fetching data: {str(e)}")
+        return []
+
+async def fetch_realtime_prices(tickers: List[str]) -> dict:
+    if not tickers:
+        return {}
+    
+    prices = {}
+    try:
+        # Batch fetch using quote endpoint
+        ticker_str = ",".join(tickers)
+        # We can pass limit if needed, though for quote usually just symbols
+        data = await fetch_fmp_data("quote", {"symbol": ticker_str})
+        
+        for item in data:
+            prices[item.get("symbol")] = item.get("price", 0.0)
+            
+    except Exception as e:
+        print(f"Error fetching FMP prices: {e}")
+        
+    return prices
 
 import models
 from database import get_db
@@ -78,6 +141,19 @@ class TradingSignalRequest(BaseModel):
 
 # Helper function to get stock price
 def get_stock_price(ticker: str) -> float:
+    # Try FMP first
+    try:
+        url = f"https://financialmodelingprep.com/stable/quote?symbol={ticker}&apikey={FMP_API_KEY}"
+        with httpx.Client() as client:
+            response = client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return data[0].get('price', 0.0)
+    except Exception as e:
+        print(f"Error fetching FMP price for {ticker}: {e}")
+
+    # Fallback to yfinance
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
@@ -97,6 +173,10 @@ async def get_positions(
         AlphaTradePosition.user_id == current_user.id
     ).all()
     
+    # Fetch real-time prices for all tickers in parallel
+    tickers = [pos.ticker for pos in positions]
+    realtime_prices = await fetch_realtime_prices(tickers)
+    
     result = []
     for pos in positions:
         # Build fundamental analysis dict
@@ -107,10 +187,13 @@ async def get_positions(
             if analysis.score:
                 fundamental_scores[str(analysis.question_id)] = analysis.score
         
+        # Use realtime price if available, otherwise fallback to DB price (which might be stale)
+        current_price = realtime_prices.get(pos.ticker, pos.current_price)
+        
         result.append({
             "ticker": pos.ticker,
             "sector": pos.sector,
-            "currentPrice": pos.current_price,
+            "currentPrice": current_price,
             "lots": [
                 {
                     "id": lot.id,
