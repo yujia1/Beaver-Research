@@ -16,7 +16,11 @@ const loading = ref(false)
 const activeTab = ref({}) // Track active tab per position: { ticker: 'lot' | 'fundamental' | 'scenario' }
 const hypotheticalAdjustment = ref({}) // Track hypothetical price adjustment per position: { ticker: percentage }
 const viewTab = ref('portfolio') // 'portfolio' or 'watchlist'
-const searchQuery = ref('')
+const watchlist = ref([])
+const watchlistLoading = ref(false)
+const showAddToWatchlistInput = ref(false)
+const newWatchlistTicker = ref('')
+
 
 // Drag and drop state
 const draggedIndex = ref(null)
@@ -224,8 +228,89 @@ const fetchPositions = async () => {
   }
 }
 
+const fetchWatchlist = async () => {
+  watchlistLoading.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/watchlist`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.ok) {
+      watchlist.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Error fetching watchlist:', error)
+  } finally {
+    watchlistLoading.value = false
+  }
+}
+
+const addToWatchlist = async () => {
+  if (!newWatchlistTicker.value) return
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/watchlist`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ ticker: newWatchlistTicker.value })
+    })
+    
+    if (response.ok) {
+      newWatchlistTicker.value = ''
+      showAddToWatchlistInput.value = false
+      await fetchWatchlist()
+    }
+  } catch (error) {
+    console.error('Error adding to watchlist:', error)
+  }
+}
+
+const removeFromWatchlist = async (ticker) => {
+  if (!confirm(`Remove ${ticker} from watchlist?`)) return
+
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/alphatrade/watchlist/${ticker}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.ok) {
+      await fetchWatchlist()
+    }
+  } catch (error) {
+    console.error('Error removing from watchlist:', error)
+  }
+}
+
+const saveWatchlistNote = async (item) => {
+  try {
+    const token = localStorage.getItem('access_token')
+    await fetch(`${API_BASE_URL}/api/alphatrade/watchlist/${item.ticker}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ note: item.note })
+    })
+  } catch (error) {
+    console.error('Error saving watchlist note:', error)
+  }
+}
+
 onMounted(() => {
   fetchPositions()
+  fetchWatchlist()
 })
 
 // Removed savePositions as we now rely on backend persistence
@@ -822,19 +907,6 @@ const handleDragEnd = () => {
     </div>
 
     <div class="controls-row">
-        <div class="search-wrapper">
-             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input 
-                type="text" 
-                v-model="searchQuery" 
-                placeholder="Search portfolio..." 
-                class="search-input"
-            />
-        </div>
-
         <button class="add-lot-btn" @click="showAddLotModal = true">
             <span class="btn-icon">+</span>
             <span class="btn-text">{{ t('alphatrade.new_execution') }}</span>
@@ -1347,8 +1419,79 @@ const handleDragEnd = () => {
 
     <!-- Watchlist View -->
     <div v-if="viewTab === 'watchlist'" class="watchlist-view">
-        <div class="watchlist-placeholder">
-            <p>Watchlist feature coming soon...</p>
+        <!-- Watchlist Filters -->
+        <div class="watchlist-filters">
+           <div class="filter-group">
+               <span class="filter-label">FILTERS</span>
+               <select class="filter-select"><option>All Types</option></select>
+               <select class="filter-select"><option>Any Pos Change</option></select>
+               <select class="filter-select"><option>Any Daily Change</option></select>
+           </div>
+           
+           <div class="watchlist-actions">
+               <div v-if="showAddToWatchlistInput" class="add-ticker-input-group">
+                   <input 
+                      v-model="newWatchlistTicker" 
+                      placeholder="Ticker..." 
+                      class="mini-input"
+                      @keyup.enter="addToWatchlist"
+                    />
+                   <button @click="addToWatchlist" class="mini-btn confirm">✓</button>
+                   <button @click="showAddToWatchlistInput = false" class="mini-btn cancel">✕</button>
+               </div>
+               <button v-else class="add-watchlist-btn" @click="showAddToWatchlistInput = true">
+                  + ADD TO WATCHLIST
+               </button>
+           </div>
+        </div>
+
+        <!-- Watchlist Table -->
+        <div v-if="watchlistLoading" class="loading-state">Loading watchlist...</div>
+        <div v-else-if="watchlist.length === 0" class="empty-state">
+           No items in watchlist.
+        </div>
+        <div v-else class="watchlist-table-container">
+            <table class="watchlist-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th>TICKER</th>
+                        <th>COMPANY</th>
+                        <th>PRICE</th>
+                        <th>CHANGE %</th>
+                        <th>NOTE</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in watchlist" :key="item.ticker">
+                        <td><span class="expand-arrow">›</span></td>
+                        <td class="ticker-cell">{{ item.ticker }}</td>
+                        <td class="company-cell">{{ item.companyName || '-' }}</td>
+                        <td class="price-cell">{{ formatCurrency(item.currentPrice) }}</td>
+                        <td :class="item.changePercent >= 0 ? 'text-green' : 'text-red'">
+                            {{ formatPercent(item.changePercent) }}
+                        </td>
+                        <td class="note-cell">
+                            <input 
+                                v-model="item.note" 
+                                class="note-input"
+                                placeholder="Add note..."
+                                @blur="saveWatchlistNote(item)"
+                                @keyup.enter="$event.target.blur()"
+                            />
+                        </td>
+                        <td>
+                            <button class="delete-icon-btn" @click="removeFromWatchlist(item.ticker)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="watchlist-summary">
+                Summary: {{ watchlist.length }} Tickers / 0 Transactions
+            </div>
         </div>
     </div>
 
@@ -1488,40 +1631,11 @@ const handleDragEnd = () => {
 
 .controls-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end; /* Align button to the right */
     align-items: center;
     margin-bottom: 2rem;
 }
 
-.search-wrapper {
-    position: relative;
-    width: 300px;
-}
-
-.search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-}
-
-.search-input {
-    width: 100%;
-    padding: 10px 10px 10px 40px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: #374151;
-    background: #fff;
-    transition: all 0.2s;
-}
-
-.search-input:focus {
-    border-color: #2563eb;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
 
 .watchlist-placeholder {
     text-align: center;
@@ -2305,3 +2419,189 @@ const handleDragEnd = () => {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+
+/* Watchlist Styles */
+.watchlist-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filter-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #999;
+    letter-spacing: 0.5px;
+}
+
+.filter-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #374151;
+    background: #fff;
+    cursor: pointer;
+}
+
+.add-watchlist-btn {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.watchlist-table-container {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.watchlist-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.watchlist-table th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.watchlist-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.875rem;
+    color: #111827;
+    vertical-align: middle;
+}
+
+.expand-arrow {
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.ticker-cell {
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.company-cell {
+    color: #4b5563;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.price-cell {
+    font-weight: 700;
+}
+
+.text-green {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.text-red {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.delete-icon-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.delete-icon-btn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.watchlist-summary {
+    padding: 1rem;
+    background: #f9fafb;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    border-top: 1px solid #e5e7eb;
+}
+
+.add-ticker-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.mini-input {
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    width: 100px;
+    font-size: 0.875rem;
+}
+
+.mini-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-btn.confirm {
+    background: #10b981;
+    color: #fff;
+}
+
+.mini-btn.cancel {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.note-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+    color: #374151;
+    padding: 4px;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.2s;
+}
+
+.note-input:focus {
+    outline: none;
+    border-bottom-color: #2563eb;
+    background: #fff;
+}
+
+.note-input:hover {
+    border-bottom-color: #e5e7eb;
+}
+
