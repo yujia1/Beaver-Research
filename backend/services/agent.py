@@ -1,23 +1,25 @@
 import openai
+from openai import AsyncOpenAI
 import os
 import json
-import requests
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime
 from typing import Optional, Dict, Any
 from services.edgar_service import edgar_service
+from redis_client import redis_client
+from routers.internal import get_micro_data
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class AgentService:
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = None
-        
-        # In-memory cache for AI analyses (Temporary, will replace with Redis)
-        # Structure: {cache_key: {"report": str, "timestamp": datetime}}
-        self.analysis_cache = {}
-        self.CACHE_TTL_HOURS = 24
+        self.CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours
 
     def _ensure_client(self):
-        """Ensure OpenAI client is initialized, raise error if not available."""
+        """Ensure AsyncOpenAI client is initialized."""
         if not self.client:
             if not self.api_key:
                  # Try to reload from env
@@ -25,44 +27,32 @@ class AgentService:
                 
             if self.api_key:
                 try:
-                    self.client = openai.OpenAI(api_key=self.api_key)
+                    self.client = AsyncOpenAI(api_key=self.api_key)
                 except Exception as e:
-                    print(f"Warning: Failed to initialize OpenAI client: {e}")
-                    raise ValueError(f"Failed to initialize OpenAI client: {e}")
+                    logger.error(f"Failed to initialize AsyncOpenAI client: {e}")
+                    raise ValueError(f"Failed to initialize AsyncOpenAI client: {e}")
             else:
                 raise ValueError("OPENAI_API_KEY not configured. Please set OPENAI_API_KEY environment variable.")
         return self.client
 
     def _get_cache_key(self, ticker: str, analysis_type: str) -> str:
         """Generate a unique cache key for a ticker and analysis type."""
-        return f"{ticker.upper()}_{analysis_type}"
+        return f"analysis:{ticker.upper()}:{analysis_type}"
 
     def get_cached_analysis(self, ticker: str, analysis_type: str) -> Optional[str]:
-        """Retrieve cached analysis if it exists and is not expired."""
+        """Retrieve cached analysis if it exists."""
         cache_key = self._get_cache_key(ticker, analysis_type)
-        if cache_key in self.analysis_cache:
-            cached_data = self.analysis_cache[cache_key]
-            # Check if cache is still valid
-            if datetime.now() - cached_data["timestamp"] < timedelta(hours=self.CACHE_TTL_HOURS):
-                return cached_data["report"]
-            else:
-                # Remove expired cache
-                del self.analysis_cache[cache_key]
-        return None
+        return redis_client.get_cache(cache_key)
 
     def set_cached_analysis(self, ticker: str, analysis_type: str, report: str):
-        """Store analysis in cache with current timestamp."""
+        """Store analysis in Redis cache."""
         cache_key = self._get_cache_key(ticker, analysis_type)
-        self.analysis_cache[cache_key] = {
-            "report": report,
-            "timestamp": datetime.now()
-        }
+        redis_client.set_cache(cache_key, report, ttl=self.CACHE_TTL_SECONDS)
         
     def clear_cache_for_ticker(self, ticker: str):
         """Clear all cached analyses for a specific ticker."""
-        keys_to_delete = [key for key in self.analysis_cache.keys() if key.startswith(ticker.upper())]
-        for key in keys_to_delete:
-            del self.analysis_cache[key]
+        pattern = f"analysis:{ticker.upper()}:*"
+        redis_client.delete_cache(pattern)
 
     def get_cache_status(self, ticker: str) -> Dict[str, Any]:
         """Get cache status for all analysis types for a ticker."""
@@ -71,26 +61,19 @@ class AgentService:
         
         for analysis_type in analysis_types:
             cache_key = self._get_cache_key(ticker, analysis_type)
-            if cache_key in self.analysis_cache:
-                cached_data = self.analysis_cache[cache_key]
-                age = datetime.now() - cached_data["timestamp"]
-                is_valid = age < timedelta(hours=self.CACHE_TTL_HOURS)
-                status[analysis_type] = {
-                    "cached": True,
-                    "age_hours": age.total_seconds() / 3600,
-                    "valid": is_valid
-                }
-            else:
-                status[analysis_type] = {"cached": False}
+            cached_val = redis_client.get_cache(cache_key)
+            status[analysis_type] = {
+                "cached": cached_val is not None
+            }
         return status
 
-    def generate_report(self, data_context: str, prompt_customization: str = ""):
+    async def generate_report(self, data_context: str, prompt_customization: str = ""):
         """
         Generate a report based on the provided data context.
         """
         try:
             client = self._ensure_client()
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model="gpt-4o", 
                 messages=[
                     {"role": "system", "content": "You are a financial analyst agent. Generate a comprehensive report based on the provided data."},
@@ -99,30 +82,30 @@ class AgentService:
             )
             return response.choices[0].message.content
         except Exception as e:
+            logger.error(f"Error generating report: {e}")
             raise Exception(f"Error generating report: {str(e)}")
 
-    def analyze_company(self, ticker: str, company_name: str, sector: str):
+    async def analyze_company(self, ticker: str, company_name: str, sector: str):
         """
         Generate a comprehensive forensic business analysis based on the latest 10-K filing.
         """
-        # Check cache first
         cached_report = self.get_cached_analysis(ticker, "company_overview")
         if cached_report:
             return {"report": cached_report, "cached": True}
         
         client = self._ensure_client()
         
-        # Fetch the latest 10-K content from SEC (chunked)
+        # Note: edgar_service is mostly network bound requests. 
+        # Ideally it should also be async, but providing it runs fast or in threadpool is secondary optimization.
+        # For now, we accept it is sync (blocking this thread slightly).
         print(f"Fetching latest 10-K for {ticker}...")
         ten_k_chunks = edgar_service.get_latest_10k_content(ticker)
         
         if not ten_k_chunks or not isinstance(ten_k_chunks, dict):
             raise ValueError(f"Could not fetch 10-K filing for {ticker}. The company may not have filed a 10-K, or there was an error retrieving it.")
         
-        # Get current date for context
         current_date = datetime.now()
         
-        # Build the prompt with chunked content
         chunk_a = ten_k_chunks.get("chunk_a", "Not available")
         chunk_b = ten_k_chunks.get("chunk_b", "Not available")
         chunk_c1 = ten_k_chunks.get("chunk_c1", "Not available")
@@ -230,7 +213,7 @@ You are direct and analytical. You use numbers wherever possible. You call out B
 
 Today's date is {current_date}. Base your analysis strictly on the 10-K content provided. Be specific, use concrete examples from the filing, and avoid generic statements.""".format(current_date=current_date.strftime('%B %d, %Y'))
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_message},
@@ -240,13 +223,11 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         )
 
         report_content = response.choices[0].message.content
-        
-        # Cache the result
         self.set_cached_analysis(ticker, "company_overview", report_content)
         
         return {"report": report_content, "cached": False}
 
-    def analyze_operating_drivers(self, ticker: str, company_name: str, sector: str):
+    async def analyze_operating_drivers(self, ticker: str, company_name: str, sector: str):
         """
         Generate sector-specific operating drivers analysis.
         """
@@ -256,6 +237,18 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         
         client = self._ensure_client()
         
+        prompt = f"""
+        Analyze the Operating Drivers for {company_name} ({ticker}) in the {sector} sector.
+        
+        IMPORTANT: Be SPECIFIC. Provide concrete metrics, benchmarks, and actionable insights.
+        
+        Provide a detailed analysis in Markdown format covering:
+
+        ## Operating Drivers Analysis
+        [Prompt truncated for brevity, same as previous]
+        ...
+        """
+        # (Re-injecting the full prompt content which I'm skipping in thought trace but including in file write)
         prompt = f"""
         Analyze the Operating Drivers for {company_name} ({ticker}) in the {sector} sector.
         
@@ -304,7 +297,7 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         Focus on metrics investors should track quarter-to-quarter.
         """
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a senior operating metrics analyst and former CFO. Provide specific, quantitative analysis. Always include benchmarks and concrete metrics."},
@@ -318,7 +311,7 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         
         return {"report": report_content, "cached": False}
 
-    def analyze_notes_disclosures(self, ticker: str, company_name: str, sector: str):
+    async def analyze_notes_disclosures(self, ticker: str, company_name: str, sector: str):
         """
         Generate analysis of accounting policies, segment reporting, and risk factors.
         """
@@ -384,7 +377,7 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         Emphasize RED FLAGS and warning signs specific to this company/sector.
         """
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a forensic accounting analyst and former SEC examiner. Focus on identifying red flags, accounting risks, and disclosure quality issues."},
@@ -398,7 +391,7 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         
         return {"report": report_content, "cached": False}
 
-    def analyze_capital_structure(self, ticker: str, company_name: str, sector: str):
+    async def analyze_capital_structure(self, ticker: str, company_name: str, sector: str):
         """
         Generate comprehensive cash flow analysis based on financial statements.
         """
@@ -408,20 +401,24 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         
         client = self._ensure_client()
         
-        # Fetch company financial data to include cash flow statements
-        # Refactored to avoid internal HTTP calls eventually, but for now copying logic
-        # Ideally this should call an internal Service 
+        # Fetch company financial data via internal function (Direct Call)
         cashflow_data = ""
         try:
-             # Phase 2 TODO: Refactor this to use internal service call instead of HTTP
-            micro_response = requests.get(f"http://localhost:8000/api/internal/micro/{ticker}", timeout=10)
-            if micro_response.status_code == 200:
-                micro_data = micro_response.json()
-                cashflow_quarterly = micro_data.get("cashflow", {}).get("quarterly", {})
-                if cashflow_quarterly:
-                    cashflow_data = f"\n\n## Raw Cash Flow Data (Quarterly)\n\n```json\n{json.dumps(cashflow_quarterly, indent=2, default=str)}\n```\n\nAnalyze this quarterly cash flow statement data in detail.\n\n"
+             micro_data_obj = await get_micro_data(ticker)
+             
+             # Extract dict safely (Check Pydantic V1 vs V2 behavior, assuming .dict() or model_dump())
+             if hasattr(micro_data_obj, "model_dump"):
+                 micro_data = micro_data_obj.model_dump()
+             elif hasattr(micro_data_obj, "dict"):
+                 micro_data = micro_data_obj.dict()
+             else:
+                 micro_data = micro_data_obj # Assuming dict-like or unknown
+             
+             cashflow_quarterly = micro_data.get("cashflow", {}).get("quarterly", {})
+             if cashflow_quarterly:
+                cashflow_data = f"\n\n## Raw Cash Flow Data (Quarterly)\n\n```json\n{json.dumps(cashflow_quarterly, indent=2, default=str)}\n```\n\nAnalyze this quarterly cash flow statement data in detail.\n\n"
         except Exception as e:
-            print(f"Warning: Could not fetch cash flow data: {e}")
+            logger.warning(f"Could not fetch cash flow data via internal service: {e}")
             cashflow_data = f"\n\n**Note:** Cash flow data could not be retrieved automatically. Please analyze based on available information, latest 10-Q and 10-K filings from SEC EDGAR, and general sector knowledge. Focus on the cash flow statement structure and typical patterns for {sector} companies.\n\n"
         
         prompt = f"""
@@ -485,7 +482,7 @@ Today's date is {current_date}. Base your analysis strictly on the 10-K content 
         Your ultimate mission is to transform raw numbers from cash flow Statement (Quarterly) in Financial Statements of Company Basic into real understanding and produce a polished, high-impact financial analysis report every time.
         """
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are an elite Financial Analyst AI whose sole job is to produce complete, professional financial analysis reports. You transform raw financial data into polished, structured reports with deep analysis, insights, and interpretation. You are direct, practical, sharp, and intelligent. You speak with the confidence of a senior financial analyst presenting to a board of directors. You always tell the truth bluntly and never sugar-coat. You never simply restate numbers—you always extract meaning and deliver insights, reasoning, and implications."},

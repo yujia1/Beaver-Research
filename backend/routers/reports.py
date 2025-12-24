@@ -99,12 +99,18 @@ class ReportSummary(BaseModel):
         from_attributes = True
 
 @router.post("/", response_model=ReportResponse)
-def create_report(report: ReportCreate, db: Session = Depends(get_db)):
+def create_report(
+    report: ReportCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(verify_premium_access)
+):
     db_report = Report(
         title=report.title,
         content=report.content,
         report_type=report.report_type,
-        ticker=report.ticker
+        ticker=report.ticker,
+        user_id=current_user.id,
+        is_uploaded=False
     )
     db.add(db_report)
     db.commit()
@@ -116,7 +122,7 @@ async def get_reports(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(verify_premium_access)
 ):
-    reports = db.query(Report).order_by(Report.created_at.desc()).all()
+    reports = db.query(Report).filter(Report.user_id == current_user.id).order_by(Report.created_at.desc()).all()
     return reports
 
 @router.get("/{report_id}", response_model=ReportResponse)
@@ -206,7 +212,9 @@ async def publish_research_report(
             title=report_title,
             content=minio_path_in_db,  # Store MinIO path instead of content
             report_type=report_type,
-            ticker=ticker
+            ticker=ticker,
+            user_id=current_user.id,
+            is_uploaded=True
         )
         db.add(db_report)
         db.commit()

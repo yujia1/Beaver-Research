@@ -17,7 +17,7 @@ async def generate_report(
     Generate a report using the AI agent.
     """
     try:
-        report = agent_service.generate_report(request.data_context, request.prompt_customization)
+        report = await agent_service.generate_report(request.data_context, request.prompt_customization)
         return {"report": report}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -53,7 +53,7 @@ async def analyze_company(
     Generate a comprehensive forensic business analysis based on the latest 10-K filing.
     """
     try:
-        return agent_service.analyze_company(request.ticker, request.company_name, request.sector)
+        return await agent_service.analyze_company(request.ticker, request.company_name, request.sector)
     except Exception as e:
         print(f"Error in analyze_company: {e}")
         import traceback
@@ -69,7 +69,7 @@ async def analyze_operating_drivers(
     Generate sector-specific operating drivers analysis.
     """
     try:
-        return agent_service.analyze_operating_drivers(request.ticker, request.company_name, request.sector)
+        return await agent_service.analyze_operating_drivers(request.ticker, request.company_name, request.sector)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -82,7 +82,7 @@ async def analyze_notes_disclosures(
     Generate analysis of accounting policies, segment reporting, and risk factors.
     """
     try:
-        return agent_service.analyze_notes_disclosures(request.ticker, request.company_name, request.sector)
+        return await agent_service.analyze_notes_disclosures(request.ticker, request.company_name, request.sector)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -95,7 +95,7 @@ async def analyze_capital_structure(
     Generate comprehensive cash flow analysis based on financial statements.
     """
     try:
-        return agent_service.analyze_capital_structure(request.ticker, request.company_name, request.sector)
+        return await agent_service.analyze_capital_structure(request.ticker, request.company_name, request.sector)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

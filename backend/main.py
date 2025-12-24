@@ -142,6 +142,66 @@ scheduler = setup_13f_scheduler()
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
+from sqlalchemy import text
+
+def run_manual_migration_script():
+    """
+    Temporary: Run manual migration SQL for production deployment.
+    This handles adding the user_id and is_uploaded columns to reports table.
+    """
+    try:
+        logging.info("Starting manual migration script...")
+        with engine.connect() as conn:
+            # 1. Add user_id column
+            try:
+                conn.execute(text("ALTER TABLE reports ADD COLUMN user_id INTEGER;"))
+                logging.info("Added user_id column")
+            except Exception as e:
+                logging.info(f"Skipping add user_id (might exist): {e}")
+
+            # 2. Add is_uploaded column
+            try:
+                conn.execute(text("ALTER TABLE reports ADD COLUMN is_uploaded BOOLEAN DEFAULT FALSE;"))
+                logging.info("Added is_uploaded column")
+            except Exception as e:
+                logging.info(f"Skipping add is_uploaded (might exist): {e}")
+
+            # 3. Create index for user_id (Postgres specific syntax usually fine, or generic)
+            try:
+                conn.execute(text("CREATE INDEX ix_reports_user_id ON reports(user_id);"))
+                logging.info("Created index ix_reports_user_id")
+            except Exception as e:
+                logging.info(f"Skipping index creation: {e}")
+
+            # 4. Updates (Data Backfill)
+            try:
+                # Find user ID first to be safe
+                result = conn.execute(text("SELECT id FROM users WHERE username = 'yjia0405@gmail.com'"))
+                user_row = result.first()
+                if user_row:
+                    user_id = user_row[0]
+                    # Update reports
+                    conn.execute(text(f"UPDATE reports SET user_id = {user_id} WHERE user_id IS NULL"))
+                    logging.info(f"Backfilled reports with user_id {user_id}")
+                else:
+                    logging.warning("User 'yjia0405@gmail.com' not found for backfill")
+            except Exception as e:
+                logging.error(f"Error backfilling user_id: {e}")
+
+            try:
+                conn.execute(text("UPDATE reports SET is_uploaded = FALSE WHERE is_uploaded IS NULL"))
+                logging.info("Backfilled is_uploaded default values")
+            except Exception as e:
+                logging.error(f"Error backfilling is_uploaded: {e}")
+
+            conn.commit()
+            logging.info("Manual migration script completed.")
+    except Exception as e:
+        logging.error(f"Manual migration script failed: {e}")
+
+# Run manual migration on startup
+run_manual_migration_script()
+
 app = FastAPI(
     title="Financial Dashboard Agent",
     description="Production-ready financial research platform",

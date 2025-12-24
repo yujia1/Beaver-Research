@@ -15,7 +15,10 @@ class User(Base):
     has_paid = Column(Boolean, default=False, nullable=False)  # Payment status for Research access
     payment_transaction_id = Column(String, nullable=True)  # PayPal transaction ID
     payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date
+    payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    reports = relationship("Report", back_populates="user")
 
 class RolePermission(Base):
     """Store permissions for each role accessing different resources"""
@@ -38,11 +41,15 @@ class Report(Base):
     __tablename__ = "reports"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     title = Column(String, index=True)
     content = Column(Text)
-    report_type = Column(String) # e.g., 'company_overview', 'operating_drivers'
+    report_type = Column(String) 
     ticker = Column(String, index=True)
+    is_uploaded = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="reports")
 
 class Filing13F(Base):
     """Track processed 13F filings per CIK"""
