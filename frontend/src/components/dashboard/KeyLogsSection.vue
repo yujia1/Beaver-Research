@@ -77,6 +77,7 @@
             <div v-if="activeTab === 'equity'" class="tab-content">
         <!-- Index Charts Section -->
                 <IndicesSection ref="indicesRef" />
+                <MarketMovers />
 
             </div>
 
@@ -884,6 +885,7 @@
 </template>
 
 <script setup>
+import MarketMovers from './MarketMovers.vue'
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, onMounted, computed, watch } from 'vue';

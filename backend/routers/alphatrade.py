@@ -536,3 +536,35 @@ async def get_batch_stock_prices(tickers: List[str]):
 
 
 
+
+@router.get("/market-movers/{mover_type}")
+async def get_market_movers(mover_type: str):
+    """
+    Get market movers: 'most-actives', 'gainers', 'losers'
+    """
+    endpoint_map = {
+        "most-actives": "stock/actives",
+        "gainers": "stock/gainers",
+        "losers": "stock/losers"
+    }
+    
+    if mover_type not in endpoint_map:
+        raise HTTPException(status_code=400, detail="Invalid mover type. Use 'most-actives', 'gainers', or 'losers'")
+        
+    fmp_endpoint = endpoint_map[mover_type]
+    data = await fetch_fmp_data(fmp_endpoint)
+    
+    # Process data to ensure consistent format (FMP returns list of objects)
+    # We want: symbol, name, price, changesPercentage, priceChange
+    result = []
+    
+    for item in data:
+        result.append({
+            "ticker": item.get("symbol"),
+            "name": item.get("name") or item.get("companyName", ""), # FMP inconsistent naming
+            "price": item.get("price", 0.0),
+            "change": item.get("change", 0.0),
+            "changesPercentage": item.get("changesPercentage", 0.0)
+        })
+        
+    return result
