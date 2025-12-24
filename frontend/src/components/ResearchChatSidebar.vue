@@ -18,7 +18,7 @@
           class="chat-message"
           :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant' }"
         >
-          <div class="message-content">{{ message.content }}</div>
+          <div class="message-content" v-html="renderMarkdown(message.content)"></div>
           <div class="message-time">{{ formatTime(message.timestamp) }}</div>
         </div>
         <div v-if="isChatLoading" class="chat-message assistant-message">
@@ -143,12 +143,20 @@ const sendChatMessage = async () => {
     })
   } finally {
     isChatLoading.value = false
-    nextTick(() => {
+      nextTick(() => {
         if (chatContainerRef.value) {
             chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight
         }
     })
   }
+}
+
+// Markdown Rendering
+import { marked } from 'marked'
+
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return marked.parse(text)
 }
 </script>
 
@@ -158,7 +166,7 @@ const sendChatMessage = async () => {
   background: rgba(255, 255, 255, 0.8);
   border-left: 1px solid rgba(0, 0, 0, 0.1);
   padding: 20px;
-  overflow-y: auto;
+  overflow-y: hidden; /* Changed to hidden to let inner containers handle scroll */
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -169,6 +177,7 @@ const sendChatMessage = async () => {
   margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -189,6 +198,7 @@ const sendChatMessage = async () => {
   height: 100%;
   flex: 1;
   min-height: 0;
+  overflow: hidden; /* Ensure it stays within parent */
 }
 
 .chatbox-messages {
@@ -199,6 +209,7 @@ const sendChatMessage = async () => {
   gap: 12px;
   padding: 10px 0;
   margin-bottom: 15px;
+  padding-right: 5px; /* Space for scrollbar */
 }
 
 .chat-message {
@@ -207,7 +218,7 @@ const sendChatMessage = async () => {
   gap: 4px;
   padding: 10px 12px;
   border-radius: 8px;
-  max-width: 85%;
+  max-width: 90%; /* Increased width slightly */
 }
 
 .user-message {
@@ -220,6 +231,7 @@ const sendChatMessage = async () => {
   align-self: flex-start;
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.1);
+  width: 100%; /* Take available width up to max-width */
 }
 
 .message-content {
@@ -227,6 +239,65 @@ const sendChatMessage = async () => {
   font-size: 0.9em;
   color: #1a1a1a;
   line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+/* Embedded scrollable feature for Assistant messages */
+.assistant-message .message-content {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px; /* Avoid scrollbar covering text */
+}
+
+/* Markdown Styles within Message Content */
+.message-content :deep(h1), 
+.message-content :deep(h2), 
+.message-content :deep(h3) {
+  font-family: 'Cinzel', serif;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.message-content :deep(p) {
+  margin-bottom: 8px;
+}
+
+.message-content :deep(ul), 
+.message-content :deep(ol) {
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.message-content :deep(li) {
+  margin-bottom: 4px;
+}
+
+.message-content :deep(strong) {
+  font-weight: 600;
+  color: #000;
+}
+
+.message-content :deep(code) {
+  font-family: 'Space Mono', monospace;
+  background: rgba(0,0,0,0.05);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.message-content :deep(pre) {
+  background: #f4f4f4;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+
+.message-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
 }
 
 .message-time {
@@ -234,6 +305,7 @@ const sendChatMessage = async () => {
   font-size: 0.7em;
   color: #737373;
   margin-top: 4px;
+  align-self: flex-end; /* Align time to right */
 }
 
 .chatbox-input {
@@ -241,6 +313,7 @@ const sendChatMessage = async () => {
   gap: 8px;
   padding-top: 15px;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .chat-input {

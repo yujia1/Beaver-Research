@@ -95,12 +95,15 @@ async def chat_interaction(
             agent_config = MARKET_AGENTS.get(request.agent_id)
             
         agent_name = agent_config["name"] if agent_config else "Research Assistant"
-        agent_focus = ", ".join(agent_config["focus"]) if agent_config else "general assistance"
-        agent_tone = agent_config.get("tone", "professional") if agent_config else "professional"
+        agent_focus = ", ".join(agent_config["focus"]) if agent_config else "general financial analysis"
+        agent_tone = agent_config.get("tone", "straightforward, concise, and to the point, objective, and professional") if agent_config else "professional"
         
         system_content = f"You are {agent_name}. Your focus is {agent_focus}. " \
                          f"Your tone is {agent_tone}. " \
-                         f"You are assisting with analysis for {request.ticker or 'the market'}."
+                         f"You are assisting with analysis for {request.ticker or 'the market'}. " \
+                         f"IMPORTANT: Format your response using clear Markdown structure. " \
+                         f"Use ### for section headers, bullet points for lists, and **bold** for key concepts. " \
+                         f"Keep paragraphs concise."
 
         messages = [{"role": "system", "content": system_content}]
         
