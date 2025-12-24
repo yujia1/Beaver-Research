@@ -1,8 +1,9 @@
 import sys
 import os
 
-# Add parent dir to path so we can import backend modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add current dir to path (backend/) so we can import modules
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 
 from database import engine, Base
 from models import AlphaTradePosition, AlphaTradeLot, AlphaTradeFundamentalAnalysis
@@ -38,9 +39,6 @@ def reset_tables():
         AlphaTradeFundamentalAnalysis.__table__.create(engine)
         
         print("Tables re-created successfully!")
-        
-        # Verify schema change (current_price nullable)
-        # In SQLite/Postgres we assume creation follows current Base model
         print("Schema up to date.")
         
     except Exception as e:

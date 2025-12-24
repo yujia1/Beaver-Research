@@ -60,6 +60,8 @@ async def fetch_realtime_prices(tickers: List[str]) -> dict:
         return {}
 
     prices = {}
+    
+    # 1. Try FMP Batch
     try:
         # Batch fetch using quote endpoint
         ticker_str = ",".join(clean_tickers)
@@ -73,6 +75,48 @@ async def fetch_realtime_prices(tickers: List[str]) -> dict:
     except Exception as e:
         print(f"Error fetching FMP prices: {e}")
         
+    # 2. Fallback to YFinance for missing tickers
+    missing_tickers = [t for t in clean_tickers if t not in prices or prices[t] == 0.0]
+    if missing_tickers:
+        print(f"Falling back to YFinance for: {missing_tickers}")
+        try:
+             # Run blocking yfinance in thread pool
+            import asyncio
+            loop = asyncio.get_running_loop()
+            
+            def fetch_yf_batch(symbols):
+                yf_prices = {}
+                try:
+                    # yf.Tickers might be faster for batch but lets iterate for reliability or use Tickers
+                    # yfinance batch download:
+                    # data = yf.download(symbols, period="1d") # This is heavy dataframe
+                    # lighter:
+                    for sym in symbols:
+                        try:
+                            t = yf.Ticker(sym)
+                            # minimal fetch
+                            info = t.fast_info
+                            p = info.last_price
+                            if p:
+                                yf_prices[sym] = p
+                            else:
+                                # try regular info
+                                info = t.info
+                                yf_prices[sym] = info.get('currentPrice') or info.get('regularMarketPrice', 0.0)
+                        except:
+                            pass
+                except Exception as ex:
+                    print(f"YF batch error: {ex}")
+                return yf_prices
+
+            yf_data = await loop.run_in_executor(None, fetch_yf_batch, missing_tickers)
+            if yf_data:
+                for sym, price in yf_data.items():
+                    prices[sym.upper()] = price
+
+        except Exception as e:
+            print(f"Error in YFinance fallback: {e}")
+
     return prices
 
 import models
