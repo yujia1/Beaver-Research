@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 import httpx
 import os
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from services.edgar_service import edgar_service
 
 router = APIRouter()
@@ -377,7 +377,7 @@ async def get_economic_calendar(from_date: Optional[str] = None, to_date: Option
     If no dates provided, defaults to today.
     """
     if not from_date:
-        from_date = datetime.now().strftime("%Y-%m-%d")
+        from_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     if not to_date:
         to_date = datetime.now().strftime("%Y-%m-%d")
 

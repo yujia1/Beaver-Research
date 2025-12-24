@@ -539,6 +539,7 @@ defineExpose({
 }
 
 .loading-state, .error-state {
+    color: #000000;
     text-align: center;
     padding: 40px;
 }
