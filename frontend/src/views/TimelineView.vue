@@ -181,9 +181,12 @@ import PriceTimeline from '@/components/investment/PriceTimeline.vue'
 import CompanyAnalysis from '@/components/investment/CompanyAnalysis.vue'
 import PolyMarketSection from '@/components/investment/PolyMarketSection.vue'
 
+import { usePayment } from '@/composables/usePayment'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 // ChartJS imports removed as chart logic is moved to sub-components
+
+const { checkPaymentStatus } = usePayment()
 
 
 // Stock data
