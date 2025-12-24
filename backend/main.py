@@ -55,7 +55,6 @@ from routers import (
 from database import engine, SessionLocal, check_db_connection
 import models
 import bcrypt
-
 # from services.scheduler_13f import setup_13f_scheduler # Disabled
 
 # Create database tables
@@ -134,12 +133,7 @@ def init_default_users():
     finally:
         db.close()
 
-# Initialize default users on startup
-
-
-# 13F Scheduler disabled
-scheduler = None
-
+# Initialize default users
 # We will initialize these in the startup event
 
 
@@ -190,13 +184,6 @@ async def startup_event():
         except Exception as e:
             logger.error(f"Failed to init default users (non-fatal): {e}")
 
-        # 2. Init Scheduler - Disabled for stability
-        # try:
-        #     global scheduler
-        #     scheduler = setup_13f_scheduler()
-        # except Exception as e:
-        #     logger.error(f"Failed to start 13F scheduler (non-fatal): {e}")
-            
     except Exception as e:
         logger.error(f"Critical startup error (suppressed to allow API boot): {e}")
 
