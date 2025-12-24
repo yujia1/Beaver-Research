@@ -137,7 +137,15 @@ def init_default_users():
 init_default_users()
 
 # Setup 13F filing scheduler
-scheduler = setup_13f_scheduler()
+try:
+    scheduler = setup_13f_scheduler()
+except Exception as e:
+    logger.error(f"Failed to start 13F scheduler: {e}")
+    # Mock scheduler object to prevent 'scheduler' variable error downstream
+    class MockScheduler: 
+        running = False
+        def shutdown(self): pass
+    scheduler = MockScheduler()
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -164,6 +172,7 @@ origins = [
     "https://beaver-research-frontend-production.up.railway.app",
     "https://beaver-research.up.railway.app",
     "https://www.beaver-research.up.railway.app", 
+    "*"  # TEMPORARY WILDCARD to fix production connectivity issues
 ]
 
 app.add_middleware(
