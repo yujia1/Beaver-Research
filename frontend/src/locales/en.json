@@ -24,6 +24,7 @@
         "refresh": "Refresh Data",
         "refreshing": "Refreshing...",
         "loading": "Loading Market Data...",
+        "market": "Market",
         "key_logs": "Key Logs",
         "tabs": {
             "equity": "Equity",

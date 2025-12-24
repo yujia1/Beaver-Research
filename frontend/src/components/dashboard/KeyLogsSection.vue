@@ -84,6 +84,12 @@
                         {{ t('dashboard.access_equity') || 'Indices' }}
                     </button>
                     <button 
+                        :class="{ active: activeEquityCategory === 'market' }"
+                        @click="activeEquityCategory = 'market'"
+                    >
+                        {{ t('dashboard.market') || 'Market' }}
+                    </button>
+                    <button 
                         :class="{ active: activeEquityCategory === 'most-actives' }"
                         @click="activeEquityCategory = 'most-actives'"
                     >
@@ -104,6 +110,10 @@
                 </div>
 
                 <IndicesSection v-if="activeEquityCategory === 'indices'" ref="indicesRef" />
+                <div v-if="activeEquityCategory === 'market'" class="tab-placeholder">
+                    <h3>{{ t('dashboard.market') || 'Market' }}</h3>
+                    <p class="placeholder-note">{{ t('dashboard.no_data') }}</p>
+                </div>
                 <MarketMovers v-if="activeEquityCategory === 'most-actives'" moverType="most-actives" />
                 <MarketMovers v-if="activeEquityCategory === 'gainers'" moverType="gainers" />
                 <MarketMovers v-if="activeEquityCategory === 'losers'" moverType="losers" />

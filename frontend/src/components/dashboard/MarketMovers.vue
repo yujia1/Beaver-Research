@@ -68,7 +68,7 @@ const fetchMarketMovers = async () => {
     if (!response.ok) throw new Error('Failed to fetch data')
     
     const result = await response.json()
-    items.value = result.slice(0, 10) // Limit to top 10
+    items.value = result.slice(0, 50) // Limit to top 50 to allow scrolling
     cache.set(type, items.value)
   } catch (err) {
     console.error(`Error fetching ${type}:`, err)
@@ -97,14 +97,15 @@ onMounted(() => {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
-  /* Removed top margin to fit better in tabbed content */
+  display: flex;
+  flex-direction: column;
 }
-
-/* Removed tab styles */
 
 .movers-content {
   padding: 0;
-  min-height: 200px;
+  max-height: 400px; /* Fixed height for scroll area */
+  overflow-y: auto;  /* Enable vertical scrolling */
+  position: relative;
 }
 
 .movers-table {
@@ -121,6 +122,12 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid #e0e0e0;
+  
+  /* Sticky Header */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .movers-table td {
@@ -185,5 +192,24 @@ onMounted(() => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Custom scrollbar for webkit */
+.movers-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.movers-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.movers-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.movers-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 </style>

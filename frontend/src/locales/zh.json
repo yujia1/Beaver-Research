@@ -24,6 +24,7 @@
         "refresh": "刷新数据",
         "refreshing": "刷新中...",
         "loading": "加载市场数据中...",
+        "market": "市场",
         "key_logs": "关键日志",
         "tabs": {
             "equity": "权益",

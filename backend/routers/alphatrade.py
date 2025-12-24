@@ -543,9 +543,9 @@ async def get_market_movers(mover_type: str):
     Get market movers: 'most-actives', 'gainers', 'losers'
     """
     endpoint_map = {
-        "most-actives": "stock/actives",
-        "gainers": "stock/gainers",
-        "losers": "stock/losers"
+        "most-actives": "most-actives",
+        "gainers": "biggest-gainers",
+        "losers": "biggest-losers"
     }
     
     if mover_type not in endpoint_map:
