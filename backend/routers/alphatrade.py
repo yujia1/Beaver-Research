@@ -481,30 +481,29 @@ async def generate_trading_signal(
 @router.post("/stock-prices")
 async def get_batch_stock_prices(tickers: List[str]):
     """Get current stock prices for multiple tickers"""
+    if not tickers:
+        return {}
+        
+    prices = await fetch_realtime_prices(tickers)
     result = {}
     
+    # We only have prices from FMP batch quote here, full info (company name/sector) 
+    # might need separate call or just return what we have if the frontend just needs price update.
+    # The frontend currently expects {ticker: {currentPrice...}}.
+    # To keep it simple and fast, we map the price. If more info needed, we might need a richer FMP call.
+    # However, fetch_realtime_prices only returns {TICKER: price}.
+    
     for ticker in tickers:
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            
-            current_price = info.get('currentPrice') or info.get('regularMarketPrice', 0.0)
-            
-            result[ticker] = {
-                "ticker": ticker,
-                "currentPrice": current_price,
-                "companyName": info.get('longName', ticker),
-                "sector": info.get('sector', 'Unknown')
-            }
-        except Exception:
-            # On error, return a fallback or error indicator for this ticker
-            result[ticker] = {
-                "ticker": ticker,
-                "currentPrice": 0.0,
-                "companyName": ticker,
-                "sector": "Unknown",
-                "error": "Failed to fetch data"
-            }
+        t_upper = ticker.upper()
+        price = prices.get(t_upper, 0.0)
+        result[ticker] = {
+            "ticker": ticker,
+            "currentPrice": price,
+            # We don't have these from simple price fetch, but usually this endpoint
+            # is just for refreshing price. We can leave them empty or unchanged if frontend handles it.
+            # Looking at frontend refreshPrices: it updates companyName/sector too if present.
+            # For now, let's just return price as primary.
+        }
             
     return result
 
