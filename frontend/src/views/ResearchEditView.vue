@@ -109,7 +109,11 @@
               </div>
               <div class="instruction-item">
                 <span class="instruction-number">2.</span>
-                <span>{{ t('research.editor_placeholder.chat_instruction', 'Chat with the agent to generate analysis.') }}</span>
+                <span>{{ t('research.editor_placeholder.step_2') }}</span>
+              </div>
+              <div class="instruction-item">
+                <span class="instruction-number">3.</span>
+                <span>{{ t('research.editor_placeholder.step_3') }}</span>
               </div>
             </div>
           </div>

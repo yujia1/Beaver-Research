@@ -469,8 +469,9 @@
         "mode": "MODE",
         "editor_placeholder": {
             "title": "Begin analysis for {company}...",
-            "step_1": "Select an AI AGENT.",
-            "step_2": "Drag data modules to interpret."
+            "step_1": "Chat with the financial agent to proceed analysis.",
+            "step_2": "Write report.",
+            "step_3": "Publish report."
         },
         "sidebar": {
             "title": "DATA VAULT",
@@ -483,7 +484,7 @@
         },
         "chat": {
             "placeholder": "Ask about research, filings, or analysis...",
-            "intro": "Hello! I can help you research company filings, analyze financial data, and answer questions about {ticker}. What would you like to know?",
+            "intro": "Hello! I can help you research company filings and analyze financial data. What would you like to know?",
             "response_1": "Based on the latest filings for {ticker}, I can help you analyze the key financial metrics and trends.",
             "response_2": "The 10-K filing shows significant growth in revenue and strong cash flow generation. Would you like me to dive deeper into any specific section?",
             "response_3": "I've reviewed the management discussion and analysis. The company highlights several key strategic initiatives. What aspect interests you most?",
