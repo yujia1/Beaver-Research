@@ -110,10 +110,7 @@
                 </div>
 
                 <IndicesSection v-if="activeEquityCategory === 'indices'" ref="indicesRef" />
-                <div v-if="activeEquityCategory === 'market'" class="tab-placeholder">
-                    <h3>{{ t('dashboard.market') || 'Market' }}</h3>
-                    <p class="placeholder-note">{{ t('dashboard.no_data') }}</p>
-                </div>
+                <MarketAnalysis v-if="activeEquityCategory === 'market'" />
                 <MarketMovers v-if="activeEquityCategory === 'most-actives'" moverType="most-actives" />
                 <MarketMovers v-if="activeEquityCategory === 'gainers'" moverType="gainers" />
                 <MarketMovers v-if="activeEquityCategory === 'losers'" moverType="losers" />
@@ -924,6 +921,7 @@
 </template>
 
 <script setup>
+import MarketAnalysis from './MarketAnalysis.vue'
 import MarketMovers from './MarketMovers.vue'
 import API_BASE_URL from '@/config/api.js'
 
