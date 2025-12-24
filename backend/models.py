@@ -86,7 +86,6 @@ class AlphaTradePosition(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     ticker = Column(String, index=True, nullable=False)
     sector = Column(String, nullable=True)
-    sector = Column(String, nullable=True)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
