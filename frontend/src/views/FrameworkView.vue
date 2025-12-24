@@ -957,11 +957,14 @@ const closePoliticianModal = () => {
                    <thead>
                       <tr>
                          <th class="period-header" style="text-align: left;">Senator</th>
-                         <th class="period-header">Party</th>
-                         <th class="period-header">Date</th>
-                         <th class="period-header">Received</th>
+                         <th class="period-header">State</th>
+                         <th class="period-header">Owner</th>
+                         <th class="period-header">Asset Type</th>
+                         <th class="period-header">Trans. Date</th>
+                         <th class="period-header">Discl. Date</th>
                          <th class="period-header">Type</th>
                          <th class="period-header">Amount</th>
+                         <th class="period-header">Cap. Gains > $200</th>
                          <th class="period-header" style="text-align: left;">Asset</th>
                       </tr>
                    </thead>
@@ -970,11 +973,14 @@ const closePoliticianModal = () => {
                          <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(`${trade.firstName} ${trade.lastName}`, 'senate')">
                             {{ trade.firstName }} {{ trade.lastName }}
                          </td>
-                         <td class="data-cell">{{ trade.party || '-' }}</td> <!-- FMP sometimes returns party or extraction needed -->
+                         <td class="data-cell">{{ trade.district }}</td>
+                         <td class="data-cell">{{ trade.owner }}</td>
+                         <td class="data-cell">{{ trade.assetType }}</td>
                          <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
-                         <td class="data-cell">{{ formatFilingDate(trade.dateRecieved) }}</td>
+                         <td class="data-cell">{{ formatFilingDate(trade.disclosureDate) }}</td>
                          <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
                          <td class="data-cell">{{ trade.amount }}</td>
+                         <td class="data-cell">{{ trade.capitalGainsOver200USD }}</td>
                          <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
                       </tr>
                    </tbody>
@@ -991,10 +997,13 @@ const closePoliticianModal = () => {
                       <tr>
                          <th class="period-header" style="text-align: left;">Representative</th>
                          <th class="period-header">District</th>
-                         <th class="period-header">Date</th>
-                         <th class="period-header">Disclosure</th>
+                         <th class="period-header">Owner</th>
+                         <th class="period-header">Asset Type</th>
+                         <th class="period-header">Trans. Date</th>
+                         <th class="period-header">Discl. Date</th>
                          <th class="period-header">Type</th>
                          <th class="period-header">Amount</th>
+                         <th class="period-header">Cap. Gains > $200</th>
                          <th class="period-header" style="text-align: left;">Asset</th>
                       </tr>
                    </thead>
@@ -1004,10 +1013,13 @@ const closePoliticianModal = () => {
                              {{ trade.representative }}
                          </td>
                          <td class="data-cell">{{ trade.district }}</td>
+                         <td class="data-cell">{{ trade.owner }}</td>
+                         <td class="data-cell">{{ trade.assetType }}</td>
                          <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
                          <td class="data-cell">{{ formatFilingDate(trade.disclosureDate) }}</td>
                          <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
                          <td class="data-cell">{{ trade.amount }}</td>
+                         <td class="data-cell">{{ trade.capitalGainsOver200USD }}</td>
                          <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
                       </tr>
                    </tbody>
@@ -1331,9 +1343,13 @@ const closePoliticianModal = () => {
                    <thead>
                       <tr>
                          <th class="period-header" style="text-align: left;">Symbol</th>
-                         <th class="period-header">Date</th>
+                         <th class="period-header">Owner</th>
+                         <th class="period-header">Asset Type</th>
+                         <th class="period-header">Trans. Date</th>
+                         <th class="period-header">Discl. Date</th>
                          <th class="period-header">Type</th>
                          <th class="period-header">Amount</th>
+                         <th class="period-header">Cap. Gains > $200</th>
                          <th class="period-header">Price</th>
                          <th class="period-header" style="text-align: left;">Asset</th>
                       </tr>
@@ -1344,9 +1360,13 @@ const closePoliticianModal = () => {
                              <a v-if="trade.symbol" :href="'/framework?ticker=' + trade.symbol" target="_blank" class="symbol-link">{{ trade.symbol }}</a>
                              <span v-else>-</span>
                          </td>
+                         <td class="data-cell">{{ trade.owner }}</td>
+                         <td class="data-cell">{{ trade.assetType }}</td>
                          <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
+                         <td class="data-cell">{{ formatFilingDate(trade.disclosureDate) }}</td>
                          <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
                          <td class="data-cell">{{ trade.amount }}</td>
+                         <td class="data-cell">{{ trade.capitalGainsOver200USD }}</td>
                          <td class="data-cell">{{ trade.price ? formatCurrency(trade.price) : '-' }}</td>
                          <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
                       </tr>
