@@ -20,6 +20,64 @@ const watchlist = ref([])
 const watchlistLoading = ref(false)
 const showAddToWatchlistInput = ref(false)
 const newWatchlistTicker = ref('')
+const watchlistSearchQuery = ref('')
+
+// Watchlist Expansion & Transaction Form State
+const expandedWatchlistItems = ref(new Set())
+const txnForm = ref({
+    ticker: '',
+    date: new Date().toISOString().split('T')[0],
+    type: 'Buy',
+    shares: '',
+    cost: '',
+    currentPrice: 0
+})
+
+const toggleWatchlistExpand = (ticker, currentPrice) => {
+    if (expandedWatchlistItems.value.has(ticker)) {
+        expandedWatchlistItems.value.delete(ticker)
+    } else {
+        // Close others if desired, or allow multiple. Let's allow multiple or single? Image shows one.
+        // Let's implement single expansion for simplicity/focus
+        expandedWatchlistItems.value.clear()
+        expandedWatchlistItems.value.add(ticker)
+        
+        // Reset form
+        txnForm.value = {
+            ticker: ticker,
+            date: new Date().toISOString().split('T')[0],
+            type: 'Buy',
+            shares: '',
+            cost: '',
+            currentPrice: currentPrice
+        }
+    }
+}
+
+const fillCurrentPrice = () => {
+    txnForm.value.cost = txnForm.value.currentPrice
+}
+
+const saveWatchlistTransaction = async () => {
+    // Determine side
+    const side = txnForm.value.type === 'Buy' ? 'LONG' : 'SHORT' // Simple mapping, real logic might be complex
+    
+    // Use handleAddLot logic but manually constructed
+    const lotData = {
+        ticker: txnForm.value.ticker,
+        purchaseDate: txnForm.value.date,
+        quantity: parseInt(txnForm.value.shares),
+        costPerShare: parseFloat(txnForm.value.cost),
+        side: side,
+        link: '',
+        note: `Moved from Watchlist. Type: ${txnForm.value.type}`
+    }
+    
+    await handleAddLot(lotData)
+    // If successful, collapse
+    expandedWatchlistItems.value.delete(txnForm.value.ticker)
+}
+
 
 
 // Drag and drop state
@@ -1419,16 +1477,23 @@ const handleDragEnd = () => {
 
     <!-- Watchlist View -->
     <div v-if="viewTab === 'watchlist'" class="watchlist-view">
-        <!-- Watchlist Filters -->
-        <div class="watchlist-filters">
-           <div class="filter-group">
-               <span class="filter-label">FILTERS</span>
-               <select class="filter-select"><option>All Types</option></select>
-               <select class="filter-select"><option>Any Pos Change</option></select>
-               <select class="filter-select"><option>Any Daily Change</option></select>
-           </div>
-           
-           <div class="watchlist-actions">
+        
+        <!-- Watchlist Search -->
+        <div class="watchlist-search-row">
+             <div class="search-wrapper">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                    type="text" 
+                    v-model="watchlistSearchQuery" 
+                    placeholder="Search watchlist..." 
+                    class="search-input"
+                />
+            </div>
+            
+            <div class="watchlist-actions">
                <div v-if="showAddToWatchlistInput" class="add-ticker-input-group">
                    <input 
                       v-model="newWatchlistTicker" 
@@ -1445,6 +1510,25 @@ const handleDragEnd = () => {
            </div>
         </div>
 
+        <!-- Watchlist Filters -->
+        <div class="watchlist-filters">
+           <div class="filter-group">
+               <span class="filter-label">FILTERS</span>
+               <div class="filter-col">
+                   <span class="sub-label">TRANSACTION TYPE</span>
+                   <select class="filter-select"><option>All Types</option></select>
+               </div>
+               <div class="filter-col">
+                   <span class="sub-label">POSITION CHANGE</span>
+                   <select class="filter-select"><option>Any Pos Change</option></select>
+               </div>
+               <div class="filter-col">
+                    <span class="sub-label">DAILY CHANGE</span>
+                   <select class="filter-select"><option>Any Daily Change</option></select>
+               </div>
+           </div>
+        </div>
+
         <!-- Watchlist Table -->
         <div v-if="watchlistLoading" class="loading-state">Loading watchlist...</div>
         <div v-else-if="watchlist.length === 0" class="empty-state">
@@ -1457,36 +1541,86 @@ const handleDragEnd = () => {
                         <th style="width: 40px;"></th>
                         <th>TICKER</th>
                         <th>COMPANY</th>
+                        <th>SHARES</th>
+                        <th>AVG. COST</th>
+                        <th>TOTAL COST</th>
                         <th>PRICE</th>
                         <th>CHANGE %</th>
-                        <th>NOTE</th>
-                        <th>ACTIONS</th>
+                        <th>VOLUME</th>
+                        <th>MARKET VAL</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="item in watchlist" :key="item.ticker">
-                        <td><span class="expand-arrow">›</span></td>
-                        <td class="ticker-cell">{{ item.ticker }}</td>
-                        <td class="company-cell">{{ item.companyName || '-' }}</td>
-                        <td class="price-cell">{{ formatCurrency(item.currentPrice) }}</td>
-                        <td :class="item.changePercent >= 0 ? 'text-green' : 'text-red'">
-                            {{ formatPercent(item.changePercent) }}
-                        </td>
-                        <td class="note-cell">
-                            <input 
-                                v-model="item.note" 
-                                class="note-input"
-                                placeholder="Add note..."
-                                @blur="saveWatchlistNote(item)"
-                                @keyup.enter="$event.target.blur()"
-                            />
-                        </td>
-                        <td>
-                            <button class="delete-icon-btn" @click="removeFromWatchlist(item.ticker)">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
-                        </td>
-                    </tr>
+                    <template v-for="item in watchlist" :key="item.ticker">
+                        <tr class="watchlist-row" :class="{ expanded: expandedWatchlistItems.has(item.ticker) }">
+                            <td @click="toggleWatchlistExpand(item.ticker, item.currentPrice)" style="cursor: pointer; text-align:center;">
+                                <div class="expand-box" :class="{ active: expandedWatchlistItems.has(item.ticker) }">
+                                    <svg v-if="expandedWatchlistItems.has(item.ticker)" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor"><path d="M1 1L5 5L9 1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    <svg v-else width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor"><path d="M1 1L5 5L1 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </td>
+                            <td class="ticker-cell">{{ item.ticker }}</td>
+                            <td class="company-cell">{{ item.companyName || '-' }}</td>
+                            <td>0</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td class="price-cell">{{ formatCurrency(item.currentPrice) }}</td>
+                            <td :class="item.changePercent >= 0 ? 'text-green' : 'text-red'">
+                                {{ formatPercent(item.changePercent) }}
+                            </td>
+                            <td>{{ item.volume ? item.volume.toLocaleString() : '-' }}</td>
+                            <td>-</td>
+                        </tr>
+                        
+                        <!-- Expanded Content -->
+                        <tr v-if="expandedWatchlistItems.has(item.ticker)" class="expanded-row">
+                            <td colspan="10">
+                                <div class="expanded-content-wrapper">
+                                    <div class="transaction-form-row">
+                                        <div class="form-field">
+                                            <label>DATE</label>
+                                            <input type="date" v-model="txnForm.date" class="form-input" />
+                                        </div>
+                                        <div class="form-field">
+                                            <label>TRANSACTION</label>
+                                            <select v-model="txnForm.type" class="form-input">
+                                                <option>Buy</option>
+                                                <option>Sell</option>
+                                                <option>Short</option>
+                                                <option>Cover</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-field">
+                                            <label>SHARES</label>
+                                            <input type="number" v-model="txnForm.shares" class="form-input" placeholder="0" />
+                                        </div>
+                                        <div class="form-field">
+                                            <label>COST / SHARE</label>
+                                            <input type="number" v-model="txnForm.cost" class="form-input" placeholder="0.00" />
+                                        </div>
+                                        <div class="form-actions">
+                                            <button class="todays-price-btn" @click="fillCurrentPrice">Today's price</button>
+                                            <button class="save-txn-btn" @click="saveWatchlistTransaction">Save</button>
+                                            <button class="cancel-txn-btn" @click="expandedWatchlistItems.delete(item.ticker)">Cancel</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="ai-analysis-row">
+                                        <div class="ai-header">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M12 2a10 10 0 1 0 10 10H12V2z"></path>
+                                                <path d="M12 2a10 10 0 0 1 10 10H12V2z" transform="rotate(180 12 12)"></path> 
+                                                <path d="M21 12h-9"></path>
+                                                <path d="M12 12V3"></path>
+                                            </svg>
+                                            <span>GEMINI AI ANALYSIS</span>
+                                        </div>
+                                        <p class="ai-quote">"{{ item.companyName || item.ticker }} is currently trading..."</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
             <div class="watchlist-summary">
@@ -2579,9 +2713,183 @@ const handleDragEnd = () => {
     color: #fff;
 }
 
-.mini-btn.cancel {
-    background: #f3f4f6;
-    color: #4b5563;
+/* New Watchlist Styles */
+.watchlist-search-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.watchlist-search-row .search-wrapper {
+    position: relative;
+    width: 300px;
+}
+
+.watchlist-search-row .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.watchlist-search-row .search-input {
+    width: 100%;
+    padding: 10px 10px 10px 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #374151;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.watchlist-search-row .search-input:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sub-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+}
+
+.expand-box {
+    width: 18px;
+    height: 18px;
+    border: 1px solid #cbd5e1;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    transition: all 0.2s;
+}
+
+.expand-box.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+.watchlist-row.expanded {
+    background: #f8fafc;
+}
+
+.expanded-row td {
+    background: #f8fafc;
+    padding: 0 !important;
+}
+
+.expanded-content-wrapper {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.transaction-form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-field label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #0f172a;
+    min-width: 140px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.todays-price-btn {
+    padding: 0.5rem 1rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #0f172a;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.save-txn-btn {
+    padding: 0.5rem 1.5rem;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cancel-txn-btn {
+    padding: 0.5rem 1rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #64748b;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.ai-analysis-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ai-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6366f1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ai-quote {
+    color: #334155;
+    font-style: italic;
+    margin: 0;
+    padding-left: 1.75rem;
+    font-weight: 500;
 }
 
 .note-input {
