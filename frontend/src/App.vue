@@ -1,8 +1,10 @@
 <script setup>
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import { useI18n } from 'vue-i18n'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
+import { usePermissionStore } from '@/stores/permissionStore'
+import { useUserStore } from '@/stores/userStore'
 
 // API Base URL - runtime detection
 const API_BASE_URL = window.location.hostname.includes('railway.app') 
@@ -12,7 +14,33 @@ const API_BASE_URL = window.location.hostname.includes('railway.app')
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
+const permissionStore = usePermissionStore()
+const userStore = useUserStore()
 
+// State from stores
+const user = computed(() => userStore.user)
+const isAuthenticated = computed(() => userStore.isAuthenticated)
+const allowedResources = computed(() => permissionStore.permissions)
+
+// Helper methods
+const hasAccess = (resource) => permissionStore.hasAccess(resource)
+
+const logout = (e) => {
+  if (e) e.preventDefault()
+  userStore.logout()
+}
+
+const getRoleBadgeColor = (role) => {
+  const colors = {
+    admin: '#000000',
+    creator: '#262626',
+    contributor: '#525252',
+    user: '#737373'
+  }
+  return colors[role] || colors.user
+}
+
+// Menu Items
 const menuItems = computed(() => {
   const items = [
     { 
@@ -99,95 +127,6 @@ const menuItems = computed(() => {
   return items
 })
 
-const allowedResources = ref([])
-
-// Initialize permissions from localStorage
-try {
-    const cached = localStorage.getItem('user_permissions')
-    if (cached) {
-        allowedResources.value = JSON.parse(cached)
-    }
-} catch (e) {
-    console.error('Error parsing permissions:', e)
-}
-
-const hasAccess = (resource) => {
-    // If not logged in, maybe show if it's considered public? 
-    // But requirement is about access management. 
-    // If we have an empty allowedResources list and are logged in, it means NO access.
-    // If we are NOT logged in, we default to showing nothing or everything?
-    // Let's hide if not explicitly allowed for now to be safe, except public default behavior.
-    if (!isAuthenticated.value) return true // Show by default for public, let router guard block
-    
-    return allowedResources.value.includes(resource)
-}
-
-const user = ref(null)
-const isAuthenticated = ref(!!localStorage.getItem('access_token'))
-
-const getUserInfo = async () => {
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    isAuthenticated.value = false
-    return
-  }
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    if (response.ok) {
-      user.value = await response.json()
-      localStorage.setItem('user', JSON.stringify(user.value))
-      isAuthenticated.value = true
-    } else {
-      // Token invalid, clear storage
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('user')
-      localStorage.removeItem('user_permissions')
-      isAuthenticated.value = false
-      user.value = null
-      allowedResources.value = []
-    }
-  } catch (err) {
-    console.error('Failed to fetch user info:', err)
-    isAuthenticated.value = false
-  }
-}
-
-import { usePermissionStore } from '@/stores/permissionStore'
-import { useUserStore } from '@/stores/userStore'
-
-const permissionStore = usePermissionStore()
-const userStore = useUserStore()
-
-// Reactivity from store
-// Note: We need to destructure or access properties directly in template
-// userStore.user, userStore.isAuthenticated
-
-const logout = (e) => {
-  if (e) e.preventDefault()
-  userStore.logout()
-}
-
-const getRoleBadgeColor = (role) => {
-  const colors = {
-    admin: '#000000',
-    creator: '#262626',
-    contributor: '#525252',
-    user: '#737373'
-  }
-  return colors[role] || colors.user
-}
-
-// Watch for authentication changes if needed, but Pinia is reactive within template
-// We might need to handle 'storage' events for multi-tab sync if store doesn't handle it
-// userStore handles localStorage read on init, but not 'storage' event listener?
-// We can move that logic to userStore later or keep it simple here.
-// For now, let's keep the template robust.
-
 // Update stores on mount
 onMounted(() => {
   // Check if we have token
@@ -196,20 +135,6 @@ onMounted(() => {
     permissionStore.fetch(API_BASE_URL)
   }
 })
-
-// Expose to template
-const user = computed(() => userStore.user)
-const isAuthenticated = computed(() => userStore.isAuthenticated)
-const allowedResources = computed(() => permissionStore.permissions)
-const hasAccess = (resource) => permissionStore.hasAccess(resource)
-// hasAccess was defined as function using allowedResources.value previously
-// Now we use store method or computed?
-// Step 2054 Line 114: const hasAccess = (resource) => ...
-// Step 2054 Line 122: return allowedResources.value.includes(resource)
-
-// So we can redefine hasAccess
-// const hasAccess = (resource) => permissionStore.hasAccess(resource)
-
 </script>
 
 <template>
