@@ -132,22 +132,8 @@ class AlphaTradeFundamentalAnalysis(Base):
     position = relationship("AlphaTradePosition", back_populates="fundamental_analysis")
 
 
-class AlphaTradeWatchlist(Base):
-    __tablename__ = "alphatrade_watchlist"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    ticker = Column(String, index=True, nullable=False)
-    note = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Relationship
-    user = relationship("User", backref="watchlist_items")
-
-    # Unique constraint: one entry per ticker per user
-    __table_args__ = (
-        UniqueConstraint('user_id', 'ticker', name='uix_watchlist_user_ticker'),
-    )
 
 
 class WhaleAlert(Base):

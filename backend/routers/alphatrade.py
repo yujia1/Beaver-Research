@@ -8,7 +8,7 @@ import yfinance as yf
 
 import models
 from database import get_db
-from models import AlphaTradePosition, AlphaTradeLot, AlphaTradeFundamentalAnalysis, AlphaTradeWatchlist, User
+from models import AlphaTradePosition, AlphaTradeLot, AlphaTradeFundamentalAnalysis, User
 from routers.auth import get_current_user, verify_premium_access
 
 router = APIRouter()
@@ -73,26 +73,7 @@ class TradingSignalRequest(BaseModel):
     parameters: Optional[dict] = None
 
 
-class WatchlistCreate(BaseModel):
-    ticker: str
-    note: Optional[str] = None
 
-
-class WatchlistUpdate(BaseModel):
-    note: Optional[str] = None
-
-
-class WatchlistResponse(BaseModel):
-    ticker: str
-    note: Optional[str]
-    currentPrice: float
-    companyName: Optional[str] = None
-    changePercent: Optional[float] = None
-    volume: Optional[int] = None
-    marketCap: Optional[float] = None
-
-    class Config:
-        from_attributes = True
 
 
 # Helper function to get stock price
@@ -430,120 +411,4 @@ async def get_batch_stock_prices(tickers: List[str]):
     return result
 
 
-# Watchlist Endpoints
-@router.get("/watchlist", response_model=List[WatchlistResponse])
-async def get_watchlist(
-    current_user: User = Depends(verify_premium_access),
-    db: Session = Depends(get_db)
-):
-    """Get user's watchlist with real-time data"""
-    watchlist_items = db.query(AlphaTradeWatchlist).filter(
-        AlphaTradeWatchlist.user_id == current_user.id
-    ).all()
-    
-    # Fetch real-time data for all tickers
-    result = []
-    for item in watchlist_items:
-        try:
-            stock = yf.Ticker(item.ticker)
-            info = stock.info
-            
-            result.append({
-                "ticker": item.ticker,
-                "note": item.note,
-                "currentPrice": info.get('currentPrice') or info.get('regularMarketPrice', 0.0),
-                "companyName": info.get('longName', item.ticker),
-                "changePercent": info.get('regularMarketChangePercent', 0.0) * 100 if info.get('regularMarketChangePercent') is not None else 0.0,
-                "volume": info.get('volume', 0),
-                "marketCap": info.get('marketCap', 0)
-            })
-        except:
-            result.append({
-                "ticker": item.ticker,
-                "note": item.note,
-                "currentPrice": 0.0,
-                "companyName": item.ticker,
-                "changePercent": 0.0,
-                "volume": 0,
-                "marketCap": 0
-            })
-            
-    return result
 
-
-@router.post("/watchlist")
-def add_to_watchlist(
-    item: WatchlistCreate,
-    current_user: User = Depends(verify_premium_access),
-    db: Session = Depends(get_db)
-):
-    """Add a ticker to the watchlist"""
-    ticker = item.ticker.upper()
-    
-    # Check if exists
-    existing = db.query(AlphaTradeWatchlist).filter(
-        AlphaTradeWatchlist.user_id == current_user.id,
-        AlphaTradeWatchlist.ticker == ticker
-    ).first()
-    
-    if existing:
-        return {"message": "Already in watchlist"}
-    
-    new_item = AlphaTradeWatchlist(
-        user_id=current_user.id,
-        ticker=ticker,
-        note=item.note
-    )
-    db.add(new_item)
-    db.commit()
-    
-    return {"message": "Added to watchlist", "ticker": ticker}
-
-
-@router.put("/watchlist/{ticker}")
-def update_watchlist_item(
-    ticker: str,
-    item: WatchlistUpdate,
-    current_user: User = Depends(verify_premium_access),
-    db: Session = Depends(get_db)
-):
-    """Update a watchlist item (e.g. note)"""
-    ticker = ticker.upper()
-    
-    db_item = db.query(AlphaTradeWatchlist).filter(
-        AlphaTradeWatchlist.user_id == current_user.id,
-        AlphaTradeWatchlist.ticker == ticker
-    ).first()
-    
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Watchlist item not found")
-    
-    if item.note is not None:
-        db_item.note = item.note
-        
-    db.commit()
-    
-    return {"message": "Watchlist item updated"}
-
-
-@router.delete("/watchlist/{ticker}")
-def remove_from_watchlist(
-    ticker: str,
-    current_user: User = Depends(verify_premium_access),
-    db: Session = Depends(get_db)
-):
-    """Remove a ticker from the watchlist"""
-    ticker = ticker.upper()
-    
-    item = db.query(AlphaTradeWatchlist).filter(
-        AlphaTradeWatchlist.user_id == current_user.id,
-        AlphaTradeWatchlist.ticker == ticker
-    ).first()
-    
-    if not item:
-        raise HTTPException(status_code=404, detail="Watchlist item not found")
-    
-    db.delete(item)
-    db.commit()
-    
-    return {"message": "Removed from watchlist"}
