@@ -54,15 +54,21 @@ async def fetch_realtime_prices(tickers: List[str]) -> dict:
     if not tickers:
         return {}
     
+    # Deduplicate and clean tickers
+    clean_tickers = list(set([t.upper().strip() for t in tickers if t]))
+    if not clean_tickers:
+        return {}
+
     prices = {}
     try:
         # Batch fetch using quote endpoint
-        ticker_str = ",".join(tickers)
-        # We can pass limit if needed, though for quote usually just symbols
+        ticker_str = ",".join(clean_tickers)
         data = await fetch_fmp_data("quote", {"symbol": ticker_str})
         
         for item in data:
-            prices[item.get("symbol")] = item.get("price", 0.0)
+            sym = item.get("symbol")
+            if sym:
+                prices[sym.upper()] = item.get("price", 0.0)
             
     except Exception as e:
         print(f"Error fetching FMP prices: {e}")
@@ -174,7 +180,8 @@ async def get_positions(
     ).all()
     
     # Fetch real-time prices for all tickers in parallel
-    tickers = [pos.ticker for pos in positions]
+    # Ensure we pass uppercase tickers to helper
+    tickers = [pos.ticker.upper() for pos in positions]
     realtime_prices = await fetch_realtime_prices(tickers)
     
     result = []
@@ -188,7 +195,11 @@ async def get_positions(
                 fundamental_scores[str(analysis.question_id)] = analysis.score
         
         # Use realtime price if available, otherwise fallback to DB price (which might be stale)
-        current_price = realtime_prices.get(pos.ticker, pos.current_price)
+        # 1. Try exact match
+        # 2. Try uppercase match
+        # 3. Fallback
+        current_ticker = pos.ticker.upper()
+        current_price = realtime_prices.get(current_ticker, pos.current_price)
         
         result.append({
             "ticker": pos.ticker,
@@ -228,21 +239,25 @@ def create_position(
     if existing:
         raise HTTPException(status_code=400, detail="Position already exists for this user")
     
-    # Get current price
-    current_price = get_stock_price(position.ticker)
-    
     # Create position
     db_position = AlphaTradePosition(
         user_id=current_user.id,
         ticker=position.ticker,
         sector=position.sector,
-        current_price=current_price
+        current_price=0.0 # Placeholder, we fetch realtime on read
     )
     db.add(db_position)
     db.commit()
     db.refresh(db_position)
     
-    return {"ticker": db_position.ticker, "sector": db_position.sector, "currentPrice": db_position.current_price}
+    # Try to get real-time price for the response only
+    response_price = 0.0
+    try:
+        response_price = get_stock_price(position.ticker)
+    except:
+        pass
+    
+    return {"ticker": db_position.ticker, "sector": db_position.sector, "currentPrice": response_price}
 
 
 @router.delete("/positions/{ticker}")
