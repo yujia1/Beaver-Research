@@ -1009,8 +1009,8 @@ const closePoliticianModal = () => {
                    </thead>
                    <tbody>
                       <tr v-for="(trade, index) in houseTrades" :key="index" class="data-row">
-                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(trade.representative, 'house')">
-                             {{ trade.representative }}
+                         <td class="data-cell clickable-name" style="text-align: left;" @click="openPoliticianModal(`${trade.firstName} ${trade.lastName}`, 'house')">
+                             {{ trade.firstName }} {{ trade.lastName }}
                          </td>
                          <td class="data-cell">{{ trade.district }}</td>
                          <td class="data-cell">{{ trade.owner }}</td>
@@ -1343,6 +1343,7 @@ const closePoliticianModal = () => {
                    <thead>
                       <tr>
                          <th class="period-header" style="text-align: left;">Symbol</th>
+                         <th class="period-header">District</th>
                          <th class="period-header">Owner</th>
                          <th class="period-header">Asset Type</th>
                          <th class="period-header">Trans. Date</th>
@@ -1350,7 +1351,6 @@ const closePoliticianModal = () => {
                          <th class="period-header">Type</th>
                          <th class="period-header">Amount</th>
                          <th class="period-header">Cap. Gains > $200</th>
-                         <th class="period-header">Price</th>
                          <th class="period-header" style="text-align: left;">Asset</th>
                       </tr>
                    </thead>
@@ -1360,6 +1360,7 @@ const closePoliticianModal = () => {
                              <a v-if="trade.symbol" :href="'/framework?ticker=' + trade.symbol" target="_blank" class="symbol-link">{{ trade.symbol }}</a>
                              <span v-else>-</span>
                          </td>
+                         <td class="data-cell">{{ trade.district }}</td>
                          <td class="data-cell">{{ trade.owner }}</td>
                          <td class="data-cell">{{ trade.assetType }}</td>
                          <td class="data-cell">{{ formatFilingDate(trade.transactionDate) }}</td>
@@ -1367,7 +1368,6 @@ const closePoliticianModal = () => {
                          <td class="data-cell" :class="getActionClass(trade.type)">{{ trade.type }}</td>
                          <td class="data-cell">{{ trade.amount }}</td>
                          <td class="data-cell">{{ trade.capitalGainsOver200USD }}</td>
-                         <td class="data-cell">{{ trade.price ? formatCurrency(trade.price) : '-' }}</td>
                          <td class="data-cell" style="text-align: left;">{{ trade.assetDescription }}</td>
                       </tr>
                    </tbody>
