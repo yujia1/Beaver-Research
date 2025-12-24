@@ -6,73 +6,74 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def run_step(conn, step_name, sql, ignore_errors=True):
+    """Run a single SQL step with its own transaction management."""
+    try:
+        logger.info(f"Running step: {step_name}")
+        conn.execute(text(sql))
+        conn.commit()
+        logger.info(f"SUCCESS: {step_name}")
+    except Exception as e:
+        conn.rollback() # Important: Rollback the failed transaction so the connection is usable again
+        if ignore_errors:
+            logger.warning(f"SKIPPED {step_name} (Error: {e})")
+        else:
+            logger.error(f"FAILED {step_name} (Error: {e})")
+            raise e
+
 def run_manual_migration():
     """
     Run manual migration SQL for production deployment.
-    This handles adding the user_id and is_uploaded columns to reports table.
+    Executes each step safely to handle existing columns/constraints.
     """
-    logger.info("Starting manual DB update script...")
+    logger.info("Starting manual DB update script (Robust Mode)...")
     
-    try:
-        # Connect to database using engine.begin() for automatic transaction management
-        with engine.begin() as conn:
-            
-            # 1. Add user_id column
-            try:
-                conn.execute(text("ALTER TABLE reports ADD COLUMN user_id INTEGER;"))
-                logger.info("SUCCESS: Added user_id column")
-            except Exception as e:
-                # Log but continue, common if column exists
-                logger.warning(f"SKIPPED add user_id (might already exist): {str(e)}")
-
-            # 2. Add is_uploaded column
-            try:
-                conn.execute(text("ALTER TABLE reports ADD COLUMN is_uploaded BOOLEAN DEFAULT FALSE;"))
-                logger.info("SUCCESS: Added is_uploaded column")
-            except Exception as e:
-                logger.warning(f"SKIPPED add is_uploaded (might already exist): {str(e)}")
-
-            # 3. Create index for user_id
-            try:
-                conn.execute(text("CREATE INDEX ix_reports_user_id ON reports(user_id);"))
-                logger.info("SUCCESS: Created index ix_reports_user_id")
-            except Exception as e:
-                logger.warning(f"SKIPPED index creation (might already exist): {str(e)}")
-            
-            # 4. Add FK constraint (Important for data integrity)
-            try:
-                conn.execute(text("ALTER TABLE reports ADD CONSTRAINT fk_reports_user_id FOREIGN KEY (user_id) REFERENCES users(id);"))
-                logger.info("SUCCESS: Created foreign key fk_reports_user_id")
-            except Exception as e:
-                logger.warning(f"SKIPPED FK creation (might already exist): {str(e)}")
-
-            # 5. Data Backfill
-            try:
-                # Find user ID 
-                result = conn.execute(text("SELECT id FROM users WHERE username = 'yjia0405@gmail.com'"))
-                user_row = result.first()
-                if user_row:
-                    user_id = user_row[0]
-                    logger.info(f"Found target user ID: {user_id}")
-                    
-                    # Update reports
-                    update_result = conn.execute(text(f"UPDATE reports SET user_id = {user_id} WHERE user_id IS NULL"))
-                    logger.info(f"SUCCESS: Backfilled {update_result.rowcount} reports with user_id {user_id}")
-                else:
-                    logger.error("ERROR: User 'yjia0405@gmail.com' not found! Cannot backfill reports.")
-            except Exception as e:
-                logger.error(f"ERROR backfilling user_id: {str(e)}")
-
-            try:
-                update_result = conn.execute(text("UPDATE reports SET is_uploaded = FALSE WHERE is_uploaded IS NULL"))
-                logger.info(f"SUCCESS: Set default is_uploaded=False for {update_result.rowcount} rows")
-            except Exception as e:
-                logger.error(f"ERROR backfilling is_uploaded: {str(e)}")
-
-        logger.info("Manual DB update script execution finished.")
+    # Use a raw connection to control transactions manually
+    with engine.connect() as conn:
         
-    except Exception as e:
-        logger.critical(f"FATAL ERROR: Script failed execution: {e}")
+        # 1. Add user_id column
+        # Using IF NOT EXISTS is postgres-friendly, but standard SQL fallback is try-catch which we do in run_step
+        run_step(conn, "Add user_id column", "ALTER TABLE reports ADD COLUMN IF NOT EXISTS user_id INTEGER;")
+
+        # 2. Add is_uploaded column
+        run_step(conn, "Add is_uploaded column", "ALTER TABLE reports ADD COLUMN IF NOT EXISTS is_uploaded BOOLEAN DEFAULT FALSE;")
+
+        # 3. Create index for user_id
+        run_step(conn, "Create index ix_reports_user_id", "CREATE INDEX IF NOT EXISTS ix_reports_user_id ON reports(user_id);")
+        
+        # 4. Add FK constraint
+        # Postgres doesn't support IF NOT EXISTS for constraints directly in ADD CONSTRAINT.
+        # We can try it, and if it fails (duplicate), the rollback handles it.
+        run_step(conn, "Add FK constraint", "ALTER TABLE reports ADD CONSTRAINT fk_reports_user_id FOREIGN KEY (user_id) REFERENCES users(id);")
+
+        # 5. Data Backfill - User ID
+        try:
+            logger.info("Running Step: Backfill User ID")
+            result = conn.execute(text("SELECT id FROM users WHERE username = 'yjia0405@gmail.com'"))
+            user_row = result.first()
+            if user_row:
+                user_id = user_row[0]
+                logger.info(f"Found target user ID: {user_id}")
+                conn.execute(text(f"UPDATE reports SET user_id = {user_id} WHERE user_id IS NULL"))
+                conn.commit()
+                logger.info(f"SUCCESS: Backfilled reports with user_id {user_id}")
+            else:
+                logger.warning("User 'yjia0405@gmail.com' not found. Skipping backfill.")
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"ERROR backfilling user_id: {e}")
+
+        # 6. Data Backfill - is_uploaded
+        try:
+            logger.info("Running Step: Backfill is_uploaded")
+            conn.execute(text("UPDATE reports SET is_uploaded = FALSE WHERE is_uploaded IS NULL"))
+            conn.commit()
+            logger.info("SUCCESS: Backfilled is_uploaded default values")
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"ERROR backfilling is_uploaded: {e}")
+
+    logger.info("Manual DB update script execution finished.")
 
 if __name__ == "__main__":
     run_manual_migration()
