@@ -345,6 +345,7 @@ onUnmounted(() => {
 const editorRef = ref(null)
 const editorContent = ref('')
 const companyName = ref('Alphabet Inc.')
+const reportName = ref('')
 
 // Report type selection
 const reportTypes = computed(() => [
