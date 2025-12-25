@@ -146,64 +146,60 @@ const COLOR_NEGATIVE = '#f87171' // Reddish
 const COLOR_NEUTRAL = '#000000'  // Black
 
 // --- OPTIONS ---
-const commonOptions = {
+const baseOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: {
-      display: false
-    },
-    tooltip: {
-      callbacks: {
-        label: (context) => `${context.parsed.y !== null ? context.parsed.y : context.parsed.x}`
-      }
-    }
+    legend: { display: false }
   }
 }
 
 const horizontalBarOptions = {
-  ...commonOptions,
+  ...baseOptions,
   indexAxis: 'y',
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (context) => {
+          const val = context.parsed.x
+          return typeof val === 'number' ? val.toFixed(2) + '%' : val
+        }
+      }
+    }
+  },
   scales: {
     x: {
-      grid: {
-        display: true,
-        color: '#f3f4f6'
-      },
-      ticks: {
-        font: { size: 10 }
-      }
+      grid: { display: true, color: '#f3f4f6' },
+      ticks: { font: { size: 10 } }
     },
     y: {
-      grid: {
-        display: false
-      },
-      ticks: {
-        font: { size: 11, weight: '500' },
-        color: '#374151'
-      }
+      grid: { display: false },
+      ticks: { font: { size: 11, weight: '500' }, color: '#374151' }
     }
   }
 }
 
 const verticalBarOptions = {
-  ...commonOptions,
+  ...baseOptions,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (context) => {
+          const val = context.parsed.y
+          return typeof val === 'number' ? val.toFixed(1) + 'x' : val
+        }
+      }
+    }
+  },
   scales: {
     x: {
-      grid: {
-        display: false
-      },
-      ticks: {
-        font: { size: 10 },
-        maxRotation: 45,
-        minRotation: 45
-      }
+      grid: { display: false },
+      ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 }
     },
     y: {
-      grid: {
-        display: true,
-        color: '#f3f4f6'
-      }
+      grid: { display: true, color: '#f3f4f6' }
     }
   }
 }
