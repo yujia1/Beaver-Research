@@ -551,6 +551,8 @@ const formatChange = (val) => {
 /* Directory specific styles */
 .directory-header {
   align-items: flex-end;
+  border-bottom: none; /* Removed border to match clean look */
+  margin-bottom: 0.5rem;
 }
 
 .directory-controls {
@@ -561,19 +563,21 @@ const formatChange = (val) => {
 
 .search-input {
   border: none;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb; /* Thin subtle line */
   padding: 0.25rem 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #374151;
   outline: none;
-  width: 200px;
+  width: 180px;
   font-family: inherit;
+  font-weight: 600;
   text-transform: uppercase;
+  background: transparent;
 }
 
 .search-input::placeholder {
   color: #9ca3af;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .sort-options {
@@ -587,26 +591,29 @@ const formatChange = (val) => {
 .sort-options button {
   background: none;
   border: none;
-  padding: 0;
+  padding: 2px 6px; /* Added padding for badge look */
   font-size: 0.7rem;
   font-weight: 700;
   color: #9ca3af;
   cursor: pointer;
   text-transform: uppercase;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 .sort-options button.active {
-  color: #000000;
+  background-color: #1d4ed8; /* Blue background */
+  color: #ffffff;
 }
 
 .industry-grid-header {
   display: flex;
   justify-content: space-between;
-  padding: 0 1rem;
-  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+  margin-bottom: 1.5rem; 
   font-size: 0.7rem;
   font-weight: 700;
-  color: #d1d5db; /* Very light gray */
+  color: #d1d5db; /* Light gray */
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -624,13 +631,63 @@ const formatChange = (val) => {
 .industry-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2rem 3rem;
+  gap: 2rem 4rem; /* Wider gap between columns */
 }
 
 .industry-item {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  padding: 0 0.5rem;
+}
+
+.industry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Slight spacing */
+}
+
+.industry-name {
+  font-size: 0.75rem;
+  font-weight: 800; /* Bolder */
+  color: #111827;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.industry-sector {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.industry-metrics {
+  display: flex;
+  gap: 2.5rem; /* Wider spacing */
+  text-align: right;
+  align-items: flex-start;
+}
+
+.metric-change {
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 50px;
+}
+
+.metric-change.positive {
+  color: #10b981;
+}
+
+.metric-change.negative {
+  color: #ef4444;
+}
+
+.metric-pe {
+  font-size: 0.8rem;
+  color: #6b7280;
+  min-width: 40px;
+  font-weight: 500;
 }
 
 .industry-info {
