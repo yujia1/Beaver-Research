@@ -124,6 +124,7 @@ import {
   Legend
 } from 'chart.js'
 import { Bar } from 'vue-chartjs'
+import API_BASE_URL from '@/config/api'
 
 ChartJS.register(
   CategoryScale,
@@ -206,9 +207,6 @@ const verticalBarOptions = {
     }
   }
 }
-
-// --- MOCK DATA ---
-
 // --- API DATA ---
 const sectorData = ref([])
 const loadingSectors = ref(false)
@@ -218,17 +216,16 @@ const sectorPeList = ref([])
 const fetchSectorData = async () => {
   loadingSectors.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
     const today = new Date().toISOString().split('T')[0]
     
     // 1. Fetch Performance
-    const perfRes = await fetch(`${baseUrl}/api/alphatrade/sector-performance?exchange=${activeExchange.value}&date=${today}`)
+    const perfRes = await fetch(`${API_BASE_URL}/api/alphatrade/sector-performance?exchange=${activeExchange.value}&date=${today}`)
     if (perfRes.ok) {
       sectorData.value = await perfRes.json()
     }
 
     // 2. Fetch P/E
-    const peRes = await fetch(`${baseUrl}/api/alphatrade/sector-pe?exchange=${activeExchange.value}&date=${today}`)
+    const peRes = await fetch(`${API_BASE_URL}/api/alphatrade/sector-pe?exchange=${activeExchange.value}&date=${today}`)
     if (peRes.ok) {
       sectorPeList.value = await peRes.json()
     }
