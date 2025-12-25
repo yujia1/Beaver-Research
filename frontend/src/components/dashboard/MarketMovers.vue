@@ -68,7 +68,7 @@ const fetchMarketMovers = async () => {
     if (!response.ok) throw new Error('Failed to fetch data')
     
     const result = await response.json()
-    items.value = result.slice(0, 50) // Limit to top 50 to allow scrolling
+    items.value = result.slice(0, 60) // Limit to top 50 to allow scrolling
     cache.set(type, items.value)
   } catch (err) {
     console.error(`Error fetching ${type}:`, err)
