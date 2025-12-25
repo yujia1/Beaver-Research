@@ -568,3 +568,50 @@ async def get_market_movers(mover_type: str):
         })
         
     return result
+
+
+@router.get("/sector-performance")
+async def get_sector_performance(exchange: str = "NASDAQ", date: Optional[str] = None):
+    """
+    Fetch sector performance snapshot.
+    """
+    params = {"exchange": exchange}
+    if date:
+        params["date"] = date
+        
+    data = await fetch_fmp_data("sector-performance-snapshot", params)
+    
+    # FMP returns a list of dicts like:
+    # {
+    #   "date": "2025-12-23",
+    #   "sector": "Basic Materials",
+    #   "exchange": "NASDAQ",
+    #   "averageChange": 0.35185130179673507
+    # }
+    
+    # We can perform any backend processing if needed, but for now passing through is fine
+    # Frontend expects { sector: val, ... } or list. Let's return the list and let frontend map it.
+    
+    return data
+
+
+@router.get("/sector-pe")
+async def get_sector_pe(exchange: str = "NASDAQ", date: Optional[str] = None):
+    """
+    Fetch sector PE snapshot.
+    """
+    params = {"exchange": exchange}
+    if date:
+        params["date"] = date
+        
+    data = await fetch_fmp_data("sector-pe-snapshot", params)
+    
+    # FMP returns a list of dicts like:
+    # {
+    #   "date": "2025-12-23",
+    #   "sector": "Basic Materials",
+    #   "exchange": "NASDAQ",
+    #   "pe": 25.261917696069528
+    # }
+    
+    return data

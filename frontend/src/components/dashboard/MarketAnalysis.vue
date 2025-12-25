@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -209,56 +209,105 @@ const verticalBarOptions = {
 
 // --- MOCK DATA ---
 
-// 01. Sector Performance
-// 01. Sector Performance
-const sectors = [
-  'Basic Materials', 
-  'Communication Services', 
-  'Consumer Cyclical', 
-  'Consumer Defensive', 
-  'Energy', 
-  'Financial Services', 
-  'Healthcare', 
-  'Industrials', 
-  'Real Estate', 
-  'Technology', 
-  'Utilities'
-]
-const sectorValues = [14.5, 12.2, 7.8, 4.2, 3.1, 2.0, 0.5, -2.1, -4.5, -8.2, -12.5]
+// --- API DATA ---
+const sectorData = ref([])
+const loadingSectors = ref(false)
 
-const sectorPerformanceData = computed(() => ({
-  labels: sectors,
-  datasets: [{
-    data: sectorValues,
-    backgroundColor: sectorValues.map(v => v >= 0 ? COLOR_POSITIVE : COLOR_NEGATIVE),
-    borderRadius: 2,
-    barThickness: 12
-  }]
-}))
+const sectorPeList = ref([])
+
+const fetchSectorData = async () => {
+  loadingSectors.value = true
+  try {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+    const today = new Date().toISOString().split('T')[0]
+    
+    // 1. Fetch Performance
+    const perfRes = await fetch(`${baseUrl}/api/alphatrade/sector-performance?exchange=${activeExchange.value}&date=${today}`)
+    if (perfRes.ok) {
+      sectorData.value = await perfRes.json()
+    }
+
+    // 2. Fetch P/E
+    const peRes = await fetch(`${baseUrl}/api/alphatrade/sector-pe?exchange=${activeExchange.value}&date=${today}`)
+    if (peRes.ok) {
+      sectorPeList.value = await peRes.json()
+    }
+
+  } catch (err) {
+    console.error('Error fetching sector data:', err)
+  } finally {
+    loadingSectors.value = false
+  }
+}
+
+// Watchers
+
+watch([activeExchange, activeTab], ([newExchange, newTab]) => {
+  if (newTab === 'sector') {
+    fetchSectorData()
+  }
+})
+
+onMounted(() => {
+  if (activeTab.value === 'sector') {
+    fetchSectorData()
+  }
+})
+
+
+// 01. Sector Performance (Computed from API data)
+const sectorPerformanceData = computed(() => {
+  // Fallback to empty if no data yet
+  if (!sectorData.value || sectorData.value.length === 0) {
+    return {
+      labels: [],
+      datasets: [{ data: [], backgroundColor: [] }]
+    }
+  }
+
+  // Sort by performance (averageChange) descending
+  const sorted = [...sectorData.value].sort((a, b) => b.averageChange - a.averageChange)
+  
+  const labels = sorted.map(item => item.sector)
+  const values = sorted.map(item => item.averageChange)
+
+  return {
+    labels,
+    datasets: [{
+      data: values,
+      backgroundColor: values.map(v => v >= 0 ? COLOR_POSITIVE : COLOR_NEGATIVE),
+      borderRadius: 2,
+      barThickness: 12
+    }]
+  }
+})
 
 // 02. P/E Distribution
-const sectorPeMap = [
-  { label: 'Real Estate', value: 36 },
-  { label: 'Technology', value: 33 },
-  { label: 'Consumer Cyclical', value: 28 },
-  { label: 'Healthcare', value: 24 },
-  { label: 'Consumer Defensive', value: 22 },
-  { label: 'Communication Services', value: 21 },
-  { label: 'Industrials', value: 19 },
-  { label: 'Utilities', value: 17.5 },
-  { label: 'Basic Materials', value: 16 },
-  { label: 'Financial Services', value: 14 },
-  { label: 'Energy', value: 11 }
-]
-const sectorPeData = computed(() => ({
-  labels: sectorPeMap.map(i => i.label),
-  datasets: [{
-    data: sectorPeMap.map(i => i.value),
-    backgroundColor: COLOR_NEUTRAL,
-    borderRadius: 2,
-    barThickness: 12
-  }]
-}))
+const sectorPeData = computed(() => {
+   // Fallback to empty if no data yet
+  if (!sectorPeList.value || sectorPeList.value.length === 0) {
+    return {
+      labels: [],
+      datasets: [{ data: [], backgroundColor: [] }]
+    }
+  }
+
+  // Sort by P/E descending
+  const sorted = [...sectorPeList.value].sort((a, b) => b.pe - a.pe)
+
+  const labels = sorted.map(item => item.sector)
+  const values = sorted.map(item => item.pe)
+
+  return {
+    labels,
+    datasets: [{
+      data: values,
+      backgroundColor: COLOR_NEUTRAL,
+      borderRadius: 2,
+      barThickness: 12
+    }]
+  }
+})
 
 // 03. Full Industry Directory
 const industryList = [
@@ -643,7 +692,7 @@ const formatChange = (val) => {
   margin-bottom: 1.5rem; 
   font-size: 0.7rem;
   font-weight: 700;
-  color: #d1d5db; /* Light gray */
+  color: #2c2d30; 
   text-transform: uppercase;
   letter-spacing: 1px;
 }
