@@ -138,7 +138,7 @@ ChartJS.register(
 // --- STATE ---
 const activeTab = ref('sector')
 const activeExchange = ref('NASDAQ')
-const exchanges = ['NASDAQ', 'NYSE', 'AMEX', 'CBOE']
+const exchanges = ['NASDAQ', 'NYSE', 'AMEX']
 
 // --- COLORS ---
 const COLOR_POSITIVE = '#4ade80' // Greenish
