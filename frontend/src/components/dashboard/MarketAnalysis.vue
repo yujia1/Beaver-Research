@@ -303,141 +303,89 @@ const sectorPeData = computed(() => {
 })
 
 // 03. Full Industry Directory
-const industryList = [
-  { name: 'Advertising Agencies', sector: 'Communication Services', change: 1.25, pe: 15.4 },
-  { name: 'Aerospace & Defense', sector: 'Industrials', change: 2.10, pe: 21.0 },
-  { name: 'Agricultural Farm Products', sector: 'Consumer Defensive', change: -0.50, pe: 18.2 },
-  { name: 'Agricultural Inputs', sector: 'Basic Materials', change: 0.80, pe: 12.5 },
-  { name: 'Agricultural - Machinery', sector: 'Industrials', change: 1.45, pe: 14.8 },
-  { name: 'Airlines, Airports & Air Services', sector: 'Industrials', change: 3.20, pe: 9.5 },
-  { name: 'Apparel - Footwear & Accessories', sector: 'Consumer Cyclical', change: 1.10, pe: 22.1 },
-  { name: 'Apparel - Manufacturers', sector: 'Consumer Cyclical', change: 0.90, pe: 19.8 },
-  { name: 'Apparel - Retail', sector: 'Consumer Cyclical', change: 1.50, pe: 24.5 },
-  { name: 'Auto - Dealerships', sector: 'Consumer Cyclical', change: 2.22, pe: 6.0 },
-  { name: 'Auto - Manufacturers', sector: 'Consumer Cyclical', change: 4.50, pe: 15.0 },
-  { name: 'Auto - Parts', sector: 'Consumer Cyclical', change: 1.80, pe: 11.2 },
-  { name: 'Auto - Recreational Vehicles', sector: 'Consumer Cyclical', change: 0.70, pe: 10.5 },
-  { name: 'Banks', sector: 'Financial Services', change: 1.15, pe: 11.0 },
-  { name: 'Banks - Regional', sector: 'Financial Services', change: 2.34, pe: 25.0 },
-  { name: 'Beverages - Alcoholic', sector: 'Consumer Defensive', change: -0.20, pe: 19.5 },
-  { name: 'Beverages - Non-Alcoholic', sector: 'Consumer Defensive', change: 0.50, pe: 23.4 },
-  { name: 'Beverages - Wineries & Distilleries', sector: 'Consumer Defensive', change: 0.10, pe: 21.0 },
-  { name: 'Biotechnology', sector: 'Healthcare', change: 2.80, pe: 30.0 },
-  { name: 'Broadcasting', sector: 'Communication Services', change: 0.60, pe: 14.2 },
-  { name: 'Chemicals', sector: 'Basic Materials', change: 2.53, pe: 38.7 },
-  { name: 'Chemicals - Specialty', sector: 'Basic Materials', change: 1.90, pe: 28.5 },
-  { name: 'Coal', sector: 'Energy', change: -1.50, pe: 5.4 },
-  { name: 'Communication Equipment', sector: 'Technology', change: 1.20, pe: 18.9 },
-  { name: 'Computer Hardware', sector: 'Technology', change: 2.69, pe: 16.2 },
-  { name: 'Conglomerates', sector: 'Industrials', change: 0.40, pe: 15.6 },
-  { name: 'Construction', sector: 'Industrials', change: 1.70, pe: 13.8 },
-  { name: 'Construction Materials', sector: 'Basic Materials', change: 1.50, pe: 14.5 },
-  { name: 'Consulting Services', sector: 'Industrials', change: 2.11, pe: 41.8 },
-  { name: 'Consumer Electronics', sector: 'Technology', change: 1.80, pe: 20.5 },
-  { name: 'Discount Stores', sector: 'Consumer Defensive', change: 0.30, pe: 22.0 },
-  { name: 'Diversified Utilities', sector: 'Utilities', change: 2.58, pe: 35.7 },
-  { name: 'Drug Manufacturers - General', sector: 'Healthcare', change: 1.10, pe: 16.5 },
-  { name: 'Drug Manufacturers - Specialty & Generic', sector: 'Healthcare', change: 1.90, pe: 21.5 },
-  { name: 'Education & Training Services', sector: 'Consumer Defensive', change: 2.61, pe: 16.2 },
-  { name: 'Electrical Equipment & Parts', sector: 'Industrials', change: 1.30, pe: 18.0 },
-  { name: 'Electronic Gaming & Multimedia', sector: 'Communication Services', change: 3.10, pe: 28.5 },
-  { name: 'Engineering & Construction', sector: 'Industrials', change: 2.71, pe: 22.1 },
-  { name: 'Entertainment', sector: 'Communication Services', change: 2.02, pe: 21.3 },
-  { name: 'Financial - Capital Markets', sector: 'Financial Services', change: 1.60, pe: 14.5 },
-  { name: 'Financial - Conglomerates', sector: 'Financial Services', change: 0.90, pe: 12.8 },
-  { name: 'Financial - Credit Services', sector: 'Financial Services', change: 2.69, pe: 41.1 },
-  { name: 'Financial - Data & Stock Exchanges', sector: 'Financial Services', change: 1.40, pe: 25.0 },
-  { name: 'Financial - Mortgages', sector: 'Financial Services', change: 0.80, pe: 9.5 },
-  { name: 'Food Distribution', sector: 'Consumer Defensive', change: 2.46, pe: 15.9 },
-  { name: 'Furnishings, Fixtures & Appliances', sector: 'Consumer Cyclical', change: 1.00, pe: 13.5 },
-  { name: 'Gambling, Resorts & Casinos', sector: 'Consumer Cyclical', change: 1.80, pe: 28.0 },
-  { name: 'Gold', sector: 'Basic Materials', change: 2.99, pe: 12.6 },
-  { name: 'Grocery Stores', sector: 'Consumer Defensive', change: 2.20, pe: 8.0 },
-  { name: 'Hardware, Equipment & Parts', sector: 'Technology', change: 1.50, pe: 17.5 },
-  { name: 'Home Improvement', sector: 'Consumer Cyclical', change: 1.20, pe: 19.8 },
-  { name: 'Household & Personal Products', sector: 'Consumer Defensive', change: 0.60, pe: 24.5 },
-  { name: 'Industrial - Distribution', sector: 'Industrials', change: 1.10, pe: 16.0 },
-  { name: 'Industrial - Machinery', sector: 'Industrials', change: 1.40, pe: 18.5 },
-  { name: 'Industrial Materials', sector: 'Basic Materials', change: 1.00, pe: 14.0 },
-  { name: 'Industrial - Pollution & Treatment Controls', sector: 'Industrials', change: 1.70, pe: 22.0 },
-  { name: 'Information Technology Services', sector: 'Technology', change: 2.23, pe: 35.9 },
-  { name: 'Insurance - Brokers', sector: 'Financial Services', change: 1.30, pe: 19.0 },
-  { name: 'Insurance - Diversified', sector: 'Financial Services', change: 1.50, pe: 13.0 },
-  { name: 'Insurance - Life', sector: 'Financial Services', change: 0.80, pe: 10.5 },
-  { name: 'Insurance - Property & Casualty', sector: 'Financial Services', change: 1.10, pe: 14.0 },
-  { name: 'Insurance - Reinsurance', sector: 'Financial Services', change: 1.20, pe: 12.5 },
-  { name: 'Insurance - Specialty', sector: 'Financial Services', change: 1.40, pe: 15.5 },
-  { name: 'Integrated Freight & Logistics', sector: 'Industrials', change: 0.90, pe: 16.8 },
-  { name: 'Internet Content & Information', sector: 'Technology', change: 3.50, pe: 52.0 },
-  { name: 'Investment - Banking & Investment Services', sector: 'Financial Services', change: 1.60, pe: 13.5 },
-  { name: 'Leisure', sector: 'Consumer Cyclical', change: 1.80, pe: 24.0 },
-  { name: 'Luxury Goods', sector: 'Consumer Cyclical', change: 2.45, pe: 23.7 },
-  { name: 'Manufacturing - Metal Fabrication', sector: 'Industrials', change: 1.20, pe: 15.0 },
-  { name: 'Manufacturing - Tools & Accessories', sector: 'Industrials', change: 1.40, pe: 17.5 },
-  { name: 'Marine Shipping', sector: 'Industrials', change: -0.50, pe: 8.5 },
-  { name: 'Medical - Care Facilities', sector: 'Healthcare', change: 0.70, pe: 20.0 },
-  { name: 'Medical - Devices', sector: 'Healthcare', change: 2.10, pe: 32.0 },
-  { name: 'Medical - Diagnostics & Research', sector: 'Healthcare', change: 1.90, pe: 28.5 },
-  { name: 'Medical - Distribution', sector: 'Healthcare', change: 1.10, pe: 16.0 },
-  { name: 'Medical - Equipment & Services', sector: 'Healthcare', change: 1.50, pe: 25.0 },
-  { name: 'Medical - Healthcare Information Services', sector: 'Healthcare', change: 2.00, pe: 45.0 },
-  { name: 'Medical - Healthcare Plans', sector: 'Healthcare', change: 1.30, pe: 18.0 },
-  { name: 'Medical - Instruments & Supplies', sector: 'Healthcare', change: 1.80, pe: 29.0 },
-  { name: 'Medical - Pharmaceuticals', sector: 'Healthcare', change: 0.50, pe: 18.0 },
-  { name: 'Oil & Gas Energy', sector: 'Energy', change: -0.80, pe: 9.5 },
-  { name: 'Oil & Gas Equipment & Services', sector: 'Energy', change: -0.50, pe: 12.0 },
-  { name: 'Oil & Gas Exploration & Production', sector: 'Energy', change: -1.20, pe: 8.5 },
-  { name: 'Oil & Gas Integrated', sector: 'Energy', change: -0.60, pe: 9.0 },
-  { name: 'Oil & Gas Midstream', sector: 'Energy', change: 0.20, pe: 11.5 },
-  { name: 'Oil & Gas Refining & Marketing', sector: 'Energy', change: -0.30, pe: 8.0 },
-  { name: 'Other Precious Metals', sector: 'Basic Materials', change: 2.10, pe: 14.5 },
-  { name: 'Packaged Foods', sector: 'Consumer Defensive', change: 0.40, pe: 20.0 },
-  { name: 'Packaging & Containers', sector: 'Consumer Cyclical', change: 1.10, pe: 15.5 },
-  { name: 'Paper, Lumber & Forest Products', sector: 'Basic Materials', change: 0.90, pe: 13.0 },
-  { name: 'Personal Products & Services', sector: 'Consumer Defensive', change: 0.70, pe: 22.5 },
-  { name: 'Publishing', sector: 'Communication Services', change: 0.80, pe: 16.0 },
-  { name: 'Railroads', sector: 'Industrials', change: 2.47, pe: 42.5 },
-  { name: 'Real Estate - Development', sector: 'Real Estate', change: 0.30, pe: 18.0 },
-  { name: 'Real Estate - General', sector: 'Real Estate', change: 0.50, pe: 19.5 },
-  { name: 'Real Estate - Services', sector: 'Real Estate', change: 0.90, pe: 21.0 },
-  { name: 'Regulated Electric', sector: 'Utilities', change: 0.60, pe: 18.5 },
-  { name: 'Regulated Water', sector: 'Utilities', change: 0.70, pe: 22.0 },
-  { name: 'REIT - Diversified', sector: 'Real Estate', change: 1.20, pe: 32.0 },
-  { name: 'REIT - Healthcare Facilities', sector: 'Real Estate', change: 1.50, pe: 28.0 },
-  { name: 'REIT - Industrial', sector: 'Real Estate', change: 1.80, pe: 35.0 },
-  { name: 'REIT - Mortgage', sector: 'Real Estate', change: -0.30, pe: 11.0 },
-  { name: 'REIT - Retail', sector: 'Real Estate', change: 1.10, pe: 25.0 },
-  { name: 'REIT - Specialty', sector: 'Real Estate', change: 2.46, pe: 34.8 },
-  { name: 'Renewable Utilities', sector: 'Utilities', change: 2.80, pe: 40.0 },
-  { name: 'Rental & Leasing Services', sector: 'Industrials', change: 1.40, pe: 15.0 },
-  { name: 'Residential Construction', sector: 'Consumer Cyclical', change: 1.90, pe: 12.0 },
-  { name: 'Restaurants', sector: 'Consumer Cyclical', change: 1.60, pe: 26.0 },
-  { name: 'Security & Protection Services', sector: 'Industrials', change: 2.45, pe: 33.6 },
-  { name: 'Semiconductors', sector: 'Technology', change: 4.20, pe: 45.0 },
-  { name: 'Shell Companies', sector: 'Real Estate', change: 2.50, pe: 16.0 },
-  { name: 'Software - Application', sector: 'Technology', change: 3.80, pe: 48.0 },
-  { name: 'Software - Infrastructure', sector: 'Technology', change: 3.20, pe: 38.0 },
-  { name: 'Software - Services', sector: 'Technology', change: 2.50, pe: 35.0 },
-  { name: 'Solar', sector: 'Technology', change: -1.50, pe: 55.0 },
-  { name: 'Specialty Business Services', sector: 'Industrials', change: 1.30, pe: 21.0 },
-  { name: 'Specialty Retail', sector: 'Consumer Cyclical', change: 1.70, pe: 24.0 },
-  { name: 'Staffing & Employment Services', sector: 'Industrials', change: 0.90, pe: 16.5 },
-  { name: 'Steel', sector: 'Basic Materials', change: 1.50, pe: 10.0 },
-  { name: 'Technology Distributors', sector: 'Technology', change: 2.10, pe: 18.0 },
-  { name: 'Telecommunications Services', sector: 'Communication Services', change: 2.42, pe: 13.9 },
-  { name: 'Tobacco', sector: 'Consumer Defensive', change: 0.30, pe: 12.5 },
-  { name: 'Travel Lodging', sector: 'Consumer Cyclical', change: 1.80, pe: 22.0 },
-  { name: 'Travel Services', sector: 'Consumer Cyclical', change: 2.42, pe: 18.1 },
-  { name: 'Trucking', sector: 'Industrials', change: 1.10, pe: 19.5 },
-  { name: 'Waste Management', sector: 'Industrials', change: 1.40, pe: 28.0 },
-]
+const industryList = ref([])
+const loadingIndustries = ref(false)
+
+const fetchIndustryData = async () => {
+  loadingIndustries.value = true
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    
+    const [perfRes, peRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/alphatrade/industry-performance?exchange=${activeExchange.value}&date=${today}`),
+      fetch(`${API_BASE_URL}/api/alphatrade/industry-pe?exchange=${activeExchange.value}&date=${today}`)
+    ])
+
+    let perfData = []
+    let peData = []
+
+    if (perfRes.ok) perfData = await perfRes.json()
+    if (peRes.ok) peData = await peRes.json()
+
+    // Map by industry name for easy merging
+    const industryMap = new Map()
+
+    // Process Performance Data
+    perfData.forEach(item => {
+      industryMap.set(item.industry, {
+        name: item.industry,
+        sector: '', // FMP Snapshot doesn't give sector in this endpoint, but maybe we can infer or leave empty? 
+                    // Wait, the user mock data had sectors. The endpoint response shown by user:
+                    // { "date":..., "industry": "Advertising Agencies", "exchange": "NASDAQ", "averageChange": ... }
+                    // It does NOT have sector.
+                    // However, we need sector for display.
+                    // If FMP doesn't return sector here, we might need another call or map it.
+                    // For now, let's leave sector empty or use a fallback if not provided.
+                    // Actually, the previous mock data was extensive. If FMP endpoint doesn't return sector, 
+                    // we show empty or 'N/A' in the UI column.
+        change: item.averageChange,
+        pe: 0
+      })
+    })
+
+    // Process P/E Data - Merge into map
+    peData.forEach(item => {
+      if (industryMap.has(item.industry)) {
+        const existing = industryMap.get(item.industry)
+        existing.pe = item.pe
+      } else {
+        // If it exists in PE but not Performance (unlikely but possible)
+        industryMap.set(item.industry, {
+          name: item.industry,
+          sector: '',
+          change: 0,
+          pe: item.pe
+        })
+      }
+    })
+
+    industryList.value = Array.from(industryMap.values())
+
+  } catch (err) {
+    console.error('Error fetching industry data:', err)
+  } finally {
+    loadingIndustries.value = false
+  }
+}
+
+watch([activeExchange, activeTab], ([newExchange, newTab]) => {
+  if (newTab === 'industry') {
+    fetchIndustryData()
+  }
+})
+
+onMounted(() => {
+  if (activeTab.value === 'industry') {
+    fetchIndustryData()
+  }
+})
 
 // Search and Sort State
 const industrySearch = ref('')
 const industrySort = ref('perf') // 'perf', 'pe', 'name'
 
 const filteredIndustries = computed(() => {
-  let result = [...industryList]
+  let result = [...industryList.value]
   
   // Search
   if (industrySearch.value) {

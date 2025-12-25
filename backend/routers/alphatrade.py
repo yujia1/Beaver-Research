@@ -615,3 +615,29 @@ async def get_sector_pe(exchange: str = "NASDAQ", date: Optional[str] = None):
     # }
     
     return data
+
+
+@router.get("/industry-performance")
+async def get_industry_performance(exchange: str = "NASDAQ", date: Optional[str] = None):
+    """
+    Fetch industry performance snapshot.
+    """
+    params = {"exchange": exchange}
+    if date:
+        params["date"] = date
+        
+    data = await fetch_fmp_data("industry-performance-snapshot", params)
+    return data
+
+
+@router.get("/industry-pe")
+async def get_industry_pe(exchange: str = "NASDAQ", date: Optional[str] = None):
+    """
+    Fetch industry PE snapshot.
+    """
+    params = {"exchange": exchange}
+    if date:
+        params["date"] = date
+        
+    data = await fetch_fmp_data("industry-pe-snapshot", params)
+    return data
