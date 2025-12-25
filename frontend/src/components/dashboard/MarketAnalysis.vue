@@ -94,17 +94,19 @@
         <span class="col-pe">P/E</span>
       </div>
       
-      <div class="industry-grid">
-        <div v-for="industry in filteredIndustries" :key="industry.name" class="industry-item">
-          <div class="industry-info">
-            <div class="industry-name">{{ industry.name }}</div>
-            <div class="industry-sector">{{ industry.sector.toUpperCase() }}</div>
-          </div>
-          <div class="industry-metrics">
-            <div class="metric-change" :class="industry.change >= 0 ? 'positive' : 'negative'">
-              {{ formatChange(industry.change) }}
+      <div class="directory-scroll-container">
+        <div class="industry-grid">
+          <div v-for="industry in filteredIndustries" :key="industry.name" class="industry-item">
+            <div class="industry-info">
+              <div class="industry-name">{{ industry.name }}</div>
+              <div class="industry-sector">{{ industry.sector.toUpperCase() }}</div>
             </div>
-            <div class="metric-pe">{{ industry.pe.toFixed(1) }}x</div>
+            <div class="industry-metrics">
+              <div class="metric-change" :class="industry.change >= 0 ? 'positive' : 'negative'">
+                {{ formatChange(industry.change) }}
+              </div>
+              <div class="metric-pe">{{ industry.pe.toFixed(1) }}x</div>
+            </div>
           </div>
         </div>
       </div>
@@ -646,6 +648,29 @@ const formatChange = (val) => {
 .col-pe {
   text-align: right;
   width: 60px;
+}
+
+.directory-scroll-container {
+  height: 600px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.directory-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.directory-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.directory-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.directory-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .industry-grid {
