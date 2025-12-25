@@ -89,9 +89,9 @@
       </div>
 
       <div class="industry-grid-header">
-        <span class="col-name">INDUSTRY NAME</span>
-        <span class="col-change">Daily CHANGE</span>
-        <span class="col-pe">P/E RATIO</span>
+        <span class="col-name">INDUSTRY</span>
+        <span class="col-change">CHANGE</span>
+        <span class="col-pe">P/E</span>
       </div>
       
       <div class="industry-grid">
