@@ -546,64 +546,84 @@ const formatChange = (val) => {
     gap: 2rem;
   }
 }
-</style>
+
 
 /* Directory specific styles */
+/* Directory specific styles */
 .directory-header {
-  align-items: flex-end;
-  border-bottom: none; /* Removed border to match clean look */
-  margin-bottom: 0.5rem;
+  display: block; /* Override flex */
+  border-bottom: none;
+  margin-bottom: 2rem;
+  padding-bottom: 0;
+}
+
+.directory-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.directory-top-row h2 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #9ca3af;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .directory-controls {
   display: flex;
-  gap: 2rem;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-end;
+  /* margin-bottom: 2rem; This is handled by header gap */
 }
 
 .search-input {
   border: none;
-  border-bottom: 1px solid #e5e7eb; /* Thin subtle line */
-  padding: 0.25rem 0;
-  font-size: 0.75rem;
-  color: #374151;
+  border-bottom: 2px solid #000; /* Bold black underline */
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #000;
   outline: none;
-  width: 180px;
+  width: 300px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   background: transparent;
+  letter-spacing: 1px;
 }
 
 .search-input::placeholder {
   color: #9ca3af;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 700;
 }
 
 .sort-options {
   display: flex;
   align-items: center;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: #e5e7eb; /* Light gray for dividers */
 }
 
 .sort-options button {
   background: none;
   border: none;
-  padding: 2px 6px; /* Added padding for badge look */
-  font-size: 0.7rem;
+  padding: 0;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: #d1d5db; /* Inactive color (light gray) */
   cursor: pointer;
   text-transform: uppercase;
-  border-radius: 4px;
-  transition: all 0.2s;
+  transition: color 0.2s;
 }
 
 .sort-options button.active {
-  background-color: #1d4ed8; /* Blue background */
-  color: #ffffff;
+  color: #000000; /* Active Black */
+  background: none; /* Ensure no background */
 }
 
 .industry-grid-header {
@@ -757,3 +777,4 @@ const formatChange = (val) => {
     justify-content: space-between;
   }
 }
+</style>
