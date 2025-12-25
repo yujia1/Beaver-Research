@@ -768,7 +768,7 @@ const closePoliticianModal = () => {
 
          <!-- Financial Ratio -->
          <div v-if="ratioTab === 'financial_ratio'">
-            <div v-if="financialRatios && financialRatios.length > 0" class="data-table-wrapper" style="overflow-x: auto;">
+            <div v-if="financialRatios && financialRatios.length > 0" class="data-table-wrapper ratio-scroll-container">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -2366,5 +2366,29 @@ const closePoliticianModal = () => {
 
 .symbol-link:hover {
     text-decoration: underline;
+}
+
+.ratio-scroll-container {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.ratio-scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ratio-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ratio-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.ratio-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 </style>
