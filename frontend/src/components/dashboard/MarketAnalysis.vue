@@ -57,7 +57,21 @@
     <!-- Industry Tab Content -->
     <div v-if="activeTab === 'industry'" class="section-container">
       <div class="section-header directory-header">
-        <h2>04. FULL INDUSTRY DIRECTORY</h2>
+        <div class="header-left">
+          <h2>Industry Matrix</h2>
+          <div class="exchanges">
+            <template v-for="(ex, index) in exchanges" :key="ex">
+              <button 
+                class="exchange-btn" 
+                :class="{ active: activeExchange === ex }"
+                @click="activeExchange = ex"
+              >
+                {{ ex }}
+              </button>
+              <span v-if="index < exchanges.length - 1" class="divider">/</span>
+            </template>
+          </div>
+        </div>
         
         <div class="directory-controls">
           <input 
@@ -76,10 +90,8 @@
 
       <div class="industry-grid-header">
         <span class="col-name">INDUSTRY NAME</span>
-        <div class="col-right">
-          <span class="col-change">CHANGE</span>
-          <span class="col-pe">P/E RATIO</span>
-        </div>
+        <span class="col-change">Daily CHANGE</span>
+        <span class="col-pe">P/E RATIO</span>
       </div>
       
       <div class="industry-grid">
@@ -547,9 +559,6 @@ const formatChange = (val) => {
   }
 }
 
-
-/* Directory specific styles */
-/* Directory specific styles */
 .directory-header {
   display: block; /* Override flex */
   border-bottom: none;
@@ -557,27 +566,28 @@ const formatChange = (val) => {
   padding-bottom: 0;
 }
 
-.directory-top-row {
+.header-left {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  width: 100%;
 }
 
-.directory-top-row h2 {
+.header-left h2 {
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: #000000;
   margin: 0;
   text-transform: uppercase;
 }
 
 .directory-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  /* margin-bottom: 2rem; This is handled by header gap */
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3rem;
 }
 
 .search-input {
