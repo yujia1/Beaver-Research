@@ -853,9 +853,9 @@ const generatePdfPreview = async () => {
       return
     }
     
-    // Ticker is required for all report types except "market"
-    if (!props.ticker && selectedReportType.value !== 'market') {
-      alert(t('research.alerts.ticker_required'))
+    // Validate report name is required
+    if (!reportName.value || !reportName.value.trim()) {
+      alert("Report Name is required.")
       return
     }
     
@@ -903,7 +903,7 @@ const confirmPublish = async () => {
     formData.append('view_mode', props.viewMode)
     formData.append('active_agent', props.activeAgent || '')
     formData.append('report_type', selectedReportType.value)
-    formData.append('report_name', reportName.value || 'Untitled Report')
+    formData.append('report_name', reportName.value.trim())
     
     const response = await fetch(`${API_BASE_URL}/api/reports/publish`, {
       method: 'POST',
