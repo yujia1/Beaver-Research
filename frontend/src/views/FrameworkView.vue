@@ -49,8 +49,41 @@ const {
   businessDescription,
   historicalPrice,
   fetchFinancialData: fetchFinData,
-  fetchPoliticianTrades 
+  fetchPoliticianTrades,
+  fetchFinancialRatiosComparison
 } = useFinancialData()
+
+// Edit Tickers Logic
+const showTickerModal = ref(false)
+const customTickerInput = ref('')
+
+const openTickerModal = () => {
+    if (financialRatios.value && financialRatios.value.length > 0) {
+        const currentSymbols = financialRatios.value.map(c => c.symbol).join(', ')
+        customTickerInput.value = currentSymbols
+    } else {
+        customTickerInput.value = ticker.value 
+    }
+    showTickerModal.value = true
+}
+
+const closeTickerModal = () => {
+    showTickerModal.value = false
+}
+
+const saveCustomTickers = async () => {
+    if (!customTickerInput.value) return;
+    
+    const tickers = customTickerInput.value
+        .split(/[\s,]+/)
+        .map(t => t.trim().toUpperCase())
+        .filter(t => t.length > 0);
+        
+    if (tickers.length > 0) {
+        await fetchFinancialRatiosComparison(tickers);
+    }
+    closeTickerModal();
+}
 
 
 
@@ -768,6 +801,11 @@ const closePoliticianModal = () => {
 
          <!-- Financial Ratio -->
          <div v-if="ratioTab === 'financial_ratio'">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button class="styled-search-btn" @click="openTickerModal" style="font-size: 0.8rem; padding: 6px 12px;">
+                    Edit Comparison Tickers
+                </button>
+            </div>
             <div v-if="financialRatios && financialRatios.length > 0" class="data-table-wrapper ratio-scroll-container">
               <table class="data-table">
                 <thead>
@@ -1396,6 +1434,31 @@ const closePoliticianModal = () => {
                 </table>
              </div>
              <p v-else class="placeholder-text">No trades found for this politician.</p>
+          </div>
+         </div>
+      </div>
+
+
+    <!-- Ticker Edit Modal -->
+    <div v-if="showTickerModal" class="modal-overlay" @click.self="closeTickerModal">
+       <div class="modal-content" style="max-width: 500px; height: auto;">
+          <div class="modal-header">
+             <h2>Edit Comparison Tickers</h2>
+             <button class="close-btn" @click="closeTickerModal">&times;</button>
+          </div>
+          <div class="modal-body">
+             <p style="margin-bottom: 1rem; color: #666;">Enter tickers separated by commas or spaces.</p>
+             <input 
+                v-model="customTickerInput" 
+                class="styled-input" 
+                style="width: 100%; margin-bottom: 2rem;" 
+                placeholder="e.g. AAPL, MSFT, GOOGL"
+                @keyup.enter="saveCustomTickers"
+             />
+             <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                 <button class="period-btn" @click="closeTickerModal">Cancel</button>
+                 <button class="styled-search-btn" @click="saveCustomTickers">Update Comparison</button>
+             </div>
           </div>
        </div>
     </div>

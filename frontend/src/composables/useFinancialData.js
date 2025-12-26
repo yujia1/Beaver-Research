@@ -108,6 +108,42 @@ export function useFinancialData() {
     }
 
 
+    const fetchFinancialRatiosComparison = async (tickers) => {
+        if (!tickers || tickers.length === 0) return
+
+        loading.value = true
+        // don't clear error here to avoid flashing if it's separate part
+
+        try {
+            const token = localStorage.getItem('access_token')
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/framework/financial-ratios-comparison`,
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ tickers })
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch financial ratios comparison')
+            }
+
+            const data = await response.json()
+            financialRatios.value = data
+        } catch (err) {
+            console.error('Error fetching financial ratios:', err)
+            // Optional: set error state
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         loading,
         error,
@@ -130,6 +166,7 @@ export function useFinancialData() {
         businessDescription,
         historicalPrice,
         fetchFinancialData,
-        fetchPoliticianTrades
+        fetchPoliticianTrades,
+        fetchFinancialRatiosComparison
     }
 }

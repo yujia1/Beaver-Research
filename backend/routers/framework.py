@@ -298,6 +298,31 @@ async def get_key_metrics_ttm(
     }
 
 
+async def fetch_financial_ratios_batch(tickers: List[str]) -> List[Dict]:
+    """
+    Helper function to fetch financial ratios for a batch of tickers
+    """
+    tasks = []
+    for t in tickers:
+        tasks.append(fetch_fmp_data("ratios-ttm", {"symbol": t}))
+    
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    final_data = []
+    for i, res in enumerate(results):
+        symbol = tickers[i]
+        if isinstance(res, Exception):
+            print(f"Error fetching ratios for {symbol}: {res}")
+            continue
+            
+        ratio_obj = res[0] if res and isinstance(res, list) and len(res) > 0 else {}
+        if ratio_obj:
+            ratio_obj["symbol"] = symbol
+            final_data.append(ratio_obj)
+            
+    return final_data
+
+
 async def get_financial_ratios_analysis(ticker: str):
     """
     Fetch Financial Ratios for ticker and its peers (Comparison)
@@ -318,31 +343,8 @@ async def get_financial_ratios_analysis(ticker: str):
     # Limit peers to keep table manageable (e.g. 6 peers)
     target_tickers = [ticker] + peers[:6]
     
-    # 2. Fetch Ratios for each
-    tasks = []
-    for t in target_tickers:
-        # ratios-ttm
-        tasks.append(fetch_fmp_data("ratios-ttm", {"symbol": t}))
-    
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    
-    final_data = []
-    for i, res in enumerate(results):
-        symbol = target_tickers[i]
-        if isinstance(res, Exception):
-            print(f"Error fetching ratios for {symbol}: {res}")
-            continue
-            
-        # res is typically [{"dividendYielTTM": ... }]
-        ratio_obj = res[0] if res and isinstance(res, list) and len(res) > 0 else {}
-        if ratio_obj:
-            # Inject symbol into the object for the frontend to identify column
-            ratio_obj["symbol"] = symbol
-            final_data.append(ratio_obj)
-            
-    return final_data
-
-
+    # 2. Fetch Ratios using batch helper
+    return await fetch_financial_ratios_batch(target_tickers)
 
 
 async def get_historical_price_full(ticker: str, from_date: str = None, to_date: str = None) -> Dict[str, Any]:
@@ -599,3 +601,16 @@ async def get_all_statements(
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching statements: {str(e)}")
+
+from pydantic import BaseModel
+
+class TickerList(BaseModel):
+    tickers: List[str]
+
+@router.post("/financial-ratios-comparison")
+async def get_financial_ratios_comparison(payload: TickerList):
+    """
+    Fetch Financial Ratios for a specific list of tickers
+    """
+    target_tickers = [t.upper() for t in payload.tickers]
+    return await fetch_financial_ratios_batch(target_tickers)
