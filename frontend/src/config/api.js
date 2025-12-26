@@ -5,7 +5,12 @@ function getApiBaseUrl() {
     // Priority 1: Check environment variable (VITE_API_BASE_URL)
     // This allows manual override in Railway or other environments
     if (import.meta.env.VITE_API_BASE_URL) {
-        return import.meta.env.VITE_API_BASE_URL
+        let url = import.meta.env.VITE_API_BASE_URL
+        // Force HTTPS on Railway even if env var is HTTP
+        if (window.location.hostname.includes('railway.app') && url.startsWith('http://')) {
+            url = url.replace('http://', 'https://')
+        }
+        return url
     }
 
     // Priority 2: If running on localhost, use local backend
