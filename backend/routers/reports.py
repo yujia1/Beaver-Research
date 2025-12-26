@@ -253,6 +253,27 @@ async def get_reports_from_minio(
                 detail=f"Invalid report_type. Must be one of: {', '.join(valid_report_types)}"
             )
         
+        # Fetch DB reports to enrich metadata
+        db_reports = db.query(Report).filter(
+            Report.user_id == current_user.id,
+            Report.report_type == report_type,
+            Report.is_uploaded == True
+        ).all()
+        
+        # Create a map for quick lookup:  UUID -> Report
+        # We'll extract UUID from the content path in DB
+        db_report_map = {}
+        for r in db_reports:
+            if r.content and "minio://" in r.content:
+                # content format: minio://reports/Folder/filename-uuid.pdf
+                # We need to extract the filename part to match with MinIO listing
+                try:
+                    # key = Folder/filename-uuid.pdf
+                    key = r.content.split(f"minio://{MINIO_BUCKET}/")[-1]
+                    db_report_map[key] = r
+                except:
+                    pass
+
         # Map report_type to folder name
         folder_map = {
             "daily": "Daily",
@@ -270,7 +291,7 @@ async def get_reports_from_minio(
         prefix = f"{folder_name}/"
         
         reports = []
-        seen_uuids = set()  # Track UUIDs to prevent duplicates
+        seen_keys = set()
         
         try:
             # Use paginator to handle all pages of results
@@ -281,60 +302,66 @@ async def get_reports_from_minio(
                 if 'Contents' in page:
                     for obj in page['Contents']:
                         try:
-                            # New structure: {folder}/{report-name}-{uuid}.pdf
-                            # Example: Market/GOLD-test-4bc6319b-54cd-4fc0-8c50-d981b9be65f4.pdf
-                            parts = obj['Key'].split('/')
+                            key = obj['Key']
+                            if key in seen_keys:
+                                continue
+                            seen_keys.add(key)
+                            
+                            # Check if we have DB metadata for this file
+                            db_report = db_report_map.get(key)
+                            
+                            # Extract metadata
+                            parts = key.split('/')
                             if len(parts) >= 2:
-                                folder = parts[0]
-                                filename = parts[1]
+                                filename = parts[-1] # Handle nested folders if any
                                 
-                                # Extract report name and UUID from filename
-                                # Format: report-name-uuid.pdf
+                                # Extract UUID from filename for frontend ID
+                                uuid_from_filename = filename
                                 if filename.endswith('.pdf'):
-                                    filename_without_ext = filename[:-4]  # Remove .pdf
-                                    
-                                    # Find the last occurrence of UUID pattern (last 36 chars before .pdf)
-                                    # UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars)
+                                    filename_without_ext = filename[:-4]
                                     if len(filename_without_ext) > 36:
-                                        # Extract UUID (last 36 characters)
                                         uuid_from_filename = filename_without_ext[-36:]
-                                        # Extract report name (everything before the last dash and UUID)
-                                        report_name = filename_without_ext[:-37]  # Remove -uuid
-                                        
-                                        # Use report name as ticker for display
-                                        ticker = report_name if report_name else "UNKNOWN"
+                                
+                                # Determine Ticker and Title
+                                if db_report:
+                                    ticker = db_report.ticker
+                                    title = db_report.title
+                                else:
+                                    # Fallback to parsing filename
+                                    if filename.endswith('.pdf'):
+                                        filename_without_ext = filename[:-4]
+                                        if len(filename_without_ext) > 36:
+                                            uuid_part = filename_without_ext[-36:]
+                                            name_part = filename_without_ext[:-37]
+                                            ticker = name_part if name_part else "UNKNOWN"
+                                            title = name_part
+                                        else:
+                                            ticker = "UNKNOWN"
+                                            title = filename_without_ext
                                     else:
-                                        # Fallback for old format or short names
-                                        uuid_from_filename = filename_without_ext
                                         ticker = "UNKNOWN"
-                                    
-                                    # Check for duplicates by UUID
-                                    if uuid_from_filename in seen_uuids:
-                                        continue
-                                    seen_uuids.add(uuid_from_filename)
-                                    
-                                    # Get file metadata (last modified time)
-                                    last_modified = obj.get('LastModified', datetime.utcnow())
-                                    
-                                    # Use last modified date as the report date
-                                    date = last_modified.strftime("%Y-%m-%d") if hasattr(last_modified, 'strftime') else "Unknown"
-                                    
-                                    reports.append({
-                                        "id": uuid_from_filename,
-                                        "ticker": ticker,
-                                        "date": date,
-                                        "created_at": last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified),
-                                        "report_type": report_type,
-                                        "uuid": uuid_from_filename,
-                                        "file_path": obj['Key'],
-                                        "report_name": ticker
-                                    })
+                                        title = filename
+                                
+                                # Get file metadata (last modified time)
+                                last_modified = obj.get('LastModified', datetime.utcnow())
+                                date = last_modified.strftime("%Y-%m-%d") if hasattr(last_modified, 'strftime') else "Unknown"
+                                
+                                reports.append({
+                                    "id": uuid_from_filename,
+                                    "ticker": ticker,
+                                    "date": date,
+                                    "created_at": last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified),
+                                    "report_type": report_type,
+                                    "uuid": uuid_from_filename,
+                                    "file_path": key,
+                                    "report_name": title # Use actual title
+                                })
+
                         except Exception as e:
                             print(f"Error reading object {obj['Key']}: {e}")
                             continue
         except Exception as e:
             print(f"Error listing objects from MinIO: {e}")
-            # Return empty list if folder doesn't exist or error occurs
             return []
         
         # Sort by date (newest first)

@@ -70,7 +70,15 @@
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
                                 <div v-if="loadingReportsById[savedReport.id || savedReport.uuid]" class="loading">{{ t('reports_page.loading_single') }}</div>
-                                <div v-else class="report-body" v-html="getReportContent(savedReport)"></div>
+                                <div v-else class="report-body">
+                                    <iframe 
+                                        v-if="getReportPdfUrl(savedReport)" 
+                                        :src="getReportPdfUrl(savedReport)" 
+                                        class="pdf-viewer"
+                                        frameborder="0"
+                                    ></iframe>
+                                    <div v-else v-html="getReportContent(savedReport)"></div>
+                                </div>
             </div>
                         </li>
                     </ul>
