@@ -167,73 +167,137 @@ def start_news_polling():
     asyncio.create_task(background_news_fetcher())
 
 async def _fetch_market_news_from_source():
+    items = []
+    
+    # Define feeds configuration
+    feeds = [
+        {"url": "http://feeds.feedburner.com/zerohedge/feed", "tag": "MARKETS", "type": "zerohedge"},
+        {"url": "https://thebearcave.substack.com/feed", "tag": "RESEARCH", "type": "bearcave"}
+    ]
+    
     try:
-        url = "http://feeds.feedburner.com/zerohedge/feed"
-        # Use httpx to follow redirects
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-            response = await client.get(url)
-            if response.status_code != 200:
-                 print(f"Failed to fetch news feed: {response.status_code}")
-                 return []
+            # Create tasks for all feeds
+            tasks = [client.get(feed["url"]) for feed in feeds]
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
             
-            content = response.content
-            # Parse XML
-            root = ET.fromstring(content)
-            
-            items = []
-            # RSS items
-            for item in root.findall(".//item"):
-                title_elem = item.find("title")
-                title = title_elem.text if title_elem is not None else "No Title"
+            for i, response in enumerate(responses):
+                feed_config = feeds[i]
                 
-                link_elem = item.find("link")
-                link = link_elem.text if link_elem is not None else ""
+                if isinstance(response, Exception):
+                    print(f"Error fetching {feed_config['url']}: {response}")
+                    continue
+                    
+                if response.status_code != 200:
+                    print(f"Failed to fetch {feed_config['url']}: {response.status_code}")
+                    continue
                 
-                desc_elem = item.find("description")
-                desc_text = desc_elem.text if desc_elem is not None else ""
+                # Parse the feed
+                feed_items = _parse_feed_items(response.content, feed_config)
+                items.extend(feed_items)
                 
-                # Clean up the full content for the modal
-                cleaned_content = desc_text
-                if cleaned_content:
-                    # Remove the author and date spans at the bottom
-                    cleaned_content = re.sub(r'<span[^>]*?schema:author[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-                    cleaned_content = re.sub(r'<span[^>]*?schema:dateCreated[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+        # Sort items by date (newest first) using the parsed datetime object or string comparison fallback
+        # Note: parsing dates strictly can be tricky across feeds, simple string works if standard format, 
+        # but robust implementation would parse to datetime.
+        # For now, we rely on the fact that both feeds use standard RSS pubDate.
+        
+        # Helper to parse date for sorting
+        def parse_pub_date(date_str):
+            try:
+                # Common RSS format: "Sat, 27 Dec 2025 23:44:50 GMT"
+                # Remove GMT/UTC to make it simpler for naive parsing or use email utils
+                from email.utils import parsedate_to_datetime
+                dt = parsedate_to_datetime(date_str)
+                if dt: return dt
+            except:
+                pass
+            return datetime.min.replace(tzinfo=None)
 
-                # ZeroHedge feed description is HTML. We want a plain summary.
-                # Remove HTML tags from original or cleaned content
-                summary = re.sub(r'<[^>]+>', '', desc_text)
-                # Unescape HTML entities if needed
-                summary = summary.replace("\n", " ").strip()
-                if len(summary) > 300:
-                    summary = summary[:297] + "..."
-                
-                pub_date_elem = item.find("pubDate")
-                pub_date = pub_date_elem.text if pub_date_elem is not None else ""
-                
-                # Determine sentiment
-                title_lower = title.lower()
-                sentiment = "neutral"
-                if any(x in title_lower for x in ["surge", "rally", "soar", "record", "jump", "beat"]):
-                    sentiment = "positive"
-                elif any(x in title_lower for x in ["plunge", "crash", "drop", "fall", "miss", "warn", "freeze", "sanction"]):
-                    sentiment = "negative"
-
-                items.append({
-                    "id": link,
-                    "headline": title,
-                    "summary": summary,
-                    "content": cleaned_content, 
-                    "time": pub_date, 
-                    "url": link,
-                    "tags": ["MARKETS"],
-                    "sentiment": sentiment
-                })
-            
-            return items
+        items.sort(key=lambda x: parse_pub_date(x.get("time", "")), reverse=True)
+        
+        return items
             
     except Exception as e:
-        print(f"Error fetching/parsing news feed: {str(e)}")
+        print(f"Error in main fetch loop: {str(e)}")
         return []
+
+def _parse_feed_items(content, config):
+    items = []
+    try:
+        root = ET.fromstring(content)
+        # Handle namespaces if necessary, but standard find/findall often works for basic RSS
+        # Substack/BearCave uses content:encoded often, needing namespace map
+        namespaces = {
+            'content': 'http://purl.org/rss/1.0/modules/content/',
+            'dc': 'http://purl.org/dc/elements/1.1/',
+            'atom': 'http://www.w3.org/2005/Atom'
+        }
+        
+        for item in root.findall(".//item"):
+            title_elem = item.find("title")
+            title = title_elem.text if title_elem is not None else "No Title"
+            
+            link_elem = item.find("link")
+            link = link_elem.text if link_elem is not None else ""
+            
+            # Date
+            pub_date_elem = item.find("pubDate")
+            pub_date = pub_date_elem.text if pub_date_elem is not None else ""
+            
+            # Content / Description
+            desc_elem = item.find("description")
+            desc_text = desc_elem.text if desc_elem is not None else ""
+            
+            # For BearCave/Substack, prefer content:encoded if description is short or just a summary
+            content_encoded_elem = item.find("content:encoded", namespaces)
+            full_content = ""
+            
+            if content_encoded_elem is not None and content_encoded_elem.text:
+                full_content = content_encoded_elem.text
+            else:
+                full_content = desc_text
+
+            # Clean content based on source type
+            cleaned_content = full_content
+            
+            if config["type"] == "zerohedge" and cleaned_content:
+                cleaned_content = re.sub(r'<span[^>]*?schema:author[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+                cleaned_content = re.sub(r'<span[^>]*?schema:dateCreated[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+            
+            # Clean Bear Cave specific footers if needed (usually substack buttons)
+            if config["type"] == "bearcave" and cleaned_content:
+                # Remove common substack subscribe buttons/footers if identifiable patterns exist
+                pass
+
+            # Create Plain Summary
+            summary_source = desc_text if desc_text else full_content
+            summary = re.sub(r'<[^>]+>', '', summary_source)
+            summary = summary.replace("\n", " ").strip()
+            if len(summary) > 300:
+                summary = summary[:297] + "..."
+            
+            # Sentiment
+            title_lower = title.lower()
+            sentiment = "neutral"
+            if any(x in title_lower for x in ["surge", "rally", "soar", "record", "jump", "beat", "strong"]):
+                sentiment = "positive"
+            elif any(x in title_lower for x in ["plunge", "crash", "drop", "fall", "miss", "warn", "freeze", "sanction", "weak", "resign", "problem"]):
+                sentiment = "negative"
+
+            items.append({
+                "id": link,
+                "headline": title,
+                "summary": summary,
+                "content": cleaned_content, 
+                "time": pub_date, 
+                "url": link,
+                "tags": [config["tag"]],
+                "sentiment": sentiment
+            })
+    except Exception as e:
+        print(f"Error parsing feed {config['url']}: {e}")
+        
+    return items
 
 
 # Pydantic schemas
