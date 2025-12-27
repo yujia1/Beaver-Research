@@ -570,14 +570,32 @@ async def get_market_movers(mover_type: str):
     return result
 
 
+
+# Helper to get valid trading date (handling weekends)
+def get_latest_trading_date() -> str:
+    from datetime import timedelta
+    now = datetime.utcnow()
+    # If today is Saturday (5) or Sunday (6), go back to Friday
+    weekday = now.weekday()
+    if weekday == 5:  # Saturday
+        last_trade = now - timedelta(days=1)
+    elif weekday == 6:  # Sunday
+        last_trade = now - timedelta(days=2)
+    else:
+        last_trade = now
+    return last_trade.strftime("%Y-%m-%d")
+
+
 @router.get("/sector-performance")
 async def get_sector_performance(exchange: str = "NASDAQ", date: Optional[str] = None):
     """
     Fetch sector performance snapshot.
+    If date is not provided, defaults to latest trading day (handling weekends).
     """
-    params = {"exchange": exchange}
-    if date:
-        params["date"] = date
+    if not date:
+        date = get_latest_trading_date()
+        
+    params = {"exchange": exchange, "date": date}
         
     data = await fetch_fmp_data("sector-performance-snapshot", params)
     
@@ -599,10 +617,12 @@ async def get_sector_performance(exchange: str = "NASDAQ", date: Optional[str] =
 async def get_sector_pe(exchange: str = "NASDAQ", date: Optional[str] = None):
     """
     Fetch sector PE snapshot.
+    If date is not provided, defaults to latest trading day (handling weekends).
     """
-    params = {"exchange": exchange}
-    if date:
-        params["date"] = date
+    if not date:
+        date = get_latest_trading_date()
+
+    params = {"exchange": exchange, "date": date}
         
     data = await fetch_fmp_data("sector-pe-snapshot", params)
     
@@ -621,10 +641,12 @@ async def get_sector_pe(exchange: str = "NASDAQ", date: Optional[str] = None):
 async def get_industry_performance(exchange: str = "NASDAQ", date: Optional[str] = None):
     """
     Fetch industry performance snapshot.
+    If date is not provided, defaults to latest trading day (handling weekends).
     """
-    params = {"exchange": exchange}
-    if date:
-        params["date"] = date
+    if not date:
+        date = get_latest_trading_date()
+
+    params = {"exchange": exchange, "date": date}
         
     data = await fetch_fmp_data("industry-performance-snapshot", params)
     return data
@@ -634,10 +656,12 @@ async def get_industry_performance(exchange: str = "NASDAQ", date: Optional[str]
 async def get_industry_pe(exchange: str = "NASDAQ", date: Optional[str] = None):
     """
     Fetch industry PE snapshot.
+    If date is not provided, defaults to latest trading day (handling weekends).
     """
-    params = {"exchange": exchange}
-    if date:
-        params["date"] = date
+    if not date:
+        date = get_latest_trading_date()
+
+    params = {"exchange": exchange, "date": date}
         
     data = await fetch_fmp_data("industry-pe-snapshot", params)
     return data
