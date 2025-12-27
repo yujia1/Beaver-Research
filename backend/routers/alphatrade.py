@@ -185,7 +185,7 @@ async def get_market_news_feed():
                     "sentiment": sentiment
                 })
             
-            return items[:20] # Return top 20
+            return items # Return all items
             
     except Exception as e:
         print(f"Error fetching/parsing news feed: {str(e)}")

@@ -168,6 +168,28 @@ const openNews = (url) => {
 .news-list {
   display: flex;
   flex-direction: column;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 0.5rem; /* Add some space for scrollbar */
+}
+
+/* Custom scrollbar for better aesthetics */
+.news-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.news-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.news-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.news-list::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 .news-item {
