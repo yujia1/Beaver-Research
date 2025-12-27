@@ -3,12 +3,17 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
+import asyncio
 import yfinance as yf
 import os
 import httpx
 import xml.etree.ElementTree as ET
 import re
+from redis_client import redis_client
+
+MARKET_NEWS_CACHE_KEY = "market_news_feed_v1"
+MARKET_NEWS_CACHE_TTL = 180 # 3 minutes
 
 # Get FMP API key from environment
 FMP_API_KEY = os.getenv("FMP_API_KEY", "")
@@ -130,9 +135,41 @@ router = APIRouter()
 
 @router.get("/market-news-feed")
 async def get_market_news_feed():
+    # 1. Try Cache (Primary)
+    cached_data = redis_client.get_cache(MARKET_NEWS_CACHE_KEY)
+    if cached_data:
+        return cached_data
+
+    # 2. Fallback: Fetch immediately if cache is empty (e.g. first run)
+    items = await _fetch_market_news_from_source()
+    
+    if items:
+        # Cache for 5 minutes (longer than poll interval of 3 mins)
+        redis_client.set_cache(MARKET_NEWS_CACHE_KEY, items, ttl=300)
+        
+    return items
+
+async def background_news_fetcher():
+    """Background task to fetch news every 3 minutes"""
+    while True:
+        try:
+            items = await _fetch_market_news_from_source()
+            if items:
+                # Set TTL longer than sleep (5m TTL vs 3m Sleep) to ensure overlap
+                redis_client.set_cache(MARKET_NEWS_CACHE_KEY, items, ttl=300)
+        except Exception as e:
+            print(f"Error in background news fetch: {e}")
+        
+        await asyncio.sleep(180) # Sleep 3 minutes
+
+def start_news_polling():
+    """Start the background polling task"""
+    asyncio.create_task(background_news_fetcher())
+
+async def _fetch_market_news_from_source():
     try:
         url = "http://feeds.feedburner.com/zerohedge/feed"
-        # Use httpx to follow redirects (feedburner often redirects)
+        # Use httpx to follow redirects
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             response = await client.get(url)
             if response.status_code != 200:
@@ -144,7 +181,7 @@ async def get_market_news_feed():
             root = ET.fromstring(content)
             
             items = []
-            # RSS items are usually under channel/item
+            # RSS items
             for item in root.findall(".//item"):
                 title_elem = item.find("title")
                 title = title_elem.text if title_elem is not None else "No Title"
@@ -165,8 +202,7 @@ async def get_market_news_feed():
                 # ZeroHedge feed description is HTML. We want a plain summary.
                 # Remove HTML tags from original or cleaned content
                 summary = re.sub(r'<[^>]+>', '', desc_text)
-                # Unescape HTML entities if needed, but basic clean might suffice for now
-                # Truncate if too long (e.g. 200 chars)
+                # Unescape HTML entities if needed
                 summary = summary.replace("\n", " ").strip()
                 if len(summary) > 300:
                     summary = summary[:297] + "..."
@@ -174,7 +210,7 @@ async def get_market_news_feed():
                 pub_date_elem = item.find("pubDate")
                 pub_date = pub_date_elem.text if pub_date_elem is not None else ""
                 
-                # Determine sentiment based on keywords (rudimentary)
+                # Determine sentiment
                 title_lower = title.lower()
                 sentiment = "neutral"
                 if any(x in title_lower for x in ["surge", "rally", "soar", "record", "jump", "beat"]):
@@ -186,14 +222,14 @@ async def get_market_news_feed():
                     "id": link,
                     "headline": title,
                     "summary": summary,
-                    "content": cleaned_content, # Full HTML content with author/date removed
+                    "content": cleaned_content, 
                     "time": pub_date, 
                     "url": link,
-                    "tags": ["MARKETS"], # Static tag for now
+                    "tags": ["MARKETS"],
                     "sentiment": sentiment
                 })
             
-            return items # Return all items
+            return items
             
     except Exception as e:
         print(f"Error fetching/parsing news feed: {str(e)}")

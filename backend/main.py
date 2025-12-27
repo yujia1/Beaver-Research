@@ -184,6 +184,14 @@ async def startup_event():
         except Exception as e:
             logger.error(f"Failed to init default users (non-fatal): {e}")
 
+        # 2. Start Background Tasks
+        # Start Market News Poller (Alphatrade)
+        try:
+             alphatrade.start_news_polling()
+             logger.info("Started market news background poller")
+        except Exception as e:
+             logger.error(f"Failed to start market news poller: {e}")
+
     except Exception as e:
         logger.error(f"Critical startup error (suppressed to allow API boot): {e}")
 
