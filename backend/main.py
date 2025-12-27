@@ -158,9 +158,11 @@ origins = [
     "http://localhost:5174",  # Vue.js dev server (alternative port)
     "http://localhost:8080",
     "http://localhost:80",  # Docker frontend (nginx)
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
     "http://frontend:80",  # Docker internal network
     "https://beaver-research-frontend-production.up.railway.app",
-    "https://beaver-research.up.railway.app",
+    "https://beaver-research.up.railway.app", # Production Frontend
     "https://www.beaver-research.up.railway.app", 
 ]
 
