@@ -14,7 +14,7 @@
     </div>
 
     <div class="news-list">
-      <div v-for="item in newsItems" :key="item.id" class="news-item">
+      <div v-for="item in newsItems" :key="item.id" class="news-item" @click="openNews(item.url)">
         <div class="news-meta">
           <span class="news-time">{{ item.time }}</span>
           <div class="news-trending" :class="item.sentiment">
@@ -76,6 +76,12 @@ const fetchNews = async () => {
 onMounted(() => {
     fetchNews();
 });
+
+const openNews = (url) => {
+    if (url) {
+        window.open(url, '_blank');
+    }
+};
 </script>
 
 <style scoped>
@@ -169,6 +175,12 @@ onMounted(() => {
   gap: 1.5rem;
   padding: 1.5rem 0;
   border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.news-item:hover {
+  background-color: #f9fafb;
 }
 
 .news-item:last-child {
