@@ -179,6 +179,7 @@ async def get_market_news_feed():
                     "id": link,
                     "headline": title,
                     "summary": summary,
+                    "content": desc_text, # Full HTML content
                     "time": pub_date, 
                     "url": link,
                     "tags": ["MARKETS"], # Static tag for now
