@@ -2,7 +2,7 @@
     "nav": {
         "dashboard": "市场概览",
         "investment": "投资组合",
-        "report": "研报中心",
+        "report": "期刊",
         "alphatrade": "Alpha交易",
         "framework": "财务框架",
         "academy": "阿尔法学院",
@@ -792,7 +792,7 @@
         }
     },
     "reports_page": {
-        "title": "报告中心",
+        "title": "期刊",
         "checking_access": "正在检查权限...",
         "loading": "正在加载报告...",
         "loading_single": "正在加载报告...",

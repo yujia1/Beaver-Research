@@ -2,7 +2,7 @@
     "nav": {
         "dashboard": "Market",
         "investment": "Investment",
-        "report": "Report",
+        "report": "Journal",
         "alphatrade": "AlphaTrade",
         "framework": "Framework",
         "academy": "Academy",
@@ -794,7 +794,7 @@
         }
     },
     "reports_page": {
-        "title": "Reports",
+        "title": "Journals",
         "checking_access": "Checking access...",
         "loading": "Loading reports...",
         "loading_single": "Loading report...",
