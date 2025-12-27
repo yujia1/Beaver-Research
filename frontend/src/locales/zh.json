@@ -59,6 +59,9 @@
             "commodity": "加载商品数据中...",
             "short_interest": "加载空头持仓数据中..."
         },
+        "market_news": {
+            "title": "市场快讯"
+        },
         "retry": "重试",
         "no_data": "暂无历史数据",
         "headers": {

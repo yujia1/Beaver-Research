@@ -59,6 +59,9 @@
             "commodity": "Loading Commodity Data...",
             "short_interest": "Loading short interest data..."
         },
+        "market_news": {
+            "title": "MARKETS WIRE"
+        },
         "retry": "Retry",
         "no_data": "No history data available",
         "headers": {

@@ -114,6 +114,9 @@
                 <MarketMovers v-if="activeEquityCategory === 'most-actives'" moverType="most-actives" />
                 <MarketMovers v-if="activeEquityCategory === 'gainers'" moverType="gainers" />
                 <MarketMovers v-if="activeEquityCategory === 'losers'" moverType="losers" />
+                
+                <!-- Market News Stream -->
+                <MarketNews />
 
             </div>
 
@@ -923,6 +926,7 @@
 <script setup>
 import MarketAnalysis from './MarketAnalysis.vue'
 import MarketMovers from './MarketMovers.vue'
+import MarketNews from './MarketNews.vue'
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, onMounted, computed, watch } from 'vue';
