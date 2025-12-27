@@ -155,8 +155,15 @@ async def get_market_news_feed():
                 desc_elem = item.find("description")
                 desc_text = desc_elem.text if desc_elem is not None else ""
                 
+                # Clean up the full content for the modal
+                cleaned_content = desc_text
+                if cleaned_content:
+                    # Remove the author and date spans at the bottom
+                    cleaned_content = re.sub(r'<span[^>]*?schema:author[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+                    cleaned_content = re.sub(r'<span[^>]*?schema:dateCreated[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+
                 # ZeroHedge feed description is HTML. We want a plain summary.
-                # Remove HTML tags
+                # Remove HTML tags from original or cleaned content
                 summary = re.sub(r'<[^>]+>', '', desc_text)
                 # Unescape HTML entities if needed, but basic clean might suffice for now
                 # Truncate if too long (e.g. 200 chars)
@@ -179,7 +186,7 @@ async def get_market_news_feed():
                     "id": link,
                     "headline": title,
                     "summary": summary,
-                    "content": desc_text, # Full HTML content
+                    "content": cleaned_content, # Full HTML content with author/date removed
                     "time": pub_date, 
                     "url": link,
                     "tags": ["MARKETS"], # Static tag for now

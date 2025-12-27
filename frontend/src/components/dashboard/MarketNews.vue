@@ -44,7 +44,6 @@
         <div class="modal-body">
            <div class="modal-meta">
               <span class="modal-time">{{ selectedNews.time }}</span>
-              <a :href="selectedNews.url" target="_blank" class="modal-link">Original Source</a>
            </div>
            <div class="modal-text" v-html="selectedNews.content"></div>
         </div>
