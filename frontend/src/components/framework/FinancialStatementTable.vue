@@ -54,7 +54,7 @@
                       <!-- Subcategory Fields -->
                       <template v-if="isCategoryExpanded(subcategory.name)">
                          <tr v-for="field in subcategory.fields" :key="field" class="data-row subcategory-data-row">
-                            <td class="line-item-cell subcategory-item">{{ formatLineItemName(field) }}</td>
+                            <td class="line-item-cell subcategory-item">{{ trLineItem(field) }}</td>
                             <td v-for="(val, index) in data" :key="index" class="data-cell">
                                {{ formatValue(field, val[field]) }}
                             </td>
@@ -66,7 +66,7 @@
                 <!-- Direct Fields -->
                 <template v-for="(field) in category.fields" :key="field">
                     <tr class="data-row">
-                       <td class="line-item-cell">{{ formatLineItemName(field) }}</td>
+                       <td class="line-item-cell">{{ trLineItem(field) }}</td>
                        <td v-for="(val, index) in data" :key="index" class="data-cell">
                           {{ formatValue(field, val[field]) }}
                        </td>
@@ -86,28 +86,28 @@
                     <template v-if="activeTab === 'income'">
                       <!-- Revenue Growth -->
                       <tr v-if="field === 'revenue'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Revenue Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                        <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_revenue_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                         <td v-for="(val, index) in data" :key="`growth-${index}`" class="data-cell calculated-value">
                            {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.revenue, data[index + 1].revenue)) : '-' }}
                         </td>
                       </tr>
                       <!-- Gross Margin -->
                       <tr v-if="field === 'grossProfit'" class="calculated-metric-row">
-                        <td class="line-item-cell calculated-metric">Gross Margin</td>
+                        <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_gross_margin') }}</td>
                          <td v-for="(val, index) in data" :key="`gm-${index}`" class="data-cell calculated-value">
                             {{ formatPercentage(calculateGrossMargin(val.grossProfit, val.revenue)) }}
                          </td>
                       </tr>
                       <!-- Operating Margin -->
                       <tr v-if="field === 'ebitda'" class="calculated-metric-row">
-                         <td class="line-item-cell calculated-metric">Operating Profit Margin</td>
+                         <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_operating_margin') }}</td>
                          <td v-for="(val, index) in data" :key="`opm-${index}`" class="data-cell calculated-value">
                             {{ formatPercentage(calculateOperatingMargin(val.ebitda, val.revenue)) }}
                          </td>
                       </tr>
                       <!-- Net Margin -->
                       <tr v-if="field === 'netIncome'" class="calculated-metric-row">
-                         <td class="line-item-cell calculated-metric">Net Profit Margin</td>
+                         <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_net_margin') }}</td>
                          <td v-for="(val, index) in data" :key="`npm-${index}`" class="data-cell calculated-value">
                             {{ formatPercentage(calculateNetMargin(val.netIncome, val.revenue)) }}
                          </td>
@@ -117,49 +117,49 @@
                     <template v-if="activeTab === 'cash_flow'">
                        <!-- Net Income Growth -->
                        <tr v-if="field === 'netIncome'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">Net Income Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_net_income_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                           <td v-for="(val, index) in data" :key="`ni-growth-${index}`" class="data-cell calculated-value">
                              {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.netIncome, data[index + 1].netIncome)) : '-' }}
                           </td>
                        </tr>
                        <!-- OCF Growth -->
                        <tr v-if="field === 'netCashProvidedByOperatingActivities'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">Operating Cash Flow Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_ocf_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                           <td v-for="(val, index) in data" :key="`ocf-growth-${index}`" class="data-cell calculated-value">
                              {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.netCashProvidedByOperatingActivities, data[index + 1].netCashProvidedByOperatingActivities)) : '-' }}
                           </td>
                        </tr>
                        <!-- AR Growth -->
                        <tr v-if="field === 'accountsReceivables'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">Accounts Receivables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_ar_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                           <td v-for="(val, index) in data" :key="`ar-growth-${index}`" class="data-cell calculated-value">
                              {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.accountsReceivables, data[index + 1].accountsReceivables)) : '-' }}
                           </td>
                        </tr>
                        <!-- Inventory Growth -->
                        <tr v-if="field === 'inventory'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">Inventory Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_inventory_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                           <td v-for="(val, index) in data" :key="`inv-growth-${index}`" class="data-cell calculated-value">
                              {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.inventory, data[index + 1].inventory)) : '-' }}
                           </td>
                        </tr>
                        <!-- AP Growth -->
                        <tr v-if="field === 'accountsPayables'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">Accounts Payables Growth ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_ap_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                           <td v-for="(val, index) in data" :key="`ap-growth-${index}`" class="data-cell calculated-value">
                              {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.accountsPayables, data[index + 1].accountsPayables)) : '-' }}
                           </td>
                        </tr>
                        <!-- Cash Burn -->
                        <tr v-if="field === 'cashAtEndOfPeriod'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">Cash Burn Rate (Monthly)</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_cash_burn') }}</td>
                           <td v-for="(val, index) in data" :key="`burn-${index}`" class="data-cell calculated-value">
                              {{ formatCurrency(calculateCashBurnRate(val.cashAtBeginningOfPeriod, val.cashAtEndOfPeriod, period)) }}
                           </td>
                        </tr>
                        <!-- CapEx Growth -->
                        <tr v-if="field === 'capitalExpenditure'" class="calculated-metric-row">
-                          <td class="line-item-cell calculated-metric">CapEx Growth Rate ({{ period === 'annual' ? 'YoY' : 'QoQ' }})</td>
+                          <td class="line-item-cell calculated-metric">{{ t('financial_statements.calc_capex_growth') }} ({{ period === 'annual' ? t('framework.period.yoy') : t('framework.period.qoq') }})</td>
                           <td v-for="(val, index) in data" :key="`capex-growth-${index}`" class="data-cell calculated-value">
                              {{ index < data.length - 1 ? formatPercentage(calculateRevenueGrowth(val.capitalExpenditure, data[index + 1].capitalExpenditure)) : '-' }}
                           </td>
@@ -173,7 +173,7 @@
         <!-- Fallback -->
         <template v-else>
            <tr v-for="item in lineItems" :key="item">
-              <td class="line-item-cell">{{ formatLineItemName(item) }}</td>
+              <td class="line-item-cell">{{ trLineItem(item) }}</td>
               <td v-for="(val, index) in data" :key="index" class="data-cell">
                  {{ formatValue(item, val[item]) }}
               </td>
@@ -223,6 +223,15 @@ const toggleCategory = (name) => {
 }
 
 const isCategoryExpanded = (name) => expandedCategories.value.has(name)
+
+// Translate line item
+const trLineItem = (item) => {
+  const key = `financial_statements.${item}`
+  const translated = t(key)
+  // If translation equals key, it means missing (default vue-i18n behavior), fallback to formatter
+  if (translated !== key) return translated
+  return formatLineItemName(item)
+}
 
 // Note: getSegmentValue uses props.revenueSegmentation.
 const getSegmentValue = (productName, date) => {
