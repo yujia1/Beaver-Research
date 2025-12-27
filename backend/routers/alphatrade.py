@@ -266,8 +266,19 @@ def _parse_feed_items(content, config):
             
             # Clean Bear Cave specific footers if needed (usually substack buttons)
             if config["type"] == "bearcave" and cleaned_content:
-                # Remove common substack subscribe buttons/footers if identifiable patterns exist
-                pass
+                # Remove subscription widgets and footers
+                cleaned_content = re.sub(r'<div class="subscription-widget-wrap-editor".*?</div>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+                cleaned_content = re.sub(r'<p class="button-wrapper".*?</a></p>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+                
+                # Remove "Until next week" and everything after
+                cleaned_content = re.sub(r'<p>Until next week,</p>.*', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+                cleaned_content = re.sub(r'<div><hr></div><p>Until next week,.*', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+
+                # Remove specific footer links/text
+                cleaned_content = re.sub(r'<h5><strong>New\? </strong><em><strong><a href="https://thebearcave.substack.com/">Sign Up Here</a></strong></em></h5>', '', cleaned_content, flags=re.IGNORECASE)
+                cleaned_content = re.sub(r'<h5><strong>Got Feedback\? Just Hit Reply</strong></h5>', '', cleaned_content, flags=re.IGNORECASE)
+                cleaned_content = re.sub(r'<h5><strong>The Bear Cave is Not Investment Advice.*?</strong></h5>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
+
 
             # Create Plain Summary
             summary_source = desc_text if desc_text else full_content
