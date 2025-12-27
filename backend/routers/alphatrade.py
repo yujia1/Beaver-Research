@@ -7,6 +7,8 @@ from datetime import datetime
 import yfinance as yf
 import os
 import httpx
+import xml.etree.ElementTree as ET
+import re
 
 # Get FMP API key from environment
 FMP_API_KEY = os.getenv("FMP_API_KEY", "")
@@ -125,6 +127,69 @@ from models import AlphaTradePosition, AlphaTradeLot, AlphaTradeFundamentalAnaly
 from routers.auth import get_current_user, verify_premium_access
 
 router = APIRouter()
+
+@router.get("/market-news-feed")
+async def get_market_news_feed():
+    try:
+        url = "http://feeds.feedburner.com/zerohedge/feed"
+        # Use httpx to follow redirects (feedburner often redirects)
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            response = await client.get(url)
+            if response.status_code != 200:
+                 print(f"Failed to fetch news feed: {response.status_code}")
+                 return []
+            
+            content = response.content
+            # Parse XML
+            root = ET.fromstring(content)
+            
+            items = []
+            # RSS items are usually under channel/item
+            for item in root.findall(".//item"):
+                title_elem = item.find("title")
+                title = title_elem.text if title_elem is not None else "No Title"
+                
+                link_elem = item.find("link")
+                link = link_elem.text if link_elem is not None else ""
+                
+                desc_elem = item.find("description")
+                desc_text = desc_elem.text if desc_elem is not None else ""
+                
+                # ZeroHedge feed description is HTML. We want a plain summary.
+                # Remove HTML tags
+                summary = re.sub(r'<[^>]+>', '', desc_text)
+                # Unescape HTML entities if needed, but basic clean might suffice for now
+                # Truncate if too long (e.g. 200 chars)
+                summary = summary.replace("\n", " ").strip()
+                if len(summary) > 300:
+                    summary = summary[:297] + "..."
+                
+                pub_date_elem = item.find("pubDate")
+                pub_date = pub_date_elem.text if pub_date_elem is not None else ""
+                
+                # Determine sentiment based on keywords (rudimentary)
+                title_lower = title.lower()
+                sentiment = "neutral"
+                if any(x in title_lower for x in ["surge", "rally", "soar", "record", "jump", "beat"]):
+                    sentiment = "positive"
+                elif any(x in title_lower for x in ["plunge", "crash", "drop", "fall", "miss", "warn", "freeze", "sanction"]):
+                    sentiment = "negative"
+
+                items.append({
+                    "id": link,
+                    "headline": title,
+                    "summary": summary,
+                    "time": pub_date, 
+                    "url": link,
+                    "tags": ["MARKETS"], # Static tag for now
+                    "sentiment": sentiment
+                })
+            
+            return items[:20] # Return top 20
+            
+    except Exception as e:
+        print(f"Error fetching/parsing news feed: {str(e)}")
+        return []
 
 
 # Pydantic schemas

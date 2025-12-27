@@ -60,7 +60,8 @@
             "short_interest": "加载空头持仓数据中..."
         },
         "market_news": {
-            "title": "市场快讯"
+            "title": "市场快讯",
+            "search_placeholder": "搜索新闻..."
         },
         "retry": "重试",
         "no_data": "暂无历史数据",

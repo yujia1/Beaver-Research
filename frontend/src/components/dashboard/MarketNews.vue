@@ -6,12 +6,10 @@
         <span class="pulse-dot"></span>
       </div>
       <div class="header-actions">
-        <button class="action-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-        </button>
-        <button class="action-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        </button>
+        <div class="search-container">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" :placeholder="t('market_news.search_placeholder')" class="search-input" />
+        </div>
       </div>
     </div>
 
@@ -32,60 +30,52 @@
           <h4 class="news-headline">{{ item.headline }}</h4>
           <p class="news-summary">{{ item.summary }}</p>
         </div>
-
-        <div class="news-thumbnail">
-           <!-- Using placeholder images or colored blocks since we don't have real images -->
-           <div class="thumbnail-placeholder" :style="{ backgroundColor: item.color }"></div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import API_BASE_URL from '@/config/api.js';
 
 const { t } = useI18n();
+const newsItems = ref([]);
 
-const newsItems = ref([
-  {
-    id: 1,
-    time: "05:50:10 PM",
-    sentiment: "negative",
-    tags: ["MARKETS", "$TLX"],
-    headline: "$TLX Telix Pharmaceuticals Plunges 21% on SEC Subpoena and FDA Manufacturing Rejection",
-    summary: "Shares cratered following a devastating Complete Response Letter from the FDA and a concurrent SEC subpoena regarding disclosures for its prostate cancer drug candidates. The regulatory setbacks have triggered a wave of securities class action filings...",
-    color: "#e5e7eb"
-  },
-  {
-    id: 2,
-    time: "05:50:10 PM",
-    sentiment: "positive",
-    tags: ["MARKETS", "$TGT"],
-    headline: "$TGT Target Shares Rally as Activist Investor Reports New Multi-Million Dollar Stake",
-    summary: "The retail giant saw a late-session surge in interest following reports that an activist investor is building a position to push for structural changes. Analysts anticipate immediate pressure on management to address margin compression and inventory...",
-    color: "#d1d5db"
-  },
-  {
-    id: 3,
-    time: "05:50:10 PM",
-    sentiment: "negative",
-    tags: ["MARKETS", "$BTC", "$ETH"],
-    headline: "$BTC / $ETH Crypto Markets Slide as Bitcoin Loses $90,000 Support Level Amid Risk-Off Sentiment",
-    summary: "Major digital assets are experiencing broad-based selling pressure, with Bitcoin retreating toward the $87,000 mark as year-end profit-taking and ETF outflows accelerate. The global crypto market cap fell 1.19% in the last few hours as traders rotate out of high...",
-    color: "#e5e7eb"
-  },
-  {
-    id: 4,
-    time: "05:50:10 PM",
-    sentiment: "positive",
-    tags: ["MARKETS", "$NVDA"],
-    headline: "$NVDA Nvidia Finalizes $20 Billion Licensing Agreement with AI Accelerator Startup Groq",
-    summary: "The deal grants the chip giant access to specialized LPU (Language Processing Unit) technology to bolster its AI inference capabilities against rising competition from custom ASIC manufacturers. Market analysts view the move as a strategic hedge to...",
-    color: "#4b5563"
-  }
-]);
+const formatTime = (dateString) => {
+    try {
+        const date = new Date(dateString);
+        // Format to "05:50:10 PM" style
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    } catch (e) {
+        return dateString;
+    }
+};
+
+const fetchNews = async () => {
+    try {
+        // Use the configured API base URL (handling https if needed via config logic)
+        // Note: API_BASE_URL usually doesn't end with slash
+        const response = await fetch(`${API_BASE_URL}/alphatrade/market-news-feed`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        newsItems.value = data.map(item => ({
+            ...item,
+            time: formatTime(item.time)
+        }));
+    } catch (e) {
+        console.error("Failed to fetch news", e);
+        // Fallback or empty state could be handled here
+    }
+};
+
+onMounted(() => {
+    fetchNews();
+});
 </script>
 
 <style scoped>
@@ -138,22 +128,35 @@ const newsItems = ref([
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
 }
 
-.action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
   color: #9ca3af;
-  padding: 4px;
-  border-radius: 4px;
+}
+
+.search-input {
+  padding: 6px 10px 6px 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  width: 200px;
   transition: all 0.2s;
 }
 
-.action-btn:hover {
-  color: #111827;
-  background-color: #f3f4f6;
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .news-list {
@@ -248,18 +251,5 @@ const newsItems = ref([
   color: #6b7280;
   margin: 0;
   line-height: 1.5;
-}
-
-.news-thumbnail {
-  width: 96px;
-  height: 64px;
-  flex-shrink: 0;
-}
-
-.thumbnail-placeholder {
-  width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  background-color: #e5e7eb;
 }
 </style>

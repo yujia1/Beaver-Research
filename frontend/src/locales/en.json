@@ -60,7 +60,8 @@
             "short_interest": "Loading short interest data..."
         },
         "market_news": {
-            "title": "MARKETS WIRE"
+            "title": "MARKETS WIRE",
+            "search_placeholder": "Search news..."
         },
         "retry": "Retry",
         "no_data": "No history data available",
