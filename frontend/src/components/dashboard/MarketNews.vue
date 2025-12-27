@@ -8,13 +8,13 @@
       <div class="header-actions">
         <div class="search-container">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" :placeholder="t('market_news.search_placeholder')" class="search-input" />
+          <input type="text" :placeholder="t('dashboard.market_news.search_placeholder')" class="search-input" v-model="searchQuery" />
         </div>
       </div>
     </div>
 
     <div class="news-list">
-      <div v-for="item in newsItems" :key="item.id" class="news-item" @click="openNews(item)">
+      <div v-for="item in filteredNewsItems" :key="item.id" class="news-item" @click="openNews(item)">
         <div class="news-meta">
           <span class="news-time">{{ item.time }}</span>
           <div class="news-trending" :class="item.sentiment">
@@ -53,12 +53,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api.js';
 
 const { t } = useI18n();
 const newsItems = ref([]);
+const searchQuery = ref('');
+
+const filteredNewsItems = computed(() => {
+    if (!searchQuery.value) return newsItems.value;
+    const query = searchQuery.value.toLowerCase();
+    return newsItems.value.filter(item => 
+        (item.headline && item.headline.toLowerCase().includes(query)) ||
+        (item.summary && item.summary.toLowerCase().includes(query))
+    );
+});
 
 const formatTime = (dateString) => {
     try {
