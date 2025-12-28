@@ -107,7 +107,25 @@ onMounted(() => {
 const selectedNews = ref(null);
 
 const openNews = (item) => {
-    selectedNews.value = item;
+    // Clone item to avoid mutation references issues if needed
+    const newsItem = { ...item };
+    
+    // Process content to make all links open in new tab
+    if (newsItem.content) {
+        // Add target="_blank" to all <a> tags that don't satisfy it
+        // Simpler regex approach for standard HTML content
+        // Note: This regex finds <a href="..."> and inserts target="_blank" if not present.
+        // A safer way is robust HTML parsing, but for this use case:
+        
+        // We will catch clicks in the modal content instead using event delegation for 100% reliability
+        // But pre-processing the HTML string to add target="_blank" is also user-friendly (shows icon on hover)
+        
+        // Global replace: <a href => <a target="_blank" href
+        // This is a rough-and-ready fix that works for most standard feed HTML
+        newsItem.content = newsItem.content.replace(/<a\s+(?!.*?target=["']_blank["'])/gi, '<a target="_blank" ');
+    }
+    
+    selectedNews.value = newsItem;
 };
 
 const closeNews = () => {
