@@ -4,6 +4,17 @@
       <div class="title-container">
         <h3>{{ t('dashboard.market_news.title') }}</h3>
         <span class="pulse-dot"></span>
+        <div class="tag-filters">
+            <button 
+                :class="['filter-btn', { active: selectedTag === 'ALL' }]" 
+                @click="selectedTag = 'ALL'">ALL</button>
+            <button 
+                :class="['filter-btn', { active: selectedTag === 'MARKETS' }]" 
+                @click="selectedTag = 'MARKETS'">MARKETS</button>
+            <button 
+                :class="['filter-btn', { active: selectedTag === 'RESEARCH' }]" 
+                @click="selectedTag = 'RESEARCH'">RESEARCH</button>
+        </div>
       </div>
       <div class="header-actions">
         <div class="search-container">
@@ -60,11 +71,21 @@ import API_BASE_URL from '@/config/api.js';
 const { t } = useI18n();
 const newsItems = ref([]);
 const searchQuery = ref('');
+const selectedTag = ref('ALL');
 
 const filteredNewsItems = computed(() => {
-    if (!searchQuery.value) return newsItems.value;
+    let items = newsItems.value;
+    
+    // Filter by tag
+    if (selectedTag.value !== 'ALL') {
+        items = items.filter(item => item.tags && item.tags.includes(selectedTag.value));
+    }
+    
+    if (!searchQuery.value) return items;
+    
+    // Filter by search query
     const query = searchQuery.value.toLowerCase();
-    return newsItems.value.filter(item => 
+    return items.filter(item => 
         (item.headline && item.headline.toLowerCase().includes(query)) ||
         (item.summary && item.summary.toLowerCase().includes(query))
     );
@@ -156,6 +177,7 @@ const closeNews = () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1; 
 }
 
 .news-header h3 {
@@ -184,6 +206,34 @@ const closeNews = () => {
 .header-actions {
   display: flex;
   align-items: center;
+}
+
+.tag-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 1.5rem;
+}
+
+.filter-btn {
+    background: none;
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    color: #4b5563;
+    background-color: #f3f4f6;
+}
+
+.filter-btn.active {
+    color: #2563eb;
+    background-color: #eff6ff;
 }
 
 .search-container {
