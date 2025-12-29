@@ -2,8 +2,12 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import API_BASE_URL from '@/config/api.js'
+
 const { t } = useI18n()
 const emit = defineEmits(['close', 'submit'])
+
+const fetchingPrice = ref(false)
 
 const formData = ref({
   ticker: '',
@@ -37,6 +41,34 @@ const validateForm = () => {
   }
   
   return Object.keys(errors.value).length === 0
+}
+
+const fetchCurrentPrice = async () => {
+    if (!formData.value.ticker) {
+        errors.value.ticker = t('alphatrade.errors.ticker_required')
+        return
+    }
+    
+    fetchingPrice.value = true
+    try {
+        const ticker = formData.value.ticker.trim().toUpperCase()
+        const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-price/${ticker}`)
+        
+        if (response.ok) {
+            const data = await response.json()
+            if (data.currentPrice) {
+                formData.value.costPerShare = data.currentPrice
+                // Clear error if any
+                if (errors.value.costPerShare) delete errors.value.costPerShare
+            }
+        } else {
+             console.error("Failed to fetch price")
+        }
+    } catch (e) {
+        console.error("Error fetching price", e)
+    } finally {
+        fetchingPrice.value = false
+    }
 }
 
 const handleSubmit = () => {
@@ -162,7 +194,12 @@ const handleBackdropClick = (e) => {
             </div>
 
             <div class="form-group">
-              <label for="costPerShare">{{ t('alphatrade.modal.entry_price') }}</label>
+              <div class="label-container">
+                  <label for="costPerShare">{{ t('alphatrade.modal.entry_price') }}</label>
+                  <button type="button" class="today-price-btn" @click="fetchCurrentPrice" :disabled="fetchingPrice">
+                    {{ fetchingPrice ? 'Loading...' : 'Today Price' }}
+                  </button>
+              </div>
               <input
                 id="costPerShare"
                 v-model="formData.costPerShare"
@@ -276,6 +313,32 @@ const handleBackdropClick = (e) => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.label-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.today-price-btn {
+    background: none;
+    border: none;
+    color: #2563eb;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+}
+
+.today-price-btn:hover {
+    text-decoration: underline;
+}
+
+.today-price-btn:disabled {
+    color: #9ca3af;
+    cursor: wait;
 }
 
 .form-group label {
