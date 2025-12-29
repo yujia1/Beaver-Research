@@ -692,7 +692,10 @@ async def get_single_stock_price(ticker: str):
     """Get current price for a single ticker"""
     prices = await fetch_realtime_prices([ticker])
     t_upper = ticker.upper()
-    return {"ticker": t_upper, "currentPrice": prices.get(t_upper, 0.0)}
+    current_price = prices.get(t_upper, 0.0)
+    # Round to 2 decimals
+    rounded_price = round(current_price, 2)
+    return {"ticker": t_upper, "currentPrice": rounded_price}
 
 
 @router.post("/stock-prices")
