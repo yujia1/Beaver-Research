@@ -687,6 +687,14 @@ async def generate_trading_signal(
     return {"message": f"Trading signal for {signal_request.ticker} ({signal_request.analysis_type}) - implementation pending"}
 
 
+@router.get("/stock-price/{ticker}")
+async def get_single_stock_price(ticker: str):
+    """Get current price for a single ticker"""
+    prices = await fetch_realtime_prices([ticker])
+    t_upper = ticker.upper()
+    return {"ticker": t_upper, "currentPrice": prices.get(t_upper, 0.0)}
+
+
 @router.post("/stock-prices")
 async def get_batch_stock_prices(tickers: List[str]):
     """Get current stock prices for multiple tickers"""
