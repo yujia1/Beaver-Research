@@ -12,6 +12,59 @@ import xml.etree.ElementTree as ET
 import re
 from redis_client import redis_client
 
+from routers.auth import get_current_user, verify_premium_access
+
+router = APIRouter()
+
+# --- Pydantic Models ---
+class LotCreate(BaseModel):
+    purchaseDate: str
+    quantity: int
+    costPerShare: float
+    side: str = "LONG"
+    link: Optional[str] = None
+    note: Optional[str] = None
+
+class LotUpdate(BaseModel):
+    purchaseDate: str
+    quantity: int
+    costPerShare: float
+    side: str
+    link: Optional[str] = None
+    note: Optional[str] = None
+
+class LotResponse(BaseModel):
+    id: int
+    purchaseDate: str
+    quantity: int
+    costPerShare: float
+    side: str
+    link: Optional[str] = None
+    note: Optional[str] = None
+
+class PositionCreate(BaseModel):
+    ticker: str
+    sector: Optional[str] = None
+
+class PositionResponse(BaseModel):
+    ticker: str
+    sector: Optional[str]
+    currentPrice: float
+    lots: List[LotResponse]
+    fundamentalAnalysis: Dict[str, str]
+    fundamentalScores: Dict[str, Optional[int]]
+
+class FundamentalAnalysisUpdate(BaseModel):
+    questionId: int
+    answer: Optional[str] = None
+    score: Optional[int] = None
+
+class TradingSignalRequest(BaseModel):
+    ticker: str
+    analysis_type: str = "technical"
+
+# --- End Models ---
+
 MARKET_NEWS_CACHE_KEY = "market_news_feed_v1"
 MARKET_NEWS_CACHE_TTL = 180 # 3 minutes
 
@@ -38,7 +91,7 @@ async def fetch_fmp_data(endpoint: str, params: Dict[str, Any] = None) -> List[D
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, params=params)
-            # We treat 404/others as empty result for resilience in alphatrade context
+            # We treat 404/others as empty result for resilience in portfolio context
             if response.status_code != 200:
                 print(f"FMP API error {response.status_code}: {response.text}")
                 return []
@@ -130,8 +183,6 @@ import models
 from database import get_db
 from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
 
-# ... (Previous imports remain same, just models import changed) ...
-
 # Position endpoints
 @router.get("/positions", response_model=List[PositionResponse])
 async def get_positions(
@@ -152,7 +203,7 @@ async def get_positions(
         # Build fundamental analysis dict
         fundamental_analysis = {}
         fundamental_scores = {}
-        for analysis in pos.analysis: # Changed from fundamental_analysis
+        for analysis in pos.analysis: 
             fundamental_analysis[str(analysis.question_id)] = analysis.answer or ""
             if analysis.score:
                 fundamental_scores[str(analysis.question_id)] = analysis.score
@@ -184,7 +235,7 @@ async def get_positions(
 
 
 @router.post("/positions")
-def create_position(
+async def create_position(
     position: PositionCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -210,7 +261,8 @@ def create_position(
     
     response_price = 0.0
     try:
-        response_price = get_stock_price(position.ticker)
+        prices = await fetch_realtime_prices([position.ticker])
+        response_price = prices.get(position.ticker.upper(), 0.0)
     except:
         pass
     

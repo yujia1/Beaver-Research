@@ -47,7 +47,8 @@ from routers import (
     portfolio,
     framework,
     admin_db,
-    payment
+    payment,
+    agent
 )
 from database import engine, SessionLocal, check_db_connection
 import models
@@ -185,12 +186,7 @@ async def startup_event():
             logger.error(f"Failed to init default users (non-fatal): {e}")
 
         # 2. Start Background Tasks
-        # Start Market News Poller (Alphatrade)
-        try:
-             portfolio.start_news_polling()
-             logger.info("Started market news background poller")
-        except Exception as e:
-             logger.error(f"Failed to start market news poller: {e}")
+
 
     except Exception as e:
         logger.error(f"Critical startup error (suppressed to allow API boot): {e}")

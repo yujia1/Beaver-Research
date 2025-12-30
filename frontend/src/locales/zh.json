@@ -3,11 +3,10 @@
         "dashboard": "市场概览",
         "investment": "投资组合",
         "report": "期刊",
-        "alphatrade": "Alpha交易",
+        "portfolio": "投资组合",
         "framework": "财务框架",
         "academy": "阿尔法学院",
         "research": "深度研究",
-        "whale_watching": "巨鲸追踪",
         "admin": "管理后台",
         "login": "登录",
         "logout": "退出登录"
@@ -285,7 +284,7 @@
             "odds": "概率"
         }
     },
-    "alphatrade": {
+    "portfolio": {
         "title": "库存与基本面",
         "subtitle": "量化多空交易框架",
         "new_execution": "新建交易",

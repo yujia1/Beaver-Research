@@ -63,9 +63,9 @@ const menuItems = computed(() => {
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' 
   }
   
-  const alphaTradeItem = { 
-    path: '/alphatrade', 
-    name: t('nav.alphatrade'), 
+  const portfolioItem = { 
+    path: '/portfolio', 
+    name: t('nav.portfolio'), 
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
   }
   
@@ -87,11 +87,7 @@ const menuItems = computed(() => {
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
   }
 
-  const whaleWatchingItem = {
-    path: '/whale-watching',
-    name: t('nav.whale_watching'),
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16s9-15 20-4C11 23 2 8 2 8"></path></svg>'
-  }
+
 
   // Check permissions
   if (user.value && user.value.role === 'admin') {
@@ -99,19 +95,19 @@ const menuItems = computed(() => {
       items.push(investmentItem)
       items.push(frameworkItem)
       items.push(reportItem)
-      items.push(alphaTradeItem)
+      items.push(portfolioItem)
       items.push(academyItem)
       items.push(researchItem)
-      items.push(whaleWatchingItem)
+
   } else {
       // Check specific permissions
       if (hasAccess('/investment')) items.push(investmentItem)
       if (hasAccess('/framework')) items.push(frameworkItem)
       if (hasAccess('/report')) items.push(reportItem)
-      if (hasAccess('/alphatrade')) items.push(alphaTradeItem)
+      if (hasAccess('/portfolio')) items.push(portfolioItem)
       if (hasAccess('/academy')) items.push(academyItem)
       if (hasAccess('/research')) items.push(researchItem)
-      if (hasAccess('/whale-watching')) items.push(whaleWatchingItem)
+
   }
 
   // Upgrade to Pro (if not paid and not admin)

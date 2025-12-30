@@ -7,10 +7,10 @@ import ResearchView from '../views/ResearchView.vue'
 import AdminView from '../views/AdminView.vue'
 import ReportView from '../views/ReportView.vue'
 import ShortInterestView from '../views/ShortInterestView.vue'
-import AlphaTradeView from '../views/AlphaTradeView.vue'
+import PortfolioView from '../views/PortfolioView.vue'
 import AcademyView from '../views/AcademyView.vue'
 import FrameworkView from '../views/FrameworkView.vue'
-import WhaleWatchingView from '../views/WhaleWatchingView.vue'
+
 import API_BASE_URL from '@/config/api.js'
 
 const router = createRouter({
@@ -52,12 +52,7 @@ const router = createRouter({
       component: ShortInterestView,
       meta: { requiresAuth: true } // Controlled dynamically
     },
-    {
-      path: '/whale-watching',
-      name: 'whale-watching',
-      component: WhaleWatchingView,
-      meta: { requiresAuth: true } // Controlled dynamically
-    },
+
     {
       path: '/report',
       name: 'report',
@@ -71,9 +66,9 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
-      path: '/alphatrade',
-      name: 'alphatrade',
-      component: AlphaTradeView,
+      path: '/portfolio',
+      name: 'portfolio',
+      component: PortfolioView,
       meta: { requiresAuth: false } // Controlled dynamically
     },
     {
@@ -196,7 +191,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Check dynamic permissions for protected resources
   // Only check for specific routes that are managed
-  const managedRoutes = ['/research', '/alphatrade', '/report', '/investment', '/short-interest', '/whale-watching']
+  const managedRoutes = ['/research', '/portfolio', '/report', '/investment', '/short-interest']
   if (managedRoutes.includes(to.path)) {
     // If user is not logged in but route is managed (some might be public-facing but restricted)
     // For now, if it requiresAuth, we handled it above.

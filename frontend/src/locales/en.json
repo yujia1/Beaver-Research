@@ -3,11 +3,10 @@
         "dashboard": "Market",
         "investment": "Investment",
         "report": "Journal",
-        "alphatrade": "AlphaTrade",
+        "portfolio": "Portfolio",
         "framework": "Framework",
         "academy": "Academy",
         "research": "Research",
-        "whale_watching": "Whale Watching",
         "admin": "Admin Panel",
         "login": "Login",
         "logout": "Logout"
@@ -285,7 +284,7 @@
             "odds": "Odds"
         }
     },
-    "alphatrade": {
+    "portfolio": {
         "title": "INVENTORY & FUNDAMENTALS",
         "subtitle": "QUANTITATIVE SHORT/LONG FRAMEWORK",
         "new_execution": "New Execution",
