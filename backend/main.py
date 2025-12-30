@@ -215,7 +215,7 @@ async def startup_event():
         
         # Import at function level to avoid circular imports
         from database import Base, engine
-        from sqlalchemy import inspect
+        from sqlalchemy import inspect, text
         
         # 0. Handle database schema setup
         rebuild_db = os.getenv("REBUILD_DB", "false").lower() == "true"
@@ -225,7 +225,30 @@ async def startup_event():
             logger.info("REBUILD_DB flag detected - rebuilding database schema...")
             try:
                 logger.info("Dropping all existing tables...")
-                Base.metadata.drop_all(bind=engine)
+                
+                # For PostgreSQL, we need to use CASCADE to drop tables with foreign key dependencies
+                # Check if we're using PostgreSQL
+                from sqlalchemy.engine.url import make_url
+                db_url = str(engine.url)
+                is_postgres = db_url.startswith("postgresql")
+                
+                if is_postgres:
+                    # Use raw SQL with CASCADE for PostgreSQL
+                    logger.info("Using CASCADE to drop all tables (PostgreSQL)")
+                    with engine.connect() as conn:
+                        # Get all table names
+                        inspector = inspect(engine)
+                        tables = inspector.get_table_names()
+                        
+                        # Drop each table with CASCADE
+                        for table in tables:
+                            conn.execute(text(f'DROP TABLE IF EXISTS "{table}" CASCADE'))
+                            logger.info(f"Dropped table: {table}")
+                        conn.commit()
+                else:
+                    # For SQLite, regular drop_all works fine
+                    Base.metadata.drop_all(bind=engine)
+                
                 logger.info("Creating all tables from models...")
                 Base.metadata.create_all(bind=engine)
                 logger.info("Database schema rebuild complete!")
