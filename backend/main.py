@@ -213,6 +213,9 @@ async def startup_event():
     try:
         logger.info("Running startup initialization...")
         
+        # Import at function level to avoid circular imports
+        from database import Base, engine
+        
         # 0. Handle database schema setup
         rebuild_db = os.getenv("REBUILD_DB", "false").lower() == "true"
         
@@ -220,7 +223,6 @@ async def startup_event():
             # Rebuild: Drop all tables and recreate from models
             logger.info("REBUILD_DB flag detected - rebuilding database schema...")
             try:
-                from database import Base, engine
                 logger.info("Dropping all existing tables...")
                 Base.metadata.drop_all(bind=engine)
                 logger.info("Creating all tables from models...")
