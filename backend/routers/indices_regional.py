@@ -66,7 +66,7 @@ async def get_regional_indices():
     }
     
     # Check cache first
-    cache_key = "indices:regional:all"
+    cache_key = "indices:regional:all:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -103,8 +103,9 @@ async def get_regional_indices():
                                 latest = data[0]
                                 previous = data[1] if len(data) > 1 else latest
                                 
-                                current_price = latest.get("close", 0)
-                                previous_close = previous.get("close", current_price)
+                                # Fix: 'light' endpoint uses 'price' instead of 'close'
+                                current_price = latest.get("price", 0)
+                                previous_close = previous.get("price", current_price)
                                 change = current_price - previous_close
                                 change_percent = (change / previous_close * 100) if previous_close != 0 else 0
                                 
@@ -114,7 +115,7 @@ async def get_regional_indices():
                                     history.append({
                                         "symbol": index["symbol"],
                                         "date": item.get("date"),
-                                        "price": item.get("close", 0),
+                                        "price": item.get("price", 0),
                                         "volume": item.get("volume", 0)
                                     })
                                 
