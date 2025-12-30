@@ -1,33 +1,7 @@
-// API Configuration - Runtime Detection
-// Automatically uses the correct backend URL based on environment
+// API Configuration
+// Uses VITE_API_URL environment variable set in Railway/deployment platform
 
-function getApiBaseUrl() {
-    // Priority 1: Check environment variable (VITE_API_URL or VITE_API_BASE_URL)
-    // This allows manual override in Railway or other environments
-    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL
-    if (envUrl) {
-        let url = envUrl
-        // Force HTTPS on Railway even if env var is HTTP
-        if (window.location.hostname.includes('railway.app') && url.startsWith('http://')) {
-            url = url.replace('http://', 'https://')
-        }
-        return url
-    }
-
-    // Priority 2: If running on localhost, use local backend
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:8000'
-    }
-
-    // Priority 3: If running on Railway production (auto-detection)
-    if (window.location.hostname.includes('railway.app')) {
-        return 'https://beaver-research-backend-production.up.railway.app'
-    }
-
-    // Fallback to localhost
-    return 'http://localhost:8000'
-}
-
-const API_BASE_URL = getApiBaseUrl()
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default API_BASE_URL
+
