@@ -947,10 +947,10 @@ const uploadReport = async () => {
     formData.append('ticker', uploadReportTicker.value.trim() || 'GENERAL')
     formData.append('report_type', uploadReportType.value)
     
+    
     const token = localStorage.getItem('access_token')
-    const API_BASE_URL = window.location.hostname.includes('railway.app') 
-      ? 'https://beaver-research-backend-production.up.railway.app'
-      : 'http://localhost:8000'
+    const API_BASE_URL = (await import('../config/api.js')).default
+    
     
     const response = await fetch(`${API_BASE_URL}/api/reports/publish`, {
       method: 'POST',

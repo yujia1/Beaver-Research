@@ -6,10 +6,8 @@ import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { useUserStore } from '@/stores/userStore'
 
-// API Base URL - runtime detection
-const API_BASE_URL = window.location.hostname.includes('railway.app') 
-  ? 'https://beaver-research-backend-production.up.railway.app'
-  : 'http://localhost:8000'
+import API_BASE_URL from './config/api.js'
+
 
 const router = useRouter()
 const route = useRoute()
