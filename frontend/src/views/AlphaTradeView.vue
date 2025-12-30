@@ -204,7 +204,7 @@ const fetchPositions = async () => {
   loading.value = true
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions`, {
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/positions`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -239,7 +239,7 @@ const refreshPrices = async () => {
     const tickers = positions.value.map(p => p.ticker)
     
     // 1. Fetch real-time prices
-    const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-prices`, {
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/stock-prices`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ const refreshPrices = async () => {
           
           // Sync with backend
           try {
-             await fetch(`${API_BASE_URL}/api/alphatrade/positions/${position.ticker}/price`, {
+             await fetch(`${API_BASE_URL}/api/portfolio/positions/${position.ticker}/price`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`
@@ -283,7 +283,7 @@ const refreshPrices = async () => {
 
 const fetchSingleStockPrice = async (ticker) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-price/${ticker}`)
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/stock-price/${ticker}`)
     
     if (response.ok) {
       const data = await response.json()
@@ -348,7 +348,7 @@ const saveFundamentalAnalysis = (ticker, questionId, value) => {
 
     try {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}/analysis`, {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/positions/${ticker}/analysis`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -405,7 +405,7 @@ const setQuestionScore = async (ticker, questionId, score) => {
 
   try {
     const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}/analysis`, {
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/positions/${ticker}/analysis`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -602,7 +602,7 @@ const handleAddLot = async (lotData) => {
       // Note: This endpoint might need to be implemented on backend or we assume UNKNOWN
       // For now we just create the position.
       
-      const posResponse = await fetch(`${API_BASE_URL}/api/alphatrade/positions`, {
+      const posResponse = await fetch(`${API_BASE_URL}/api/portfolio/positions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -624,7 +624,7 @@ const handleAddLot = async (lotData) => {
     }
     
     // Add new lot
-    const lotResponse = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}/lots`, {
+    const lotResponse = await fetch(`${API_BASE_URL}/api/portfolio/positions/${ticker}/lots`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -653,7 +653,7 @@ const deletePosition = async (ticker) => {
     loading.value = true
     try {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`${API_BASE_URL}/api/alphatrade/positions/${ticker}`, {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/positions/${ticker}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -684,7 +684,7 @@ const deleteLot = async (ticker, lotId) => {
     loading.value = true
     try {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`${API_BASE_URL}/api/alphatrade/lots/${lotId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/lots/${lotId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -724,7 +724,7 @@ const handleEditLot = async (updatedData) => {
     loading.value = true
     try {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`${API_BASE_URL}/api/alphatrade/lots/${editingLot.value.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/lots/${editingLot.value.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

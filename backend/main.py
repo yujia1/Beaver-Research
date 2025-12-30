@@ -35,7 +35,6 @@ load_dotenv()
 logger.info("Environment variables loaded")
 
 from routers import (
-    agent, 
     energy, 
     sec, 
     bond, 
@@ -44,13 +43,10 @@ from routers import (
     external, 
     auth, 
     research, 
-    # filing_13f, 
     short_interest,
-    alphatrade,
-    whale_watching,
+    portfolio,
     framework,
     admin_db,
-    # admin_scheduler,
     payment
 )
 from database import engine, SessionLocal, check_db_connection
@@ -191,7 +187,7 @@ async def startup_event():
         # 2. Start Background Tasks
         # Start Market News Poller (Alphatrade)
         try:
-             alphatrade.start_news_polling()
+             portfolio.start_news_polling()
              logger.info("Started market news background poller")
         except Exception as e:
              logger.error(f"Failed to start market news poller: {e}")
@@ -209,10 +205,8 @@ app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
 app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(research.router, prefix="/api/research", tags=["Research"])
-# app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filings"])
 app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
-app.include_router(whale_watching.router, prefix="/api/whale-watching", tags=["Whale Watching"])
-app.include_router(alphatrade.router, prefix="/api/alphatrade", tags=["AlphaTrade"])
+app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])

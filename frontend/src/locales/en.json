@@ -651,31 +651,6 @@
         "batch": {
             "title": "Batch Job Management",
             "subtitle": "Trigger and monitor batch processing jobs",
-            "filing_13f": {
-                "title": "13F Filing Processing",
-                "description": "Process 13F institutional holdings filings from SEC EDGAR. Fetches, parses, and stores holdings data with CUSIP-to-ticker mapping.",
-                "force_reprocess": "Force Reprocess (reprocess already processed filings)",
-                "quarters_label": "Quarters (leave empty for all):",
-                "quarters_placeholder": "e.g., 2025-Q3,2025-Q4",
-                "quarters_help": "Comma-separated list of quarters (e.g., 2025-Q3,2025-Q4)",
-                "process_btn": "Process 13F Filings",
-                "processing_btn": "Processing...",
-                "status": {
-                    "running": "Running...",
-                    "completed": "Completed",
-                    "failed": "Failed",
-                    "ready": "Ready"
-                },
-                "result": {
-                    "title": "Last Run Result:",
-                    "total": "Total Filings:",
-                    "processed": "Processed:",
-                    "skipped": "Skipped:",
-                    "errors": "Errors:",
-                    "quarters": "Quarters:"
-                },
-                "error": "Error:"
-            },
             "scheduler": {
                 "title": "Scheduler Configuration",
                 "enable_auto": "Enable Auto-Processing",

@@ -25,12 +25,7 @@
       >
         {{ t('admin.tabs.reports') }}
       </button>
-      <button 
-        :class="{ active: activeTab === 'batch' }"
-        @click="activeTab = 'batch'"
-      >
-        {{ t('admin.tabs.batch') }}
-      </button>
+
       <button 
         :class="{ active: activeTab === 'health' }"
         @click="activeTab = 'health'"
@@ -208,114 +203,7 @@
       </div>
     </div>
 
-    <!-- Batch Management Tab -->
-    <div v-if="activeTab === 'batch'">
-      <div class="admin-content">
-        <div class="batch-section">
-          <h2>{{ t('admin.batch.title') }}</h2>
-          <p class="subtitle">{{ t('admin.batch.subtitle') }}</p>
-          
-          <div class="batch-jobs">
-            <!-- 13F Filing Processing Job -->
-            <div class="batch-job-card">
-              <div class="batch-job-header">
-                <h3>{{ t('admin.batch.filing_13f.title') }}</h3>
-                <span class="job-status" :class="batchJobs.filing13f.status">
-                  {{ batchJobs.filing13f.status === 'running' ? t('admin.batch.filing_13f.status.running') : batchJobs.filing13f.status === 'success' ? t('admin.batch.filing_13f.status.completed') : batchJobs.filing13f.status === 'error' ? t('admin.batch.filing_13f.status.failed') : t('admin.batch.filing_13f.status.ready') }}
-                </span>
-              </div>
-              <p class="job-description">
-                {{ t('admin.batch.filing_13f.description') }}
-              </p>
-              
-              <div class="job-options">
-                <div class="option-group">
-                  <label>
-                    <input type="checkbox" v-model="batchJobs.filing13f.forceReprocess" />
-                    {{ t('admin.batch.filing_13f.force_reprocess') }}
-                  </label>
-                </div>
-                <div class="option-group">
-                  <label>{{ t('admin.batch.filing_13f.quarters_label') }}</label>
-                  <input 
-                    type="text" 
-                    v-model="batchJobs.filing13f.quarters" 
-                    :placeholder="t('admin.batch.filing_13f.quarters_placeholder')"
-                    class="quarters-input"
-                  />
-                  <small>{{ t('admin.batch.filing_13f.quarters_help') }}</small>
-                </div>
-              </div>
-              
-              <div class="job-actions">
-                <button 
-                  @click="trigger13FProcessing" 
-                  class="action-button verify"
-                  :disabled="batchJobs.filing13f.status === 'running'"
-                >
-                  {{ batchJobs.filing13f.status === 'running' ? t('admin.batch.filing_13f.processing_btn') : t('admin.batch.filing_13f.process_btn') }}
-                </button>
-              </div>
-              
-              <div v-if="batchJobs.filing13f.result" class="job-result">
-                <h4>{{ t('admin.batch.filing_13f.result.title') }}</h4>
-                <div class="result-details">
-                  <p><strong>{{ t('admin.batch.filing_13f.result.total') }}</strong> {{ batchJobs.filing13f.result.total_filings || 0 }}</p>
-                  <p><strong>{{ t('admin.batch.filing_13f.result.processed') }}</strong> {{ batchJobs.filing13f.result.processed || 0 }}</p>
-                  <p><strong>{{ t('admin.batch.filing_13f.result.skipped') }}</strong> {{ batchJobs.filing13f.result.skipped || 0 }}</p>
-                  <p><strong>{{ t('admin.batch.filing_13f.result.errors') }}</strong> {{ batchJobs.filing13f.result.errors || 0 }}</p>
-                  <p v-if="batchJobs.filing13f.result.quarters"><strong>{{ t('admin.batch.filing_13f.result.quarters') }}</strong> {{ batchJobs.filing13f.result.quarters.join(', ') }}</p>
-                </div>
-              </div>
-              
-              <div v-if="batchJobs.filing13f.error" class="job-error">
-                <strong>{{ t('admin.batch.filing_13f.error') }}</strong> {{ batchJobs.filing13f.error }}
-              </div>
-            </div>
-            
-            <!-- Add more batch jobs here in the future -->
-          </div>
-          
-          <div class="scheduler-config-section">
-            <h3 class="section-title">{{ t('admin.batch.scheduler.title') }}</h3>
-            <div class="config-card">
-              <div class="config-group">
-                 <label class="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      v-model="schedulerConfig.enabled"
-                    >
-                    <span class="slider round"></span>
-                  </label>
-                  <span class="config-label">{{ t('admin.batch.scheduler.enable_auto') }}</span>
-              </div>
-              
-              <div class="config-group">
-                <label>{{ t('admin.batch.scheduler.delay_days') }}</label>
-                <input 
-                  type="number" 
-                  v-model.number="schedulerConfig.processing_delay_days"
-                  min="0"
-                  max="30"
-                  class="days-input"
-                />
-                <small>{{ t('admin.batch.scheduler.delay_help') }}</small>
-              </div>
-              
-              <div class="config-actions">
-                <button 
-                  @click="saveSchedulerConfig" 
-                  class="action-button verify"
-                  :disabled="savingSchedulerConfig"
-                >
-                  {{ savingSchedulerConfig ? t('admin.batch.scheduler.saving') : t('admin.batch.scheduler.save') }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+
 
     <!-- Access Management Tab -->
     <div v-if="activeTab === 'access'">
@@ -653,77 +541,7 @@ const backendHealth = ref({ status: 'unknown', message: '' })
 const databaseHealth = ref({ status: 'unknown', message: '' })
 const minioHealth = ref({ status: 'unknown', message: '' })
 
-// Batch Management State
 
-const batchJobs = ref({
-  filing13f: {
-    status: 'idle', // idle, running, success, error
-    forceReprocess: false,
-    quarters: '',
-    result: null,
-    error: null
-  }
-})
-
-// Scheduler Configuration State
-const schedulerConfig = ref({
-  enabled: true,
-  processing_delay_days: 3
-})
-const savingSchedulerConfig = ref(false)
-
-const loadSchedulerConfig = async () => {
-  try {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
-
-    const response = await fetch(`${API_BASE_URL}/api/admin/scheduler/config`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      schedulerConfig.value = data
-    }
-  } catch (err) {
-    console.error('Error loading scheduler config:', err)
-  }
-}
-
-const saveSchedulerConfig = async () => {
-  savingSchedulerConfig.value = true
-  message.value = ''
-  
-  try {
-    const token = localStorage.getItem('access_token')
-    
-    const response = await fetch(`${API_BASE_URL}/api/admin/scheduler/config`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(schedulerConfig.value)
-    })
-
-    if (!response.ok) {
-      throw new Error(t('admin.errors.save_config'))
-    }
-    
-    message.value = t('admin.messages.config_saved')
-    messageType.value = 'success'
-    setTimeout(() => { message.value = '' }, 3000)
-    
-  } catch (err) {
-    console.error('Error saving scheduler config:', err)
-    message.value = t('admin.errors.save_config')
-    messageType.value = 'error'
-  } finally {
-    savingSchedulerConfig.value = false
-  }
-}
 
 // Database Management State
 const tables = ref([])
@@ -738,7 +556,7 @@ const permissions = ref([])
 const loadingPermissions = ref(false)
 const permissionsError = ref('')
 const roles = ['admin', 'creator', 'contributor', 'user']
-const resourceTypes = ['/research', '/alphatrade', '/framework', '/report', '/investment', '/short-interest', '/whale-watching', '/agent', '/academy']
+const resourceTypes = ['/research', '/portfolio', '/framework', '/report', '/investment', '/short-interest', '/agent', '/academy']
 
 // Message State
 const message = ref('')
@@ -1358,153 +1176,7 @@ const updatePermission = async (role, resource, canAccess) => {
 
 
 
-// Batch Management Functions
-let pollingInterval = null
 
-const pollJobStatus = async (jobId) => {
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    router.push('/login')
-    return
-  }
-
-  const API_BASE_URL = window.location.hostname.includes('railway.app') 
-    ? 'https://beaver-research-backend-production.up.railway.app'
-    : 'http://localhost:8000'
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/filing-13f/process/status/${jobId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(t('admin.errors.check_job'))
-    }
-
-    const status = await response.json()
-    
-    if (status.status === 'completed') {
-      // Stop polling
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-        pollingInterval = null
-      }
-      
-      batchJobs.value.filing13f.status = 'success'
-      batchJobs.value.filing13f.result = status.result
-      batchJobs.value.filing13f.error = null
-      
-      const result = status.result
-      message.value = t('admin.messages.processing_completed', { processed: result.processed, skipped: result.skipped })
-      messageType.value = 'success'
-      
-      setTimeout(() => {
-        message.value = ''
-      }, 5000)
-    } else if (status.status === 'error') {
-      // Stop polling
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-        pollingInterval = null
-      }
-      
-      batchJobs.value.filing13f.status = 'error'
-      batchJobs.value.filing13f.error = status.error || t('admin.messages.processing_failed')
-      batchJobs.value.filing13f.result = null
-      
-      message.value = status.error || t('admin.messages.processing_failed')
-      messageType.value = 'error'
-      
-      setTimeout(() => {
-        message.value = ''
-      }, 5000)
-    } else if (status.status === 'running') {
-      // Continue polling - job is still running
-      batchJobs.value.filing13f.status = 'running'
-    }
-  } catch (err) {
-    console.error('Error polling job status:', err)
-    // Continue polling on error (might be temporary)
-  }
-}
-
-const trigger13FProcessing = async () => {
-  batchJobs.value.filing13f.status = 'running'
-  batchJobs.value.filing13f.error = null
-  batchJobs.value.filing13f.result = null
-  
-  // Clear any existing polling interval
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-    pollingInterval = null
-  }
-  
-  try {
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-
-    const requestBody = {
-      force_reprocess: batchJobs.value.filing13f.forceReprocess
-    }
-    
-    // Parse quarters if provided
-    if (batchJobs.value.filing13f.quarters.trim()) {
-      requestBody.quarters = batchJobs.value.filing13f.quarters
-        .split(',')
-        .map(q => q.trim())
-        .filter(q => q.length > 0)
-    }
-
-    const API_BASE_URL = window.location.hostname.includes('railway.app') 
-      ? 'https://beaver-research-backend-production.up.railway.app'
-      : 'http://localhost:8000'
-
-    const response = await fetch(`${API_BASE_URL}/api/filing-13f/process`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.detail || t('admin.errors.trigger_job'))
-    }
-
-    const result = await response.json()
-    
-    // Start polling for job status
-    message.value = result.message || t('admin.messages.processing_started')
-    messageType.value = 'info'
-    
-    // Poll every 2 seconds
-    pollingInterval = setInterval(() => {
-      pollJobStatus(result.job_id)
-    }, 2000)
-    
-    // Initial poll
-    pollJobStatus(result.job_id)
-    
-  } catch (err) {
-    console.error('Error triggering 13F processing:', err)
-    batchJobs.value.filing13f.error = err.message || t('admin.errors.trigger_job')
-    batchJobs.value.filing13f.status = 'error'
-    
-    message.value = err.message || t('admin.errors.trigger_job')
-    messageType.value = 'error'
-    
-    setTimeout(() => {
-      message.value = ''
-    }, 5000)
-  }
-}
 
 // Watch for tab changes to load reports and health
 watch(activeTab, (newTab) => {
@@ -1516,13 +1188,7 @@ watch(activeTab, (newTab) => {
   }
 })
 
-onUnmounted(() => {
-  // Clean up polling interval when component unmounts
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-    pollingInterval = null
-  }
-})
+
 
 onMounted(() => {
   const token = localStorage.getItem('access_token')
@@ -1770,7 +1436,7 @@ onMounted(() => {
   border-color: #000;
 }
 
-/* Tables matching AlphaTrade lots-table */
+/* Tables matching Portfolio lots-table */
 .users-table-container {
   overflow-x: auto;
   border: 1px solid #e0e0e0;

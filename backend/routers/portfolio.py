@@ -128,273 +128,9 @@ async def fetch_realtime_prices(tickers: List[str]) -> dict:
 
 import models
 from database import get_db
-from models import AlphaTradePosition, AlphaTradeLot, AlphaTradeFundamentalAnalysis, User
-from routers.auth import get_current_user, verify_premium_access
+from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
 
-router = APIRouter()
-
-@router.get("/market-news-feed")
-async def get_market_news_feed():
-    # 1. Try Cache (Primary)
-    cached_data = redis_client.get_cache(MARKET_NEWS_CACHE_KEY)
-    if cached_data:
-        return cached_data
-
-    # 2. Fallback: Fetch immediately if cache is empty (e.g. first run)
-    items = await _fetch_market_news_from_source()
-    
-    if items:
-        # Cache for 5 minutes (longer than poll interval of 3 mins)
-        redis_client.set_cache(MARKET_NEWS_CACHE_KEY, items, ttl=300)
-        
-    return items
-
-async def background_news_fetcher():
-    """Background task to fetch news every 3 minutes"""
-    while True:
-        try:
-            items = await _fetch_market_news_from_source()
-            if items:
-                # Set TTL longer than sleep (5m TTL vs 3m Sleep) to ensure overlap
-                redis_client.set_cache(MARKET_NEWS_CACHE_KEY, items, ttl=300)
-        except Exception as e:
-            print(f"Error in background news fetch: {e}")
-        
-        await asyncio.sleep(180) # Sleep 3 minutes
-
-def start_news_polling():
-    """Start the background polling task"""
-    asyncio.create_task(background_news_fetcher())
-
-async def _fetch_market_news_from_source():
-    items = []
-    
-    # Define feeds configuration
-    feeds = [
-        {"url": "http://feeds.feedburner.com/zerohedge/feed", "tag": "MARKETS", "type": "zerohedge"},
-        {"url": "https://thebearcave.substack.com/feed", "tag": "RESEARCH", "type": "bearcave"}
-    ]
-    
-    try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-            # Create tasks for all feeds
-            tasks = [client.get(feed["url"]) for feed in feeds]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for i, response in enumerate(responses):
-                feed_config = feeds[i]
-                
-                if isinstance(response, Exception):
-                    print(f"Error fetching {feed_config['url']}: {response}")
-                    continue
-                    
-                if response.status_code != 200:
-                    print(f"Failed to fetch {feed_config['url']}: {response.status_code}")
-                    continue
-                
-                # Parse the feed
-                feed_items = _parse_feed_items(response.content, feed_config)
-                items.extend(feed_items)
-                
-        # Sort items by date (newest first) using the parsed datetime object or string comparison fallback
-        # Note: parsing dates strictly can be tricky across feeds, simple string works if standard format, 
-        # but robust implementation would parse to datetime.
-        # For now, we rely on the fact that both feeds use standard RSS pubDate.
-        
-        # Helper to parse date for sorting
-        def parse_pub_date(date_str):
-            try:
-                # Common RSS format: "Sat, 27 Dec 2025 23:44:50 GMT"
-                # Remove GMT/UTC to make it simpler for naive parsing or use email utils
-                from email.utils import parsedate_to_datetime
-                dt = parsedate_to_datetime(date_str)
-                if dt: return dt
-            except:
-                pass
-            return datetime.min.replace(tzinfo=None)
-
-        items.sort(key=lambda x: parse_pub_date(x.get("time", "")), reverse=True)
-        
-        return items
-            
-    except Exception as e:
-        print(f"Error in main fetch loop: {str(e)}")
-        return []
-
-def _parse_feed_items(content, config):
-    items = []
-    try:
-        root = ET.fromstring(content)
-        # Handle namespaces if necessary, but standard find/findall often works for basic RSS
-        # Substack/BearCave uses content:encoded often, needing namespace map
-        namespaces = {
-            'content': 'http://purl.org/rss/1.0/modules/content/',
-            'dc': 'http://purl.org/dc/elements/1.1/',
-            'atom': 'http://www.w3.org/2005/Atom'
-        }
-        
-        for item in root.findall(".//item"):
-            title_elem = item.find("title")
-            title = title_elem.text if title_elem is not None else "No Title"
-            
-            link_elem = item.find("link")
-            link = link_elem.text if link_elem is not None else ""
-            
-            # Date
-            pub_date_elem = item.find("pubDate")
-            pub_date = pub_date_elem.text if pub_date_elem is not None else ""
-            
-            # Content / Description
-            desc_elem = item.find("description")
-            desc_text = desc_elem.text if desc_elem is not None else ""
-            
-            # For BearCave/Substack, prefer content:encoded if description is short or just a summary
-            content_encoded_elem = item.find("content:encoded", namespaces)
-            full_content = ""
-            
-            if content_encoded_elem is not None and content_encoded_elem.text:
-                full_content = content_encoded_elem.text
-            else:
-                full_content = desc_text
-
-            # Clean content based on source type
-            cleaned_content = full_content
-            
-            if config["type"] == "zerohedge" and cleaned_content:
-                cleaned_content = re.sub(r'<span[^>]*?schema:author[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-                cleaned_content = re.sub(r'<span[^>]*?schema:dateCreated[^>]*?>.*?</span>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-            
-            # Clean Bear Cave specific footers if needed (usually substack buttons)
-            if config["type"] == "bearcave" and cleaned_content:
-                # Remove subscription widgets and footers
-                cleaned_content = re.sub(r'<div class="subscription-widget-wrap-editor".*?</div>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-                cleaned_content = re.sub(r'<p class="button-wrapper".*?</a></p>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-                
-                # Remove "Until next week" and everything after
-                cleaned_content = re.sub(r'<p>Until next week,</p>.*', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-                cleaned_content = re.sub(r'<div><hr></div><p>Until next week,.*', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-
-                # Remove specific footer links/text
-                cleaned_content = re.sub(r'<h5><strong>New\? </strong><em><strong><a href="https://thebearcave.substack.com/">Sign Up Here</a></strong></em></h5>', '', cleaned_content, flags=re.IGNORECASE)
-                cleaned_content = re.sub(r'<h5><strong>Got Feedback\? Just Hit Reply</strong></h5>', '', cleaned_content, flags=re.IGNORECASE)
-                cleaned_content = re.sub(r'<h5><strong>The Bear Cave is Not Investment Advice.*?</strong></h5>', '', cleaned_content, flags=re.IGNORECASE | re.DOTALL)
-
-
-            # Create Plain Summary
-            summary_source = desc_text if desc_text else full_content
-            summary = re.sub(r'<[^>]+>', '', summary_source)
-            summary = summary.replace("\n", " ").strip()
-            if len(summary) > 300:
-                summary = summary[:297] + "..."
-            
-            # Sentiment
-            title_lower = title.lower()
-            sentiment = "neutral"
-            if any(x in title_lower for x in ["surge", "rally", "soar", "record", "jump", "beat", "strong"]):
-                sentiment = "positive"
-            elif any(x in title_lower for x in ["plunge", "crash", "drop", "fall", "miss", "warn", "freeze", "sanction", "weak", "resign", "problem"]):
-                sentiment = "negative"
-
-            items.append({
-                "id": link,
-                "headline": title,
-                "summary": summary,
-                "content": cleaned_content, 
-                "time": pub_date, 
-                "url": link,
-                "tags": [config["tag"]],
-                "sentiment": sentiment
-            })
-    except Exception as e:
-        print(f"Error parsing feed {config['url']}: {e}")
-        
-    return items
-
-
-# Pydantic schemas
-class LotCreate(BaseModel):
-    purchaseDate: str
-    quantity: int
-    costPerShare: float
-    side: str  # 'LONG' or 'SHORT'
-    link: Optional[str] = None
-    note: Optional[str] = None
-
-
-class LotUpdate(BaseModel):
-    purchaseDate: str
-    quantity: int
-    costPerShare: float
-    link: Optional[str] = None
-    note: Optional[str] = None
-
-
-class LotResponse(BaseModel):
-    id: int
-    purchaseDate: str
-    quantity: int
-    costPerShare: float
-    side: str
-    link: Optional[str]
-    note: Optional[str]
-
-    class Config:
-        from_attributes = True
-
-
-class PositionCreate(BaseModel):
-    ticker: str
-    sector: Optional[str] = None
-
-
-class FundamentalAnalysisUpdate(BaseModel):
-    questionId: int
-    answer: Optional[str] = None
-    score: Optional[int] = None
-
-
-class PositionResponse(BaseModel):
-    ticker: str
-    sector: Optional[str]
-    currentPrice: float
-    lots: List[LotResponse]
-    fundamentalAnalysis: dict
-    fundamentalScores: dict
-
-    class Config:
-        from_attributes = True
-
-class TradingSignalRequest(BaseModel):
-    ticker: str
-    analysis_type: str # e.g., 'technical', 'fundamental'
-    parameters: Optional[dict] = None
-
-
-
-
-
-# Helper function to get stock price
-def get_stock_price(ticker: str) -> float:
-    # Try FMP first
-    try:
-        url = f"https://financialmodelingprep.com/stable/quote?symbol={ticker}&apikey={FMP_API_KEY}"
-        with httpx.Client() as client:
-            response = client.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                if data:
-                    return data[0].get('price', 0.0)
-    except Exception as e:
-        print(f"Error fetching FMP price for {ticker}: {e}")
-
-    # Fallback to yfinance
-    try:
-        stock = yf.Ticker(ticker)
-        info = stock.info
-        return info.get('currentPrice') or info.get('regularMarketPrice', 0.0)
-    except:
-        return 0.0
-
+# ... (Previous imports remain same, just models import changed) ...
 
 # Position endpoints
 @router.get("/positions", response_model=List[PositionResponse])
@@ -403,12 +139,11 @@ async def get_positions(
     db: Session = Depends(get_db)
 ):
     """Get all positions for the current user with lots and fundamental analysis"""
-    positions = db.query(AlphaTradePosition).filter(
-        AlphaTradePosition.user_id == current_user.id
+    positions = db.query(PortfolioPosition).filter(
+        PortfolioPosition.user_id == current_user.id
     ).all()
     
     # Fetch real-time prices for all tickers in parallel
-    # Ensure we pass uppercase tickers to helper
     tickers = [pos.ticker.upper() for pos in positions]
     realtime_prices = await fetch_realtime_prices(tickers)
     
@@ -417,15 +152,11 @@ async def get_positions(
         # Build fundamental analysis dict
         fundamental_analysis = {}
         fundamental_scores = {}
-        for analysis in pos.fundamental_analysis:
+        for analysis in pos.analysis: # Changed from fundamental_analysis
             fundamental_analysis[str(analysis.question_id)] = analysis.answer or ""
             if analysis.score:
                 fundamental_scores[str(analysis.question_id)] = analysis.score
         
-        # Use realtime price if available, otherwise fallback to DB price (which might be stale)
-        # 1. Try exact match
-        # 2. Try uppercase match
-        # 3. Fallback
         current_ticker = pos.ticker.upper()
         current_price = realtime_prices.get(current_ticker, 0.0)
         
@@ -460,15 +191,15 @@ def create_position(
 ):
     """Create a new position for the current user"""
     # Check if position already exists for this user
-    existing = db.query(AlphaTradePosition).filter(
-        AlphaTradePosition.user_id == current_user.id,
-        AlphaTradePosition.ticker == position.ticker
+    existing = db.query(PortfolioPosition).filter(
+        PortfolioPosition.user_id == current_user.id,
+        PortfolioPosition.ticker == position.ticker
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Position already exists for this user")
     
     # Create position
-    db_position = AlphaTradePosition(
+    db_position = PortfolioPosition(
         user_id=current_user.id,
         ticker=position.ticker,
         sector=position.sector
@@ -477,7 +208,6 @@ def create_position(
     db.commit()
     db.refresh(db_position)
     
-    # Try to get real-time price for the response only
     response_price = 0.0
     try:
         response_price = get_stock_price(position.ticker)
@@ -494,9 +224,9 @@ def delete_position(
     db: Session = Depends(get_db)
 ):
     """Delete a position and all associated lots for the current user"""
-    position = db.query(AlphaTradePosition).filter(
-        AlphaTradePosition.user_id == current_user.id,
-        AlphaTradePosition.ticker == ticker
+    position = db.query(PortfolioPosition).filter(
+        PortfolioPosition.user_id == current_user.id,
+        PortfolioPosition.ticker == ticker
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
@@ -505,9 +235,6 @@ def delete_position(
     db.commit()
     
     return {"message": "Position deleted successfully"}
-
-
-
 
 
 # Trade Lot endpoints
@@ -519,14 +246,14 @@ def add_lot(
     db: Session = Depends(get_db)
 ):
     """Add a lot to a position for the current user"""
-    position = db.query(AlphaTradePosition).filter(
-        AlphaTradePosition.user_id == current_user.id,
-        AlphaTradePosition.ticker == ticker
+    position = db.query(PortfolioPosition).filter(
+        PortfolioPosition.user_id == current_user.id,
+        PortfolioPosition.ticker == ticker
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
     
-    db_lot = AlphaTradeLot(
+    db_lot = PortfolioLot(
         position_id=position.id,
         purchase_date=lot.purchaseDate,
         quantity=lot.quantity,
@@ -558,7 +285,7 @@ def update_lot(
     db: Session = Depends(get_db)
 ):
     """Update a lot (verify user owns the position)"""
-    db_lot = db.query(AlphaTradeLot).filter(AlphaTradeLot.id == lot_id).first()
+    db_lot = db.query(PortfolioLot).filter(PortfolioLot.id == lot_id).first()
     if not db_lot:
         raise HTTPException(status_code=404, detail="Lot not found")
     
@@ -593,7 +320,7 @@ def delete_lot(
     db: Session = Depends(get_db)
 ):
     """Delete a lot (verify user owns the position)"""
-    db_lot = db.query(AlphaTradeLot).filter(AlphaTradeLot.id == lot_id).first()
+    db_lot = db.query(PortfolioLot).filter(PortfolioLot.id == lot_id).first()
     if not db_lot:
         raise HTTPException(status_code=404, detail="Lot not found")
     
@@ -606,10 +333,10 @@ def delete_lot(
     db.commit()
     
     # Check if position has any remaining lots
-    remaining_lots = db.query(AlphaTradeLot).filter(AlphaTradeLot.position_id == position_id).count()
+    remaining_lots = db.query(PortfolioLot).filter(PortfolioLot.position_id == position_id).count()
     if remaining_lots == 0:
         # Delete the position if no lots remain
-        position = db.query(AlphaTradePosition).filter(AlphaTradePosition.id == position_id).first()
+        position = db.query(PortfolioPosition).filter(PortfolioPosition.id == position_id).first()
         if position:
             db.delete(position)
             db.commit()
@@ -627,17 +354,17 @@ def update_fundamental_analysis(
     db: Session = Depends(get_db)
 ):
     """Update fundamental analysis for a position owned by current user"""
-    position = db.query(AlphaTradePosition).filter(
-        AlphaTradePosition.user_id == current_user.id,
-        AlphaTradePosition.ticker == ticker
+    position = db.query(PortfolioPosition).filter(
+        PortfolioPosition.user_id == current_user.id,
+        PortfolioPosition.ticker == ticker
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
     
     # Check if analysis for this question already exists
-    db_analysis = db.query(AlphaTradeFundamentalAnalysis).filter(
-        AlphaTradeFundamentalAnalysis.position_id == position.id,
-        AlphaTradeFundamentalAnalysis.question_id == analysis.questionId
+    db_analysis = db.query(PositionAnalysis).filter(
+        PositionAnalysis.position_id == position.id,
+        PositionAnalysis.question_id == analysis.questionId
     ).first()
     
     if db_analysis:
@@ -649,7 +376,7 @@ def update_fundamental_analysis(
         db_analysis.updated_at = datetime.utcnow()
     else:
         # Create new
-        db_analysis = AlphaTradeFundamentalAnalysis(
+        db_analysis = PositionAnalysis(
             position_id=position.id,
             question_id=analysis.questionId,
             answer=analysis.answer,

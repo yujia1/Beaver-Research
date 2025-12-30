@@ -217,13 +217,13 @@ const fetchSectorData = async () => {
     const today = new Date().toISOString().split('T')[0]
     
     // 1. Fetch Performance
-    const perfRes = await fetch(`${API_BASE_URL}/api/alphatrade/sector-performance?exchange=${activeExchange.value}&date=${today}`)
+    const perfRes = await fetch(`${API_BASE_URL}/api/portfolio/sector-performance?exchange=${activeExchange.value}&date=${today}`)
     if (perfRes.ok) {
       sectorData.value = await perfRes.json()
     }
 
     // 2. Fetch P/E
-    const peRes = await fetch(`${API_BASE_URL}/api/alphatrade/sector-pe?exchange=${activeExchange.value}&date=${today}`)
+    const peRes = await fetch(`${API_BASE_URL}/api/portfolio/sector-pe?exchange=${activeExchange.value}&date=${today}`)
     if (peRes.ok) {
       sectorPeList.value = await peRes.json()
     }
@@ -314,8 +314,8 @@ const fetchIndustryData = async () => {
     const today = new Date().toISOString().split('T')[0]
     
     const [perfRes, peRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/api/alphatrade/industry-performance?exchange=${activeExchange.value}&date=${today}`),
-      fetch(`${API_BASE_URL}/api/alphatrade/industry-pe?exchange=${activeExchange.value}&date=${today}`)
+      fetch(`${API_BASE_URL}/api/portfolio/industry-performance?exchange=${activeExchange.value}&date=${today}`),
+      fetch(`${API_BASE_URL}/api/portfolio/industry-pe?exchange=${activeExchange.value}&date=${today}`)
     ])
 
     let perfData = []

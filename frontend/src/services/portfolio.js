@@ -1,7 +1,9 @@
-// AlphaTrade API Service
-const API_BASE = `${API_BASE_URL}/api/alphatrade`
+// Portfolio API Service
+import API_BASE_URL from '@/config/api.js'
 
-export const alphaTradeAPI = {
+const API_BASE = `${API_BASE_URL}/api/portfolio`
+
+export const portfolioAPI = {
     // Positions
     async getPositions() {
         const response = await fetch(`${API_BASE}/positions`)

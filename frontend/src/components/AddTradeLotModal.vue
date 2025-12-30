@@ -52,7 +52,7 @@ const fetchCurrentPrice = async () => {
     fetchingPrice.value = true
     try {
         const ticker = formData.value.ticker.trim().toUpperCase()
-        const response = await fetch(`${API_BASE_URL}/api/alphatrade/stock-price/${ticker}`)
+        const response = await fetch(`${API_BASE_URL}/api/portfolio/stock-price/${ticker}`)
         
         if (response.ok) {
             const data = await response.json()

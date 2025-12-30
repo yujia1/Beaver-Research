@@ -64,7 +64,7 @@ const fetchMarketMovers = async () => {
   error.value = null
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/alphatrade/market-movers/${type}`)
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/market-movers/${type}`)
     if (!response.ok) throw new Error('Failed to fetch data')
     
     const result = await response.json()
