@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from services.edgar_service import edgar_service
 from redis_client import redis_client
-from routers.internal import get_micro_data
+from routers.market.equity.stocks import get_micro_data
 
 # Configure logging
 logger = logging.getLogger(__name__)
