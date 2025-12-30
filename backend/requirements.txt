@@ -22,3 +22,6 @@ stripe==10.12.0
 fastapi-mail==1.4.1
 slowapi==0.1.9
 openai>=1.0.0
+requests==2.31.0
+beautifulsoup4==4.12.2
+pandas-datareader>=0.10.0
