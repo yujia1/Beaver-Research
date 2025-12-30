@@ -1,3 +1,18 @@
+from fastapi import APIRouter, HTTPException
+from redis_client import redis_client
+import httpx
+import os
+
+router = APIRouter()
+
+# FMP Base URL extracted and centralized, similar to how it's done in other routers if applicable,
+# but here specifically defined for clarity as requested.
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+# Using the same constant base URL logic as implied by the user request reference to portfolio.py
+# In portfolio.py: FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+
+# Define API KEY at module level
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
 
 @router.get("/regional")
 async def get_regional_indices():
@@ -5,11 +20,8 @@ async def get_regional_indices():
     Fetch global market indices organized by region using Financial Modeling Prep API.
     Returns indices grouped by: United States, Europe, Asia-Pacific, Canada, Emerging Markets, Global
     """
-    import httpx
-    import os
     
-    fmp_api_key = os.getenv("FMP_API_KEY", "")
-    if not fmp_api_key:
+    if not FMP_API_KEY:
         raise HTTPException(status_code=500, detail="FMP_API_KEY not configured")
     
     # Define indices by region
@@ -71,11 +83,16 @@ async def get_regional_indices():
                 
                 for index in indices:
                     try:
-                        # Fetch current price data from FMP
-                        url = f"https://financialmodelingprep.com/stable/historical-price-eod/light"
+                        # Fetch current price data from FMP using the centralized BASE URL
+                        # Endpoint: /historical-price-eod/light matches the one used before but now using FMP_BASE_URL
+                        # Note: portfolio.py constructs url as f"{FMP_BASE_URL}/{endpoint}"
+                        
+                        endpoint = "historical-price-eod/light"
+                        url = f"{FMP_BASE_URL}/{endpoint}"
+                        
                         params = {
                             "symbol": index["symbol"],
-                            "apikey": fmp_api_key
+                            "apikey": FMP_API_KEY
                         }
                         
                         response = await client.get(url, params=params)
@@ -83,7 +100,7 @@ async def get_regional_indices():
                         if response.status_code == 200:
                             data = response.json()
                             
-                            if data and len(data) > 0:
+                            if data and isinstance(data, list) and len(data) > 0:
                                 latest = data[0]
                                 previous = data[1] if len(data) > 1 else latest
                                 
