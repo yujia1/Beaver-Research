@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import re
 from redis_client import redis_client
 
-from routers.auth import get_current_user, verify_premium_access
+from routers.admin.auth import get_current_user, verify_premium_access
 
 router = APIRouter()
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, inspect
 from typing import List, Dict, Any, Optional
 from database import get_db, engine
-from routers.auth import get_current_user
+from routers.admin.auth import get_current_user
 import models
 
 router = APIRouter()

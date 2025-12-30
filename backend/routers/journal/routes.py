@@ -12,7 +12,7 @@ from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
-from routers.auth import get_current_user, verify_premium_access
+from routers.admin.auth import get_current_user, verify_premium_access
 import models
 
 # Token verification for query parameter (for iframe access)

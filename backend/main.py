@@ -34,24 +34,21 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 logger.info("Environment variables loaded")
 
-from routers import (
-    energy, 
-    sec, 
-    bond, 
-    reports, 
-    internal, 
-    external, 
-    auth, 
-    research, 
-    short_interest,
-    portfolio,
-    stream_news,
-    framework,
-    admin_db,
-    payment,
-    agent,
-    indices_regional
-)
+from routers.market import external
+from routers.market.equity import indices, markets_wire, sec, stocks
+from routers.market.bond import routes as bond
+from routers.market.commodity import energy
+from routers.market.policy import routes as policy_routes
+from routers.market.crypto import routes as crypto_routes
+from routers.market.economic import macro
+from routers.framework import routes as framework
+from routers.journal import routes as reports
+from routers.portfolio import routes as portfolio
+from routers.research import routes as research
+from routers.research import agent
+from routers.admin import auth, db as admin_db, payment
+# from routers.util import internal_legacy # Deprecated
+
 from database import engine, SessionLocal, check_db_connection
 import models
 import bcrypt
@@ -298,22 +295,57 @@ async def startup_event():
         logger.error(f"Critical startup error: {e}")
         raise  # Re-raise to prevent app from starting with broken state
 
+# Register Routers
+# Admin
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(payment.router) # Prefix handling is inside the router
-app.include_router(internal.router, prefix="/api/internal", tags=["Internal Data"])
-app.include_router(external.router, prefix="/api/external", tags=["External Data"])
-app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
-app.include_router(energy.router, prefix="/api/energy", tags=["Energy"])
-app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
-app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
-app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
-app.include_router(research.router, prefix="/api/research", tags=["Research"])
-app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
-app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
-app.include_router(stream_news.router, prefix="/api/stream-news", tags=["Stream News"])
-app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
-app.include_router(indices_regional.router, prefix="/api/indices", tags=["Indices"])
+app.include_router(payment.router) # Prefix handled in router
+
+# Market - Equity
+app.include_router(stocks.router, prefix="/api/internal", tags=["Stocks"])
+app.include_router(indices.router, prefix="/api/indices", tags=["Indices"])
+# Shim for deprecated internal indices endpoint
+@app.get("/api/internal/indices", tags=["Deprecated"])
+async def get_indices_shim():
+    from routers.market.equity.indices import get_indices
+    return await get_indices()
+    
+app.include_router(markets_wire.router, prefix="/api/stream-news", tags=["Stream News"])
+
+app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
+
+# Market - Bond
+app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
+
+# Market - Commodity
+app.include_router(energy.router, prefix="/api/energy", tags=["Energy"])
+
+# Market - Economic
+app.include_router(macro.router, prefix="/api/internal", tags=["Macro"])
+
+# Market - Crypto
+app.include_router(crypto_routes.router, prefix="/api/internal/crypto", tags=["Crypto"])
+
+# Market - Policy
+app.include_router(policy_routes.router, prefix="/api/internal", tags=["Policy"])
+
+# Market - External
+app.include_router(external.router, prefix="/api/external", tags=["External Data"])
+
+# Research
+app.include_router(research.router, prefix="/api/research", tags=["Research"])
+app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
+
+# Journal
+app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+
+# Portfolio
+app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
+
+# Framework
+app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
+
+
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
 
 @app.get("/")
@@ -359,4 +391,5 @@ async def readiness_check():
 async def liveness_check():
     """Kubernetes liveness probe endpoint"""
     return {"status": "alive"}
+
  

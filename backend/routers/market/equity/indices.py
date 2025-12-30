@@ -2,6 +2,9 @@ from fastapi import APIRouter, HTTPException
 from redis_client import redis_client
 import httpx
 import os
+import yfinance as yf
+import pandas as pd
+from typing import List, Dict, Any
 
 router = APIRouter()
 
@@ -147,4 +150,81 @@ async def get_regional_indices():
         print(f"Error fetching regional indices: {e}")
         return {}
 
+@router.get("/major")
+async def get_indices():
+    """
+    Fetch real-time data for major market indices: Dow Jones, NASDAQ, S&P 500, Russell 2000.
+    Returns current value, change percentage, and 30-day history for each index.
+    Caches result for 15 minutes.
+    """
+    cache_key = "indices:data"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
 
+    indices_config = [
+        {"name": "Dow Jones", "ticker": "^DJI", "key": "dow_jones"},
+        {"name": "NASDAQ", "ticker": "^IXIC", "key": "nasdaq"},
+        {"name": "S&P 500", "ticker": "^GSPC", "key": "sp_500"},
+        {"name": "Russell 2000", "ticker": "^RUT", "key": "russell_2000"}
+    ]
+    
+    results = []
+    try:
+        for idx in indices_config:
+            try:
+                ticker = yf.Ticker(idx["ticker"])
+                # Get last 30 days of data
+                history = ticker.history(period="1mo")
+                
+                if history.empty:
+                    # Fallback to default values if data unavailable
+                    results.append({
+                        "name": idx["name"],
+                        "key": idx["key"],
+                        "value": 0.0,
+                        "change": 0.0,
+                        "history": []
+                    })
+                    continue
+
+                # Get current and previous close
+                current_price = float(history['Close'].iloc[-1])
+                prev_close = float(history['Close'].iloc[-2]) if len(history) > 1 else current_price
+                change_percent = ((current_price - prev_close) / prev_close) * 100 if prev_close > 0 else 0.0
+                
+                # Convert history to list format
+                history_list = []
+                for date, row in history.iterrows():
+                    history_list.append({
+                        "date": date.strftime('%Y-%m-%d'),
+                        "value": float(row['Close'])
+                    })
+                
+                results.append({
+                    "name": idx["name"],
+                    "key": idx["key"],
+                    "value": round(current_price, 2),
+                    "change": round(change_percent, 2),
+                    "history": history_list
+                })
+            except Exception as e:
+                print(f"Error fetching {idx['name']}: {e}")
+                # Fallback to default values
+                results.append({
+                    "name": idx["name"],
+                    "key": idx["key"],
+                    "value": 0.0,
+                    "change": 0.0,
+                    "history": []
+                })
+                continue
+        
+        # Cache outcome (TTL 15 mins)
+        redis_client.set_cache(cache_key, results, ttl=900)
+        
+        return results
+    except Exception as e:
+        print(f"Error fetching indices: {e}")
+        # Return empty results on critical failure
+        return [{"name": idx["name"], "key": idx["key"], "value": 0.0, "change": 0.0, "history": []} for idx in indices_config]

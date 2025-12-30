@@ -49,11 +49,7 @@ const menuItems = computed(() => {
   ]
   
   // Base items that might be restricted
-  const investmentItem = { 
-    path: '/investment', 
-    name: t('nav.investment'), 
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' 
-  }
+
   
   const reportItem = { 
     path: '/report', 
@@ -90,7 +86,7 @@ const menuItems = computed(() => {
   // Check permissions
   if (user.value && user.value.role === 'admin') {
       // Admin gets everything
-      items.push(investmentItem)
+
       items.push(frameworkItem)
       items.push(reportItem)
       items.push(portfolioItem)
@@ -99,7 +95,7 @@ const menuItems = computed(() => {
 
   } else {
       // Check specific permissions
-      if (hasAccess('/investment')) items.push(investmentItem)
+
       if (hasAccess('/framework')) items.push(frameworkItem)
       if (hasAccess('/report')) items.push(reportItem)
       if (hasAccess('/portfolio')) items.push(portfolioItem)

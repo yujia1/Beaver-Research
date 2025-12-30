@@ -3,7 +3,7 @@ Research Intelligence Layer - Data Interpretation Service
 Handles agent-based data interpretation using AI
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
-from routers.auth import verify_premium_access
+from routers.admin.auth import verify_premium_access
 import models
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -57,7 +57,7 @@ def get_openai_client():
 
 
 from services.research_engine import ResearchEngine, COMPANY_AGENTS, MARKET_AGENTS
-from routers.research_helpers import (
+from routers.research.research_helpers import (
     build_fundamental_agent_system_message,
     build_fundamental_agent_interpretation_prompt
 )
@@ -1120,7 +1120,7 @@ async def collect_income_statement_data(ticker: str) -> Dict[str, Any]:
     try:
         import pandas as pd
         print(f"[STEP 1.1] collect_income_statement_data: Starting for ticker {ticker}")
-        from routers.internal import get_micro_data
+        from routers.market.equity.stocks import get_micro_data
         
         print(f"[STEP 1.2] collect_income_statement_data: Calling get_micro_data({ticker})")
         micro_data = await get_micro_data(ticker)
@@ -1205,7 +1205,7 @@ async def collect_balance_sheet_data(ticker: str) -> Dict[str, Any]:
     try:
         import pandas as pd
         print(f"[STEP 2.1] collect_balance_sheet_data: Starting for ticker {ticker}")
-        from routers.internal import get_micro_data
+        from routers.market.equity.stocks import get_micro_data
         
         print(f"[STEP 2.2] collect_balance_sheet_data: Calling get_micro_data({ticker})")
         micro_data = await get_micro_data(ticker)
@@ -1290,7 +1290,7 @@ async def collect_cashflow_data(ticker: str) -> Dict[str, Any]:
     try:
         import pandas as pd
         print(f"[STEP 3.1] collect_cashflow_data: Starting for ticker {ticker}")
-        from routers.internal import get_micro_data
+        from routers.market.equity.stocks import get_micro_data
         
         print(f"[STEP 3.2] collect_cashflow_data: Calling get_micro_data({ticker})")
         micro_data = await get_micro_data(ticker)

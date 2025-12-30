@@ -1,12 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '../views/Dashboard.vue'
-import TimelineView from '../views/TimelineView.vue'
 import LoginView from '../views/LoginView.vue'
 import SignUpView from '../views/SignUpView.vue'
 import ResearchView from '../views/ResearchView.vue'
 import AdminView from '../views/AdminView.vue'
 import ReportView from '../views/ReportView.vue'
-import ShortInterestView from '../views/ShortInterestView.vue'
+
 import PortfolioView from '../views/PortfolioView.vue'
 import AcademyView from '../views/AcademyView.vue'
 import FrameworkView from '../views/FrameworkView.vue'
@@ -35,23 +34,12 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
-      path: '/investment',
-      name: 'investment',
-      component: TimelineView,
-      meta: { requiresAuth: false } // Controlled dynamically
-    },
-    {
       path: '/research',
       name: 'research',
       component: ResearchView,
       meta: { requiresAuth: true } // Controlled dynamically
     },
-    {
-      path: '/short-interest',
-      name: 'short-interest',
-      component: ShortInterestView,
-      meta: { requiresAuth: true } // Controlled dynamically
-    },
+
 
     {
       path: '/report',
@@ -191,7 +179,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Check dynamic permissions for protected resources
   // Only check for specific routes that are managed
-  const managedRoutes = ['/research', '/portfolio', '/report', '/investment', '/short-interest']
+  const managedRoutes = ['/research', '/portfolio', '/report']
   if (managedRoutes.includes(to.path)) {
     // If user is not logged in but route is managed (some might be public-facing but restricted)
     // For now, if it requiresAuth, we handled it above.
