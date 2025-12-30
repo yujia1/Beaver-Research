@@ -2,9 +2,6 @@
   <div class="dashboard">
     <div class="page-header">
       <h1>{{ t('dashboard.title') }}</h1>
-      <button @click="refreshData" :disabled="loading" class="update-btn">
-        {{ loading ? t('dashboard.refreshing') : t('dashboard.refresh') }}
-      </button>
     </div>
     
     <div v-if="loading" class="loading">{{ t('dashboard.loading') }}</div>
@@ -15,21 +12,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import KeyLogsSection from '@/components/dashboard/KeyLogsSection.vue';
 
 const { t } = useI18n();
 const loading = ref(false);
 const keyLogsRef = ref(null);
-
-const refreshData = async () => {
-    loading.value = true;
-    if (keyLogsRef.value) {
-        await keyLogsRef.value.refresh();
-    }
-    loading.value = false;
-};
 </script>
 
 <style scoped>
@@ -59,29 +48,6 @@ const refreshData = async () => {
   color: #000000;
   text-transform: uppercase;
   letter-spacing: 1px;
-}
-
-.update-btn {
-  padding: 0.75rem 1.5rem;
-  background-color: #000000;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: background 0.2s;
-  font-size: 0.875rem;
-}
-
-.update-btn:hover {
-  background-color: #333333;
-}
-
-.update-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
 }
 
 .loading {

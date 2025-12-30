@@ -1136,43 +1136,92 @@ const clearAllTimeframeCaches = () => {
     }
 };
 
-const updateData = async () => {
-    // Set loading states for all sections
-    loading.value = true;
-    economicLoading.value = true;
-    fedLoading.value = true;
-    currencyLoading.value = true;
-    commodityLoading.value = true;
-    cryptoLoading.value = true;
-    
-    // Clear all daily caches
-    clearCacheByKey('macro_data_monthly');
-    clearCacheByKey('fed_data_monthly');
-    clearCacheByKey('crypto_data_daily');
-    clearCacheByKey('commodity_data_monthly');
-    clearCacheByKey('currency_data_monthly');
-    
-    // Clear all per-item timeframe caches (localStorage)
-    clearAllTimeframeCaches();
-    
-    // Update all sections in parallel
-    try {
-        const promises = [
-            updateEconomicData(),
-            updateFedData(),
-            updateCommodityData(),
-            updateCurrencyData(),
-            updateCryptoData()
-        ];
-        
-        if (indicesRef.value) promises.push(indicesRef.value.refresh());
-        if (bondRef.value) promises.push(bondRef.value.refresh());
+const loadTabContent = async (tab) => {
+    switch (tab) {
+        case 'equity':
+            // Equity sub-tabs are handled by v-if components which fetch on mount
+            if (activeEquityCategory.value === 'indices' && indicesRef.value) {
+                // indicesRef might not be ready on first tick if v-if just became true
+                // But indices component fetches on mount anyway.
+            }
+            break;
+        case 'bond':
+            // Bond component fetches on mount
+            if (bondRef.value) {
+                // bondRef.value.refresh(); // No need, it fetches on mount
+            }
+            break;
+        case 'economic':
+            if (economicIndicators.value.length === 0) await fetchEconomicData();
+            break;
+        case 'fed':
+            if (fedIndicators.value.length === 0) await fetchFedData();
+            break;
+        case 'currency':
+            if (currencyIndicators.value.length === 0) await fetchCurrencyData();
+            break;
+        case 'commodity':
+            if (Object.keys(commodityIndicators.value).length === 0) await fetchCommodityData();
+            break;
+        case 'crypto':
+            if (cryptoIndicators.value.length === 0) await fetchCryptoData();
+            break;
+        case 'policy':
+             // Policy content is static/links, no fetch needed
+            break;
+        case 'calendar':
+            if (calendarData.value.length === 0) await fetchCalendarData();
+            break;
+    }
+};
 
-        await Promise.all(promises);
-    } catch (error) {
-        console.error('Error updating data:', error);
+const updateData = async () => {
+    // smart refresh: only refresh the active tab
+    loading.value = true;
+    
+    try {
+        switch (activeTab.value) {
+            case 'equity':
+                if (activeEquityCategory.value === 'indices' && indicesRef.value) {
+                    await indicesRef.value.refresh();
+                }
+                // Other equity categories (Market, Top Movers) are robust enough to re-mount or we could add refresh methods
+                // For now, indices is the main one with explicit refresh
+                break;
+            case 'bond':
+                if (bondRef.value) await bondRef.value.refresh();
+                break;
+            case 'economic':
+                await updateEconomicData();
+                break;
+            case 'fed':
+                await updateFedData();
+                break;
+            case 'currency':
+                // Custom update logic for currency (clear cache and fetch)
+                clearCacheByKey('currency_data_monthly');
+                currencyIndicators.value = []; // Clear current to force update
+                await fetchCurrencyData();
+                break;
+            case 'commodity':
+                // Custom update logic for commodity
+                clearCacheByKey('commodity_data_monthly');
+                commodityIndicators.value = {};
+                await fetchCommodityData();
+                break;
+            case 'crypto':
+                // Custom update logic for crypto
+                clearCacheByKey('crypto_data_daily');
+                cryptoIndicators.value = [];
+                await fetchCryptoData();
+                break;
+            case 'calendar':
+                await fetchCalendarData();
+                break;
+        }
+    } catch (e) {
+        console.error("Error refreshing data:", e);
     } finally {
-        // Reset main loading state
         loading.value = false;
     }
 };
@@ -2141,20 +2190,12 @@ const fetchCalendarData = async () => {
     }
 }
 
-// Watch for tab changes
-watch(activeTab, (newTab) => {
-  if (newTab === 'calendar' && calendarData.value.length === 0) {
-    fetchCalendarData();
-  }
-});
-
 // Calendar Filtering
 const calendarImpacts = ['Low', 'Medium', 'High', 'None'];
 const selectedImpacts = ref(['High']);
 const calendarCountries = computed(() => {
     if (!calendarData.value) return ['US', 'JP'];
     const countries = new Set(calendarData.value.map(item => item.country).filter(c => c));
-    // Ensure defaults are in the list if not present, or just show all available
     return Array.from(countries).sort();
 });
 const selectedCountries = ref(['US', 'JP']);
@@ -2185,9 +2226,68 @@ const toggleCountry = (country) => {
         selectedCountries.value.push(country);
     }
 }
+const eventSource = ref(null);
+
+const setupStream = () => {
+    if (eventSource.value) return;
+    
+    // Connect to SSE endpoint
+    const url = `${API_BASE_URL}/api/stream/market`;
+    console.log('Connecting to SSE:', url);
+    eventSource.value = new EventSource(url);
+    
+    eventSource.value.onmessage = (event) => {
+        try {
+            const payload = JSON.parse(event.data);
+            handleStreamUpdate(payload);
+        } catch (e) {
+            console.error('SSE Parse Error:', e);
+        }
+    };
+    
+    eventSource.value.onerror = (e) => {
+        console.warn('SSE Connection lost, retrying in 5s...');
+        if (eventSource.value) {
+            eventSource.value.close();
+            eventSource.value = null;
+        }
+        setTimeout(setupStream, 5000);
+    };
+};
+
+const handleStreamUpdate = (payload) => {
+    if (!payload || !payload.type) return;
+    
+    switch (payload.type) {
+        case 'indices_regional':
+            if (indicesRef.value && indicesRef.value.updateData) {
+                console.log('Received regional indices update');
+                indicesRef.value.updateData(payload.data);
+            }
+            break;
+        case 'indices_major':
+            // Logic for major indices if displayed
+            break;
+    }
+};
+
+// Watch for tab changes logic
+watch(activeTab, (newTab) => {
+    loadTabContent(newTab);
+    // startAutoRefresh(); // Replaced by SSE
+});
+
+import { onUnmounted } from 'vue';
 
 onMounted(() => {
-    updateData(); // Load all data including sub-components
+    loadTabContent(activeTab.value);
+    setupStream();
+});
+
+onUnmounted(() => {
+    if (eventSource.value) {
+        eventSource.value.close();
+    }
 });
 </script>
 

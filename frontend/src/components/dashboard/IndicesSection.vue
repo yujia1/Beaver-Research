@@ -286,8 +286,48 @@ onMounted(() => {
     fetchIndices();
 });
 
+const updateData = (newData) => {
+    if (!newData) return;
+    
+    // Intelligent merge: Only update prices/stats, preserve history if timeframe differs
+    Object.keys(newData).forEach(region => {
+        // If region doesn't exist in current, simple add (though unlikely if static regions)
+        if (!allRegionalIndices.value[region]) {
+            // Initialize with default timeframe
+             allRegionalIndices.value[region] = newData[region].map(idx => ({ 
+                 ...idx, 
+                 selectedTimeframe: '1Y' 
+             }));
+             return;
+        }
+
+        const currentIndices = allRegionalIndices.value[region];
+        const newIndices = newData[region];
+        
+        newIndices.forEach(newIdx => {
+            const currentIdx = currentIndices.find(c => c.symbol === newIdx.symbol);
+            if (currentIdx) {
+                // Update live stats
+                currentIdx.price = newIdx.price;
+                currentIdx.change = newIdx.change;
+                currentIdx.changePercent = newIdx.changePercent;
+                
+                // Only update history if the user is viewing the default 1Y timeframe
+                // The scheduled job fetches the default 1Y view.
+                if (currentIdx.selectedTimeframe === '1Y') {
+                    currentIdx.history = newIdx.history;
+                }
+            } else {
+                // New index appeared in list
+                currentIndices.push({ ...newIdx, selectedTimeframe: '1Y' });
+            }
+        });
+    });
+};
+
 defineExpose({
-    refresh
+    refresh,
+    updateData
 });
 </script>
 

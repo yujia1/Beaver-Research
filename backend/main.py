@@ -35,6 +35,8 @@ load_dotenv()
 logger.info("Environment variables loaded")
 
 from routers.market import external
+from routers import stream
+
 from routers.market.equity import indices, markets_wire, sec, stocks
 from routers.market.bond import routes as bond
 from routers.market.commodity import energy
@@ -289,8 +291,16 @@ async def startup_event():
             logger.error(f"Failed to init default users (non-fatal): {e}")
 
         # 2. Start Background Tasks
-
-
+        try:
+            from services.scheduler import start_scheduler, run_initial_fetch
+            import asyncio
+            
+            start_scheduler()
+            # Run initial fetch asynchronously to avoid blocking startup
+            asyncio.create_task(run_initial_fetch())
+            logger.info("Market Data Scheduler started and initial fetch triggered.")
+        except Exception as e:
+            logger.error(f"Failed to start scheduler: {e}")
     except Exception as e:
         logger.error(f"Critical startup error: {e}")
         raise  # Re-raise to prevent app from starting with broken state
@@ -311,6 +321,7 @@ async def get_indices_shim():
     return await get_indices()
     
 app.include_router(markets_wire.router, prefix="/api/stream-news", tags=["Stream News"])
+app.include_router(stream.router, prefix="/api/stream", tags=["Stream"])
 
 app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
 

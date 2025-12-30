@@ -89,5 +89,21 @@ class RedisClient:
             logger.warning(f"Redis delete error for pattern {key_pattern}: {str(e)}")
             return False
 
+    def publish(self, channel: str, message: str) -> bool:
+        """Publish message to channel"""
+        if not self._client:
+            return False
+        try:
+            return self._client.publish(channel, message)
+        except Exception as e:
+            logger.warning(f"Redis publish error: {e}")
+            return False
+
+    def get_pubsub(self):
+        """Get pubsub object"""
+        if not self._client:
+            return None
+        return self._client.pubsub()
+
 # Global instance
 redis_client = RedisClient()
