@@ -78,22 +78,64 @@ def _parse_feed_items(content, config):
     """Parse RSS feed items"""
     items = []
     try:
+        # Register namespaces to handle content:encoded
+        # ET handling of namespaces can be tricky, typically we can find by URI
+        namespaces = {
+            'content': 'http://purl.org/rss/1.0/modules/content/',
+            'dc': 'http://purl.org/dc/elements/1.1/'
+        }
+        
         root = ET.fromstring(content)
         
-        for item in root.findall(".//item")[:10]:
+        # Determine channel title for source attribution
+        channel = root.find("channel")
+        
+        for item in root.findall(".//item")[:15]:
             title_elem = item.find("title")
             link_elem = item.find("link")
             pub_date_elem = item.find("pubDate")
+            description_elem = item.find("description")
+            guid_elem = item.find("guid")
             
-            if title_elem is not None and link_elem is not None:
+            # Try to find content:encoded, handling namespace
+            content_encoded = item.find("content:encoded", namespaces)
+            if content_encoded is None:
+                 # Fallback: try searching with full braced name if namespace map fails 
+                 content_encoded = item.find("{http://purl.org/rss/1.0/modules/content/}encoded")
+            
+            if title_elem is not None:
+                # Basic cleaning of description for summary
+                summary_text = ""
+                if description_elem is not None and description_elem.text:
+                    # Simple HTML strip could be done here if needed, but for now take first 200 chars
+                    import re
+                    clean_desc = re.sub('<[^<]+?>', '', description_elem.text)
+                    summary_text = clean_desc[:200] + "..." if len(clean_desc) > 200 else clean_desc
+                
+                # Content prioritization: content:encoded > description
+                full_content = ""
+                if content_encoded is not None and content_encoded.text:
+                    full_content = content_encoded.text
+                elif description_elem is not None and description_elem.text:
+                    full_content = description_elem.text
+                
+                # Sentiment placeholder (random or simple keyword based could be added later)
+                # For now default to positive for 'green' look or handle in frontend
+                sentiment = "neutral" 
+                
                 items.append({
-                    "title": title_elem.text,
-                    "link": link_elem.text,
+                    "id": guid_elem.text if guid_elem is not None else (link_elem.text if link_elem is not None else title_elem.text),
+                    "headline": title_elem.text,  # Mapped to 'headline' for frontend
+                    "summary": summary_text,      # Mapped to 'summary' for frontend
+                    "content": full_content,      # For modal
+                    "link": link_elem.text if link_elem is not None else "",
                     "time": pub_date_elem.text if pub_date_elem is not None else "",
-                    "tag": config["tag"]
+                    "tags": [config["tag"]],      # Mapped to 'tags' array
+                    "sentiment": sentiment        # Placeholder
                 })
                     
     except Exception as e:
+        print(f"Error parsing feed: {e}")
         pass
         
     return items
