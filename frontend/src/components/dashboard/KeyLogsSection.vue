@@ -474,28 +474,34 @@
             <div v-if="activeTab === 'commodity'" class="tab-content commodity-tab-content">
                 <div class="category-tabs">
                     <button 
+                        :class="{ active: activeCommodityCategory === 'financials' }"
+                        @click="activeCommodityCategory = 'financials'"
+                    >
+                        {{ t('dashboard.categories.financials') || 'Financials' }}
+                    </button>
+                    <button 
                         :class="{ active: activeCommodityCategory === 'metals' }"
                         @click="activeCommodityCategory = 'metals'"
                     >
                         {{ t('dashboard.categories.metals') }}
                     </button>
                     <button 
-                        :class="{ active: activeCommodityCategory === 'agricultural' }"
-                        @click="activeCommodityCategory = 'agricultural'"
-                    >
-                        {{ t('dashboard.categories.agricultural') }}
-                    </button>
-                    <button 
-                        :class="{ active: activeCommodityCategory === 'industrial' }"
-                        @click="activeCommodityCategory = 'industrial'"
-                    >
-                        {{ t('dashboard.categories.industrial') }}
-                    </button>
-                    <button 
                         :class="{ active: activeCommodityCategory === 'energy' }"
                         @click="activeCommodityCategory = 'energy'"
                     >
                         {{ t('dashboard.categories.energy') }}
+                    </button>
+                    <button 
+                        :class="{ active: activeCommodityCategory === 'agriculture' }"
+                        @click="activeCommodityCategory = 'agriculture'"
+                    >
+                        {{ t('dashboard.categories.agriculture') || 'Agriculture' }}
+                    </button>
+                    <button 
+                        :class="{ active: activeCommodityCategory === 'softs_livestock' }"
+                        @click="activeCommodityCategory = 'softs_livestock'"
+                    >
+                        {{ t('dashboard.categories.softs_livestock') || 'Softs & Livestock' }}
                     </button>
                 </div>
 
@@ -508,6 +514,49 @@
                         <p class="error-message">{{ commodityError }}</p>
                     </div>
                     <div v-else>
+                        <!-- Financials Section -->
+                        <div v-if="activeCommodityCategory === 'financials'" class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in commodityIndicators.financials" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in commodityTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: item.selectedTimeframe === tf.value }"
+                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>{{ t('dashboard.no_data') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Metals Section -->
                         <div v-if="activeCommodityCategory === 'metals'" class="category-section">
                             <div class="indicators">
@@ -551,53 +600,10 @@
                             </div>
                         </div>
 
-                        <!-- Agricultural Section -->
-                        <div v-if="activeCommodityCategory === 'agricultural'" class="category-section">
+                        <!-- Agricultural (Renamed to Agriculture) Section -->
+                        <div v-if="activeCommodityCategory === 'agriculture'" class="category-section">
                             <div class="indicators">
-                                <div v-for="item in commodityIndicators.agricultural" :key="item.indicator" class="indicator-card">
-                                    <div class="card-content">
-                                        <h3>{{ item.indicator }}</h3>
-                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
-                                        <p class="date">{{ item.date }}</p>
-                                        <p class="desc">
-                                            {{ item.description || '&nbsp;' }}
-                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
-                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
-                                            </span>
-                                        </p>
-                                        
-                                        <!-- Per-graph Timeframe Selector -->
-                                        <div class="card-timeframe-selector">
-                                            <button 
-                                                v-for="tf in commodityTimeframes" 
-                                                :key="tf.value" 
-                                                :class="{ active: item.selectedTimeframe === tf.value }"
-                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
-                                                :disabled="item.loading"
-                                            >
-                                                {{ tf.label }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Interactive Chart.js Chart -->
-                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
-                                        <div v-if="item.loading" class="chart-loading-overlay">
-                                            <div class="spinner-small"></div>
-                                        </div>
-                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
-                                    </div>
-                                    <div v-else class="no-data">
-                                        <p>{{ t('dashboard.no_data') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Industrial Section -->
-                        <div v-if="activeCommodityCategory === 'industrial'" class="category-section">
-                            <div class="indicators">
-                                <div v-for="item in commodityIndicators.industrial" :key="item.indicator" class="indicator-card">
+                                <div v-for="item in commodityIndicators.agriculture" :key="item.indicator" class="indicator-card">
                                     <div class="card-content">
                                         <h3>{{ item.indicator }}</h3>
                                         <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
@@ -641,6 +647,49 @@
                         <div v-if="activeCommodityCategory === 'energy'" class="category-section">
                             <div class="indicators">
                                 <div v-for="item in commodityIndicators.energy" :key="item.indicator" class="indicator-card">
+                                    <div class="card-content">
+                                        <h3>{{ item.indicator }}</h3>
+                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="date">{{ item.date }}</p>
+                                        <p class="desc">
+                                            {{ item.description || '&nbsp;' }}
+                                            <span v-if="getCommodityDailyChange(item)" :class="getCommodityDailyChange(item) >= 0 ? 'positive' : 'negative'" class="daily-change">
+                                                {{ getCommodityDailyChange(item) >= 0 ? '+' : '' }}{{ getCommodityDailyChange(item).toFixed(2) }}%
+                                            </span>
+                                        </p>
+                                        
+                                        <!-- Per-graph Timeframe Selector -->
+                                        <div class="card-timeframe-selector">
+                                            <button 
+                                                v-for="tf in commodityTimeframes" 
+                                                :key="tf.value" 
+                                                :class="{ active: item.selectedTimeframe === tf.value }"
+                                                @click="updateCommodityIndicatorTimeframe(item, tf.value)"
+                                                :disabled="item.loading"
+                                            >
+                                                {{ tf.label }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interactive Chart.js Chart -->
+                                    <div class="chart-container" v-if="item.history && item.history.length > 0">
+                                        <div v-if="item.loading" class="chart-loading-overlay">
+                                            <div class="spinner-small"></div>
+                                        </div>
+                                        <Line :data="getEconomicChartData(item)" :options="economicChartOptions" />
+                                    </div>
+                                    <div v-else class="no-data">
+                                        <p>{{ t('dashboard.no_data') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Softs & Livestock Section -->
+                        <div v-if="activeCommodityCategory === 'softs_livestock'" class="category-section">
+                            <div class="indicators">
+                                <div v-for="item in commodityIndicators.softs_livestock" :key="item.indicator" class="indicator-card">
                                     <div class="card-content">
                                         <h3>{{ item.indicator }}</h3>
                                         <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
@@ -1006,12 +1055,13 @@ const currencyTimeframes = computed(() => [
 ]);
 
 // Commodity Tab State
-const activeCommodityCategory = ref('metals');
+const activeCommodityCategory = ref('financials');
 const commodityIndicators = ref({
+  financials: [],
   metals: [],
-  agricultural: [],
-  industrial: [],
-  energy: []
+  energy: [],
+  agriculture: [],
+  softs_livestock: []
 });
 const commodityLoading = ref(false);
 const commodityError = ref(null);
@@ -1024,10 +1074,18 @@ const commodityTimeframes = computed(() => [
 
 // Commodity series mapping by category
 const commoditySeriesMap = {
-  metals: ['GOLDAMGBD228NLBM', 'SILVER', 'PCOPPUSDM', 'PIORECRUSDM', 'PLATINUM', 'PSILICON'],
-  agricultural: ['PSOYBUSDM', 'PCOFFUSDM', 'PSUGAR', 'PCORNUSDM'],
-  industrial: ['PZINC', 'PALUMINUM'],
-  energy: ['POILBREUSDM', 'PNRGINDEXM']
+  financials: [
+      'ZQUSD', 'ZTUSD', 'ZFUSD', 'ZNUSD', 'ZBUSD', // Interest Rates
+      'DXUSD', // Currency
+      'ESUSD', 'NQUSD', 'YMUSD', 'RTYUSD' // Equity Indices
+  ],
+  metals: ['GOLDAMGBD228NLBM', 'SILVER', 'PCOPPUSDM', 'PLATINUM', 'PALUMINUM', 'PIORECRUSDM'], // Added Aluminum here
+  energy: ['POILBREUSDM', 'PNRGINDEXM'],
+  agriculture: ['PCORNUSDM', 'PWHEAMTUSDM', 'ZOUSX', 'ZRUSD', 'PSOYBUSDM'],
+  softs_livestock: [
+    'KCUSX', 'CCUSD', 'SBUSX', 'CTUSX', 'OJUSX', 'LBUSD', // Softs
+    'LEUSX', 'GFUSX', 'HEUSX', 'DCUSD' // Livestock/Dairy
+  ]
 };
 
 // Crypto Tab State

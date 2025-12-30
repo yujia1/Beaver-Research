@@ -2,72 +2,72 @@ import yfinance as yf
 from typing import List, Dict, Any
 
 # Mapping of commodity series IDs to Yahoo Finance ticker symbols
+# Mapping of commodity series IDs to FMP/Yahoo tickers (kept for reference or cache keys)
+# Updated to match new categorization strategy using FMP symbols where possible
 commodity_ticker_map = {
-    "GOLDAMGBD228NLBM": "GC=F",  # Gold Futures
-    "PLATINUM": "PL=F",  # Platinum Futures
-    "SILVER": "SI=F",  # Silver Futures
-    "PCOPPUSDM": "HG=F",  # Copper Futures
-    "PIORECRUSDM": "IO=F",  # Iron Ore Futures (or use VALE, BHP as proxy)
-    "PSILICON": "SI=F",  # Silicon - using Silver as proxy (may need adjustment)
-    "PTITANIUM": "TI=F",  # Titanium - may need alternative source
-    "PWHEAMTUSDM": "ZW=F",  # Wheat Futures
-    "PCORNUSDM": "ZC=F",  # Corn Futures
-    "PSOYBUSDM": "ZS=F",  # Soybeans Futures
-    "PCOFFUSDM": "KC=F",  # Coffee Futures
-    "PLUMBER": "LB=F",  # Lumber Futures
-    "PMILK": "DA=F",  # Class III Milk Futures
-    "PSUGAR": "SB=F",  # Sugar #11 Futures
-    "PNRGINDEXM": "NG=F",  # Natural Gas Futures
-    "POILBREUSDM": "CL=F",  # Crude Oil Futures
-    "PALUMINUM": "ALI=F",  # Aluminum Futures
-    "PNICKEL": "NI=F",  # Nickel Futures
-    "PZINC": "ZN=F",  # Zinc Futures
+    # Financials
+    "ZQUSD": "ZQUSD", "ZTUSD": "ZTUSD", "ZFUSD": "ZFUSD", "ZNUSD": "ZNUSD", "ZBUSD": "ZBUSD",
+    "DXUSD": "DXUSD", "ESUSD": "ESUSD", "NQUSD": "NQUSD", "YMUSD": "YMUSD", "RTYUSD": "RTYUSD",
+    
+    # Metals (Legacy IDs -> FMP Symbols)
+    "GOLDAMGBD228NLBM": "GCUSD", # Gold
+    "SILVER": "SIUSD",           # Silver
+    "PLATINUM": "PLUSD",         # Platinum
+    "PCOPPUSDM": "HGUSD",        # Copper
+    "PALUMINUM": "ALIUSD",       # Aluminum
+    
+    # Energy
+    "POILBREUSDM": "CLUSD",      # Crude Oil (WTI)
+    "PNRGINDEXM": "NGUSD",       # Natural Gas
+    
+    # Agriculture
+    "PWHEAMTUSDM": "KEUSX",      # Wheat
+    "PCORNUSDM": "ZCUSX",        # Corn
+    "PSOYBUSDM": "ZSUSX",        # Soybeans
+    "ZOUSX": "ZOUSX",            # Oats
+    "ZRUSD": "ZRUSD",            # Rough Rice
+
+    # Softs & Livestock (Legacy IDs -> FMP Symbols if generic, or direct FMP symbols)
+    "PCOFFUSDM": "KCUSX",        # Coffee
+    "PSUGAR": "SBUSX",           # Sugar
+    "CCUSD": "CCUSD",            # Cocoa
+    "CTUSX": "CTUSX",            # Cotton
+    "OJUSX": "OJUSX",            # Orange Juice
+    "PLUMBER": "LBUSD",          # Lumber
+    "LEUSX": "LEUSX",            # Live Cattle
+    "GFUSX": "GFUSX",            # Feeder Cattle
+    "HEUSX": "HEUSX",            # Lean Hogs
+    "PMILK": "DCUSD",            # Class III Milk
 }
 
+from redis_client import redis_client
+
 def fetch_commodity_from_yahoo(series_id: str, timeframe: str) -> List[Dict[str, Any]]:
-    """Fetch commodity data from Yahoo Finance and return list of {'date': str, 'value': float}."""
+    """
+    Fetch commodity data.
+    Legacy name kept for compatibility with macro.py, but now fetches from Redis (populated by FMP scheduler).
+    Default fallback to empty if not in cache (Background worker handles fetching).
+    """
     try:
-        ticker_symbol = commodity_ticker_map.get(series_id)
-        if not ticker_symbol:
-            print(f"No Yahoo Finance ticker mapping found for {series_id}")
-            return []
+        # Check cache populated by scheduler (services/market/commodity.py)
+        # Scheduler saves data as { Category: [ { symbol, ... }, ... ] } under "commodity:data:monthly"
         
-        # Map timeframe to yfinance period
-        period_map_yahoo = {
-            "monthly": "1y",
-            "quarterly": "1y",
-            "yearly": "5y",
-            "5y": "5y",
-            "max": "max"
-        }
-        period = period_map_yahoo.get(timeframe, "1y")
+        cached_data = redis_client.get_cache("commodity:data:monthly")
         
-        # Map timeframe to interval
-        interval_map = {
-            "monthly": "1d",
-            "quarterly": "1d",
-            "yearly": "1wk",
-            "5y": "1mo",
-            "max": "1mo"
-        }
-        interval = interval_map.get(timeframe, "1d")
+        if cached_data:
+            # We need to find the specific series_id (mapped to FMP symbol) in the categorized data
+            target_symbol = commodity_ticker_map.get(series_id, series_id)
+            
+            for category, items in cached_data.items():
+                for item in items:
+                    if item.get("symbol") == target_symbol:
+                        print(f"[COMMODITY] Hit cache for {series_id} ({target_symbol})")
+                        # The item["history"] is already in the right format
+                        return item.get("history", [])
+                        
+        print(f"[COMMODITY] Cache miss for {series_id}")
+        return []
         
-        ticker = yf.Ticker(ticker_symbol)
-        hist = ticker.history(period=period, interval=interval)
-        
-        if hist.empty:
-            print(f"No data found for {ticker_symbol}")
-            return []
-        
-        # Convert to list of {date, value} objects
-        history = []
-        for date, row in hist.iterrows():
-            history.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "value": float(row['Close'])
-            })
-        
-        return history
     except Exception as e:
-        print(f"Error fetching commodity {series_id} from Yahoo Finance: {e}")
+        print(f"Error fetching commodity {series_id}: {e}")
         return []
