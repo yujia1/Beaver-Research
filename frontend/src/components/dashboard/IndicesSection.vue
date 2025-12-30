@@ -26,7 +26,6 @@
       <div class="index-card" v-for="index in displayedIndices" :key="index.symbol">
           <div class="card-header">
               <h3>{{ index.name }}</h3>
-              <span class="symbol">{{ index.symbol }}</span>
           </div>
           
           <div class="index-value" :class="{ 'positive': index.change >= 0, 'negative': index.change < 0 }">
@@ -74,7 +73,7 @@ ChartJS.register(
 
 const { t } = useI18n();
 
-const regions = ['United States', 'Europe', 'Asia-Pacific', 'Canada', 'Emerging Markets', 'Global'];
+const regions = ['United States', 'Europe', 'Asia-Pacific'];
 const activeRegion = ref('United States');
 const loading = ref(false);
 const error = ref(null);

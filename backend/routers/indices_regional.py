@@ -47,22 +47,22 @@ async def get_regional_indices():
             {"symbol": "000001.SS", "name": "SSE Composite"},
             {"symbol": "^KS11", "name": "KOSPI"}
         ],
-        "Canada": [
-            {"symbol": "^GSPTSE", "name": "TSX Composite"},
-            {"symbol": "TX60.TS", "name": "TSX 60"},
-            {"symbol": "^SPCDNX", "name": "TSX Venture"}
-        ],
-        "Emerging Markets": [
-            {"symbol": "^BVSP", "name": "Bovespa"},
-            {"symbol": "^MXX", "name": "IPC Mexico"},
-            {"symbol": "^TASI.SR", "name": "Tadawul"},
-            {"symbol": "^JKSE", "name": "Jakarta Composite"},
-            {"symbol": "XU100.IS", "name": "BIST 100"}
-        ],
-        "Global": [
-            {"symbol": "MSCIWORLD", "name": "MSCI World"},
-            {"symbol": "^W1DOW", "name": "DJ Global"}
-        ]
+        # "Canada": [
+        #     {"symbol": "^GSPTSE", "name": "TSX Composite"},
+        #     {"symbol": "TX60.TS", "name": "TSX 60"},
+        #     {"symbol": "^SPCDNX", "name": "TSX Venture"}
+        # ],
+        # "Emerging Markets": [
+        #     {"symbol": "^BVSP", "name": "Bovespa"},
+        #     {"symbol": "^MXX", "name": "IPC Mexico"},
+        #     {"symbol": "^TASI.SR", "name": "Tadawul"},
+        #     {"symbol": "^JKSE", "name": "Jakarta Composite"},
+        #     {"symbol": "XU100.IS", "name": "BIST 100"}
+        # ],
+        # "Global": [
+        #     {"symbol": "MSCIWORLD", "name": "MSCI World"},
+        #     {"symbol": "^W1DOW", "name": "DJ Global"}
+        # ]
     }
     
     # Check cache first
