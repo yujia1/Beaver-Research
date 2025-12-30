@@ -18,14 +18,7 @@ async def fetch_crypto_data(timeframe: str = "daily") -> List[Dict[str, Any]]:
     # FMP uses 'BTCUSD', we use 'BTC-USD' as frontend key
     crypto_config = [
         {"ticker": "BTC-USD", "fmp_symbol": "BTCUSD", "name": "Bitcoin (BTC)", "description": "Bitcoin Price"},
-        {"ticker": "ETH-USD", "fmp_symbol": "ETHUSD", "name": "Ethereum (ETH)", "description": "Ethereum Price"},
-        # For these, we can keep using yfinance fallback or simple placeholder if FMP doesn't support free tier well
-        # But the prompt specifically asked for BTC and ETH via FMP.
-        # We'll try to use FMP for available ones, or fallback.
-        # Actually, let's just implement the loop for all, assuming FMP has them (it usually does)
-        {"ticker": "USDT-USD", "fmp_symbol": "USDTUSD", "name": "Tether USDt (USDT)", "description": "Tether USDt Price"},
-        {"ticker": "BNB-USD", "fmp_symbol": "BNBUSD", "name": "BNB (BNB)", "description": "BNB Price"},
-        {"ticker": "SOL-USD", "fmp_symbol": "SOLUSD", "name": "Solana (SOL)", "description": "Solana Price"}
+        {"ticker": "ETH-USD", "fmp_symbol": "ETHUSD", "name": "Ethereum (ETH)", "description": "Ethereum Price"}
     ]
     
     # Map frontend timeframe to number of days for FMP 'from' param

@@ -3,6 +3,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from redis_client import redis_client
 from services.market.indices import fetch_regional_indices_data, fetch_major_indices_data
 from services.market.crypto import fetch_crypto_data
+from services.market.currency import fetch_currency_data
 import asyncio
 import json
 
@@ -45,6 +46,18 @@ async def update_crypto_data():
     except Exception as e:
         print(f"Scheduler Error (Crypto): {e}")
 
+async def update_currency_data():
+    print("Scheduler: Updating currency data...")
+    try:
+        # Fetching 'monthly' (1 year) data as default for the main dashboard view
+        data = await fetch_currency_data(timeframe="monthly")
+        if data:
+            redis_client.set_cache("currency:data:monthly", data, ttl=3600)
+            redis_client.publish('market_updates', json.dumps({'type': 'currency_update', 'data': data}))
+            print("Scheduler: Currency data updated.")
+    except Exception as e:
+        print(f"Scheduler Error (Currency): {e}")
+
 def start_scheduler():
     # Schedule jobs
     scheduler.add_job(
@@ -63,8 +76,15 @@ def start_scheduler():
     
     scheduler.add_job(
         update_crypto_data,
-        trigger=IntervalTrigger(seconds=60), # 1 min for crypto
+        trigger=IntervalTrigger(seconds=60), # 1 min
         id='update_crypto_data',
+        replace_existing=True
+    )
+    
+    scheduler.add_job(
+        update_currency_data,
+        trigger=IntervalTrigger(seconds=60), # 1 min for major currencies
+        id='update_currency_data',
         replace_existing=True
     )
     
@@ -76,3 +96,4 @@ async def run_initial_fetch():
     await update_regional_indices()
     await update_major_indices()
     await update_crypto_data()
+    await update_currency_data()

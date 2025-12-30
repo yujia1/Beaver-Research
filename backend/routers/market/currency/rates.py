@@ -1,62 +1,33 @@
-import yfinance as yf
 from typing import List, Dict, Any
+from redis_client import redis_client
 
-# Mapping of currency series IDs to Yahoo Finance ticker symbols
+# Mapping of currency series IDs to FMP/Yahoo tickers (kept for reference or cache keys)
 currency_ticker_map = {
-    "DEXUSEU": "EURUSD=X",  # U.S. / Euro Foreign Exchange Rate (USD per EUR)
-    "DEXJPUS": "JPY=X",     # Japanese Yen to U.S. Dollar Spot Exchange Rate (JPY per USD)
-    "DEXCHUS": "CNY=X",     # China / U.S. Foreign Exchange Rate (CNY per USD)
+    "DEXUSEU": "EURUSD",  # U.S. / Euro Foreign Exchange Rate (USD per EUR)
+    "DEXJPUS": "USDJPY",     # Japanese Yen to U.S. Dollar Spot Exchange Rate (JPY per USD)
+    "DEXCHUS": "USDCNY",     # China / U.S. Foreign Exchange Rate (CNY per USD)
 }
 
 def fetch_currency_from_yahoo(series_id: str, timeframe: str) -> List[Dict[str, Any]]:
-    """Fetch currency exchange rate data from Yahoo Finance and return list of {'date': str, 'value': float}."""
+    """
+    Fetch currency exchange rate data.
+    Legacy name kept for compatibility with macro.py, but now fetches from Redis (populated by FMP scheduler).
+    Default fallback to empty if not in cache (Background worker handles fetching).
+    """
     try:
-        ticker_symbol = currency_ticker_map.get(series_id)
-        if not ticker_symbol:
-            print(f"No Yahoo Finance ticker mapping found for {series_id}")
-            return []
+        # Check cache populated by scheduler (services/market/currency.py)
+        # Scheduler saves all currencies in one dict under "currency:data:monthly"
+        # We assume 'monthly' cache is generally sufficient for the dashboard line charts.
         
-        # Map timeframe to yfinance period
-        period_map_yahoo = {
-            "daily": "1mo",
-            "weekly": "3mo",
-            "monthly": "1y",
-            "quarterly": "1y",
-            "yearly": "5y",
-            "5y": "5y",
-            "max": "max"
-        }
-        period = period_map_yahoo.get(timeframe, "1y")
+        cached_data = redis_client.get_cache("currency:data:monthly")
         
-        # Map timeframe to interval
-        interval_map = {
-            "daily": "1d",
-            "weekly": "1d",
-            "monthly": "1d",
-            "quarterly": "1d",
-            "yearly": "1wk",
-            "5y": "1mo",
-            "max": "1mo"
-        }
-        interval = interval_map.get(timeframe, "1d")
+        if cached_data and series_id in cached_data:
+            print(f"[CURRENCY] Hit cache for {series_id}")
+            return cached_data[series_id]
+            
+        print(f"[CURRENCY] Cache miss for {series_id}")
+        return []
         
-        ticker = yf.Ticker(ticker_symbol)
-        hist = ticker.history(period=period, interval=interval)
-        
-        if hist.empty:
-            print(f"No data found for {ticker_symbol}")
-            return []
-        
-        # Convert to list of {date, value} objects
-        history = []
-        for date, row in hist.iterrows():
-            history.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "value": float(row['Close'])
-            })
-        
-        print(f"[CURRENCY] Fetched {len(history)} data points from Yahoo Finance for {series_id} ({ticker_symbol})")
-        return history
     except Exception as e:
-        print(f"Error fetching currency {series_id} from Yahoo Finance: {e}")
+        print(f"Error fetching currency {series_id}: {e}")
         return []
