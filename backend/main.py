@@ -215,6 +215,7 @@ async def startup_event():
         
         # Import at function level to avoid circular imports
         from database import Base, engine
+        from sqlalchemy import inspect
         
         # 0. Handle database schema setup
         rebuild_db = os.getenv("REBUILD_DB", "false").lower() == "true"
@@ -237,8 +238,26 @@ async def startup_event():
             try:
                 models.Base.metadata.create_all(bind=engine)
                 logger.info("Database tables verified/created")
+                
+                # Validate schema - check if critical columns exist
+                inspector = inspect(engine)
+                if inspector.has_table("users"):
+                    columns = [col['name'] for col in inspector.get_columns("users")]
+                    if 'settings' not in columns:
+                        logger.error("=" * 80)
+                        logger.error("SCHEMA MISMATCH DETECTED!")
+                        logger.error("The 'users' table exists but is missing the 'settings' column.")
+                        logger.error("This means the database schema is outdated.")
+                        logger.error("")
+                        logger.error("TO FIX THIS:")
+                        logger.error("1. Set environment variable: REBUILD_DB=true")
+                        logger.error("2. Redeploy the application")
+                        logger.error("3. After successful deployment, remove REBUILD_DB or set it to false")
+                        logger.error("=" * 80)
+                        raise Exception("Database schema is outdated. Set REBUILD_DB=true to rebuild.")
+                
             except Exception as e:
-                logger.error(f"Failed to create database tables: {e}")
+                logger.error(f"Failed to create/validate database tables: {e}")
                 raise  # Fail startup if table creation fails
         
         # 1. Init Users (only after database schema is ready)
