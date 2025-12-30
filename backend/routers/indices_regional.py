@@ -1,5 +1,5 @@
 
-@router.get("/indices/regional")
+@router.get("/regional")
 async def get_regional_indices():
     """
     Fetch global market indices organized by region using Financial Modeling Prep API.
@@ -96,8 +96,10 @@ async def get_regional_indices():
                                 history = []
                                 for item in data[:30]:
                                     history.append({
+                                        "symbol": index["symbol"],
                                         "date": item.get("date"),
-                                        "value": item.get("close", 0)
+                                        "price": item.get("close", 0),
+                                        "volume": item.get("volume", 0)
                                     })
                                 
                                 region_data.append({

@@ -49,7 +49,8 @@ from routers import (
     framework,
     admin_db,
     payment,
-    agent
+    agent,
+    indices_regional
 )
 from database import engine, SessionLocal, check_db_connection
 import models
@@ -312,6 +313,7 @@ app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"]
 app.include_router(stream_news.router, prefix="/api/stream-news", tags=["Stream News"])
 app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
+app.include_router(indices_regional.router, prefix="/api/indices", tags=["Indices"])
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
 
 @app.get("/")
