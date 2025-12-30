@@ -4,11 +4,12 @@ import httpx
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from redis_client import redis_client
+import re
 
 router = APIRouter()
 
 # Cache configuration
-MARKET_NEWS_CACHE_KEY = "market_news_feed_v1"
+MARKET_NEWS_CACHE_KEY = "market_news_feed_v2"
 MARKET_NEWS_CACHE_TTL = 180  # 3 minutes
 
 
@@ -79,16 +80,12 @@ def _parse_feed_items(content, config):
     items = []
     try:
         # Register namespaces to handle content:encoded
-        # ET handling of namespaces can be tricky, typically we can find by URI
         namespaces = {
             'content': 'http://purl.org/rss/1.0/modules/content/',
             'dc': 'http://purl.org/dc/elements/1.1/'
         }
         
         root = ET.fromstring(content)
-        
-        # Determine channel title for source attribution
-        channel = root.find("channel")
         
         for item in root.findall(".//item")[:15]:
             title_elem = item.find("title")
@@ -97,7 +94,7 @@ def _parse_feed_items(content, config):
             description_elem = item.find("description")
             guid_elem = item.find("guid")
             
-            # Try to find content:encoded, handling namespace
+            # Try to find content:encoded
             content_encoded = item.find("content:encoded", namespaces)
             if content_encoded is None:
                  # Fallback: try searching with full braced name if namespace map fails 
@@ -107,8 +104,6 @@ def _parse_feed_items(content, config):
                 # Basic cleaning of description for summary
                 summary_text = ""
                 if description_elem is not None and description_elem.text:
-                    # Simple HTML strip could be done here if needed, but for now take first 200 chars
-                    import re
                     clean_desc = re.sub('<[^<]+?>', '', description_elem.text)
                     summary_text = clean_desc[:200] + "..." if len(clean_desc) > 200 else clean_desc
                 
@@ -119,19 +114,18 @@ def _parse_feed_items(content, config):
                 elif description_elem is not None and description_elem.text:
                     full_content = description_elem.text
                 
-                # Sentiment placeholder (random or simple keyword based could be added later)
-                # For now default to positive for 'green' look or handle in frontend
+                # Sentiment placeholder
                 sentiment = "neutral" 
                 
                 items.append({
                     "id": guid_elem.text if guid_elem is not None else (link_elem.text if link_elem is not None else title_elem.text),
-                    "headline": title_elem.text,  # Mapped to 'headline' for frontend
-                    "summary": summary_text,      # Mapped to 'summary' for frontend
-                    "content": full_content,      # For modal
+                    "headline": title_elem.text,
+                    "summary": summary_text,
+                    "content": full_content,
                     "link": link_elem.text if link_elem is not None else "",
                     "time": pub_date_elem.text if pub_date_elem is not None else "",
-                    "tags": [config["tag"]],      # Mapped to 'tags' array
-                    "sentiment": sentiment        # Placeholder
+                    "tags": [config["tag"]],
+                    "sentiment": sentiment
                 })
                     
     except Exception as e:
