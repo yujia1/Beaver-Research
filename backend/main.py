@@ -187,8 +187,8 @@ if allow_all_railway:
     # For Railway, we'll use allow_origin_regex instead
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r"https://.*\.(railway\.app|up\.railway\.app)",  # Allow all Railway domains
-        allow_credentials=True,
+        allow_origins=["*"],  # Allow all origins for Railway
+        allow_credentials=False,  # Must be False when using allow_origins=["*"]
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["*"],
