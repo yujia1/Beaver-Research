@@ -89,9 +89,15 @@ const miniChartOptions = {
   plugins: {
     legend: { display: false },
     tooltip: { 
-      enabled: true,
-      mode: 'index',
+      mode: 'index', 
       intersect: false,
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      titleColor: '#000000',
+      bodyColor: '#000000',
+      borderColor: '#cccccc',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+      borderWidth: 1,
+      padding: 12,
       callbacks: {
           label: function(context) {
               let label = context.dataset.label || '';
@@ -108,27 +114,45 @@ const miniChartOptions = {
   },
   scales: {
     x: { 
-      display: false, // Hide X axis for cleaner mini-chart look
+      display: true,
+      ticks: { 
+        color: '#666666', 
+        font: { size: 10 },
+        maxRotation: 45,
+        minRotation: 45
+      },
+      grid: { 
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)'
+      }
     },
     y: { 
       display: true,
       position: 'right',
-      grid: { display: false },
       ticks: { 
-        color: '#999',
-        font: { size: 9 },
-        maxTicksLimit: 4,
+        color: '#666666', 
+        font: { size: 10 },
         callback: function(value) {
-            // Simplify large numbers
             if (value >= 1000) return (value/1000).toFixed(1) + 'k';
             return value;
         }
+      },
+      grid: { 
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)'
       }
     }
   },
   elements: {
-    point: { radius: 0, hitRadius: 10, hoverRadius: 4 },
-    line: { borderWidth: 2, tension: 0.2 }
+    point: { 
+      radius: 0, 
+      hitRadius: 10, 
+      hoverRadius: 4
+    },
+    line: { 
+      borderWidth: 2, 
+      tension: 0.2 
+    }
   },
   interaction: {
       mode: 'nearest',
@@ -157,9 +181,9 @@ const getIndexChartData = (index) => {
         datasets: [{
             label: 'Price',
             borderColor: index.change >= 0 ? '#42b983' : '#e74c3c',
-            backgroundColor: index.change >= 0 ? 'rgba(66, 185, 131, 0.1)' : 'rgba(231, 76, 60, 0.1)',
-            data: index.history.map(item => item.price), // Using 'price' based on backend update
-            fill: true
+            backgroundColor: index.change >= 0 ? '#42b983' : '#e74c3c',
+            data: index.history.map(item => item.price),
+            fill: false
         }]
     };
 };
@@ -324,7 +348,7 @@ defineExpose({
 }
 
 .mini-chart {
-    height: 120px;
+    height: 200px;
     width: 100%;
 }
 
