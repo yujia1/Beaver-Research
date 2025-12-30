@@ -11,7 +11,7 @@ function getApiBaseUrl() {
 
     // Railway staging
     if (hostname.includes('staging')) {
-        return 'https://beaver-research-backend-stage-staging.up.railway.app'
+        return 'https://beaver-research-backend-staging.up.railway.app'
     }
 
     // Railway production (default)
