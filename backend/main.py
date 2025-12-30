@@ -1,6 +1,4 @@
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -314,32 +312,9 @@ app.include_router(framework.router, prefix="/api/framework", tags=["Framework"]
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
 
-# Mount static files for frontend (if directory exists)
-import pathlib
-static_dir = pathlib.Path(__file__).parent.parent / "frontend" / "dist"
-if static_dir.exists():
-    # Mount static assets (JS, CSS, images, etc.)
-    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
-    logger.info(f"Mounted frontend static files from {static_dir}")
-    
-    # Serve index.html for all non-API routes (SPA fallback)
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        """Serve the frontend SPA for all non-API routes"""
-        # If path starts with /api, let it fall through to 404
-        if full_path.startswith("api/"):
-            return JSONResponse(
-                status_code=404,
-                content={"detail": "Not found"}
-            )
-        # Serve index.html for all other routes
-        return FileResponse(str(static_dir / "index.html"))
-else:
-    logger.warning(f"Frontend dist directory not found at {static_dir}")
-    # Fallback root endpoint if frontend not built
-    @app.get("/")
-    def read_root():
-        return {"message": "Financial Dashboard Agent API is running", "note": "Frontend not built"}
+@app.get("/")
+def read_root():
+    return {"message": "Financial Dashboard Agent API is running"}
 
 @app.get("/health")
 @limiter.limit("60/minute")

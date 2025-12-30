@@ -1,11 +1,9 @@
 // API Configuration
-// Uses relative URLs when deployed together with backend
+// Uses VITE_API_URL environment variable for Railway deployment
 // Falls back to localhost for local development
 
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : '' // Empty string means relative URLs (same origin)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+console.log('API_BASE_URL:', API_BASE_URL) // Debug log to verify
 
 export default API_BASE_URL
-
-
