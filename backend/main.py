@@ -55,8 +55,9 @@ import models
 import bcrypt
 # from services.scheduler_13f import setup_13f_scheduler
 
-# Create database tables
-models.Base.metadata.create_all(bind=engine)
+# Database tables will be created in startup event
+# This allows us to rebuild the schema if needed before creating tables
+
 
 # Initialize default users for each role type
 def init_default_users():
@@ -212,9 +213,11 @@ async def startup_event():
     try:
         logger.info("Running startup initialization...")
         
-        # 0. Rebuild database schema if REBUILD_DB environment variable is set
-        # This is useful for Railway deployments where we want to rebuild the schema on startup
-        if os.getenv("REBUILD_DB", "false").lower() == "true":
+        # 0. Handle database schema setup
+        rebuild_db = os.getenv("REBUILD_DB", "false").lower() == "true"
+        
+        if rebuild_db:
+            # Rebuild: Drop all tables and recreate from models
             logger.info("REBUILD_DB flag detected - rebuilding database schema...")
             try:
                 from database import Base, engine
@@ -225,9 +228,18 @@ async def startup_event():
                 logger.info("Database schema rebuild complete!")
             except Exception as e:
                 logger.error(f"Failed to rebuild database schema: {e}")
-                # Don't fail startup if rebuild fails
+                raise  # Fail startup if rebuild fails
+        else:
+            # Normal startup: Just ensure tables exist (create if missing)
+            logger.info("Ensuring database tables exist...")
+            try:
+                models.Base.metadata.create_all(bind=engine)
+                logger.info("Database tables verified/created")
+            except Exception as e:
+                logger.error(f"Failed to create database tables: {e}")
+                raise  # Fail startup if table creation fails
         
-        # 1. Init Users
+        # 1. Init Users (only after database schema is ready)
         try:
             init_default_users()
         except Exception as e:
@@ -237,7 +249,8 @@ async def startup_event():
 
 
     except Exception as e:
-        logger.error(f"Critical startup error (suppressed to allow API boot): {e}")
+        logger.error(f"Critical startup error: {e}")
+        raise  # Re-raise to prevent app from starting with broken state
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(payment.router) # Prefix handling is inside the router
