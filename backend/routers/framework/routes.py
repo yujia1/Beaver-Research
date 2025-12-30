@@ -534,72 +534,95 @@ async def get_all_statements(
     ticker = ticker.upper()
     
     try:
-        income = await get_income_statement(ticker, period, limit)
-        cash_flow = await get_cash_flow(ticker, period, limit)
-        balance_sheet = await get_balance_sheet(ticker, period, limit)
-        revenue_seg = await get_revenue_segmentation(ticker)
-        dcf = await get_dcf(ticker)
-        earnings_calendar = await get_earnings_calendar(ticker)
-        employee_count = await get_employee_count(ticker)
-        mergers_acquisitions = {"data": []} # await get_mergers_acquisitions(ticker)
-        
-        # Fetch Filings from SEC (via EdgarService)
-        try:
-            loop = asyncio.get_running_loop()
-            filings_data = await loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
-        except Exception as e:
-            print(f"Error fetching SEC filings: {e}")
-            filings_data = []
+        loop = asyncio.get_running_loop()
 
+        # Define all tasks
+        tasks = [
+            get_income_statement(ticker, period, limit),
+            get_cash_flow(ticker, period, limit),
+            get_balance_sheet(ticker, period, limit),
+            get_revenue_segmentation(ticker),
+            get_dcf(ticker),
+            get_earnings_calendar(ticker),
+            get_employee_count(ticker),
+            get_key_metrics_ttm(ticker),
+            get_financial_ratios_analysis(ticker),
+            get_earnings_data(ticker),
+            get_stock_dividends(ticker),
+            get_stock_splits(ticker),
+            get_insider_trading(ticker),
+            get_senate_trades(ticker),
+            get_house_trades(ticker),
+            get_historical_price_full(ticker),
+            # Run SEC blocking calls in executor
+            loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100),
+            loop.run_in_executor(None, edgar_service.get_latest_10k_content, ticker)
+        ]
 
-        key_metrics = await get_key_metrics_ttm(ticker)
-        financial_ratios = await get_financial_ratios_analysis(ticker)
-        earnings = await get_earnings_data(ticker)
-        dividends = await get_stock_dividends(ticker)
-        splits = await get_stock_splits(ticker)
-        insider_trading = await get_insider_trading(ticker)
-        senate_trades = await get_senate_trades(ticker)
-        house_trades = await get_house_trades(ticker)
+        # Execute in parallel
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Fetch Business Description from 10-K (Item 1)
+        # Unpack results safely
+        def get_result(index, default_val=None):
+            res = results[index]
+            if isinstance(res, Exception):
+                print(f"Task {index} failed for {ticker}: {res}")
+                return default_val
+            return res
+
+        # Map results to variables (indices match task order)
+        income = get_result(0, {"data": []})
+        cash_flow = get_result(1, {"data": []})
+        balance_sheet = get_result(2, {"data": []})
+        revenue_seg = get_result(3, {"data": []})
+        dcf = get_result(4, {"data": []})
+        earnings_calendar = get_result(5, {"data": []})
+        employee_count = get_result(6, {"data": []})
+        key_metrics = get_result(7, {"data": []})
+        financial_ratios = get_result(8, [])
+        earnings = get_result(9, {"data": []})
+        dividends = get_result(10, {"data": []})
+        splits = get_result(11, {"data": []})
+        insider_trading = get_result(12, {"data": []})
+        senate_trades = get_result(13, {"data": []})
+        house_trades = get_result(14, {"data": []})
+        historical_price = get_result(15, {"historical": []})
+        filings_data = get_result(16, [])
+        ten_k_content = get_result(17, {})
+
+        # Process Business Description
         business_description = ""
-        try:
-            loop = asyncio.get_running_loop()
-            ten_k_content = await loop.run_in_executor(None, edgar_service.get_latest_10k_content, ticker)
-            if ten_k_content and "chunk_a" in ten_k_content:
-                business_description = ten_k_content["chunk_a"]
-        except Exception as e:
-            print(f"Error fetching 10-K content: {e}")
-
-        # Fetch Historical Price
-        historical_price = await get_historical_price_full(ticker)
+        if ten_k_content and isinstance(ten_k_content, dict) and "chunk_a" in ten_k_content:
+            business_description = ten_k_content["chunk_a"]
         
+        mergers_acquisitions = {"data": []}
+
         return {
             "ticker": ticker,
             "business_description": business_description,
-            "historical_price": historical_price.get("historical", []),
+            "historical_price": historical_price.get("historical", []) if isinstance(historical_price, dict) else [],
             "period": period,
-            "income_statement": income["data"],
-            "cash_flow": cash_flow["data"],
-            "balance_sheet": balance_sheet["data"],
-            "revenue_segmentation": revenue_seg["data"],
-            "dcf": dcf["data"],
-            "earnings_calendar": earnings_calendar["data"],
-            "employee_count": employee_count["data"],
+            "income_statement": income.get("data", []) if isinstance(income, dict) else [],
+            "cash_flow": cash_flow.get("data", []) if isinstance(cash_flow, dict) else [],
+            "balance_sheet": balance_sheet.get("data", []) if isinstance(balance_sheet, dict) else [],
+            "revenue_segmentation": revenue_seg.get("data", []) if isinstance(revenue_seg, dict) else [],
+            "dcf": dcf.get("data", []) if isinstance(dcf, dict) else [],
+            "earnings_calendar": earnings_calendar.get("data", []) if isinstance(earnings_calendar, dict) else [],
+            "employee_count": employee_count.get("data", []) if isinstance(employee_count, dict) else [],
             "mergers_acquisitions": mergers_acquisitions["data"],
-            "filings": filings_data,
-            "key_metrics": key_metrics["data"],
-            "financial_ratios": financial_ratios,
-            "earnings": earnings["data"],
-            "dividends": dividends["data"],
-            "splits": splits["data"],
-            "insider_trading": insider_trading["data"],
-            "senate_trades": senate_trades["data"],
-            "house_trades": house_trades["data"]
+            "filings": filings_data if isinstance(filings_data, list) else [],
+            "key_metrics": key_metrics.get("data", []) if isinstance(key_metrics, dict) else [],
+            "financial_ratios": financial_ratios if isinstance(financial_ratios, list) else [],
+            "earnings": earnings.get("data", []) if isinstance(earnings, dict) else [],
+            "dividends": dividends.get("data", []) if isinstance(dividends, dict) else [],
+            "splits": splits.get("data", []) if isinstance(splits, dict) else [],
+            "insider_trading": insider_trading.get("data", []) if isinstance(insider_trading, dict) else [],
+            "senate_trades": senate_trades.get("data", []) if isinstance(senate_trades, dict) else [],
+            "house_trades": house_trades.get("data", []) if isinstance(house_trades, dict) else []
         }
-    except HTTPException as e:
-        raise e
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching statements: {str(e)}")
 
 from pydantic import BaseModel
