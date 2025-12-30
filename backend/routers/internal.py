@@ -13,6 +13,7 @@ import requests
 from requests.exceptions import ReadTimeout, Timeout, RequestException
 from redis_client import redis_client
 
+# router = APIRouter()
 router = APIRouter()
 
 # Mapping for timeframe to FRED offset

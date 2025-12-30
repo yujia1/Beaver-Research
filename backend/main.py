@@ -44,19 +44,19 @@ from routers import (
     external, 
     auth, 
     research, 
-    filing_13f, 
+    # filing_13f, 
     short_interest,
     alphatrade,
     whale_watching,
     framework,
     admin_db,
-    admin_scheduler,
+    # admin_scheduler,
     payment
 )
 from database import engine, SessionLocal, check_db_connection
 import models
 import bcrypt
-# from services.scheduler_13f import setup_13f_scheduler # Disabled
+# from services.scheduler_13f import setup_13f_scheduler
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -208,13 +208,13 @@ app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
 app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(research.router, prefix="/api/research", tags=["Research"])
-app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filings"])
+# app.include_router(filing_13f.router, prefix="/api/filing-13f", tags=["13F Filings"])
 app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
 app.include_router(whale_watching.router, prefix="/api/whale-watching", tags=["Whale Watching"])
 app.include_router(alphatrade.router, prefix="/api/alphatrade", tags=["AlphaTrade"])
 app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
-app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
+# app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
 
 @app.get("/")
 def read_root():
@@ -259,3 +259,4 @@ async def readiness_check():
 async def liveness_check():
     """Kubernetes liveness probe endpoint"""
     return {"status": "alive"}
+ 
