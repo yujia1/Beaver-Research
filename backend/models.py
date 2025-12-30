@@ -12,10 +12,16 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, server_default="user", nullable=False)  # admin, creator, contributor, user
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False) # Email verification status
+    
+    # Payment / Stripe fields
     has_paid = Column(Boolean, default=False, nullable=False)  # Payment status for Research access
-    payment_transaction_id = Column(String, nullable=True)  # PayPal transaction ID
-    payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date
-    payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date
+    payment_transaction_id = Column(String, nullable=True)  # Legacy/PayPal transaction ID
+    payment_date = Column(DateTime(timezone=True), nullable=True)  # Payment date (Latest)
+    
+    stripe_customer_id = Column(String, nullable=True, index=True)
+    stripe_subscription_id = Column(String, nullable=True)
+    stripe_current_period_end = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     reports = relationship("Report", back_populates="user")

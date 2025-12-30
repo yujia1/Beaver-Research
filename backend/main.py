@@ -50,7 +50,8 @@ from routers import (
     whale_watching,
     framework,
     admin_db,
-    admin_scheduler
+    admin_scheduler,
+    payment
 )
 from database import engine, SessionLocal, check_db_connection
 import models
@@ -198,6 +199,7 @@ async def startup_event():
         logger.error(f"Critical startup error (suppressed to allow API boot): {e}")
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(payment.router) # Prefix handling is inside the router
 app.include_router(internal.router, prefix="/api/internal", tags=["Internal Data"])
 app.include_router(external.router, prefix="/api/external", tags=["External Data"])
 app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])

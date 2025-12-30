@@ -28,6 +28,9 @@
               placeholder="Enter your password"
               :disabled="loading"
             />
+            <div class="forgot-password">
+              <router-link to="/forgot-password">Forgot Password?</router-link>
+            </div>
           </div>
           
           <div v-if="error" class="error-message">{{ error }}</div>

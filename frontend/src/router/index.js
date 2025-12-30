@@ -87,6 +87,44 @@ const router = createRouter({
       name: 'framework',
       component: FrameworkView,
       meta: { requiresAuth: false }
+    },
+    // Payment Routes
+    {
+      path: '/pricing',
+      name: 'pricing',
+      component: () => import('../views/PricingView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/payment/success',
+      name: 'payment-success',
+      component: () => import('../views/PaymentSuccess.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/payment/cancel',
+      name: 'payment-cancel',
+      component: () => import('../views/PricingView.vue'), // Redirect back to pricing
+      meta: { requiresAuth: true }
+    },
+    // Auth Routes
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPassword.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/ResetPassword.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/verify-email',
+      name: 'verify-email',
+      component: () => import('../views/VerifyEmail.vue'),
+      meta: { requiresAuth: false }
     }
   ]
 })

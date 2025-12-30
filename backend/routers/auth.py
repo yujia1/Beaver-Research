@@ -11,6 +11,8 @@ import os
 
 from database import get_db
 import models
+# Import services
+from services.email import send_reset_password_email, send_verification_email
 
 router = APIRouter()
 
@@ -80,6 +82,20 @@ class PermissionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        return v
+
 # Password hashing
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
@@ -147,6 +163,26 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def create_email_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create a token specifically for email actions (shorter/longer expiry)"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15) # Default 15 mins for reset
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def verify_email_token(token: str):
+    """Verify email token and return payload"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
 
 # User authentication
 def authenticate_user(db: Session, username: str, password: str):
@@ -759,4 +795,57 @@ async def initialize_permissions(
     redis_client.delete_cache("permissions:*")
     
     return {"message": "Initialized default permissions", "added": added}
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Initiate password reset flow"""
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    if user:
+        # Generate token
+        token = create_email_token(
+            data={"sub": user.username, "type": "reset_password"},
+            expires_delta=timedelta(minutes=15)
+        )
+        # Send email (background task in real app, awaited here for simplicity)
+        await send_reset_password_email(user.email, token)
+    
+    # Always return success to prevent email enumeration
+    return {"message": "If this email is registered, we have sent a password reset link."}
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Reset password using token"""
+    payload = verify_email_token(request.token)
+    if not payload or payload.get("type") != "reset_password":
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+        
+    username = payload.get("sub")
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Update password
+    hashed_password = get_password_hash(request.new_password)
+    user.hashed_password = hashed_password
+    db.commit()
+    
+    return {"message": "Password updated successfully"}
+
+@router.get("/verify-email")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    """Verify email address"""
+    payload = verify_email_token(token)
+    if not payload or payload.get("type") != "email_verification":
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+        
+    username = payload.get("sub")
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.is_verified = True
+    db.commit()
+    
+    return {"message": "Email verified successfully"}
 
