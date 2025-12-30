@@ -24,9 +24,6 @@
             <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'" :data-text="'Overview'">Overview</button>
             <button :class="{ active: activeTab === 'financials' }" @click="activeTab = 'financials'" :data-text="'Financial Statements'">Financial Statements</button>
             <button :class="{ active: activeTab === 'ratios' }" @click="activeTab = 'ratios'" :data-text="'Ratios'">Ratios</button>
-            <button :class="{ active: activeTab === 'notes' }" @click="activeTab = 'notes'" :data-text="'Notes & Disclosures'">Notes & Disclosures</button>
-            <button :class="{ active: activeTab === 'drivers' }" @click="activeTab = 'drivers'" :data-text="'Operating Drivers'">Operating Drivers</button>
-            <button :class="{ active: activeTab === 'capital' }" @click="activeTab = 'capital'" :data-text="'Capital Structure'">Capital Structure</button>
             <button :class="{ active: activeTab === 'filings' }" @click="activeTab = 'filings'" :data-text="'Filings'">Filings</button>
             <button :class="{ active: activeTab === 'holders' }" @click="activeTab = 'holders'" :data-text="'Holders'">Holders</button>
             <button :class="{ active: activeTab === 'trading' }" @click="activeTab = 'trading'" :data-text="'Trading'">Trading</button>
@@ -35,108 +32,13 @@
         <!-- Tab Content -->
         <div class="tab-content">
             
-            <!-- Overview & AI Analysis -->
+            <!-- Overview -->
             <div v-if="activeTab === 'overview'" class="tab-pane">
-                <div class="ai-section">
-                    <button @click="generateAllAnalyses" :disabled="analyzing || !hasPaid" class="ai-btn" :class="{ 'disabled': !hasPaid }">
-                        {{ analyzing ? 'Generating Complete Deep Dive...' : (!hasPaid ? '🔒 Payment Required - Generate Complete Deep Dive Analysis' : '✨ Generate Complete Deep Dive Analysis') }}
-                    </button>
-                    <p v-if="!hasPaid && !checkingPayment" class="payment-notice">
-                        Payment required to generate analysis. <a href="/research" style="color: #3498db; text-decoration: underline;">Visit Research page to complete payment</a>
-                    </p>
-                    
-                    <div v-if="analyzing" class="progress-indicator">
-                        <p>{{ analysisProgress }}</p>
-                    </div>
-                    
-                    <!-- Company Overview -->
-                    <div v-if="analysisReport" class="analysis-section">
-                        <h3>Company Overview & Deep Dive Analysis</h3>
-                        <div class="report-content" v-html="renderMarkdown(analysisReport)"></div>
-                    </div>
-
-                    <!-- Notes & Disclosures -->
-                    <div v-if="notesReport" class="analysis-section">
-                        <h3>Notes & Disclosures</h3>
-                        <div class="report-content" v-html="renderMarkdown(notesReport)"></div>
-                    </div>
-
-                    <!-- Operating Drivers -->
-                    <div v-if="driversReport" class="analysis-section">
-                        <h3>Operating Drivers</h3>
-                        <div class="report-content" v-html="renderMarkdown(driversReport)"></div>
-                        
-                        <!-- Operating Metrics Visualization -->
-                        <div v-if="data" class="metrics-viz">
-                            <h4>Key Operating Metrics (LTM)</h4>
-                            <div class="metrics-grid">
-                                <div class="metric-card">
-                                    <div class="metric-label">Revenue Growth</div>
-                                    <div class="metric-value">{{ calculateRevenueGrowth() }}%</div>
-                                </div>
-                                <div class="metric-card">
-                                    <div class="metric-label">Operating Margin</div>
-                                    <div class="metric-value">{{ formatPercent(data.ratios.profitability.operatingMargins) }}</div>
-                                </div>
-                                <div class="metric-card">
-                                    <div class="metric-label">Asset Turnover</div>
-                                    <div class="metric-value">{{ formatRatio(data.ratios.efficiency.assetTurnover) }}x</div>
-                                </div>
-                                <div class="metric-card">
-                                    <div class="metric-label">Inventory Turnover</div>
-                                    <div class="metric-value">{{ formatRatio(data.ratios.efficiency.inventoryTurnover) }}x</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Capital Structure -->
-                    <div v-if="capitalReport" class="analysis-section">
-                        <h3>Capital Structure & Financing</h3>
-                        <div class="report-content" v-html="renderMarkdown(capitalReport)"></div>
-                        
-                        <!-- Capital Structure Visualization -->
-                        <div v-if="data" class="capital-viz">
-                            <h4>Capital Structure Metrics</h4>
-                            <div class="metrics-grid">
-                                <div class="metric-card">
-                                    <div class="metric-label">Debt/Equity</div>
-                                    <div class="metric-value">{{ formatRatio(data.ratios.liquidity.debtToEquity) }}</div>
-                                </div>
-                                <div class="metric-card">
-                                    <div class="metric-label">Debt/EBITDA</div>
-                                    <div class="metric-value">{{ formatRatio(data.ratios.liquidity.debtToEbitda) }}x</div>
-                                </div>
-                                <div class="metric-card">
-                                    <div class="metric-label">Interest Coverage</div>
-                                    <div class="metric-value">{{ formatRatio(data.ratios.liquidity.interestCoverage) }}x</div>
-                                </div>
-                                <div class="metric-card">
-                                    <div class="metric-label">FCF Yield</div>
-                                    <div class="metric-value">{{ formatPercent(data.ratios.profitability.fcfYield) }}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Leverage Trend -->
-                            <div class="leverage-info">
-                                <h5>Leverage Analysis</h5>
-                                <div class="leverage-bar">
-                                    <div class="bar-label">Current Ratio: {{ formatRatio(data.ratios.liquidity.currentRatio) }}</div>
-                                    <div class="bar-container">
-                                        <div class="bar-fill" :style="{ width: Math.min((data.ratios.liquidity.currentRatio || 0) * 50, 100) + '%' }"></div>
-                                    </div>
-                                </div>
-                                <div class="leverage-bar">
-                                    <div class="bar-label">Quick Ratio: {{ formatRatio(data.ratios.liquidity.quickRatio) }}</div>
-                                    <div class="bar-container">
-                                        <div class="bar-fill" :style="{ width: Math.min((data.ratios.liquidity.quickRatio || 0) * 50, 100) + '%' }"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                 <!-- Standard Company Info (if any) or just blank/placeholder if it was only AI before -->
+                 <!-- Assuming there is standard data content below or we just show nothing specific for now -->
             </div>
+
+
 
             <!-- Financial Statements (Unified) -->
             <div v-if="activeTab === 'financials'" class="tab-pane">
@@ -1002,31 +904,7 @@ const generateDriversAnalysis = async () => {
     }
 };
 
-const generateCapitalAnalysis = async () => {
-    if (!data.value) return;
-    analyzingCapital.value = true;
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/agent/analyze_capital_structure`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ticker: data.value.ticker,
-                company_name: data.value.company_name,
-                sector: data.value.sector
-            })
-        });
-        if (!response.ok) throw new Error('Failed to generate analysis');
-        const result = await response.json();
-        capitalReport.value = result.report;
-        await saveReport(`Capital Structure: ${data.value.company_name}`, result.report, 'capital_structure');
-    } catch (e) {
-        console.error(e);
-        if (!analyzing.value) alert("Failed to generate capital analysis");
-        throw e;
-    } finally {
-        analyzingCapital.value = false;
-    }
-};
+
 
 const calculateRevenueGrowth = () => {
     if (!data.value || !data.value.financials || !data.value.financials.annual) return '-';
@@ -2102,8 +1980,7 @@ const formatCurrency = (value) => {
     background: #cccccc !important;
     color: #666666 !important;
 }
-    color: #2e7d32;
-}
+
 
 .analysis-section {
     margin-bottom: 40px;
