@@ -165,6 +165,7 @@ origins = [
     "https://beaver-research-frontend-production.up.railway.app",
     "https://beaver-research.up.railway.app", # Production Frontend
     "https://www.beaver-research.up.railway.app", 
+    "https://beaver-researchfrontend-staging.up.railway.app", # Staging Frontend 
 ]
 
 app.add_middleware(
