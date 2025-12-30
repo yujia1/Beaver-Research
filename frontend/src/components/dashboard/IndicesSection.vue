@@ -25,17 +25,34 @@
     <div v-else class="indices-grid">
       <div class="index-card" v-for="index in displayedIndices" :key="index.symbol">
           <div class="card-header">
-              <h3>{{ index.name }}</h3>
+              <div class="header-top">
+                  <h3>{{ index.name }}</h3>
+              </div>
+              <div class="timeframe-selector">
+                  <button 
+                      v-for="tf in ['1M', '3M', '1Y', '5Y', 'Max']" 
+                      :key="tf"
+                      class="tf-btn"
+                      :class="{ active: index.selectedTimeframe === tf }"
+                      @click="updateIndexTimeframe(index, tf)"
+                      :disabled="index.loading"
+                  >
+                      {{ tf }}
+                  </button>
+              </div>
           </div>
           
           <div class="index-value" :class="{ 'positive': index.change >= 0, 'negative': index.change < 0 }">
-              <span class="value">{{ index.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
-              <span class="change">
-                  <span v-if="index.change > 0">+</span>
-                  {{ index.change }} ({{ index.changePercent }}%)
-              </span>
+              <div v-if="index.loading" class="mini-spinner"></div>
+              <template v-else>
+                  <span class="value">{{ index.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                  <span class="change">
+                      <span v-if="index.change > 0">+</span>
+                      {{ index.change }} ({{ index.changePercent }}%)
+                  </span>
+              </template>
           </div>
-          <div class="mini-chart">
+          <div class="mini-chart" :class="{ 'loading-chart': index.loading }">
               <Line :data="getIndexChartData(index)" :options="miniChartOptions" />
           </div>
       </div>
@@ -197,6 +214,10 @@ const fetchIndices = async () => {
     if (cached) {
         console.log('Using cached regional indices data');
         allRegionalIndices.value = cached;
+        // Initialize default timeframe for each index if not present
+        Object.values(allRegionalIndices.value).flat().forEach(idx => {
+             if (!idx.selectedTimeframe) idx.selectedTimeframe = '1Y';
+        });
         loading.value = false;
         return;
     }
@@ -205,6 +226,11 @@ const fetchIndices = async () => {
         const response = await fetch(`${API_BASE_URL}/api/indices/regional`);
         if (!response.ok) throw new Error('Failed to fetch regional indices');
         const data = await response.json();
+        
+        // Add default timeframe property
+        Object.keys(data).forEach(region => {
+            data[region] = data[region].map(idx => ({ ...idx, selectedTimeframe: '1Y' }));
+        });
         
         allRegionalIndices.value = data;
         
@@ -220,6 +246,34 @@ const fetchIndices = async () => {
         error.value = 'Failed to load market data';
     } finally {
         loading.value = false;
+    }
+};
+
+const updateIndexTimeframe = async (index, timeframe) => {
+    if (index.selectedTimeframe === timeframe) return;
+    
+    index.selectedTimeframe = timeframe;
+    index.loading = true; // Add temporary loading state to the index object
+    
+    try {
+        const encodedSymbol = encodeURIComponent(index.symbol);
+        const response = await fetch(`${API_BASE_URL}/api/indices/regional/series/${encodedSymbol}?timeframe=${timeframe}`);
+        
+        if (!response.ok) throw new Error('Failed to fetch index history');
+        
+        const data = await response.json();
+        
+        // Update index data with new history
+        if (data.history && data.history.length > 0) {
+            index.history = data.history;
+            index.price = data.price;
+            index.change = data.change;
+            index.changePercent = data.changePercent;
+        }
+    } catch (e) {
+        console.error(`Error updating timeframe for ${index.symbol}:`, e);
+    } finally {
+        index.loading = false;
     }
 };
 
@@ -379,5 +433,71 @@ defineExpose({
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.timeframe-selector {
+    display: flex;
+    gap: 5px;
+    background: #f8f9fa;
+    padding: 3px;
+    border-radius: 6px;
+    align-self: flex-start;
+}
+
+.tf-btn {
+    border: none;
+    background: transparent;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    color: #95a5a6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tf-btn:hover:not(:disabled) {
+    color: #2c3e50;
+    background: rgba(0,0,0,0.05);
+}
+
+.tf-btn.active {
+    background: white;
+    color: #2c3e50;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-weight: 500;
+}
+
+.tf-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mini-spinner {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+.loading-chart {
+    opacity: 0.5;
+    pointer-events: none;
+    filter: grayscale(1);
 }
 </style>
