@@ -45,6 +45,7 @@ from routers import (
     research, 
     short_interest,
     portfolio,
+    portfolio_news,
     framework,
     admin_db,
     payment,
@@ -308,6 +309,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(research.router, prefix="/api/research", tags=["Research"])
 app.include_router(short_interest.router, prefix="/api/short-interest", tags=["Short Interest"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
+app.include_router(portfolio_news.router, prefix="/api/portfolio", tags=["Portfolio News"])
 app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])
