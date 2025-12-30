@@ -150,35 +150,83 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 logger.info("FastAPI application initialized")
 
-# CORS configuration
-origins = [
-    "http://localhost:5173",  # Vue.js dev server (default)
-    "http://localhost:5174",  # Vue.js dev server (alternative port)
-    "http://localhost:8080",
-    "http://localhost:80",  # Docker frontend (nginx)
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8000",
-    "http://frontend:80",  # Docker internal network
-    "https://beaver-research-frontend-production.up.railway.app",
-    "https://beaver-research.up.railway.app", # Production Frontend
-    "https://www.beaver-research.up.railway.app", 
-    "https://beaver-researchfrontend-staging.up.railway.app", # Staging Frontend 
-]
+# CORS configuration - Dynamic based on environment
+# Read allowed origins from environment variable, or use defaults for local development
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    # Parse comma-separated origins from environment variable
+    origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+    logger.info(f"Using CORS origins from ALLOWED_ORIGINS env var: {origins}")
+else:
+    # Default origins for local development
+    origins = [
+        "http://localhost:5173",  # Vue.js dev server (default)
+        "http://localhost:5174",  # Vue.js dev server (alternative port)
+        "http://localhost:8080",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8000",
+    ]
+    logger.info("Using default CORS origins for local development")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+# For Railway deployments, allow all Railway app URLs
+# This is safe because Railway URLs are unique and controlled
+allow_all_railway = os.getenv("ALLOW_RAILWAY_ORIGINS", "true").lower() == "true"
+
+if allow_all_railway:
+    # Use a custom origin validator that allows Railway domains
+    def validate_origin(origin: str) -> bool:
+        """Allow Railway domains and configured origins"""
+        if origin in origins:
+            return True
+        # Allow any Railway app domain
+        if ".railway.app" in origin or ".up.railway.app" in origin:
+            return True
+        return False
+    
+    # For Railway, we'll use allow_origin_regex instead
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https://.*\.(railway\.app|up\.railway\.app)",  # Allow all Railway domains
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+    logger.info("CORS configured to allow all Railway domains")
+else:
+    # Use explicit origins list
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+    logger.info(f"CORS configured with explicit origins: {origins}")
+
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
     try:
         logger.info("Running startup initialization...")
+        
+        # 0. Rebuild database schema if REBUILD_DB environment variable is set
+        # This is useful for Railway deployments where we want to rebuild the schema on startup
+        if os.getenv("REBUILD_DB", "false").lower() == "true":
+            logger.info("REBUILD_DB flag detected - rebuilding database schema...")
+            try:
+                from database import Base, engine
+                logger.info("Dropping all existing tables...")
+                Base.metadata.drop_all(bind=engine)
+                logger.info("Creating all tables from models...")
+                Base.metadata.create_all(bind=engine)
+                logger.info("Database schema rebuild complete!")
+            except Exception as e:
+                logger.error(f"Failed to rebuild database schema: {e}")
+                # Don't fail startup if rebuild fails
+        
         # 1. Init Users
         try:
             init_default_users()

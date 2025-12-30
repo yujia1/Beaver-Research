@@ -12,7 +12,14 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load environment variables
-load_dotenv()
+# Load environment variables
+from pathlib import Path
+env_path = Path(__file__).resolve().parents[2] / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv() # Fallback
+
 
 # Import models to get Base
 from models import Base
