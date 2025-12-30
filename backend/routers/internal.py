@@ -612,7 +612,18 @@ def fetch_fred_series(series_id: str, start_date: str, max_retries: int = 2, tim
         try:
             # Use a shorter timeout to fail faster and retry
             # Note: pandas_datareader doesn't directly support timeout, but we can catch timeout exceptions
-            df = web.DataReader(series_id, 'fred', start=start_date, api_key=fred_api_key)
+            # Explicitly fetch one by one to avoid list comprehension issues in pandas_datareader
+            try:
+                # web.DataReader with 'fred' can accept a single string or a list
+                # Use single string to be safe and avoid the list comprehension error in fred.py
+                df = web.DataReader(series_id, 'fred', start=start_date, api_key=fred_api_key)
+            except TypeError as te:
+                if "zip" in str(te) or "listcomp" in str(te):
+                    # Fallback for the specific list comprehension error in pandas_datareader
+                    print(f"Encountered pandas_datareader list comprehension error for {series_id}, retrying with single item list...")
+                    df = web.DataReader([series_id], 'fred', start=start_date, api_key=fred_api_key)
+                else:
+                    raise te
             
             if df.empty:
                 print(f"Warning: FRED returned empty data for {series_id}")
