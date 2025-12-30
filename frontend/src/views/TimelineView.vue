@@ -53,18 +53,11 @@
     <!-- Key Events Section Removed -->
     <div class="events-card">
       <div class="events-header">
-        <h2>{{ t('investment.tabs.company_basic') }}</h2>
+        <h2>{{ t('investment.tabs.polymarket') }}</h2>
       </div>
 
       <!-- Tab Selector -->
       <div class="tab-selector">
-        <button 
-          class="tab-btn" 
-          :class="{ active: activeTab === 'company' }"
-          @click="activeTab = 'company'"
-        >
-          {{ t('investment.tabs.company_basic') }}
-        </button>
         <button 
           class="tab-btn" 
           :class="{ active: activeTab === 'productivity' }"
@@ -73,19 +66,6 @@
           {{ t('investment.tabs.polymarket') }}
         </button>
       </div>
-
-      <!-- Company Basic Tab Content (Micro Economics) -->
-      <div v-if="activeTab === 'company'" class="tab-content">
-         <CompanyAnalysis 
-            v-if="selectedStock"
-            :ticker="selectedStock" 
-         />
-         <div v-else class="no-company-data">
-           <p>{{ t('investment.select_stock_prompt') || 'Select a stock from the dropdown above to view company information.' }}</p>
-         </div>
-      </div>
-
-      <!-- PolyMarket Tab Content -->
       <div v-if="activeTab === 'productivity'" class="tab-content productivity-tab-content">
          <PolyMarketSection 
             v-if="selectedStock"
@@ -178,7 +158,7 @@
 <script setup>
 import API_BASE_URL from '@/config/api.js'
 import PriceTimeline from '@/components/investment/PriceTimeline.vue'
-import CompanyAnalysis from '@/components/investment/CompanyAnalysis.vue'
+
 import PolyMarketSection from '@/components/investment/PolyMarketSection.vue'
 
 import { usePayment } from '@/composables/usePayment'
@@ -248,7 +228,7 @@ const showAddEventForm = ref(false)
 const highlightedEventId = ref(null)
 
 // Active tab state
-const activeTab = ref('events')
+const activeTab = ref('productivity')
 
 // Company Basic / Micro Economics data
 const companyData = ref(null)

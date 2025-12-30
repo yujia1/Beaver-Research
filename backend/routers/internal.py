@@ -840,6 +840,7 @@ class MicroData(BaseModel):
     market_cap: Optional[int] = None
     sector: Optional[str] = None
     industry: Optional[str] = None
+    description: Optional[str] = None
     # New Fields
     financials: Optional[Dict[str, Any]] = None
     balance_sheet: Optional[Dict[str, Any]] = None
@@ -1623,6 +1624,7 @@ async def get_micro_data(ticker: str):
         return {
             "ticker": ticker.upper(),
             "company_name": info.get("longName"),
+            "description": info.get("longBusinessSummary"),
             "price": round(current_price, 2),
             "volume": int(volume),
             "market_cap": info.get("marketCap"),
