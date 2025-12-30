@@ -2,10 +2,11 @@
 // Automatically uses the correct backend URL based on environment
 
 function getApiBaseUrl() {
-    // Priority 1: Check environment variable (VITE_API_BASE_URL)
+    // Priority 1: Check environment variable (VITE_API_URL or VITE_API_BASE_URL)
     // This allows manual override in Railway or other environments
-    if (import.meta.env.VITE_API_BASE_URL) {
-        let url = import.meta.env.VITE_API_BASE_URL
+    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL
+    if (envUrl) {
+        let url = envUrl
         // Force HTTPS on Railway even if env var is HTTP
         if (window.location.hostname.includes('railway.app') && url.startsWith('http://')) {
             url = url.replace('http://', 'https://')
