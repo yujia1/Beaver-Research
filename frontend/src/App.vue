@@ -82,25 +82,31 @@ const menuItems = computed(() => {
 
 
 
-  // Check permissions
-  if (user.value && user.value.role === 'admin') {
+  // Check if user is logged in
+  if (user.value) {
+    // User is logged in - check permissions
+    if (user.value.role === 'admin') {
       // Admin gets everything
-
       items.push(frameworkItem)
       items.push(reportItem)
       items.push(portfolioItem)
       items.push(academyItem)
       items.push(researchItem)
-
-  } else {
-      // Check specific permissions
-
+    } else {
+      // Check specific permissions for logged-in non-admin users
       if (hasAccess('/framework')) items.push(frameworkItem)
       if (hasAccess('/report')) items.push(reportItem)
       if (hasAccess('/portfolio')) items.push(portfolioItem)
       if (hasAccess('/academy')) items.push(academyItem)
       if (hasAccess('/research')) items.push(researchItem)
-
+    }
+  } else {
+    // User is NOT logged in - show all items except admin
+    items.push(frameworkItem)
+    items.push(reportItem)
+    items.push(portfolioItem)
+    items.push(academyItem)
+    items.push(researchItem)
   }
 
   // Upgrade to Pro (if not paid and not admin)

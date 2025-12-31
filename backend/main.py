@@ -54,7 +54,6 @@ from routers.admin import auth, db as admin_db, payment
 
 from database import engine, SessionLocal, check_db_connection
 import models
-import bcrypt
 # from services.scheduler_13f import setup_13f_scheduler
 
 # Database tables will be created in startup event
@@ -64,6 +63,14 @@ import bcrypt
 # Initialize default users for each role type
 def init_default_users():
     """Create default users for each role type if they don't exist"""
+    from passlib.context import CryptContext
+    
+    # Use the same password context as auth.py
+    pwd_context = CryptContext(
+        schemes=["bcrypt"],
+        deprecated="auto"
+    )
+    
     db = SessionLocal()
     try:
         default_users = [
@@ -100,13 +107,8 @@ def init_default_users():
             ).first()
             
             if not existing_user:
-                # Hash password using bcrypt directly to avoid passlib initialization issues
-                password_bytes = user_data["password"].encode('utf-8')
-                # Truncate to 72 bytes if necessary (bcrypt limit)
-                if len(password_bytes) > 72:
-                    password_bytes = password_bytes[:72]
-                salt = bcrypt.gensalt(rounds=12)
-                hashed_password = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+                # Hash password using passlib (same as auth.py)
+                hashed_password = pwd_context.hash(user_data["password"])
                 
                 new_user = models.User(
                     username=user_data["username"],
