@@ -5,7 +5,6 @@ from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-import bcrypt
 from typing import Optional, List
 import os
 
@@ -21,12 +20,10 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
 
-# Configure passlib to use bcrypt with proper settings
+# Configure passlib to use bcrypt
 pwd_context = CryptContext(
     schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=12,
-    bcrypt__ident="2b"  # Use bcrypt 2b format
+    deprecated="auto"
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
