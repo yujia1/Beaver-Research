@@ -40,22 +40,29 @@ async def stream_market_data():
             # Send initial ping to confirm connection immediately
             yield "event: connected\ndata: {\"status\":\"connected\"}\n\n"
             
+            import time
+            last_activity = time.time()
+            
             while True:
-                # Use asyncio.wait_for to implement a timeout for heartbeat
                 try:
-                    # Check for message with a short timeout
-                    message = await asyncio.wait_for(pubsub.get_message(ignore_subscribe_messages=True), timeout=15.0)
+                    # Check for message (non-blocking)
+                    message = await pubsub.get_message(ignore_subscribe_messages=True)
                     
                     if message:
                         payload = message['data']
                         yield f"data: {payload}\n\n"
+                        last_activity = time.time()
                     else:
-                        await asyncio.sleep(0.1)
+                        # Poll and check heartbeat
+                        await asyncio.sleep(0.5)
                         
-                except asyncio.TimeoutError:
-                    # verify connection is still alive by sending a comment (heartbeat)
-                    # This prevents Nginx/LoadBalancer 60s timeouts
-                    yield ": keep-alive\n\n"
+                        if time.time() - last_activity > 15:
+                            yield ": keep-alive\n\n"
+                            last_activity = time.time()
+                        
+                except Exception as e:
+                    logger.error(f"Stream loop error: {e}")
+                    await asyncio.sleep(1)
                     
         except asyncio.CancelledError:
             print("Client disconnected from stream")

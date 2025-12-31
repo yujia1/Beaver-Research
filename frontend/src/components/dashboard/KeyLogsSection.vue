@@ -1863,6 +1863,7 @@ const fetchCurrencyData = async () => {
   currencyError.value = null;
   
   // Check daily cache first
+  /*
   const cached = getDailyCache('currency_data_monthly');
   if (cached) {
     console.log('Using cached currency data');
@@ -1870,6 +1871,7 @@ const fetchCurrencyData = async () => {
     currencyLoading.value = false;
     return;
   }
+  */
   
   try {
     // Fetch all currency data from the new endpoint
@@ -1957,13 +1959,19 @@ const fetchCommodityData = async () => {
   commodityError.value = null;
   
   // Check daily cache first
+  // Cache disabled for debugging
+  /*
   const cached = getDailyCache('commodity_data_monthly');
-  if (cached) {
+  if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
     console.log('Using cached commodity data');
     commodityIndicators.value = cached;
     commodityLoading.value = false;
     return;
+  } else if (cached) {
+    console.warn('[COMMODITY] Cached data is invalid/empty, refetching...');
+    localStorage.removeItem('commodity_data_monthly');
   }
+  */
   
   try {
     console.log('[COMMODITY] Fetching from:', `${API_BASE_URL}/api/market/commodity/`);
