@@ -160,31 +160,31 @@
                             <table class="details-table">
                                 <tbody>
                                     <tr>
-                                        <td class="label-cell">Indicator Name</td>
+                                        <td class="label-cell">{{ t('dashboard.details.indicator_name') }}</td>
                                         <td class="value-cell">{{ item.indicator }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="label-cell">Description</td>
+                                        <td class="label-cell">{{ t('dashboard.details.description') }}</td>
                                         <td class="value-cell">{{ item.description }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="label-cell">Current Value</td>
+                                        <td class="label-cell">{{ t('dashboard.details.current_value') }}</td>
                                         <td class="value-cell">{{ formatEconomicValue(item.value) }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="label-cell">Last Updated</td>
+                                        <td class="label-cell">{{ t('dashboard.details.last_updated') }}</td>
                                         <td class="value-cell">{{ item.date }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="label-cell">Release Frequency</td>
+                                        <td class="label-cell">{{ t('dashboard.details.release_frequency') }}</td>
                                         <td class="value-cell">{{ getEconomicFrequency(item.series_id) }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="label-cell">Next Release (Est.)</td>
+                                        <td class="label-cell">{{ t('dashboard.details.next_release') }}</td>
                                         <td class="value-cell">{{ getNextReleaseDate(item.series_id, item.date) }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="label-cell">Data Source</td>
+                                        <td class="label-cell">{{ t('dashboard.details.data_source') }}</td>
                                         <td class="value-cell">{{ getEconomicSource(item.series_id) }}</td>
                                     </tr>
                                 </tbody>
@@ -192,12 +192,12 @@
                             
                             <!-- Recent History -->
                             <div v-if="item.history && item.history.length > 0" class="history-section">
-                                <h4>Recent History (Last 10 Releases)</h4>
+                                <h4>{{ t('dashboard.details.recent_history') }}</h4>
                                 <table class="history-table">
                                     <thead>
                                         <tr>
-                                            <th>Date</th>
-                                            <th>Value</th>
+                                            <th>{{ t('dashboard.details.date') }}</th>
+                                            <th>{{ t('dashboard.details.value') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -790,20 +790,20 @@
                                 </thead>
                         <tbody>
                             <tr>
-                                <td>White house briefings</td>
-                                <td>White House Statements & Releases</td>
+                                <td>{{ t('dashboard.policy_resources.whitehouse') }}</td>
+                                <td>{{ t('dashboard.policy_resources.whitehouse_desc') }}</td>
                                 <td><a href="https://www.whitehouse.gov/briefing-room/statements-releases/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/statements-releases/</a></td>
                                 <td>policy/federal/whitehouse_statements</td>
                             </tr>
                             <tr>
-                                <td>White house fact sheets</td>
-                                <td>White House Fact Sheets</td>
+                                <td>{{ t('dashboard.policy_resources.fact_sheets') }}</td>
+                                <td>{{ t('dashboard.policy_resources.fact_sheets_desc') }}</td>
                                 <td><a href="https://www.whitehouse.gov/fact-sheets/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/statements-releases/fact-sheets/</a></td>
                                 <td>policy/federal/whitehouse_fact_sheets</td>
                             </tr>
                             <tr>
-                                <td>Whitehouse executive orders</td>
-                                <td>Executive Orders</td>
+                                <td>{{ t('dashboard.policy_resources.executive_orders') }}</td>
+                                <td>{{ t('dashboard.policy_resources.executive_orders_desc') }}</td>
                                 <td><a href="https://www.whitehouse.gov/presidential-actions/executive-orders/" target="_blank" rel="noopener noreferrer">https://www.whitehouse.gov/briefing-room/presidential-actions/executive-orders/</a></td>
                                 <td>policy/federal/executive_orders</td>
                     </tr>
@@ -825,14 +825,14 @@
                                 </thead>
                         <tbody>
                             <tr>
-                                <td>Federal register</td>
-                                <td>Federal Register – Rules, Notices, Proposals</td>
+                                <td>{{ t('dashboard.policy_resources.federal_register') }}</td>
+                                <td>{{ t('dashboard.policy_resources.federal_register_desc') }}</td>
                                 <td><a href="https://www.federalregister.gov/" target="_blank" rel="noopener noreferrer">https://www.federalregister.gov/</a></td>
                                 <td>policy/federal/regulations_register</td>
                             </tr>
                             <tr>
-                                <td>Federal register presidential</td>
-                                <td>Presidential Documents (EOs, Memos, Orders)</td>
+                                <td>{{ t('dashboard.policy_resources.presidential_docs') }}</td>
+                                <td>{{ t('dashboard.policy_resources.presidential_docs_desc') }}</td>
                                 <td><a href="https://www.federalregister.gov/presidential-documents" target="_blank" rel="noopener noreferrer">https://www.federalregister.gov/presidential-documents</a></td>
                                 <td>policy/federal/presidential_documents</td>
                             </tr>
@@ -854,14 +854,14 @@
                                 </thead>
                         <tbody>
                             <tr>
-                                <td>Congress legislation</td>
-                                <td>Congress.gov – All Legislation</td>
+                                <td>{{ t('dashboard.policy_resources.legislation') }}</td>
+                                <td>{{ t('dashboard.policy_resources.legislation_desc') }}</td>
                                 <td><a href="https://www.congress.gov/legislation" target="_blank" rel="noopener noreferrer">https://www.congress.gov/legislation</a></td>
                                 <td>policy/federal/legislation</td>
                             </tr>
                             <tr>
-                                <td>Congress subjects</td>
-                                <td>Congress.gov – Policy Topics</td>
+                                <td>{{ t('dashboard.policy_resources.subjects') }}</td>
+                                <td>{{ t('dashboard.policy_resources.subjects_desc') }}</td>
                                 <td><a href="https://www.congress.gov/subjects" target="_blank" rel="noopener noreferrer">https://www.congress.gov/subjects</a></td>
                                 <td>policy/federal/legislation_topics</td>
                             </tr>
@@ -874,7 +874,7 @@
             <div v-if="activeTab === 'calendar'" class="tab-content calendar-tab-content">
                 <div v-if="calendarLoading" class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p>Loading Economic Calendar...</p>
+                    <p>{{ t('dashboard.calendar_section.loading') }}</p>
                 </div>
                 <div v-else-if="calendarError" class="error-state">
                     <p class="error-message">{{ calendarError }}</p>
@@ -882,10 +882,10 @@
                 <div v-else class="calendar-data">
                     <div class="calendar-filters">
                         <div class="filter-group">
-                            <span class="filter-label">Impact:</span>
+                            <span class="filter-label">{{ t('dashboard.calendar_section.impact') }}</span>
                             <div class="custom-dropdown" :class="{ open: showImpactDropdown }">
                                 <button class="dropdown-toggle" @click="showImpactDropdown = !showImpactDropdown">
-                                    {{ selectedImpacts.length > 0 ? (selectedImpacts.length <= 2 ? selectedImpacts.join(', ') : selectedImpacts.length + ' Selected') : 'Select Impact' }}
+                                    {{ selectedImpacts.length > 0 ? (selectedImpacts.length <= 2 ? selectedImpacts.join(', ') : selectedImpacts.length + ' ' + t('dashboard.calendar_section.selected')) : t('dashboard.calendar_section.select_impact') }}
                                     <span class="chevron">▼</span>
                                 </button>
                                 <div class="dropdown-menu" v-if="showImpactDropdown">
@@ -902,10 +902,10 @@
                             </div>
                         </div>
                         <div class="filter-group">
-                            <span class="filter-label">Country:</span>
+                            <span class="filter-label">{{ t('dashboard.calendar_section.country') }}</span>
                              <div class="custom-dropdown" :class="{ open: showCountryDropdown }">
                                 <button class="dropdown-toggle" @click="showCountryDropdown = !showCountryDropdown">
-                                    {{ selectedCountries.length > 0 ? selectedCountries.length + ' Selected' : 'Select Country' }}
+                                    {{ selectedCountries.length > 0 ? selectedCountries.length + ' ' + t('dashboard.calendar_section.selected') : t('dashboard.calendar_section.select_country') }}
                                     <span class="chevron">▼</span>
                                 </button>
                                 <div class="dropdown-menu" v-if="showCountryDropdown">
@@ -926,13 +926,13 @@
                     <table class="liquidity-table">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Country</th>
-                                <th>Event</th>
-                                <th>Actual</th>
-                                <th>Previous</th>
-                                <th>Estimate</th>
-                                <th>Impact</th>
+                                <th>{{ t('dashboard.calendar_section.headers.date') }}</th>
+                                <th>{{ t('dashboard.calendar_section.headers.country') }}</th>
+                                <th>{{ t('dashboard.calendar_section.headers.event') }}</th>
+                                <th>{{ t('dashboard.calendar_section.headers.actual') }}</th>
+                                <th>{{ t('dashboard.calendar_section.headers.previous') }}</th>
+                                <th>{{ t('dashboard.calendar_section.headers.estimate') }}</th>
+                                <th>{{ t('dashboard.calendar_section.headers.impact') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -946,7 +946,7 @@
                                 <td>{{ item.impact }}</td>
                             </tr>
                             <tr v-if="filteredCalendarData.length === 0">
-                                <td colspan="7" class="no-data">No events match filters.</td>
+                                <td colspan="7" class="no-data">{{ t('dashboard.calendar_section.no_events') }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -958,7 +958,7 @@
                 <div class="crypto-data">
                     <div v-if="cryptoLoading" class="loading-state">
                         <div class="loading-spinner"></div>
-                        <p>Loading Crypto Data...</p>
+                        <p>{{ t('dashboard.crypto_section.loading') }}</p>
                     </div>
                     <div v-else-if="cryptoError" class="error-state">
                         <p class="error-message">{{ cryptoError }}</p>
