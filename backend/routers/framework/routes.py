@@ -372,6 +372,16 @@ async def get_historical_price_full(ticker: str, from_date: str = None, to_date:
 
 
 
+
+@router.get("/historical-price/{ticker}")
+async def get_historical_price(ticker: str):
+    """
+    Fetch historical price data for a ticker
+    """
+    ticker = ticker.upper()
+    data = await get_historical_price_full(ticker)
+    return {"ticker": ticker, "data": data.get("historical", []) if isinstance(data, dict) else []}
+
 @router.get("/economic-calendar")
 async def get_economic_calendar(from_date: Optional[str] = None, to_date: Optional[str] = None):
     """

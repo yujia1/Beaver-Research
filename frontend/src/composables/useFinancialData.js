@@ -144,6 +144,28 @@ export function useFinancialData() {
         }
     }
 
+    const fetchHistoricalPrice = async (ticker) => {
+        if (!ticker) return []
+
+        try {
+            const token = localStorage.getItem('access_token')
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/framework/historical-price/${ticker}`,
+                { headers }
+            )
+
+            if (!response.ok) return []
+
+            const data = await response.json()
+            return data.data || []
+        } catch (e) {
+            console.error('Error fetching historical price:', e)
+            return []
+        }
+    }
+
     return {
         loading,
         error,
@@ -165,6 +187,7 @@ export function useFinancialData() {
         politicianTrades,
         businessDescription,
         historicalPrice,
+        fetchHistoricalPrice,
         fetchFinancialData,
         fetchPoliticianTrades,
         fetchFinancialRatiosComparison

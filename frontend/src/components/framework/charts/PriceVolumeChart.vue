@@ -51,6 +51,10 @@ const props = defineProps({
   symbol: {
     type: String,
     default: ''
+  },
+  comparisonData: {
+    type: Array, // [{ symbol: 'AAPL', data: [...] }]
+    default: () => []
   }
 })
 
@@ -58,39 +62,66 @@ const canvasRef = ref(null)
 let chartInstance = null
 const selectedTimeframe = ref('ALL')
 const timeframes = ['1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y', 'ALL']
+const colors = ['#ef4444', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899'] // Red, Green, Purple, Amber, Pink
+
+const getCutoffDate = (data) => {
+    if (!data || data.length === 0) return new Date(0);
+    const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const lastDate = new Date(sorted[sorted.length - 1].date);
+    let cutoff = new Date(sorted[0].date);
+    
+    switch (selectedTimeframe.value) {
+        case '1M':
+            cutoff = new Date(lastDate); cutoff.setMonth(lastDate.getMonth() - 1); break;
+        case '3M':
+            cutoff = new Date(lastDate); cutoff.setMonth(lastDate.getMonth() - 3); break;
+        case '6M':
+            cutoff = new Date(lastDate); cutoff.setMonth(lastDate.getMonth() - 6); break;
+        case 'YTD':
+            cutoff = new Date(lastDate.getFullYear(), 0, 1); break;
+        case '1Y':
+            cutoff = new Date(lastDate); cutoff.setFullYear(lastDate.getFullYear() - 1); break;
+        case '3Y':
+            cutoff = new Date(lastDate); cutoff.setFullYear(lastDate.getFullYear() - 3); break;
+        case '5Y':
+            cutoff = new Date(lastDate); cutoff.setFullYear(lastDate.getFullYear() - 5); break;
+        default:
+            break;
+    }
+    return cutoff;
+}
 
 const filteredData = computed(() => {
   if (!props.data || props.data.length === 0) return []
-  
-  // Daily data logic
-  // Data is usually sorted by date desc or asc. FMP usually returns desc (newest first).
-  // We need to sort asc for chart.
   const sorted = [...props.data].sort((a, b) => new Date(a.date) - new Date(b.date))
-  
-  const lastDate = new Date(sorted[sorted.length - 1].date)
-  let cutoffDate = new Date(sorted[0].date) // default all
-  
-  switch (selectedTimeframe.value) {
-    case '1M':
-      cutoffDate = new Date(lastDate); cutoffDate.setMonth(lastDate.getMonth() - 1); break;
-    case '3M':
-      cutoffDate = new Date(lastDate); cutoffDate.setMonth(lastDate.getMonth() - 3); break;
-    case '6M':
-      cutoffDate = new Date(lastDate); cutoffDate.setMonth(lastDate.getMonth() - 6); break;
-    case 'YTD':
-      cutoffDate = new Date(lastDate.getFullYear(), 0, 1); break;
-    case '1Y':
-      cutoffDate = new Date(lastDate); cutoffDate.setFullYear(lastDate.getFullYear() - 1); break;
-    case '3Y':
-      cutoffDate = new Date(lastDate); cutoffDate.setFullYear(lastDate.getFullYear() - 3); break;
-    case '5Y':
-      cutoffDate = new Date(lastDate); cutoffDate.setFullYear(lastDate.getFullYear() - 5); break;
-    default:
-      return sorted // ALL
-  }
-  
+  const cutoffDate = getCutoffDate(sorted)
   return sorted.filter(item => new Date(item.date) >= cutoffDate)
 })
+
+const filteredComparisonData = computed(() => {
+    if (!props.comparisonData || props.comparisonData.length === 0) return [];
+    
+    // For cutoff, we use the main ticker's timeline or the comparison's own timeline?
+    // Usually best to use main ticker's cutoff to keep X-axis consistent if we use its labels.
+    // If we use common labels, we need to sync. 
+    // For simplicity, we filter each dataset roughly by the same cutoff time logic calculated from ITS own data 
+    // OR use the main data's cutoff specific date.
+    // Let's use the main data's calculated cutoff date.
+    
+    let cutoffDate = new Date(0);
+    if (props.data && props.data.length > 0) {
+        cutoffDate = getCutoffDate(props.data);
+    }
+    
+    return props.comparisonData.map(comp => {
+         const sorted = [...comp.data].sort((a, b) => new Date(a.date) - new Date(b.date));
+         return {
+             ...comp,
+             data: sorted.filter(item => new Date(item.date) >= cutoffDate)
+         }
+    });
+})
+
 
 const renderChart = () => {
   if (chartInstance) {
@@ -102,47 +133,89 @@ const renderChart = () => {
   
   const ctx = canvasRef.value.getContext('2d')
   
-  const labels = filteredData.value.map(d => d.date)
-  const prices = filteredData.value.map(d => d.close)
-  const volumes = filteredData.value.map(d => d.volume)
+  const mainData = filteredData.value
+  const labels = mainData.map(d => d.date)
+  const prices = mainData.map(d => d.close)
+  const volumes = mainData.map(d => d.volume)
   
-  // Create gradient
+  // Create gradient for main
   const gradient = ctx.createLinearGradient(0, 0, 0, 400)
   gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)') // Blue-500 equivalent
   gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)')
   
-  // Calculate volume scale max to push bars down (make them take bottom 20%? or so)
+  // Datasets
+  const datasets = [
+    {
+      label: props.symbol ? `${props.symbol} Price` : 'Price',
+      data: prices,
+      borderColor: '#3b82f6', // Bright Blue
+      backgroundColor: gradient,
+      fill: true,
+      tension: 0.1,
+      pointRadius: 0, 
+      pointHoverRadius: 4,
+      borderWidth: 2,
+      yAxisID: 'y',
+      order: 1
+    },
+    {
+      label: 'Volume',
+      data: volumes,
+      type: 'bar',
+      backgroundColor: 'rgba(156, 163, 175, 0.5)', 
+      yAxisID: 'y1',
+      barPercentage: 0.9,
+      categoryPercentage: 0.9,
+      order: 3 // Put behind
+    }
+  ];
+  
+  // Add comparisons
+  if (filteredComparisonData.value && filteredComparisonData.value.length > 0) {
+      filteredComparisonData.value.forEach((comp, index) => {
+          // Alignment check: We are using 'labels' from mainData. 
+          // If comparison data is missing dates or has diff dates, it will be misaligned if we simply map data values.
+          // Chart.js using 'category' scale requires data array length to match labels or be mapped object {x, y}.
+          // Let's use mapped objects {x: date, y: price} for safety!
+          // And update main dataset to use same format too, just in case.
+          
+          // Actually, if we switch to objects, we can just push data.
+          // But 'labels' array defines the X axis bins in 'category' mode.
+          // The cleanest correct way without TimeScale adapter is to map data to the specific label strings.
+          
+          const dataMap = new Map();
+          comp.data.forEach(d => dataMap.set(d.date.split('T')[0], d.close));
+          
+          const alignedData = labels.map(dateStr => {
+               // dateStr is 'YYYY-MM-DD' usually from FMP
+               return dataMap.get(dateStr) || null; // null keeps line gap or spans
+          });
+          
+          datasets.push({
+              label: comp.symbol,
+              data: alignedData,
+              borderColor: colors[index % colors.length],
+              backgroundColor: 'transparent',
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+              yAxisID: 'y',
+              order: 2
+          });
+      });
+  }
+
+  // Calculate volume scale max
   const maxVol = Math.max(...volumes)
-  // If we want bars to be small, set Y-axis max for volume much higher than maxVol
   const volAxisMax = maxVol * 4 
 
   chartInstance = new ChartJS(ctx, {
     type: 'line',
     data: {
       labels: labels,
-      datasets: [
-        {
-          label: props.symbol ? `${props.symbol} Price` : 'Price',
-          data: prices,
-          borderColor: '#3b82f6', // Bright Blue
-          backgroundColor: gradient,
-          fill: true,
-          tension: 0.1,
-          pointRadius: 0, // Hide points for clean line
-          pointHoverRadius: 4,
-          borderWidth: 2,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Volume',
-          data: volumes,
-          type: 'bar',
-          backgroundColor: 'rgba(156, 163, 175, 0.5)', // Gray-400
-          yAxisID: 'y1',
-          barPercentage: 0.9,
-          categoryPercentage: 0.9
-        }
-      ]
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -219,7 +292,7 @@ onMounted(() => {
   renderChart()
 })
 
-watch([filteredData, () => props.symbol], () => {
+watch([filteredData, filteredComparisonData, () => props.symbol], () => {
   nextTick(renderChart)
 }, { deep: true })
 

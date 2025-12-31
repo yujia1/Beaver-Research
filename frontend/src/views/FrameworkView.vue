@@ -50,8 +50,48 @@ const {
   historicalPrice,
   fetchFinancialData: fetchFinData,
   fetchPoliticianTrades,
-  fetchFinancialRatiosComparison
+  fetchFinancialRatiosComparison,
+  fetchHistoricalPrice
 } = useFinancialData()
+
+// ...
+
+// Comparison Logic
+const comparisonTickerInput = ref('')
+const comparisonData = ref([])
+
+const addComparison = async () => {
+    if (!comparisonTickerInput.value) return
+    const symbol = comparisonTickerInput.value.toUpperCase()
+    
+    // Avoid duplicates
+    if (comparisonData.value.some(c => c.symbol === symbol) || symbol === ticker.value) {
+        comparisonTickerInput.value = ''
+        return
+    }
+    
+    // Fetch data
+    const data = await fetchHistoricalPrice(symbol)
+    if (data && data.length > 0) {
+        comparisonData.value.push({
+            symbol: symbol,
+            data: data
+        })
+    }
+    comparisonTickerInput.value = ''
+}
+
+const removeComparison = (symbol) => {
+    comparisonData.value = comparisonData.value.filter(c => c.symbol !== symbol)
+}
+
+// ...
+
+// Fetch financial data wrapper
+const fetchFinancialData = async () => {
+  comparisonData.value = [] // Reset comparisons on main ticker change
+  await fetchFinData(ticker.value, period.value)
+}
 
 // Edit Tickers Logic
 const showTickerModal = ref(false)
@@ -87,10 +127,6 @@ const saveCustomTickers = async () => {
 
 
 
-// Fetch financial data wrapper
-const fetchFinancialData = async () => {
-  await fetchFinData(ticker.value, period.value)
-}
 
 // Get current data based on active tab
 const currentData = computed(() => {
@@ -626,10 +662,28 @@ const closePoliticianModal = () => {
       <div class="section-card chart-section-card">
          <div class="section-header-row">
              <h3>{{ ticker.toUpperCase() }} - {{ new Date().getFullYear() }} {{ t('framework.chart.price_timeline') }}</h3>
+             <div class="comparison-controls">
+                <input 
+                    v-model="comparisonTickerInput" 
+                    placeholder="Compare (e.g. MSFT)" 
+                    class="comp-input"
+                    @keyup.enter="addComparison"
+                />
+                <button @click="addComparison" class="comp-add-btn">Add</button>
+             </div>
          </div>
+         
+         <div v-if="comparisonData.length > 0" class="active-comparisons">
+            <span v-for="comp in comparisonData" :key="comp.symbol" class="comp-tag" :style="{ borderColor: '#ef4444' }"> <!-- Simple style, color cycled in chart -->
+                {{ comp.symbol }}
+                <span class="comp-remove" @click="removeComparison(comp.symbol)">×</span>
+            </span>
+         </div>
+         
          <PriceVolumeChart 
            :data="historicalPrice" 
            :symbol="ticker" 
+           :comparison-data="comparisonData"
          />
       </div>
 
@@ -2460,5 +2514,67 @@ const closePoliticianModal = () => {
 
 .ratio-scroll-container::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+/* Comparison Styles */
+.comparison-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.comp-input {
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    width: 140px;
+}
+
+.comp-add-btn {
+    padding: 4px 12px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.comp-add-btn:hover {
+    background: #2563eb;
+}
+
+.active-comparisons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 0 1rem;
+    flex-wrap: wrap;
+}
+
+.comp-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.comp-remove {
+    cursor: pointer;
+    color: #9ca3af;
+    font-weight: bold;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.comp-remove:hover {
+    color: #ef4444;
 }
 </style>
