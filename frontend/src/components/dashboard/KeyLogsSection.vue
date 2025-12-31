@@ -1873,7 +1873,7 @@ const fetchCurrencyData = async () => {
   
   try {
     // Fetch all currency data from the new endpoint
-    const response = await fetch(`${API_BASE_URL}/api/market/currency`);
+    const response = await fetch(`${API_BASE_URL}/api/market/currency/`);
     if (!response.ok) throw new Error('Failed to fetch currency data');
     const data = await response.json();
     
@@ -1969,7 +1969,7 @@ const fetchCommodityData = async () => {
     console.log('[COMMODITY] Fetching from:', `${API_BASE_URL}/api/market/commodity/`);
     
     // Fetch all commodity data from the new endpoint
-    const response = await fetch(`${API_BASE_URL}/api/market/commodity`);
+    const response = await fetch(`${API_BASE_URL}/api/market/commodity/`);
     if (!response.ok) {
       console.error('[COMMODITY] HTTP Error:', response.status, response.statusText);
       throw new Error(`Failed to fetch commodity data: ${response.status}`);
