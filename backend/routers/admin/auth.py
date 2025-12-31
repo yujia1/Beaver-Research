@@ -329,7 +329,8 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
             email=user_data.email,
             username=user_data.username,
             hashed_password=hashed_password,
-            role=user_data.role
+            role=user_data.role,
+            is_verified=False  # User must verify email
         )
         
         try:
@@ -354,6 +355,19 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Database error: {error_msg}"
             )
+        
+        # Send verification email
+        try:
+            verification_token = create_email_token(
+                data={"sub": db_user.username, "type": "verify_email"},
+                expires_delta=timedelta(hours=24)
+            )
+            await send_verification_email(db_user.email, verification_token)
+        except Exception as email_error:
+            # Log error but don't fail signup
+            import logging
+            logging.error(f"Failed to send verification email: {str(email_error)}")
+            # Note: User is created but email failed - they can request resend later
         
         return db_user
     except HTTPException:
@@ -832,7 +846,7 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
 def verify_email(token: str, db: Session = Depends(get_db)):
     """Verify email address"""
     payload = verify_email_token(token)
-    if not payload or payload.get("type") != "email_verification":
+    if not payload or payload.get("type") != "verify_email":
         raise HTTPException(status_code=400, detail="Invalid or expired token")
         
     username = payload.get("sub")

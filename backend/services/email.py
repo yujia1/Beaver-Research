@@ -5,17 +5,18 @@ import os
 from pathlib import Path
 
 # Configure FastMail
-# In a real setup, these would be loaded from env vars
+# Brevo (formerly Sendinblue) SMTP configuration
+# Credentials are loaded from .env file
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "apikey"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", ""),
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
     MAIL_FROM=os.getenv("MAIL_FROM", "noreply@beaverresearch.com"),
     MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.sendgrid.net"),
+    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp-relay.brevo.com"),
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=False
+    VALIDATE_CERTS=True
 )
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
