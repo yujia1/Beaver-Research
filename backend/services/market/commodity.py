@@ -16,45 +16,45 @@ COMMODITY_CATEGORIES = {
         # {"symbol": "ZFUSD", "name": "Five-Year US Treasury Note", "type": "Interest Rates"},
         # {"symbol": "ZNUSD", "name": "10-Year T-Note Futures", "type": "Interest Rates"},
         # {"symbol": "ZBUSD", "name": "30 Year U.S. Treasury Bond", "type": "Interest Rates"},
-        {"symbol": "DXUSD", "name": "US Dollar", "type": "Currency"},
-        {"symbol": "ESUSD", "name": "E-Mini S&P 500", "type": "Equity Index"},
-        {"symbol": "NQUSD", "name": "Nasdaq 100", "type": "Equity Index"},
-        {"symbol": "YMUSD", "name": "Mini Dow Jones Industrial", "type": "Equity Index"},
-        {"symbol": "RTYUSD", "name": "Micro E-mini Russell 2000", "type": "Equity Index"}
+        # {"symbol": "DXUSD", "name": "US Dollar", "type": "Currency"},
+        {"symbol": "ESUSD", "name": "E-Mini S&P 500", "type": "Equity Index"}
+        # {"symbol": "NQUSD", "name": "Nasdaq 100", "type": "Equity Index"},
+        # {"symbol": "YMUSD", "name": "Mini Dow Jones Industrial", "type": "Equity Index"},
+        # {"symbol": "RTYUSD", "name": "Micro E-mini Russell 2000", "type": "Equity Index"}
     ],
     "Metals": [
         {"symbol": "GCUSD", "name": "Gold", "type": "Metal"},
         {"symbol": "SIUSD", "name": "Silver", "type": "Metal"},
-        {"symbol": "PLUSD", "name": "Platinum", "type": "Metal"},
-        {"symbol": "PAUSD", "name": "Palladium", "type": "Metal"},
-        {"symbol": "HGUSD", "name": "Copper", "type": "Metal"},
-        {"symbol": "ALIUSD", "name": "Aluminum", "type": "Metal"}
+        # {"symbol": "PLUSD", "name": "Platinum", "type": "Metal"},
+        # {"symbol": "PAUSD", "name": "Palladium", "type": "Metal"},
+        # {"symbol": "HGUSD", "name": "Copper", "type": "Metal"},
+        # {"symbol": "ALIUSD", "name": "Aluminum", "type": "Metal"}
     ],
     "Energy": [
-        {"symbol": "CLUSD", "name": "Crude Oil (WTI)", "type": "Energy"},
+        # {"symbol": "CLUSD", "name": "Crude Oil (WTI)", "type": "Energy"},
         {"symbol": "BZUSD", "name": "Brent Crude Oil", "type": "Energy"},
-        {"symbol": "NGUSD", "name": "Natural Gas", "type": "Energy"},
-        {"symbol": "RBUSD", "name": "Gasoline RBOB", "type": "Energy"},
-        {"symbol": "HOUSD", "name": "Heating Oil", "type": "Energy"}
+        # {"symbol": "NGUSD", "name": "Natural Gas", "type": "Energy"},
+        # {"symbol": "RBUSD", "name": "Gasoline RBOB", "type": "Energy"},
+        # {"symbol": "HOUSD", "name": "Heating Oil", "type": "Energy"}
     ],
     "Agriculture": [
-        {"symbol": "ZCUSX", "name": "Corn Futures", "type": "Agriculture"},
-        {"symbol": "KEUSX", "name": "Wheat Futures", "type": "Agriculture"},
-        {"symbol": "ZOUSX", "name": "Oat Futures", "type": "Agriculture"},
-        {"symbol": "ZRUSD", "name": "Rough Rice Futures", "type": "Agriculture"},
-        {"symbol": "ZSUSX", "name": "Soybean Futures", "type": "Agriculture"}
+        # {"symbol": "ZCUSX", "name": "Corn Futures", "type": "Agriculture"},
+        # {"symbol": "KEUSX", "name": "Wheat Futures", "type": "Agriculture"},
+        # {"symbol": "ZOUSX", "name": "Oat Futures", "type": "Agriculture"},
+        # {"symbol": "ZRUSD", "name": "Rough Rice Futures", "type": "Agriculture"},
+        # {"symbol": "ZSUSX", "name": "Soybean Futures", "type": "Agriculture"}
     ],
     "Softs & Livestock": [
-        {"symbol": "KCUSX", "name": "Coffee", "type": "Softs"},
-        {"symbol": "CCUSD", "name": "Cocoa", "type": "Softs"},
-        {"symbol": "SBUSX", "name": "Sugar", "type": "Softs"},
-        {"symbol": "CTUSX", "name": "Cotton", "type": "Softs"},
-        {"symbol": "OJUSX", "name": "Orange Juice", "type": "Softs"},
-        {"symbol": "LBUSD", "name": "Lumber Futures", "type": "Softs"},
-        {"symbol": "LEUSX", "name": "Live Cattle Futures", "type": "Livestock"},
-        {"symbol": "GFUSX", "name": "Feeder Cattle Futures", "type": "Livestock"},
-        {"symbol": "HEUSX", "name": "Lean Hogs Futures", "type": "Livestock"},
-        {"symbol": "DCUSD", "name": "Class III Milk Futures", "type": "Livestock/Dairy"}
+        # {"symbol": "KCUSX", "name": "Coffee", "type": "Softs"},
+        # {"symbol": "CCUSD", "name": "Cocoa", "type": "Softs"},
+        # {"symbol": "SBUSX", "name": "Sugar", "type": "Softs"},
+        # {"symbol": "CTUSX", "name": "Cotton", "type": "Softs"},
+        # {"symbol": "OJUSX", "name": "Orange Juice", "type": "Softs"},
+        # {"symbol": "LBUSD", "name": "Lumber Futures", "type": "Softs"},
+        # {"symbol": "LEUSX", "name": "Live Cattle Futures", "type": "Livestock"},
+        # {"symbol": "GFUSX", "name": "Feeder Cattle Futures", "type": "Livestock"},
+        # {"symbol": "HEUSX", "name": "Lean Hogs Futures", "type": "Livestock"},
+        # {"symbol": "DCUSD", "name": "Class III Milk Futures", "type": "Livestock/Dairy"}
     ]
 }
 
@@ -125,6 +125,12 @@ async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
                             # Filter client side
                             filtered_data = [d for d in h_data if d["date"] >= start_date]
                             
+                            # Fallback: If filter yields nothing (data is stale/old), use the most recent available data
+                            if not filtered_data and h_data:
+                                # Use up to 'days' amount of recent points, or all if less
+                                limit = min(len(h_data), days)
+                                filtered_data = h_data[-limit:]
+                            
                             if filtered_data:
                                 for h in filtered_data:
                                     history.append({
@@ -133,11 +139,17 @@ async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
                                         "volume": float(h.get("volume", 0))
                                     })
                     
-                    # If we have current price, add to results even if history is empty
+                    # If we have current price, add to results. 
+                    # If current_price is 0 (quote failed) but we have history, use history for price.
+                    if current_price == 0 and history:
+                        current_price = history[-1]["value"]
+                        # Calculate change from history
+                        if len(history) > 1:
+                            prev_price = history[-2]["value"]
+                            change = current_price - prev_price
+                            change_p = (change / prev_price * 100) if prev_price != 0 else 0
+
                     if current_price != 0 or history:
-                        # If history is empty but we have quote, maybe fake a single point or leave empty?
-                        # Frontend handles empty history (sparkline will be blank).
-                        
                         category_data.append({
                             "symbol": symbol,
                             "name": item["name"],

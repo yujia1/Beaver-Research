@@ -1997,8 +1997,8 @@ const fetchCommodityData = async () => {
       'Financials': 'financials',
       'Metals': 'metals',
       'Energy': 'energy',
-      'Agriculture': 'agriculture',
-      'Softs & Livestock': 'softs_livestock'
+      'Agriculture': 'agricultural',
+      'Softs & Livestock': 'softs',
     };
     
     for (const [backendKey, frontendKey] of Object.entries(categoryMap)) {
