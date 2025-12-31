@@ -21,6 +21,7 @@ export function useFinancialData() {
     const insiderTrading = ref([])
     const businessDescription = ref('')
     const historicalPrice = ref([])
+    const executives = ref([])
     const senateTrades = ref([])
     const houseTrades = ref([])
 
@@ -67,6 +68,7 @@ export function useFinancialData() {
             houseTrades.value = data.house_trades || []
             businessDescription.value = data.business_description || ''
             historicalPrice.value = data.historical_price || []
+            executives.value = data.executives || []
         } catch (err) {
             error.value = err.message
             console.error('Error fetching financial data:', err)
@@ -187,6 +189,7 @@ export function useFinancialData() {
         politicianTrades,
         businessDescription,
         historicalPrice,
+        executives,
         fetchHistoricalPrice,
         fetchFinancialData,
         fetchPoliticianTrades,

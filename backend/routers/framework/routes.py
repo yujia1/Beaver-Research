@@ -235,6 +235,25 @@ async def get_company_profile(
     }
 
 
+@router.get("/executives/{ticker}")
+async def get_key_executives(
+    ticker: str
+):
+    """
+    Fetch key executives
+    """
+    ticker = ticker.upper()
+    endpoint = "key-executives"
+    params = {"symbol": ticker}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    return {
+        "ticker": ticker,
+        "data": data if data else []
+    }
+
+
 @router.get("/mergers-acquisitions")
 async def get_mergers_acquisitions(
     ticker: str,
@@ -584,6 +603,7 @@ async def get_all_statements(
             get_house_trades(ticker),
             get_historical_price_full(ticker),
             get_company_profile(ticker),
+            get_key_executives(ticker),
             # Run SEC blocking calls in executor
             loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
         ]
@@ -617,7 +637,8 @@ async def get_all_statements(
         house_trades = get_result(14, {"data": []})
         historical_price = get_result(15, {"historical": []})
         profile_res = get_result(16, {})
-        filings_data = get_result(17, [])
+        executives_res = get_result(17, {})
+        filings_data = get_result(18, [])
 
         # Process Business Description from FMP Profile
         business_description = ""
@@ -648,7 +669,8 @@ async def get_all_statements(
             "splits": splits.get("data", []) if isinstance(splits, dict) else [],
             "insider_trading": insider_trading.get("data", []) if isinstance(insider_trading, dict) else [],
             "senate_trades": senate_trades.get("data", []) if isinstance(senate_trades, dict) else [],
-            "house_trades": house_trades.get("data", []) if isinstance(house_trades, dict) else []
+            "house_trades": house_trades.get("data", []) if isinstance(house_trades, dict) else [],
+            "executives": executives_res.get("data", []) if isinstance(executives_res, dict) else []
         }
     except Exception as e:
         import traceback
