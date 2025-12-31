@@ -216,6 +216,25 @@ async def get_employee_count(
     }
 
 
+@router.get("/profile/{ticker}")
+async def get_company_profile(
+    ticker: str
+):
+    """
+    Fetch company profile (description, etc)
+    """
+    ticker = ticker.upper()
+    endpoint = f"profile"
+    params = {"symbol": ticker}
+    
+    data = await fetch_fmp_data(endpoint, params)
+    
+    return {
+        "ticker": ticker,
+        "data": data if data else []
+    }
+
+
 @router.get("/mergers-acquisitions")
 async def get_mergers_acquisitions(
     ticker: str,
@@ -566,7 +585,7 @@ async def get_all_statements(
             get_historical_price_full(ticker),
             # Run SEC blocking calls in executor
             loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100),
-            loop.run_in_executor(None, edgar_service.get_latest_10k_content, ticker)
+            get_company_profile(ticker)
         ]
 
         # Execute in parallel
@@ -598,12 +617,13 @@ async def get_all_statements(
         house_trades = get_result(14, {"data": []})
         historical_price = get_result(15, {"historical": []})
         filings_data = get_result(16, [])
-        ten_k_content = get_result(17, {})
+        profile_res = get_result(17, {})
 
-        # Process Business Description
+        # Process Business Description from FMP Profile
         business_description = ""
-        if ten_k_content and isinstance(ten_k_content, dict) and "chunk_a" in ten_k_content:
-            business_description = ten_k_content["chunk_a"]
+        profile_data = profile_res.get("data", [])
+        if profile_data and isinstance(profile_data, list) and len(profile_data) > 0:
+            business_description = profile_data[0].get("description", "")
         
         mergers_acquisitions = {"data": []}
 

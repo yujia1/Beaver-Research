@@ -989,12 +989,12 @@
         "subtitle": "Premium Research Tools require payment",
         "features_title": "What you'll get:",
         "features": {
-            "ai_analysis": "Advanced AI-powered financial analysis",
-            "market_data": "Real-time market data and insights",
-            "research_tools": "Company and market research tools",
-            "data_vault": "Exclusive data vault access"
+            "analysis": "real time analysis and insights from market, company, and institutions",
+            "market_data": "Real-time market data and fundamentals",
+            "research_tools": "Company and market research real-time tools",
+            "data_vault": "Exclusive data vault access to all data"
         },
-        "pay_button": "Pay $19.99 with PayPal",
+        "pay_button": "Pay $29.99 with PayPal/Stripe",
         "verification_pending": "Payment Verification Pending"
     },
     "framework": {

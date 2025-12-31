@@ -984,12 +984,12 @@
         "subtitle": "高级研究工具需付费使用",
         "features_title": "您将获得：",
         "features": {
-            "ai_analysis": "高级 AI 驱动的金融分析",
-            "market_data": "实时市场数据与洞察",
-            "research_tools": "公司与市场研究工具",
-            "data_vault": "专属数据保险库访问权限"
+            "analysis": "来自市场、公司和机构的实时分析与洞察",
+            "market_data": "实时市场数据与基本面",
+            "research_tools": "实时公司与市场研究工具",
+            "data_vault": "可访问所有数据的独家数据金库"
         },
-        "pay_button": "使用 PayPal 支付 $19.99",
+        "pay_button": "使用 PayPal/Strip 支付 $29.99",
         "verification_pending": "付款验证处理中"
     },
     "framework": {
