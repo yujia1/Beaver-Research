@@ -2017,8 +2017,20 @@ const fetchCommodityData = async () => {
       }));
     }
     
-    console.log('[COMMODITY] Processed data:', processedData);
+    console.log('[COMMODITY] Processed data keys:', Object.keys(processedData));
     console.log('[COMMODITY] Financials count:', processedData.financials?.length || 0);
+    console.log('[COMMODITY] Agriculture count:', processedData.agriculture?.length || 0);
+    console.log('[COMMODITY] Softs count:', processedData.softs_livestock?.length || 0);
+
+    if (processedData.agriculture?.length > 0) {
+        const sample = processedData.agriculture[0];
+        console.log('[COMMODITY] Sample Agriculture Item:', sample.indicator, 'History Length:', sample.history?.length);
+    }
+    
+    if (processedData.softs_livestock?.length > 0) {
+        const sample = processedData.softs_livestock[0];
+        console.log('[COMMODITY] Sample Softs Item:', sample.indicator, 'History Length:', sample.history?.length);
+    }
     
     commodityIndicators.value = processedData;
     
