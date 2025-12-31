@@ -1862,20 +1862,13 @@ const fetchCurrencyData = async () => {
   currencyLoading.value = true;
   currencyError.value = null;
   
-  // Check for cached data first
+  // Check daily cache first
   const cached = getDailyCache('currency_data_monthly');
-  if (cached && Array.isArray(cached) && cached.length > 0) {
-    // Validate cache is not garbage (old error objects)
-    const isValid = cached.every(item => item.symbol && !item.detail);
-    if (isValid) {
-      console.log('Using cached currency data');
-      currencyIndicators.value = cached;
-      currencyLoading.value = false;
-      return;
-    } else {
-      console.warn('[CURRENCY] Cached data is invalid/old, refetching...');
-      localStorage.removeItem('currency_data_monthly'); // Clear bad cache
-    }
+  if (cached) {
+    console.log('Using cached currency data');
+    currencyIndicators.value = cached;
+    currencyLoading.value = false;
+    return;
   }
   
   try {
@@ -1965,18 +1958,15 @@ const fetchCommodityData = async () => {
   
   // Check daily cache first
   const cached = getDailyCache('commodity_data_monthly');
-  if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
+  if (cached) {
     console.log('Using cached commodity data');
     commodityIndicators.value = cached;
     commodityLoading.value = false;
     return;
-  } else if (cached) {
-    console.warn('[COMMODITY] Cached data is invalid/empty, refetching...');
-    localStorage.removeItem('commodity_data_monthly');
   }
   
   try {
-    console.log('[COMMODITY] Fetching from:', `${API_BASE_URL}/api/market/commodity`);
+    console.log('[COMMODITY] Fetching from:', `${API_BASE_URL}/api/market/commodity/`);
     
     // Fetch all commodity data from the new endpoint
     const response = await fetch(`${API_BASE_URL}/api/market/commodity`);

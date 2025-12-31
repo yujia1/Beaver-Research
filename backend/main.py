@@ -151,6 +151,10 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Ensure FastAPI trusts the proxy headers (X-Forwarded-Proto) logic to know it is running on valid HTTPS
+# This fixes the "Redirect to HTTP" mixed content issues on Railway
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+
 logger.info("FastAPI application initialized")
 
 # CORS configuration - Dynamic based on environment
