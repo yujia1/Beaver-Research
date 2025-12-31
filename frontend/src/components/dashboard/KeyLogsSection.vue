@@ -2456,7 +2456,6 @@ const setupStream = () => {
     
     // Connect to SSE endpoint
     const url = `${API_BASE_URL}/api/stream/market`;
-    console.log('Connecting to SSE:', url);
     eventSource.value = new EventSource(url);
     
     eventSource.value.onmessage = (event) => {
