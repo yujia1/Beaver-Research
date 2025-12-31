@@ -356,13 +356,23 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
                 detail=f"Database error: {error_msg}"
             )
         
-        # Send verification email
+        
+        # Send verification email (with timeout to prevent blocking)
         try:
+            import asyncio
             verification_token = create_email_token(
                 data={"sub": db_user.username, "type": "verify_email"},
                 expires_delta=timedelta(hours=24)
             )
-            await send_verification_email(db_user.email, verification_token)
+            # Set 5-second timeout for email sending
+            await asyncio.wait_for(
+                send_verification_email(db_user.email, verification_token),
+                timeout=5.0
+            )
+        except asyncio.TimeoutError:
+            # Log timeout but don't fail signup
+            import logging
+            logging.warning(f"Verification email timed out for {db_user.email}")
         except Exception as email_error:
             # Log error but don't fail signup
             import logging
