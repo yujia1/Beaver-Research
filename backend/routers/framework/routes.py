@@ -616,8 +616,8 @@ async def get_all_statements(
         senate_trades = get_result(13, {"data": []})
         house_trades = get_result(14, {"data": []})
         historical_price = get_result(15, {"historical": []})
-        filings_data = get_result(16, [])
-        profile_res = get_result(17, {})
+        profile_res = get_result(16, {})
+        filings_data = get_result(17, [])
 
         # Process Business Description from FMP Profile
         business_description = ""
