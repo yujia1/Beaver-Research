@@ -357,27 +357,29 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
             )
         
         
-        # Send verification email (with timeout to prevent blocking)
-        try:
-            import asyncio
-            verification_token = create_email_token(
-                data={"sub": db_user.username, "type": "verify_email"},
-                expires_delta=timedelta(hours=24)
-            )
-            # Set 5-second timeout for email sending
-            await asyncio.wait_for(
-                send_verification_email(db_user.email, verification_token),
-                timeout=5.0
-            )
-        except asyncio.TimeoutError:
-            # Log timeout but don't fail signup
-            import logging
-            logging.warning(f"Verification email timed out for {db_user.email}")
-        except Exception as email_error:
-            # Log error but don't fail signup
-            import logging
-            logging.error(f"Failed to send verification email: {str(email_error)}")
-            # Note: User is created but email failed - they can request resend later
+        # Send verification email in background (non-blocking)
+        import asyncio
+        import logging
+        
+        async def send_email_background():
+            """Send verification email in background"""
+            try:
+                verification_token = create_email_token(
+                    data={"sub": db_user.username, "type": "verify_email"},
+                    expires_delta=timedelta(hours=24)
+                )
+                await asyncio.wait_for(
+                    send_verification_email(db_user.email, verification_token),
+                    timeout=10.0
+                )
+                logging.info(f"✅ Verification email sent to {db_user.email}")
+            except asyncio.TimeoutError:
+                logging.warning(f"⏱️ Verification email timed out for {db_user.email}")
+            except Exception as e:
+                logging.error(f"❌ Failed to send verification email to {db_user.email}: {str(e)}")
+        
+        # Fire and forget - don't wait for email to send
+        asyncio.create_task(send_email_background())
         
         return db_user
     except HTTPException:

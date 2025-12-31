@@ -1,105 +1,136 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
-from pydantic import EmailStr
-from typing import List
 import os
-from pathlib import Path
+import httpx
+from pydantic import EmailStr
+import logging
 
-# Configure FastMail
-# Brevo (formerly Sendinblue) SMTP configuration
-# Credentials are loaded from .env file
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM", "noreply@beaverresearch.com"),
-    MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp-relay.brevo.com"),
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
+logger = logging.getLogger(__name__)
 
+# Brevo API Configuration
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", os.getenv("MAIL_PASSWORD"))  # Use MAIL_PASSWORD as fallback
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 async def send_reset_password_email(email: EmailStr, token: str):
     """
-    Send a password reset email to the user.
+    Send a password reset email using Brevo API.
     Uses noreply@beaver-research.cloud as sender
     """
     reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
     
-    html = f"""
-    <p>You requested a password reset for Beaver Research.</p>
-    <p>Click the link below to verify your email and set a new password:</p>
-    <p><a href="{reset_link}">{reset_link}</a></p>
-    <p>If you did not request this, please ignore this email.</p>
-    <p>Link expires in 15 minutes.</p>
+    html_content = f"""
+    <html>
+    <head></head>
+    <body>
+        <p>You requested a password reset for Beaver Research.</p>
+        <p>Click the link below to verify your email and set a new password:</p>
+        <p><a href="{reset_link}">{reset_link}</a></p>
+        <p>If you did not request this, please ignore this email.</p>
+        <p>Link expires in 15 minutes.</p>
+    </body>
+    </html>
     """
-
-    message = MessageSchema(
-        subject="Reset Your Password - Beaver Research",
-        recipients=[email],
-        body=html,
-        subtype=MessageType.html
-    )
-
-    if not conf.MAIL_PASSWORD:
+    
+    if not BREVO_API_KEY:
+        logger.warning(f"MOCK EMAIL (from noreply@beaver-research.cloud) to {email}: {reset_link}")
+        logger.warning("BREVO_API_KEY not configured - email not sent")
         print(f"MOCK EMAIL (from noreply@beaver-research.cloud) to {email}: {reset_link}")
         return
-
-    # Create a custom config for password reset emails
-    reset_conf = ConnectionConfig(
-        MAIL_USERNAME=conf.MAIL_USERNAME,
-        MAIL_PASSWORD=conf.MAIL_PASSWORD,
-        MAIL_FROM="noreply@beaver-research.cloud",
-        MAIL_PORT=conf.MAIL_PORT,
-        MAIL_SERVER=conf.MAIL_SERVER,
-        MAIL_STARTTLS=conf.MAIL_STARTTLS,
-        MAIL_SSL_TLS=conf.MAIL_SSL_TLS,
-        USE_CREDENTIALS=conf.USE_CREDENTIALS,
-        VALIDATE_CERTS=conf.VALIDATE_CERTS
-    )
     
-    fm = FastMail(reset_conf)
-    await fm.send_message(message)
+    payload = {
+        "sender": {
+            "name": "Beaver Research",
+            "email": "noreply@beaver-research.cloud"
+        },
+        "to": [
+            {
+                "email": email,
+                "name": email.split('@')[0]
+            }
+        ],
+        "subject": "Reset Your Password - Beaver Research",
+        "htmlContent": html_content
+    }
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    logger.info(f"Sending password reset email to {email} via Brevo API")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(BREVO_API_URL, json=payload, headers=headers, timeout=10.0)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"✅ Password reset email sent successfully. MessageID: {result.get('messageId')}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"❌ Brevo API error: {e.response.status_code} - {e.response.text}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to send password reset email: {str(e)}", exc_info=True)
+        raise
 
 async def send_verification_email(email: EmailStr, token: str):
     """
-    Send an email verification link.
+    Send an email verification link using Brevo API.
     Uses verification@beaver-research.cloud as sender
     """
     verify_link = f"{FRONTEND_URL}/verify-email?token={token}"
     
-    html = f"""
-    <p>Welcome to Beaver Research!</p>
-    <p>Please verify your email address by clicking the link below:</p>
-    <p><a href="{verify_link}">{verify_link}</a></p>
-    <p>Link expires in 24 hours.</p>
+    html_content = f"""
+    <html>
+    <head></head>
+    <body>
+        <p>Welcome to Beaver Research!</p>
+        <p>Please verify your email address by clicking the link below:</p>
+        <p><a href="{verify_link}">{verify_link}</a></p>
+        <p>Link expires in 24 hours.</p>
+    </body>
+    </html>
     """
-
-    message = MessageSchema(
-        subject="Verify Your Email - Beaver Research",
-        recipients=[email],
-        body=html,
-        subtype=MessageType.html
-    )
     
-    if not conf.MAIL_PASSWORD:
+    if not BREVO_API_KEY:
+        logger.warning(f"MOCK EMAIL (from verification@beaver-research.cloud) to {email}: {verify_link}")
+        logger.warning("BREVO_API_KEY not configured - email not sent")
         print(f"MOCK EMAIL (from verification@beaver-research.cloud) to {email}: {verify_link}")
         return
-
-    # Create a custom config for verification emails
-    verify_conf = ConnectionConfig(
-        MAIL_USERNAME=conf.MAIL_USERNAME,
-        MAIL_PASSWORD=conf.MAIL_PASSWORD,
-        MAIL_FROM="verification@beaver-research.cloud",
-        MAIL_PORT=conf.MAIL_PORT,
-        MAIL_SERVER=conf.MAIL_SERVER,
-        MAIL_STARTTLS=conf.MAIL_STARTTLS,
-        MAIL_SSL_TLS=conf.MAIL_SSL_TLS,
-        USE_CREDENTIALS=conf.USE_CREDENTIALS,
-        VALIDATE_CERTS=conf.VALIDATE_CERTS
-    )
     
-    fm = FastMail(verify_conf)
-    await fm.send_message(message)
+    payload = {
+        "sender": {
+            "name": "Beaver Research",
+            "email": "verification@beaver-research.cloud"
+        },
+        "to": [
+            {
+                "email": email,
+                "name": email.split('@')[0]
+            }
+        ],
+        "subject": "Verify Your Email - Beaver Research",
+        "htmlContent": html_content
+    }
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    logger.info(f"Sending verification email to {email} via Brevo API")
+    logger.info(f"API URL: {BREVO_API_URL}")
+    logger.info(f"From: verification@beaver-research.cloud")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(BREVO_API_URL, json=payload, headers=headers, timeout=10.0)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"✅ Verification email sent successfully. MessageID: {result.get('messageId')}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"❌ Brevo API error: {e.response.status_code} - {e.response.text}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to send verification email: {str(e)}", exc_info=True)
+        raise
