@@ -26,7 +26,8 @@ function getApiBaseUrl() {
 const API_BASE_URL = getApiBaseUrl()
 
 console.log('--- API Config Debug ---')
-console.log('VITE_API_URL:', import.meta.env.VITE_API_URL)
+console.log('Hostname:', window.location.hostname)
+console.log('Detected API URL:', API_BASE_URL)
+console.log('------------------------')
 
 export default API_BASE_URL
-
