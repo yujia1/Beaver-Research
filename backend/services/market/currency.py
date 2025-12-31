@@ -13,12 +13,12 @@ CURRENCIES = {
         "name": "EUR/USD",
         "description": "Euro to U.S. Dollar"
     },
-    "JPYUSD": {
-        "name": "JPY/USD",
+    "USDJPY": {
+        "name": "USD/JPY",
         "description": "Japanese Yen to U.S. Dollar"
     },
-    "CNYUSD": {
-        "name": "CNY/USD",
+    "USDCNY": {
+        "name": "USD/CNY",
         "description": "Chinese Yuan to U.S. Dollar"
     }
 }

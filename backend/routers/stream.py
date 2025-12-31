@@ -37,32 +37,13 @@ async def stream_market_data():
         await pubsub.subscribe('market_updates')
         
         try:
-            # Send initial ping to confirm connection immediately
+            # Send initial ping
             yield "event: connected\ndata: {\"status\":\"connected\"}\n\n"
             
-            import time
-            last_activity = time.time()
-            
-            while True:
-                try:
-                    # Check for message (non-blocking)
-                    message = await pubsub.get_message(ignore_subscribe_messages=True)
-                    
-                    if message:
-                        payload = message['data']
-                        yield f"data: {payload}\n\n"
-                        last_activity = time.time()
-                    else:
-                        # Poll and check heartbeat
-                        await asyncio.sleep(0.5)
-                        
-                        if time.time() - last_activity > 15:
-                            yield ": keep-alive\n\n"
-                            last_activity = time.time()
-                        
-                except Exception as e:
-                    logger.error(f"Stream loop error: {e}")
-                    await asyncio.sleep(1)
+            async for message in pubsub.listen():
+                if message['type'] == 'message':
+                    payload = message['data']
+                    yield f"data: {payload}\n\n"
                     
         except asyncio.CancelledError:
             print("Client disconnected from stream")
