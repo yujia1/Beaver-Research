@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Brevo API Configuration
-BREVO_API_KEY = os.getenv("BREVO_API_KEY", os.getenv("MAIL_PASSWORD"))  # Use MAIL_PASSWORD as fallback
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
