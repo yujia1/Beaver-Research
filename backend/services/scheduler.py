@@ -5,6 +5,7 @@ from services.market.indices import fetch_regional_indices_data, fetch_major_ind
 from services.market.crypto import fetch_crypto_data
 from services.market.currency import fetch_currency_data
 from services.market.commodity import fetch_commodity_data
+from services.market.economic import fetch_all_economic_data
 import asyncio
 import json
 
@@ -71,6 +72,18 @@ async def update_commodity_data():
     except Exception as e:
         print(f"Scheduler Error (Commodity): {e}")
 
+async def update_economic_data():
+    print("Scheduler: Updating economic data...")
+    try:
+        # Default to monthly (1y) for dashboard charts
+        data = await fetch_all_economic_data(timeframe="monthly")
+        if data:
+            redis_client.set_cache("macro:monthly", data, ttl=14400)  # 4 hour TTL
+            redis_client.publish('market_updates', json.dumps({'type': 'economic_update', 'data': data}))
+            print("Scheduler: Economic data updated.")
+    except Exception as e:
+        print(f"Scheduler Error (Economic): {e}")
+
 def start_scheduler():
     # Schedule jobs
     scheduler.add_job(
@@ -108,6 +121,13 @@ def start_scheduler():
         replace_existing=True
     )
     
+    scheduler.add_job(
+        update_economic_data,
+        trigger=IntervalTrigger(seconds=300), # 5 mins - economic data updates less frequently
+        id='update_economic_data',
+        replace_existing=True
+    )
+    
     scheduler.start()
     print("Market Data Scheduler started.")
 
@@ -118,3 +138,4 @@ async def run_initial_fetch():
     await update_crypto_data()
     await update_currency_data()
     await update_commodity_data()
+    await update_economic_data()

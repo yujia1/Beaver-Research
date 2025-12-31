@@ -1072,22 +1072,6 @@ const commodityTimeframes = computed(() => [
   { label: t('dashboard.timeframes.5y'), value: '5y' }
 ]);
 
-// Commodity series mapping by category
-const commoditySeriesMap = {
-  financials: [
-      'ZQUSD', 'ZTUSD', 'ZFUSD', 'ZNUSD', 'ZBUSD', // Interest Rates
-      'DXUSD', // Currency
-      'ESUSD', 'NQUSD', 'YMUSD', 'RTYUSD' // Equity Indices
-  ],
-  metals: ['GOLDAMGBD228NLBM', 'SILVER', 'PCOPPUSDM', 'PLATINUM', 'PALUMINUM', 'PIORECRUSDM'], // Added Aluminum here
-  energy: ['POILBREUSDM', 'PNRGINDEXM'],
-  agriculture: ['PCORNUSDM', 'PWHEAMTUSDM', 'ZOUSX', 'ZRUSD', 'PSOYBUSDM'],
-  softs_livestock: [
-    'KCUSX', 'CCUSD', 'SBUSX', 'CTUSX', 'OJUSX', 'LBUSD', // Softs
-    'LEUSX', 'GFUSX', 'HEUSX', 'DCUSD' // Livestock/Dairy
-  ]
-};
-
 // Crypto Tab State
 const cryptoIndicators = ref([]);
 const cryptoLoading = ref(false);
@@ -1928,65 +1912,44 @@ const fetchCommodityData = async () => {
   const cached = getDailyCache('commodity_data_monthly');
   if (cached) {
     console.log('Using cached commodity data');
-    // Filter out removed commodities from cached data and check if all required series are present
-    const filteredCached = {};
-    let cacheComplete = true;
-    
-    Object.keys(commoditySeriesMap).forEach(category => {
-      const allowedSeriesIds = new Set(commoditySeriesMap[category]);
-      const cachedItems = (cached[category] || []).filter(item => 
-        allowedSeriesIds.has(item.series_id)
-      );
-      
-      // Check if all required series are in cache
-      const cachedSeriesIds = new Set(cachedItems.map(item => item.series_id));
-      const missingSeries = commoditySeriesMap[category].filter(id => !cachedSeriesIds.has(id));
-      
-      if (missingSeries.length > 0) {
-        console.log(`Missing series in cache for ${category}:`, missingSeries);
-        cacheComplete = false;
-      }
-      
-      filteredCached[category] = cachedItems;
-    });
-    
-    // If cache is complete, use it; otherwise fetch fresh data
-    if (cacheComplete) {
-      commodityIndicators.value = filteredCached;
-      commodityLoading.value = false;
-      return;
-    } else {
-      console.log('Cache incomplete, fetching fresh data');
-      // Clear cache to force fresh fetch
-      clearCacheByKey('commodity_data_monthly');
-    }
+    commodityIndicators.value = cached;
+    commodityLoading.value = false;
+    return;
   }
   
   try {
-    // Fetch all commodity series by category
-    const allPromises = {};
+    // Fetch all commodity data from the new endpoint
+    const response = await fetch(`${API_BASE_URL}/api/internal/commodities`);
+    if (!response.ok) throw new Error('Failed to fetch commodity data');
+    const data = await response.json();
     
-    for (const [category, seriesList] of Object.entries(commoditySeriesMap)) {
-      allPromises[category] = Promise.all(
-        seriesList.map(seriesId => 
-          fetch(`${API_BASE_URL}/api/internal/macro/series/${seriesId}?timeframe=monthly`)
-            .then(res => res.json())
-        )
-      );
-    }
-    
-    const results = await Promise.all(Object.values(allPromises));
-    const categories = Object.keys(commoditySeriesMap);
-    
-    // Process data for each category
+    // Transform the data to match our frontend structure
+    // Backend returns: { "Financials": [...], "Metals": [...], etc }
+    // Frontend expects: { financials: [...], metals: [...], etc }
     const processedData = {};
-    categories.forEach((category, index) => {
-      processedData[category] = results[index].map(item => ({
-        ...item,
+    
+    // Map backend category names to frontend keys
+    const categoryMap = {
+      'Financials': 'financials',
+      'Metals': 'metals',
+      'Energy': 'energy',
+      'Agriculture': 'agriculture',
+      'Softs & Livestock': 'softs_livestock'
+    };
+    
+    for (const [backendKey, frontendKey] of Object.entries(categoryMap)) {
+      const items = data[backendKey] || [];
+      processedData[frontendKey] = items.map(item => ({
+        indicator: item.name,
+        value: item.price,
+        date: item.history && item.history.length > 0 ? item.history[item.history.length - 1].date : new Date().toISOString().split('T')[0],
+        description: `${item.name} (${item.type})`,
+        series_id: item.symbol,
+        history: item.history || [],
         selectedTimeframe: 'monthly',
         loading: false
       }));
-    });
+    }
     
     commodityIndicators.value = processedData;
     

@@ -40,6 +40,7 @@ from routers import stream
 from routers.market.equity import indices, markets_wire, sec, stocks
 from routers.market.bond import routes as bond
 from routers.market.commodity import energy
+from routers.market.commodity import routes as commodity_routes
 from routers.market.policy import routes as policy_routes
 from routers.market.crypto import routes as crypto_routes
 from routers.market.economic import macro
@@ -330,6 +331,7 @@ app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
 
 # Market - Commodity
 app.include_router(energy.router, prefix="/api/energy", tags=["Energy"])
+app.include_router(commodity_routes.router, prefix="/api/internal/commodities", tags=["Commodities"])
 
 # Market - Economic
 app.include_router(macro.router, prefix="/api/internal", tags=["Macro"])
