@@ -113,3 +113,21 @@ class PositionAnalysis(Base):
     )
 
 
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String, index=True, nullable=False)
+    resource = Column(String, index=True, nullable=False)
+    can_access = Column(Boolean, default=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        UniqueConstraint('role', 'resource', name='uix_role_resource'),
+    )
+
+
+
+
+
+

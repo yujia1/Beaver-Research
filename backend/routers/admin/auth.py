@@ -547,10 +547,6 @@ async def delete_user(
     
     # Delete the user and all associated data
     try:
-        # Delete all events associated with this user
-        events_to_delete = db.query(models.Event).filter(models.Event.user_id == user_id).all()
-        for event in events_to_delete:
-            db.delete(event)
         
         # Delete all reports associated with this user (if reports have user_id)
         # Note: Check if Report model has user_id field, if not, this can be skipped
