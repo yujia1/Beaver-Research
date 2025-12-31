@@ -1,14 +1,9 @@
 from typing import List, Dict, Any
 from redis_client import redis_client
 
-# Mapping of currency series IDs to FMP/Yahoo tickers (kept for reference or cache keys)
-currency_ticker_map = {
-    "DEXUSEU": "EURUSD",  # U.S. / Euro Foreign Exchange Rate (USD per EUR)
-    "DEXJPUS": "USDJPY",     # Japanese Yen to U.S. Dollar Spot Exchange Rate (JPY per USD)
-    "DEXCHUS": "USDCNY",     # China / U.S. Foreign Exchange Rate (CNY per USD)
-}
+# Direct symbol usage (no mapping needed)
 
-def fetch_currency_from_yahoo(series_id: str, timeframe: str) -> List[Dict[str, Any]]:
+def fetch_currency_from_yahoo(symbol: str, timeframe: str) -> List[Dict[str, Any]]:
     """
     Fetch currency exchange rate data.
     Legacy name kept for compatibility with macro.py, but now fetches from Redis (populated by FMP scheduler).
@@ -21,13 +16,13 @@ def fetch_currency_from_yahoo(series_id: str, timeframe: str) -> List[Dict[str, 
         
         cached_data = redis_client.get_cache("currency:data:monthly")
         
-        if cached_data and series_id in cached_data:
-            print(f"[CURRENCY] Hit cache for {series_id}")
-            return cached_data[series_id]
+        if cached_data and symbol in cached_data:
+            print(f"[CURRENCY] Hit cache for {symbol}")
+            return cached_data[symbol]
             
-        print(f"[CURRENCY] Cache miss for {series_id}")
+        print(f"[CURRENCY] Cache miss for {symbol}")
         return []
         
     except Exception as e:
-        print(f"Error fetching currency {series_id}: {e}")
+        print(f"Error fetching currency {symbol}: {e}")
         return []

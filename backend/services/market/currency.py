@@ -13,20 +13,20 @@ CURRENCIES = {
         "name": "EUR/USD",
         "description": "Euro to U.S. Dollar"
     },
-    "USDJPY": {
-        "name": "USD/JPY",
-        "description": "U.S. Dollar to Japanese Yen"
+    "JPYUSD": {
+        "name": "JPY/USD",
+        "description": "Japanese Yen to U.S. Dollar"
     },
-    "USDCNY": {
-        "name": "USD/CNY",
-        "description": "U.S. Dollar to Chinese Yuan"
+    "CNYUSD": {
+        "name": "CNY/USD",
+        "description": "Chinese Yuan to U.S. Dollar"
     }
 }
 
 async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
     """
     Fetch currency data using FMP API.
-    Returns a dict keyed by FMP symbol (EURUSD, USDJPY, USDCNY)
+    Returns a dict keyed by FMP symbol (EURUSD, JPYUSD, CNYUSD)
     """
     results = {}
     
@@ -48,6 +48,9 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
     async with httpx.AsyncClient() as client:
         for symbol, metadata in CURRENCIES.items():
             try:
+                # Note: Verify if FMP supports JPYUSD/CNYUSD or requires USDJPY/USDCNY. 
+                # Provided request asked for JPYUSD/CNHUSD(CNYUSD). 
+                # If FMP returns emtpy, it might be due to invalid ticker.
                 url = f"{FMP_BASE_URL}/historical-price-eod/light"
                 params = {
                     "symbol": symbol,

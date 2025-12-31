@@ -471,9 +471,9 @@
                         <p class="error-message">{{ currencyError }}</p>
                     </div>
                     <div v-else class="indicators">
-                        <div v-for="item in currencyIndicators" :key="item.series_id" class="indicator-card">
+                        <div v-for="item in currencyIndicators" :key="item.symbol" class="indicator-card">
                             <div class="card-content">
-                                <h3>{{ item.indicator }}</h3>
+                                <h3>{{ item.name }}</h3>
                                 <p class="value">{{ item.value ? item.value.toFixed(4) : 'N/A' }}</p>
                                 <p class="date">{{ item.date }}</p>
                                 <p class="desc">
@@ -1882,7 +1882,7 @@ const fetchCurrencyData = async () => {
     
     // Data is already in the correct format from the backend
     const processedData = data.map(item => {
-      console.log('[CURRENCY] Processing item:', item.indicator, 'series_id:', item.series_id);
+      console.log('[CURRENCY] Processing item:', item.name, 'symbol:', item.symbol);
       return {
         ...item,
         selectedTimeframe: 'monthly',
@@ -1907,9 +1907,9 @@ const fetchCurrencyData = async () => {
 const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   if (item.selectedTimeframe === timeframe) return;
   
-  // Safety check for series_id
-  if (!item.series_id) {
-    console.error('[CURRENCY] Missing series_id for item:', item);
+  // Safety check for symbol
+  if (!item.symbol) {
+    console.error('[CURRENCY] Missing symbol for item:', item);
     return;
   }
   
@@ -1917,7 +1917,7 @@ const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   item.loading = true;
   
   // Check cache
-  const cached = getEconomicCachedData(item.series_id, timeframe);
+  const cached = getEconomicCachedData(item.symbol, timeframe);
   if (cached) {
     Object.assign(item, cached);
     item.selectedTimeframe = timeframe;
@@ -1926,9 +1926,9 @@ const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
-    console.log('[CURRENCY] Fetching timeframe data for:', item.series_id, 'timeframe:', timeframe);
+    console.log('[CURRENCY] Fetching timeframe data for:', item.symbol, 'timeframe:', timeframe);
     // Use the new currency endpoint
-    const response = await fetch(`${API_BASE_URL}/api/market/currency/${item.series_id}?timeframe=${timeframe}`);
+    const response = await fetch(`${API_BASE_URL}/api/market/currency/${item.symbol}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     

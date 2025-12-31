@@ -19,13 +19,13 @@ CURRENCY_METADATA = {
         "name": "EUR/USD",
         "description": "Euro to U.S. Dollar"
     },
-    "USDJPY": {
-        "name": "USD/JPY",
-        "description": "U.S. Dollar to Japanese Yen"
+    "JPYUSD": {
+        "name": "JPY/USD",
+        "description": "Japanese Yen to U.S. Dollar"
     },
-    "USDCNY": {
-        "name": "USD/CNY",
-        "description": "U.S. Dollar to Chinese Yuan"
+    "CNYUSD": {
+        "name": "CNY/USD",
+        "description": "Chinese Yuan to U.S. Dollar"
     }
 }
 
