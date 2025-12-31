@@ -124,22 +124,23 @@ const handleSubmit = async () => {
 }
 
 .auth-card {
-  background: #1f2937;
+  background: #ffffff;
   padding: 2.5rem;
   border-radius: 1rem;
   width: 100%;
   max-width: 400px;
-  border: 1px solid #374151;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 h2 {
-  color: #f3f4f6;
+  color: #111827;
   margin-bottom: 0.5rem;
   text-align: center;
 }
 
 p {
-  color: #9ca3af;
+  color: #6b7280;
   margin-bottom: 2rem;
   text-align: center;
   font-size: 0.9rem;
@@ -151,7 +152,7 @@ p {
 
 label {
   display: block;
-  color: #d1d5db;
+  color: #374151;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
 }
@@ -159,16 +160,17 @@ label {
 input {
   width: 100%;
   padding: 0.75rem;
-  background: #374151;
-  border: 1px solid #4b5563;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
   border-radius: 0.5rem;
-  color: white;
+  color: #111827;
   transition: border-color 0.2s;
 }
 
 input:focus {
   outline: none;
-  border-color: #60a5fa;
+  border-color: #3b82f6;
+  background: #ffffff;
 }
 
 .submit-btn {
@@ -188,7 +190,7 @@ input:focus {
 }
 
 .submit-btn:disabled {
-  background: #4b5563;
+  background: #9ca3af;
   cursor: not-allowed;
 }
 
@@ -201,13 +203,13 @@ input:focus {
 }
 
 .message.success {
-  background: #064e3b;
-  color: #34d399;
+  background: #ecfdf5;
+  color: #059669;
 }
 
 .message.error {
-  background: #7f1d1d;
-  color: #fca5a5;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .links {
@@ -216,12 +218,13 @@ input:focus {
 }
 
 .links a {
-  color: #60a5fa;
+  color: #2563eb;
   text-decoration: none;
   font-size: 0.9rem;
 }
 
 .links a:hover {
   text-decoration: underline;
+  color: #1d4ed8;
 }
 </style>
