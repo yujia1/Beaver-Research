@@ -44,7 +44,7 @@ COMMODITY_CATEGORIES = {
         {"symbol": "ZC=F", "name": "Corn Futures", "type": "Agriculture", "resource": "yfinance"},
         {"symbol": "KE=F", "name": "Wheat Futures", "type": "Agriculture", "resource": "yfinance"},
         {"symbol": "ZO=F", "name": "Oat Futures", "type": "Agriculture", "resource": "yfinance"},
-        {"symbol": "RR=F", "name": "Rough Rice Futures", "type": "Agriculture", "resource": "yfinance"},
+        {"symbol": "ZR=F", "name": "Rough Rice Futures", "type": "Agriculture", "resource": "yfinance"},
         {"symbol": "ZS=F", "name": "Soybean Futures", "type": "Agriculture", "resource": "yfinance"}
     ],
     "Softs & Livestock": [
@@ -53,9 +53,9 @@ COMMODITY_CATEGORIES = {
         {"symbol": "SB=F", "name": "Sugar", "type": "Softs", "resource": "yfinance"},
         {"symbol": "CT=F", "name": "Cotton", "type": "Softs", "resource": "yfinance"},
         {"symbol": "OJ=F", "name": "Orange Juice", "type": "Softs", "resource": "yfinance"},
-        {"symbol": "LBS=F", "name": "Lumber Futures", "type": "Softs", "resource": "yfinance"},
-        {"symbol": "LC=F", "name": "Live Cattle Futures", "type": "Livestock", "resource": "yfinance"},
-        {"symbol": "FC=F", "name": "Feeder Cattle Futures", "type": "Livestock", "resource": "yfinance"},
+        {"symbol": "LBR=F", "name": "Lumber Futures", "type": "Softs", "resource": "yfinance"},
+        {"symbol": "LE=F", "name": "Live Cattle Futures", "type": "Livestock", "resource": "yfinance"},
+        {"symbol": "GF=F", "name": "Feeder Cattle Futures", "type": "Livestock", "resource": "yfinance"},
         {"symbol": "HE=F", "name": "Lean Hogs Futures", "type": "Livestock", "resource": "yfinance"},
         {"symbol": "DC=F", "name": "Class III Milk Futures", "type": "Livestock/Dairy", "resource": "yfinance"}
     ]
