@@ -819,7 +819,7 @@ async def get_my_permissions(
     """Get list of resources the current user can access"""
     # Admin gets access to everything by default
     if current_user.role == "admin":
-        return ["/research", "/portfolio", "/report", "/investment", "/short-interest", "/agent", "/academy"]
+        return ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework"]
     
     # Try to get from cache
     cache_key = f"permissions:{current_user.role}"
@@ -853,7 +853,7 @@ async def initialize_permissions(
     if count > 0:
         return {"message": "Permissions already initialized", "count": count}
         
-    resources = ["/research", "/portfolio", "/report", "/investment", "/short-interest", "/agent", "/academy"]
+    resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework"]
     roles = ["creator", "contributor", "user"]
     
     # Default Policy:
