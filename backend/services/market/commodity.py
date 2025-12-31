@@ -11,11 +11,11 @@ FMP_API_KEY = os.getenv("FMP_API_KEY")
 # Commodity Categories and Symbols configuration
 COMMODITY_CATEGORIES = {
     "Financials": [
-        {"symbol": "ZQUSD", "name": "30 Day Fed Fund Futures", "type": "Interest Rates"},
-        {"symbol": "ZTUSD", "name": "2-Year T-Note Futures", "type": "Interest Rates"},
-        {"symbol": "ZFUSD", "name": "Five-Year US Treasury Note", "type": "Interest Rates"},
-        {"symbol": "ZNUSD", "name": "10-Year T-Note Futures", "type": "Interest Rates"},
-        {"symbol": "ZBUSD", "name": "30 Year U.S. Treasury Bond", "type": "Interest Rates"},
+        # {"symbol": "ZQUSD", "name": "30 Day Fed Fund Futures", "type": "Interest Rates"},
+        # {"symbol": "ZTUSD", "name": "2-Year T-Note Futures", "type": "Interest Rates"},
+        # {"symbol": "ZFUSD", "name": "Five-Year US Treasury Note", "type": "Interest Rates"},
+        # {"symbol": "ZNUSD", "name": "10-Year T-Note Futures", "type": "Interest Rates"},
+        # {"symbol": "ZBUSD", "name": "30 Year U.S. Treasury Bond", "type": "Interest Rates"},
         {"symbol": "DXUSD", "name": "US Dollar", "type": "Currency"},
         {"symbol": "ESUSD", "name": "E-Mini S&P 500", "type": "Equity Index"},
         {"symbol": "NQUSD", "name": "Nasdaq 100", "type": "Equity Index"},
@@ -86,55 +86,70 @@ async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
             for item in items:
                 try:
                     symbol = item["symbol"]
-                    url = f"{FMP_BASE_URL}/historical-price-eod/light"
-                    params = {
+                    
+                    # 1. Fetch Real-time Quote (Primary source for current price)
+                    quote_url = f"{FMP_BASE_URL}/quote/{symbol}"
+                    quote_params = {"apikey": FMP_API_KEY}
+                    
+                    current_price = 0.0
+                    change = 0.0
+                    change_p = 0.0
+                    
+                    quote_response = await client.get(quote_url, params=quote_params)
+                    if quote_response.status_code == 200:
+                        q_data = quote_response.json()
+                        if isinstance(q_data, list) and len(q_data) > 0:
+                            q = q_data[0]
+                            current_price = float(q.get("price", 0))
+                            change = float(q.get("change", 0))
+                            change_p = float(q.get("changesPercentage", 0))
+                    
+                    # 2. Fetch History (Secondary, may be stale)
+                    hist_url = f"{FMP_BASE_URL}/historical-price-eod/light"
+                    hist_params = {
                         "symbol": symbol,
                         "apikey": FMP_API_KEY,
                         "from": start_date,
                         "to": end_date
                     }
                     
-                    response = await client.get(url, params=params)
+                    history = []
+                    hist_response = await client.get(hist_url, params=hist_params)
                     
-                    if response.status_code == 200:
-                        data = response.json()
-                        
-                        if isinstance(data, list) and len(data) > 0:
+                    if hist_response.status_code == 200:
+                        h_data = hist_response.json()
+                        if isinstance(h_data, list) and len(h_data) > 0:
                             # Sort by date
-                            data.sort(key=lambda x: x["date"])
+                            h_data.sort(key=lambda x: x["date"])
                             
-                            # Filter client side if needed
-                            filtered_data = [d for d in data if d["date"] >= start_date]
+                            # Filter client side
+                            filtered_data = [d for d in h_data if d["date"] >= start_date]
                             
-                            if not filtered_data: continue
-                                
-                            # Process history
-                            history = []
-                            for h in filtered_data:
-                                history.append({
-                                    "date": h["date"],
-                                    "value": float(h.get("price", h.get("close", 0))),
-                                    "volume": float(h.get("volume", 0))
-                                })
-                            
-                            # Calculate simple stats
-                            current_price = history[-1]["value"]
-                            prev_price = history[-2]["value"] if len(history) > 1 else current_price
-                            change = current_price - prev_price
-                            change_p = (change / prev_price * 100) if prev_price != 0 else 0
-                            
-                            category_data.append({
-                                "symbol": symbol,
-                                "name": item["name"],
-                                "type": item["type"],
-                                "price": round(current_price, 4),
-                                "change": round(change, 4),
-                                "changePercent": round(change_p, 2),
-                                "history": history
-                            })
+                            if filtered_data:
+                                for h in filtered_data:
+                                    history.append({
+                                        "date": h["date"],
+                                        "value": float(h.get("price", h.get("close", 0))),
+                                        "volume": float(h.get("volume", 0))
+                                    })
+                    
+                    # If we have current price, add to results even if history is empty
+                    if current_price != 0 or history:
+                        # If history is empty but we have quote, maybe fake a single point or leave empty?
+                        # Frontend handles empty history (sparkline will be blank).
+                        
+                        category_data.append({
+                            "symbol": symbol,
+                            "name": item["name"],
+                            "type": item["type"],
+                            "price": round(current_price, 4),
+                            "change": round(change, 4),
+                            "changePercent": round(change_p, 2),
+                            "history": history
+                        })
                     else:
-                        print(f"FMP Commodity Error {symbol}: {response.status_code}")
-                            
+                        print(f"No data for commodity {symbol}")
+
                 except Exception as e:
                     print(f"Error fetching commodity {item['symbol']}: {e}")
             
