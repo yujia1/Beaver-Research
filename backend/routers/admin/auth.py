@@ -866,7 +866,18 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
     user.hashed_password = hashed_password
     db.commit()
     
-    return {"message": "Password updated successfully"}
+    # Generate access token for auto-login
+    user_role = getattr(user, 'role', 'user') or 'user'
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user_role}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "message": "Password updated successfully",
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 @router.get("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
