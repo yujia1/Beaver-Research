@@ -24,6 +24,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 async def send_reset_password_email(email: EmailStr, token: str):
     """
     Send a password reset email to the user.
+    Uses noreply@beaver-research.cloud as sender
     """
     reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
     
@@ -43,15 +44,29 @@ async def send_reset_password_email(email: EmailStr, token: str):
     )
 
     if not conf.MAIL_PASSWORD:
-        print(f"MOCK EMAIL to {email}: {reset_link}")
+        print(f"MOCK EMAIL (from noreply@beaver-research.cloud) to {email}: {reset_link}")
         return
 
-    fm = FastMail(conf)
+    # Create a custom config for password reset emails
+    reset_conf = ConnectionConfig(
+        MAIL_USERNAME=conf.MAIL_USERNAME,
+        MAIL_PASSWORD=conf.MAIL_PASSWORD,
+        MAIL_FROM="noreply@beaver-research.cloud",
+        MAIL_PORT=conf.MAIL_PORT,
+        MAIL_SERVER=conf.MAIL_SERVER,
+        MAIL_STARTTLS=conf.MAIL_STARTTLS,
+        MAIL_SSL_TLS=conf.MAIL_SSL_TLS,
+        USE_CREDENTIALS=conf.USE_CREDENTIALS,
+        VALIDATE_CERTS=conf.VALIDATE_CERTS
+    )
+    
+    fm = FastMail(reset_conf)
     await fm.send_message(message)
 
 async def send_verification_email(email: EmailStr, token: str):
     """
     Send an email verification link.
+    Uses verification@beaver-research.cloud as sender
     """
     verify_link = f"{FRONTEND_URL}/verify-email?token={token}"
     
@@ -70,8 +85,21 @@ async def send_verification_email(email: EmailStr, token: str):
     )
     
     if not conf.MAIL_PASSWORD:
-        print(f"MOCK EMAIL to {email}: {verify_link}")
+        print(f"MOCK EMAIL (from verification@beaver-research.cloud) to {email}: {verify_link}")
         return
 
-    fm = FastMail(conf)
+    # Create a custom config for verification emails
+    verify_conf = ConnectionConfig(
+        MAIL_USERNAME=conf.MAIL_USERNAME,
+        MAIL_PASSWORD=conf.MAIL_PASSWORD,
+        MAIL_FROM="verification@beaver-research.cloud",
+        MAIL_PORT=conf.MAIL_PORT,
+        MAIL_SERVER=conf.MAIL_SERVER,
+        MAIL_STARTTLS=conf.MAIL_STARTTLS,
+        MAIL_SSL_TLS=conf.MAIL_SSL_TLS,
+        USE_CREDENTIALS=conf.USE_CREDENTIALS,
+        VALIDATE_CERTS=conf.VALIDATE_CERTS
+    )
+    
+    fm = FastMail(verify_conf)
     await fm.send_message(message)
