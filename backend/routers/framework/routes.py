@@ -583,9 +583,9 @@ async def get_all_statements(
             get_senate_trades(ticker),
             get_house_trades(ticker),
             get_historical_price_full(ticker),
+            get_company_profile(ticker),
             # Run SEC blocking calls in executor
-            loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100),
-            get_company_profile(ticker)
+            loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
         ]
 
         # Execute in parallel
