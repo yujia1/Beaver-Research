@@ -274,6 +274,22 @@
 
     <!-- Report Management Tab -->
     <div v-if="activeTab === 'reports'">
+      <div class="sub-tabs">
+        <button 
+          :class="['sub-tab-btn', { active: reportManagementTab === 'report' }]" 
+          @click="reportManagementTab = 'report'"
+        >
+          Report
+        </button>
+        <button 
+          :class="['sub-tab-btn', { active: reportManagementTab === 'ai_report' }]" 
+          @click="reportManagementTab = 'ai_report'"
+        >
+          AI Report
+        </button>
+      </div>
+
+      <div v-if="reportManagementTab === 'report'">
       <div v-if="loadingReports" class="loading-container">
         <div class="loading-spinner"></div>
         <p>{{ t('admin.reports.loading') }}</p>
@@ -405,6 +421,13 @@
           <p>{{ t('admin.reports.no_results') }}</p>
         </div>
       </div>
+      </div>
+
+      <div v-if="reportManagementTab === 'ai_report'" class="admin-content">
+          <div class="no-results">
+              <p>AI Report content coming soon...</p>
+          </div>
+      </div>
     </div>
 
     <!-- Database Management Tab -->
@@ -527,6 +550,7 @@ const showDeleteConfirm = ref(false)
 
 // Report Management State
 const reports = ref([])
+const reportManagementTab = ref('report')
 const loadingReports = ref(false)
 const reportsError = ref('')
 const reportSearchQuery = ref('')
@@ -2110,6 +2134,35 @@ input:disabled + .slider {
 .role-select:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.sub-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sub-tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.sub-tab-btn:hover {
+  color: #000;
+  background-color: #f5f5f5;
+}
+
+.sub-tab-btn.active {
+  color: #000;
+  border-bottom-color: #000;
+  font-weight: 600;
+  background-color: transparent;
 }
 </style>
 
