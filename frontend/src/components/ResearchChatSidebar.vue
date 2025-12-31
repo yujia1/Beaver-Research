@@ -138,7 +138,7 @@ const sendChatMessage = async () => {
     console.error('Chat error:', error)
     chatMessages.value.push({
       role: 'assistant',
-      content: "Error connecting to agent. Please try again.",
+      content: t('research.chat.error'),
       timestamp: new Date()
     })
   } finally {

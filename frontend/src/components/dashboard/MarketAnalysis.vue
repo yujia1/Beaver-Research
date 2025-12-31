@@ -6,20 +6,20 @@
         :class="{ active: activeTab === 'sector' }"
         @click="activeTab = 'sector'"
       >
-        Sector
+        {{ t('dashboard.market_analysis.sector') }}
       </button>
       <button 
         :class="{ active: activeTab === 'industry' }"
         @click="activeTab = 'industry'"
       >
-        Industry
+        {{ t('dashboard.market_analysis.industry') }}
       </button>
     </div>
 
     <!-- Sector Tab Content -->
     <div v-if="activeTab === 'sector'" class="section-container">
       <div class="section-header">
-        <h2>SECTOR PERFORMANCE & VALUATION</h2>
+        <h2>{{ t('dashboard.market_analysis.sector_performance') }}</h2>
         <div class="exchanges">
           <template v-for="(ex, index) in exchanges" :key="ex">
             <button 
@@ -37,7 +37,7 @@
       <div class="charts-row">
         <!-- Chart 01: Relative Change -->
         <div class="chart-wrapper">
-          <h3 class="chart-title">01. RELATIVE CHANGE (%)</h3>
+          <h3 class="chart-title">{{ t('dashboard.market_analysis.relative_change') }}</h3>
           <div class="chart-content">
             <Bar :data="sectorPerformanceData" :options="horizontalBarOptions" />
           </div>
@@ -45,7 +45,7 @@
 
         <!-- Chart 02: P/E Distribution -->
         <div class="chart-wrapper">
-          <h3 class="chart-title">02. P/E DISTRIBUTION</h3>
+          <h3 class="chart-title">{{ t('dashboard.market_analysis.pe_distribution') }}</h3>
           <div class="chart-content">
             <Bar :data="sectorPeData" :options="verticalBarOptions" />
           </div>
@@ -54,11 +54,10 @@
     </div>
 
     <!-- Industry Tab Content -->
-    <!-- Industry Tab Content -->
     <div v-if="activeTab === 'industry'" class="section-container">
       <div class="section-header directory-header">
         <div class="header-left">
-          <h2>Industry Matrix</h2>
+          <h2>{{ t('dashboard.market_analysis.industry_matrix') }}</h2>
           <div class="exchanges">
             <template v-for="(ex, index) in exchanges" :key="ex">
               <button 
@@ -77,21 +76,21 @@
           <input 
             type="text" 
             v-model="industrySearch" 
-            placeholder="SEARCH INDUSTRIES..." 
+            :placeholder="t('dashboard.market_analysis.search_industries')" 
             class="search-input"
           />
           <div class="sort-options">
-            <button :class="{ active: industrySort === 'perf' }" @click="industrySort = 'perf'">PERF</button>
+            <button :class="{ active: industrySort === 'perf' }" @click="industrySort = 'perf'">{{ t('dashboard.market_analysis.perf') }}</button>
             <span class="divider">/</span>
-            <button :class="{ active: industrySort === 'pe' }" @click="industrySort = 'pe'">P/E</button>
+            <button :class="{ active: industrySort === 'pe' }" @click="industrySort = 'pe'">{{ t('dashboard.market_analysis.pe') }}</button>
           </div>
         </div>
       </div>
 
       <div class="industry-grid-header">
-        <span class="col-name">INDUSTRY</span>
-        <span class="col-change">CHANGE</span>
-        <span class="col-pe">P/E</span>
+        <span class="col-name">{{ t('dashboard.market_analysis.col_industry') }}</span>
+        <span class="col-change">{{ t('dashboard.market_analysis.col_change') }}</span>
+        <span class="col-pe">{{ t('dashboard.market_analysis.col_pe') }}</span>
       </div>
       
       <div class="directory-scroll-container">
@@ -116,6 +115,7 @@
 
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -136,6 +136,8 @@ ChartJS.register(
   Tooltip,
   Legend
 )
+
+const { t } = useI18n()
 
 // --- STATE ---
 const activeTab = ref('sector')

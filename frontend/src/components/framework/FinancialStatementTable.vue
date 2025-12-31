@@ -32,7 +32,7 @@
                   >
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
-                  <span class="category-name">{{ category.name }}</span>
+                  <span class="category-name">{{ trCategory(category.name) }}</span>
                 </div>
               </td>
             </tr>
@@ -47,7 +47,7 @@
                          <td class="subcategory-header-cell" :colspan="periods.length + 1">
                             <div class="subcategory-header-content">
                                <svg class="category-icon subcategory-icon" :class="{ expanded: isCategoryExpanded(subcategory.name) }" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                               <span class="subcategory-name">{{ subcategory.name }}</span>
+                               <span class="subcategory-name">{{ trCategory(subcategory.name) }}</span>
                             </div>
                          </td>
                       </tr>
@@ -223,6 +223,19 @@ const toggleCategory = (name) => {
 }
 
 const isCategoryExpanded = (name) => expandedCategories.value.has(name)
+
+// Translate category
+const trCategory = (name) => {
+  if (!name) return ''
+  const key = name.toLowerCase()
+    .replace(/ & /g, '_')
+    .replace(/ /g, '_')
+    .replace(/[()]/g, '')
+  const tKey = `financial_statements.categories.${key}`
+  const translated = t(tKey)
+  if (translated !== tKey) return translated
+  return name
+}
 
 // Translate line item
 const trLineItem = (item) => {

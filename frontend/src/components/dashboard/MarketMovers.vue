@@ -10,10 +10,10 @@
       <table v-else class="movers-table">
         <thead>
           <tr>
-            <th>Symbol</th>
-            <th>Name</th>
-            <th class="text-right">Price</th>
-            <th class="text-right">% Change</th>
+            <th>{{ t('dashboard.market_movers.headers.symbol') }}</th>
+            <th>{{ t('dashboard.market_movers.headers.name') }}</th>
+            <th class="text-right">{{ t('dashboard.market_movers.headers.price') }}</th>
+            <th class="text-right">{{ t('dashboard.market_movers.headers.change') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -36,6 +36,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import API_BASE_URL from '@/config/api'
 
 const props = defineProps({
@@ -44,6 +45,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const { t } = useI18n()
 
 const items = ref([])
 const loading = ref(false)
@@ -72,7 +75,7 @@ const fetchMarketMovers = async () => {
     cache.set(type, items.value)
   } catch (err) {
     console.error(`Error fetching ${type}:`, err)
-    error.value = "Failed to load market data"
+    error.value = t('dashboard.market_movers.failed_to_load')
   } finally {
     loading.value = false
   }

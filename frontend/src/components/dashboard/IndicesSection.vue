@@ -9,7 +9,7 @@
             :class="{ active: activeRegion === region }"
             @click="activeRegion = region"
         >
-            {{ region }}
+            {{ getRegionLabel(region) }}
         </button>
     </div>
 
@@ -95,6 +95,11 @@ const activeRegion = ref('United States');
 const loading = ref(false);
 const error = ref(null);
 const allRegionalIndices = ref({});
+
+const getRegionLabel = (region) => {
+    const key = region.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+    return t(`dashboard.regions.${key}`);
+};
 
 const displayedIndices = computed(() => {
     return allRegionalIndices.value[activeRegion.value] || [];

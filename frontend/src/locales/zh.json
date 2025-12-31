@@ -114,7 +114,12 @@
         },
         "market_news": {
             "title": "市场快讯",
-            "search_placeholder": "搜索新闻..."
+            "search_placeholder": "搜索新闻...",
+            "filters": {
+                "all": "全部",
+                "markets": "市场",
+                "research": "研报"
+            }
         },
         "retry": "重试",
         "no_data": "暂无历史数据",
@@ -173,7 +178,19 @@
         "market_movers": {
             "most_actives": "主要交易",
             "top_gainers": "涨幅榜",
-            "top_losers": "跌幅榜"
+            "top_losers": "跌幅榜",
+            "headers": {
+                "symbol": "代码",
+                "name": "名称",
+                "price": "价格",
+                "change": "涨跌幅"
+            },
+            "failed_to_load": "加载市场数据失败"
+        },
+        "regions": {
+            "united_states": "美国",
+            "europe": "欧洲",
+            "asia_pacific": "亚太地区"
         },
         "details": {
             "indicator_name": "指标名称",
@@ -570,6 +587,8 @@
             "cost_per_share": "持仓成本",
             "entry_notes": "交易笔记",
             "entry_notes_placeholder": "交易背景上下文...",
+            "fetching_price": "获取价格中...",
+            "today_price": "今日价格",
             "commit_lot": "提交交易",
             "update_lot": "更新详情",
             "ticker_placeholder": "例如 NVDA"
@@ -613,7 +632,8 @@
             "response_1": "根据 {ticker} 的最新文件，我可以帮你分析关键财务指标和趋势。",
             "response_2": "10-K 文件显示收入显著增长且现金流强劲。你想让我深入研究哪个具体部分吗？",
             "response_3": "我已经查看了管理层讨论与分析。公司强调了几个关键战略举措。你对这方面感兴趣吗？",
-            "response_4": "财务报表显示利润率健康，资本分配效率高。我可以提供任何具体指标的详细分析。"
+            "response_4": "财务报表显示利润率健康，资本分配效率高。我可以提供任何具体指标的详细分析。",
+            "error": "连接智能体出错。请重试。"
         },
         "loading": {
             "checking_access": "正在检查访问权限..."
@@ -1220,6 +1240,16 @@
         }
     },
     "financial_statements": {
+        "categories": {
+            "revenue_direct_costs": "营收与直接成本",
+            "operating_expenses": "运营费用",
+            "operating_activities_cash_from_operations": "经营活动 (来自运营的现金)",
+            "investing_activities_cash_for_growth": "投资活动 (用于增长的现金)",
+            "financing_activities_cash_from_banksshareholders": "筹资活动 (来自银行/股东的现金)",
+            "assets_what_the_company_owns": "资产",
+            "liabilities_what_the_company_owes": "负债",
+            "equity_what_shareholders_own": "股东权益"
+        },
         "calc_revenue_growth": "营收增长率",
         "calc_gross_margin": "毛利率",
         "calc_operating_margin": "营业利润率",

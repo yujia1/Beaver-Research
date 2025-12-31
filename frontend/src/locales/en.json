@@ -114,7 +114,12 @@
         },
         "market_news": {
             "title": "MARKETS WIRE",
-            "search_placeholder": "Search news..."
+            "search_placeholder": "Search news...",
+            "filters": {
+                "all": "ALL",
+                "markets": "MARKETS",
+                "research": "RESEARCH"
+            }
         },
         "retry": "Retry",
         "no_data": "No history data available",
@@ -176,7 +181,19 @@
         "market_movers": {
             "most_actives": "Most Actives",
             "top_gainers": "Top Gainers",
-            "top_losers": "Top Losers"
+            "top_losers": "Top Losers",
+            "headers": {
+                "symbol": "Symbol",
+                "name": "Name",
+                "price": "Price",
+                "change": "% Change"
+            },
+            "failed_to_load": "Failed to load market data"
+        },
+        "regions": {
+            "united_states": "United States",
+            "europe": "Europe",
+            "asia_pacific": "Asia-Pacific"
         },
         "details": {
             "indicator_name": "Indicator Name",
@@ -573,6 +590,8 @@
             "cost_per_share": "COST PER SHARE",
             "entry_notes": "ENTRY NOTES",
             "entry_notes_placeholder": "Context for this purchase...",
+            "fetching_price": "Loading...",
+            "today_price": "Today Price",
             "commit_lot": "COMMIT LOT",
             "update_lot": "UPDATE LOT DETAILS",
             "ticker_placeholder": "E.G. NVDA"
@@ -618,7 +637,8 @@
             "response_1": "Based on the latest filings for {ticker}, I can help you analyze the key financial metrics and trends.",
             "response_2": "The 10-K filing shows significant growth in revenue and strong cash flow generation. Would you like me to dive deeper into any specific section?",
             "response_3": "I've reviewed the management discussion and analysis. The company highlights several key strategic initiatives. What aspect interests you most?",
-            "response_4": "The financial statements indicate healthy margins and efficient capital allocation. I can provide more detailed analysis on any specific metric."
+            "response_4": "The financial statements indicate healthy margins and efficient capital allocation. I can provide more detailed analysis on any specific metric.",
+            "error": "Error connecting to agent. Please try again."
         },
         "loading": {
             "checking_access": "Checking access..."
@@ -1225,6 +1245,16 @@
         }
     },
     "financial_statements": {
+        "categories": {
+            "revenue_direct_costs": "Revenue & Direct Costs",
+            "operating_expenses": "Operating Expenses",
+            "operating_activities_cash_from_operations": "Operating Activities",
+            "investing_activities_cash_for_growth": "Investing Activities",
+            "financing_activities_cash_from_banksshareholders": "Financing Activities",
+            "assets_what_the_company_owns": "Assets",
+            "liabilities_what_the_company_owes": "Liabilities",
+            "equity_what_shareholders_own": "Equity"
+        },
         "calc_revenue_growth": "Revenue Growth Rate",
         "calc_gross_margin": "Gross Margin",
         "calc_operating_margin": "Operating Profit Margin",

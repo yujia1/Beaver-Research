@@ -197,7 +197,7 @@ const handleBackdropClick = (e) => {
               <div class="label-container">
                   <label for="costPerShare">{{ t('portfolio.modal.entry_price') }}</label>
                   <button type="button" class="today-price-btn" @click="fetchCurrentPrice" :disabled="fetchingPrice">
-                    {{ fetchingPrice ? 'Loading...' : 'Today Price' }}
+                    {{ fetchingPrice ? t('portfolio.modal.fetching_price') : t('portfolio.modal.today_price') }}
                   </button>
               </div>
               <input

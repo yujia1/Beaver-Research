@@ -7,13 +7,13 @@
         <div class="tag-filters">
             <button 
                 :class="['filter-btn', { active: selectedTag === 'ALL' }]" 
-                @click="selectedTag = 'ALL'">ALL</button>
+                @click="selectedTag = 'ALL'">{{ t('dashboard.market_news.filters.all') }}</button>
             <button 
                 :class="['filter-btn', { active: selectedTag === 'MARKETS' }]" 
-                @click="selectedTag = 'MARKETS'">MARKETS</button>
+                @click="selectedTag = 'MARKETS'">{{ t('dashboard.market_news.filters.markets') }}</button>
             <button 
                 :class="['filter-btn', { active: selectedTag === 'RESEARCH' }]" 
-                @click="selectedTag = 'RESEARCH'">RESEARCH</button>
+                @click="selectedTag = 'RESEARCH'">{{ t('dashboard.market_news.filters.research') }}</button>
         </div>
       </div>
       <div class="header-actions">
