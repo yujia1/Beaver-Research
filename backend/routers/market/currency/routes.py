@@ -29,7 +29,7 @@ CURRENCY_METADATA = {
     }
 }
 
-@router.get("/currencies", response_model=List[Dict[str, Any]])
+@router.get("/", response_model=List[Dict[str, Any]])
 async def get_all_currencies():
     """
     Get all currency data.
@@ -75,7 +75,7 @@ async def get_all_currencies():
         print(f"Error fetching currencies: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch currency data: {str(e)}")
 
-@router.get("/currencies/{series_id}")
+@router.get("/{series_id}")
 async def get_currency_by_series(series_id: str, timeframe: str = "monthly"):
     """
     Get a specific currency by its series ID.

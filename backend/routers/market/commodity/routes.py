@@ -14,7 +14,7 @@ class CommodityData(BaseModel):
     changePercent: float
     history: List[Dict[str, Any]]
 
-@router.get("/commodities", response_model=Dict[str, List[Dict[str, Any]]])
+@router.get("/", response_model=Dict[str, List[Dict[str, Any]]])
 async def get_all_commodities():
     """
     Get all commodity data organized by category.
