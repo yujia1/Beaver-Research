@@ -89,12 +89,19 @@ export const useUserStore = defineStore('user', () => {
         }
     }
 
+    async function setSession(accessToken, apiBaseUrl) {
+        setToken(accessToken)
+        await fetchUser(apiBaseUrl)
+        await permissionStore.fetch(apiBaseUrl)
+    }
+
     return {
         user,
         token,
         isAuthenticated,
         login,
         logout,
-        fetchUser
+        fetchUser,
+        setSession
     }
 })

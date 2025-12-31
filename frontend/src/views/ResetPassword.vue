@@ -50,12 +50,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api';
+import { useUserStore } from '@/stores/userStore';
 
 const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
+const userStore = useUserStore();
+
 const password = ref('');
 const confirmPassword = ref('');
 const loading = ref(false);
@@ -104,6 +108,15 @@ const handleSubmit = async () => {
     message.value = data.message;
     password.value = '';
     confirmPassword.value = '';
+    
+    // Auto login if token provided
+    if (data.access_token) {
+        await userStore.setSession(data.access_token, API_BASE_URL);
+        // Wait a brief moment to show success message then redirect
+        setTimeout(() => {
+            router.push('/');
+        }, 1500);
+    }
     
   } catch (e) {
     error.value = e.message;
