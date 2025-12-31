@@ -25,19 +25,19 @@ const validateForm = () => {
   errors.value = {}
   
   if (!formData.value.ticker || formData.value.ticker.trim() === '') {
-    errors.value.ticker = t('alphatrade.errors.ticker_required')
+    errors.value.ticker = t('portfolio.errors.ticker_required')
   }
   
   if (!formData.value.purchaseDate) {
-    errors.value.purchaseDate = t('alphatrade.errors.date_required')
+    errors.value.purchaseDate = t('portfolio.errors.date_required')
   }
   
   if (!formData.value.quantity || formData.value.quantity <= 0) {
-    errors.value.quantity = t('alphatrade.errors.quantity_positive')
+    errors.value.quantity = t('portfolio.errors.quantity_positive')
   }
   
   if (!formData.value.costPerShare || formData.value.costPerShare <= 0) {
-    errors.value.costPerShare = t('alphatrade.errors.cost_positive')
+    errors.value.costPerShare = t('portfolio.errors.cost_positive')
   }
   
   return Object.keys(errors.value).length === 0
@@ -45,7 +45,7 @@ const validateForm = () => {
 
 const fetchCurrentPrice = async () => {
     if (!formData.value.ticker) {
-        errors.value.ticker = t('alphatrade.errors.ticker_required')
+        errors.value.ticker = t('portfolio.errors.ticker_required')
         return
     }
     
@@ -101,8 +101,8 @@ const handleBackdropClick = (e) => {
     <div class="modal-container">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">{{ t('alphatrade.modal.title_new') }}</h2>
-          <p class="modal-subtitle">{{ t('alphatrade.modal.subtitle_new') }}</p>
+          <h2 class="modal-title">{{ t('portfolio.modal.title_new') }}</h2>
+          <p class="modal-subtitle">{{ t('portfolio.modal.subtitle_new') }}</p>
         </div>
         <button class="close-btn" @click="handleClose">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -116,12 +116,12 @@ const handleBackdropClick = (e) => {
         <form @submit.prevent="handleSubmit">
           <div class="form-row">
             <div class="form-group">
-              <label for="ticker">{{ t('alphatrade.modal.ticker') }}</label>
+              <label for="ticker">{{ t('portfolio.modal.ticker') }}</label>
               <input
                 id="ticker"
                 v-model="formData.ticker"
                 type="text"
-                :placeholder="t('alphatrade.modal.ticker_placeholder', 'E.G. NVDA')" 
+                :placeholder="t('portfolio.modal.ticker_placeholder', 'E.G. NVDA')" 
                 class="form-input"
                 :class="{ error: errors.ticker }"
                 maxlength="10"
@@ -130,7 +130,7 @@ const handleBackdropClick = (e) => {
             </div>
 
             <div class="form-group">
-              <label for="purchaseDate">{{ t('alphatrade.modal.execution_date') }}</label>
+              <label for="purchaseDate">{{ t('portfolio.modal.execution_date') }}</label>
               <input
                 id="purchaseDate"
                 v-model="formData.purchaseDate"
@@ -144,7 +144,7 @@ const handleBackdropClick = (e) => {
 
           <div class="form-row">
             <div class="form-group">
-              <label>{{ t('alphatrade.modal.position_side') }}</label>
+              <label>{{ t('portfolio.modal.position_side') }}</label>
               <div class="toggle-buttons">
                 <button
                   type="button"
@@ -152,7 +152,7 @@ const handleBackdropClick = (e) => {
                   :class="{ active: formData.side === 'LONG' }"
                   @click="formData.side = 'LONG'"
                 >
-                  {{ t('alphatrade.modal.long') }}
+                  {{ t('portfolio.modal.long') }}
                 </button>
                 <button
                   type="button"
@@ -160,13 +160,13 @@ const handleBackdropClick = (e) => {
                   :class="{ active: formData.side === 'SHORT' }"
                   @click="formData.side = 'SHORT'"
                 >
-                  {{ t('alphatrade.modal.short') }}
+                  {{ t('portfolio.modal.short') }}
                 </button>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="link">{{ t('alphatrade.modal.link') }}</label>
+              <label for="link">{{ t('portfolio.modal.link') }}</label>
               <input
                 id="link"
                 v-model="formData.link"
@@ -179,7 +179,7 @@ const handleBackdropClick = (e) => {
 
           <div class="form-row">
             <div class="form-group">
-              <label for="quantity">{{ t('alphatrade.modal.quantity') }}</label>
+              <label for="quantity">{{ t('portfolio.modal.quantity') }}</label>
               <input
                 id="quantity"
                 v-model="formData.quantity"
@@ -195,7 +195,7 @@ const handleBackdropClick = (e) => {
 
             <div class="form-group">
               <div class="label-container">
-                  <label for="costPerShare">{{ t('alphatrade.modal.entry_price') }}</label>
+                  <label for="costPerShare">{{ t('portfolio.modal.entry_price') }}</label>
                   <button type="button" class="today-price-btn" @click="fetchCurrentPrice" :disabled="fetchingPrice">
                     {{ fetchingPrice ? 'Loading...' : 'Today Price' }}
                   </button>
@@ -215,11 +215,11 @@ const handleBackdropClick = (e) => {
           </div>
 
           <div class="form-group">
-            <label for="note">{{ t('alphatrade.modal.entry_notes') }}</label>
+            <label for="note">{{ t('portfolio.modal.entry_notes') }}</label>
             <textarea
               id="note"
               v-model="formData.note"
-              :placeholder="t('alphatrade.modal.entry_notes_placeholder', 'Context for this purchase...')"
+              :placeholder="t('portfolio.modal.entry_notes_placeholder', 'Context for this purchase...')"
               class="form-textarea"
               rows="4"
             ></textarea>
@@ -227,7 +227,7 @@ const handleBackdropClick = (e) => {
 
           <div class="form-actions">
             <button type="submit" class="btn btn-submit">
-              {{ t('alphatrade.modal.commit_lot') }}
+              {{ t('portfolio.modal.commit_lot') }}
             </button>
           </div>
         </form>

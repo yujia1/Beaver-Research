@@ -909,6 +909,20 @@
             "no_senate_data": "No Senate trading data available",
             "no_house_data": "No House trading data available"
         },
+        "politicians_data": {
+            "representative": "Representative",
+            "district": "District",
+            "owner": "Owner",
+            "asset_type": "Asset Type",
+            "trans_date": "Trans Date",
+            "discl_date": "Discl Date",
+            "type": "Type",
+            "amount": "Amount",
+            "cap_gains": "Cap Gains > $200",
+            "asset": "Asset",
+            "senator": "Senator",
+            "ptr_link": "PTR Link"
+        },
         "calendar_tabs": {
             "earning": "Earning",
             "dividends": "Dividends",
