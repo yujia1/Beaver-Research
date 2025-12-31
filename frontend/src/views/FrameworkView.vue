@@ -303,6 +303,13 @@ const {
 
 // Handle search
 const handleSearch = () => {
+  // Check if user is logged in
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    // Redirect to login page
+    window.location.href = '/login'
+    return
+  }
   fetchFinancialData()
 }
 
