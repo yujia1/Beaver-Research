@@ -123,6 +123,10 @@ const filteredComparisonData = computed(() => {
 })
 
 
+const isComparisonMode = computed(() => {
+    return props.comparisonData && props.comparisonData.length > 0;
+})
+
 const renderChart = () => {
   if (chartInstance) {
     chartInstance.destroy()
@@ -135,79 +139,111 @@ const renderChart = () => {
   
   const mainData = filteredData.value
   const labels = mainData.map(d => d.date)
-  const prices = mainData.map(d => d.close)
-  const volumes = mainData.map(d => d.volume)
+  let prices = mainData.map(d => d.close) // Mutable for % calc
+  const volumes = mainData.map(d => d.volume) // Still needed if not comp mode
   
   // Create gradient for main
   const gradient = ctx.createLinearGradient(0, 0, 0, 400)
-  gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)') // Blue-500 equivalent
+  gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)') // Blue-500
   gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)')
   
   // Datasets
-  const datasets = [
-    {
-      label: props.symbol ? `${props.symbol} Price` : 'Price',
-      data: prices,
-      borderColor: '#3b82f6', // Bright Blue
-      backgroundColor: gradient,
-      fill: true,
-      tension: 0.1,
-      pointRadius: 0, 
-      pointHoverRadius: 4,
-      borderWidth: 2,
-      yAxisID: 'y',
-      order: 1
-    },
-    {
-      label: 'Volume',
-      data: volumes,
-      type: 'bar',
-      backgroundColor: 'rgba(156, 163, 175, 0.5)', 
-      yAxisID: 'y1',
-      barPercentage: 0.9,
-      categoryPercentage: 0.9,
-      order: 3 // Put behind
-    }
-  ];
+  const datasets = []
   
-  // Add comparisons
-  if (filteredComparisonData.value && filteredComparisonData.value.length > 0) {
-      filteredComparisonData.value.forEach((comp, index) => {
-          // Alignment check: We are using 'labels' from mainData. 
-          // If comparison data is missing dates or has diff dates, it will be misaligned if we simply map data values.
-          // Chart.js using 'category' scale requires data array length to match labels or be mapped object {x, y}.
-          // Let's use mapped objects {x: date, y: price} for safety!
-          // And update main dataset to use same format too, just in case.
-          
-          // Actually, if we switch to objects, we can just push data.
-          // But 'labels' array defines the X axis bins in 'category' mode.
-          // The cleanest correct way without TimeScale adapter is to map data to the specific label strings.
-          
-          const dataMap = new Map();
-          comp.data.forEach(d => dataMap.set(d.date.split('T')[0], d.close));
-          
-          const alignedData = labels.map(dateStr => {
-               // dateStr is 'YYYY-MM-DD' usually from FMP
-               return dataMap.get(dateStr) || null; // null keeps line gap or spans
+  if (isComparisonMode.value) {
+      // --- PERCENTAGE CHANGE MODE ---
+      
+      // 1. Main Ticker
+      const startPrice = prices[0] || 0;
+      const pctPrices = prices.map(p => startPrice === 0 ? 0 : ((p - startPrice) / startPrice) * 100);
+      
+      datasets.push({
+          label: props.symbol || 'Main',
+          data: pctPrices,
+          borderColor: '#3b82f6',
+          backgroundColor: 'transparent', // No fill for comparison mode cleaner
+          fill: false,
+          tension: 0.1,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 2,
+          yAxisID: 'y',
+          order: 1
+      });
+      
+      // 2. Comparisons
+      if (filteredComparisonData.value && filteredComparisonData.value.length > 0) {
+          filteredComparisonData.value.forEach((comp, index) => {
+              const dataMap = new Map();
+              comp.data.forEach(d => dataMap.set(d.date.split('T')[0], d.close));
+              
+              // We need to find the "Base Price" for this ticker at the start date of the chart
+              // The start date is labels[0].
+              // If we don't have data for labels[0], we look for the first available data point?
+              // Or we align strictly. Let's try to find start price at labels[0].
+              const startDate = labels[0];
+              let compStartPrice = dataMap.get(startDate);
+              
+              // If no data on exact start date, look ahead?
+              // For simplicity, let's just map aligned data first.
+              const rawAlignedData = labels.map(dateStr => dataMap.get(dateStr) || null);
+              
+              // Find first non-null
+              if (!compStartPrice) {
+                  compStartPrice = rawAlignedData.find(v => v !== null) || 0;
+              }
+              
+              const pctData = rawAlignedData.map(val => {
+                  if (val === null) return null;
+                  if (compStartPrice === 0) return 0;
+                  return ((val - compStartPrice) / compStartPrice) * 100;
+              });
+              
+              datasets.push({
+                  label: comp.symbol,
+                  data: pctData,
+                  borderColor: colors[index % colors.length],
+                  backgroundColor: 'transparent',
+                  fill: false,
+                  tension: 0.1,
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
+                  borderWidth: 2,
+                  yAxisID: 'y',
+                  order: 2
+              });
           });
-          
-          datasets.push({
-              label: comp.symbol,
-              data: alignedData,
-              borderColor: colors[index % colors.length],
-              backgroundColor: 'transparent',
-              fill: false,
-              tension: 0.1,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              borderWidth: 2,
-              yAxisID: 'y',
-              order: 2
-          });
+      }
+      
+  } else {
+      // --- NORMAL PRICE MODE ---
+      datasets.push({
+          label: props.symbol ? `${props.symbol} Price` : 'Price',
+          data: prices,
+          borderColor: '#3b82f6', 
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.1,
+          pointRadius: 0, 
+          pointHoverRadius: 4,
+          borderWidth: 2,
+          yAxisID: 'y',
+          order: 1
+      });
+      
+      datasets.push({
+          label: 'Volume',
+          data: volumes,
+          type: 'bar',
+          backgroundColor: 'rgba(156, 163, 175, 0.5)', 
+          yAxisID: 'y1',
+          barPercentage: 0.9,
+          categoryPercentage: 0.9,
+          order: 3 
       });
   }
-
-  // Calculate volume scale max
+  
+  // Calculate volume scale max (used only if volume displayed but logic needed for options)
   const maxVol = Math.max(...volumes)
   const volAxisMax = maxVol * 4 
 
@@ -241,13 +277,18 @@ const renderChart = () => {
                 if (label) {
                     label += ': ';
                 }
-                if (context.parsed.y !== null) {
-                    if (context.dataset.type === 'bar') {
-                        // Volume: format with compact notation
-                        label += new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(context.parsed.y);
+                const val = context.parsed.y;
+                if (val !== null) {
+                    if (isComparisonMode.value) {
+                        // Percentage
+                         const sign = val > 0 ? '+' : '';
+                         label += `${sign}${val.toFixed(2)}%`;
                     } else {
-                        // Price
-                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                        if (context.dataset.type === 'bar') {
+                            label += new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(val);
+                        } else {
+                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+                        }
                     }
                 }
                 return label;
@@ -271,11 +312,16 @@ const renderChart = () => {
           position: 'right',
           grid: {
             color: '#f3f4f6'
+          },
+          ticks: {
+              callback: function(value) {
+                  return isComparisonMode.value ? value + '%' : value;
+              }
           }
         },
         y1: {
           type: 'linear',
-          display: false,
+          display: !isComparisonMode.value, // Hide in comparison mode
           position: 'left',
           min: 0,
           max: volAxisMax,
