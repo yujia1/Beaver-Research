@@ -37,21 +37,39 @@ async def stream_market_data():
         await pubsub.subscribe('market_updates')
         
         try:
-            # Send initial ping or data to confirm connection
-            # yield "event: connected\ndata: {\"status\":\"connected\"}\n\n"
+            # Send initial ping to confirm connection immediately
+            yield "event: connected\ndata: {\"status\":\"connected\"}\n\n"
             
-            async for message in pubsub.listen():
-                if message['type'] == 'message':
-                    # Parse data to ensure it's valid JSON (it should be)
-                    payload = message['data']
-                    # Yield in SSE format
-                    yield f"data: {payload}\n\n"
+            while True:
+                # Use asyncio.wait_for to implement a timeout for heartbeat
+                try:
+                    # Check for message with a short timeout
+                    message = await asyncio.wait_for(pubsub.get_message(ignore_subscribe_messages=True), timeout=15.0)
+                    
+                    if message:
+                        payload = message['data']
+                        yield f"data: {payload}\n\n"
+                    else:
+                        await asyncio.sleep(0.1)
+                        
+                except asyncio.TimeoutError:
+                    # verify connection is still alive by sending a comment (heartbeat)
+                    # This prevents Nginx/LoadBalancer 60s timeouts
+                    yield ": keep-alive\n\n"
+                    
         except asyncio.CancelledError:
             print("Client disconnected from stream")
         except Exception as e:
             logger.error(f"Stream error: {e}")
+            yield f"event: error\ndata: {{\"error\": \"{str(e)}\"}}\n\n"
         finally:
             await pubsub.unsubscribe('market_updates')
             await client.close()
             
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
+    }
+            
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=headers)
