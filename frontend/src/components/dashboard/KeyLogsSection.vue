@@ -1775,7 +1775,6 @@ const fetchEconomicData = async () => {
   // Check daily cache first
   const cached = getDailyCache('macro_data_monthly');
   if (cached) {
-    console.log('Using cached macro data');
     economicIndicators.value = cached;
     economicLoading.value = false;
     return;
@@ -1818,7 +1817,6 @@ const fetchFedData = async () => {
   // Check daily cache first
   const cached = getDailyCache('fed_data_monthly');
   if (cached) {
-    console.log('Using cached Fed data');
     fedIndicators.value = cached;
     fedLoading.value = false;
     return;
@@ -1879,12 +1877,9 @@ const fetchCurrencyData = async () => {
     if (!response.ok) throw new Error('Failed to fetch currency data');
     const data = await response.json();
     
-    console.log('[CURRENCY] Received data:', data);
-    console.log('[CURRENCY] Data length:', data.length);
     
     // Data is already in the correct format from the backend
     const processedData = data.map(item => {
-      console.log('[CURRENCY] Processing item:', item.name, 'symbol:', item.symbol);
       return {
         ...item,
         selectedTimeframe: 'monthly',
@@ -1892,7 +1887,6 @@ const fetchCurrencyData = async () => {
       };
     });
     
-    console.log('[CURRENCY] Processed data:', processedData);
     
     currencyIndicators.value = processedData;
     
@@ -1928,7 +1922,6 @@ const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
-    console.log('[CURRENCY] Fetching timeframe data for:', item.symbol, 'timeframe:', timeframe);
     // Use the new currency endpoint
     const response = await fetch(`${API_BASE_URL}/api/market/currency/${item.symbol}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
@@ -1974,7 +1967,6 @@ const fetchCommodityData = async () => {
   */
   
   try {
-    console.log('[COMMODITY] Fetching from:', `${API_BASE_URL}/api/market/commodity/`);
     
     // Fetch all commodity data from the new endpoint
     const response = await fetch(`${API_BASE_URL}/api/market/commodity/`);
@@ -1984,8 +1976,6 @@ const fetchCommodityData = async () => {
     }
     
     const data = await response.json();
-    console.log('[COMMODITY] Received data:', data);
-    console.log('[COMMODITY] Data keys:', Object.keys(data));
     
     // Transform the data to match our frontend structure
     // Backend returns: { "Financials": [...], "Metals": [...], etc }
@@ -2003,7 +1993,6 @@ const fetchCommodityData = async () => {
     
     for (const [backendKey, frontendKey] of Object.entries(categoryMap)) {
       const items = data[backendKey] || [];
-      console.log(`[COMMODITY] Processing ${backendKey}:`, items.length, 'items');
       
       processedData[frontendKey] = items.map(item => ({
         indicator: item.name,
@@ -2017,20 +2006,7 @@ const fetchCommodityData = async () => {
       }));
     }
     
-    console.log('[COMMODITY] Processed data keys:', Object.keys(processedData));
-    console.log('[COMMODITY] Financials count:', processedData.financials?.length || 0);
-    console.log('[COMMODITY] Agriculture count:', processedData.agriculture?.length || 0);
-    console.log('[COMMODITY] Softs count:', processedData.softs_livestock?.length || 0);
 
-    if (processedData.agriculture?.length > 0) {
-        const sample = processedData.agriculture[0];
-        console.log('[COMMODITY] Sample Agriculture Item:', sample.indicator, 'History Length:', sample.history?.length);
-    }
-    
-    if (processedData.softs_livestock?.length > 0) {
-        const sample = processedData.softs_livestock[0];
-        console.log('[COMMODITY] Sample Softs Item:', sample.indicator, 'History Length:', sample.history?.length);
-    }
     
     commodityIndicators.value = processedData;
     
@@ -2062,13 +2038,11 @@ const updateCommodityIndicatorTimeframe = async (item, timeframe) => {
   
   try {
     const response = await fetch(`${API_BASE_URL}/api/market/commodity/history/${encodeURIComponent(item.series_id)}?timeframe=${timeframe}`);
-    console.log(`[COMMODITY] Fetching history for ${item.series_id} at ${timeframe}`);
     if (!response.ok) {
         console.error(`[COMMODITY] Failed to fetch history for ${item.series_id}:`, response.status);
         throw new Error('Failed to fetch data');
     }
     const data = await response.json();
-    console.log(`[COMMODITY] Received history for ${item.series_id}:`, data.history?.length, 'points');
     
     item.history = data.history || [];
     item.value = data.price || data.value; // Handle price/value mismatch
@@ -2097,7 +2071,6 @@ const fetchCryptoData = async () => {
   // Check daily cache first
   const cached = getDailyCache('crypto_data_daily');
   if (cached) {
-    console.log('Using cached crypto data');
     // Ensure history is preserved from cache (like Bond/Economic tabs)
     const processedCached = cached.map(item => ({
       ...item,
@@ -2134,7 +2107,6 @@ const fetchCryptoData = async () => {
       throw new Error(`Invalid response format: expected array, got ${typeof cryptoData}`);
     }
     
-    console.log('[DEBUG] Received crypto data from backend:', cryptoData.length, 'items');
     
     // Process data - history is already included in the response (like Bond/Economic)
     const processedData = cryptoData.map(item => ({

@@ -217,7 +217,6 @@ const fetchIndices = async () => {
     // Check cache first
     const cached = getDailyCache('indices_regional_data');
     if (cached) {
-        console.log('Using cached regional indices data');
         allRegionalIndices.value = cached;
         // Initialize default timeframe for each index if not present
         Object.values(allRegionalIndices.value).flat().forEach(idx => {

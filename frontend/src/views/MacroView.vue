@@ -233,7 +233,6 @@ const fetchMacroData = async () => {
   // Check daily cache first
   const cached = getDailyCache('macro_data_monthly');
   if (cached) {
-    console.log('Using cached macro data');
     indicators.value = cached;
     loading.value = false;
     return;

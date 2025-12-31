@@ -255,7 +255,6 @@ const fetchBondData = async () => {
   // Check daily cache first
   const cached = getDailyCache('bond_data_monthly');
   if (cached) {
-    console.log('Using cached bond data');
     bondData.value = cached;
     bondLoading.value = false;
     return;
