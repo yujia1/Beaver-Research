@@ -150,8 +150,8 @@ async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
                     else:
                         # Existing FMP Logic
                         # 1. Fetch Real-time Quote (Primary source for current price)
-                        quote_url = f"{FMP_BASE_URL}/quote/{symbol}"
-                        quote_params = {"apikey": FMP_API_KEY}
+                        quote_url = f"{FMP_BASE_URL}/quote"
+                        quote_params = {"symbol": symbol, "apikey": FMP_API_KEY}
                         
                         current_price = 0.0
                         change = 0.0
