@@ -64,26 +64,147 @@ COMMODITY_CATEGORIES = {
 
 async def fetch_yf_data(symbol: str, start_date: str, end_date: str) -> tuple:
     def _fetch(sym, start, end):
-        ticker = yf.Ticker(sym)
-        # Fetch history
-        hist = ticker.history(start=start, end=end)
-        # Fetch info for current price (fast_info is faster/reliable)
-        fi = ticker.fast_info
-        curr = fi.last_price if fi and fi.last_price else 0.0
-        prev = fi.previous_close if fi and fi.previous_close else 0.0
-        
-        if (curr is None or pd.isna(curr) or curr == 0.0) and not hist.empty:
-            curr = hist['Close'].iloc[-1]
-        
-        c = 0.0
-        cp = 0.0
-        if curr and prev:
-            c = curr - prev
-            cp = (c / prev) * 100
+        try:
+            ticker = yf.Ticker(sym)
+            # Fetch history
+            hist = ticker.history(start=start, end=end)
+            # Fetch info for current price (fast_info is faster/reliable)
+            fi = ticker.fast_info
+            curr = fi.last_price if fi and fi.last_price else 0.0
+            prev = fi.previous_close if fi and fi.previous_close else 0.0
             
-        return hist, curr, c, cp
+            if (curr is None or pd.isna(curr) or curr == 0.0) and not hist.empty:
+                curr = hist['Close'].iloc[-1]
+            
+            c = 0.0
+            cp = 0.0
+            if curr and prev:
+                c = curr - prev
+                cp = (c / prev) * 100
+                
+            return hist, curr, c, cp
+        except Exception as e:
+            print(f"Error in yfinance internal fetch for {sym}: {e}")
+            return pd.DataFrame(), 0.0, 0.0, 0.0
 
     return await asyncio.to_thread(_fetch, symbol, start_date, end_date)
+
+async def process_item(client, item, start_date, end_date, days):
+    try:
+        symbol = item["symbol"]
+        resource = item.get("resource", "FMP")
+        
+        if resource == "yfinance":
+            # fetch_yf_data is already async/threaded
+            hist_df, current_price, change, change_p = await fetch_yf_data(symbol, start_date, end_date)
+            
+            history = []
+            if not hist_df.empty:
+                hist_df = hist_df.reset_index()
+                for _, row in hist_df.iterrows():
+                    date_val = row['Date']
+                    if isinstance(date_val, (pd.Timestamp, datetime.date, datetime.datetime)):
+                            date_str = date_val.strftime('%Y-%m-%d')
+                    else:
+                            date_str = str(date_val).split(' ')[0]
+                    val = row['Close']
+                    vol = row.get('Volume', 0)
+                    if pd.isna(val): continue
+                    
+                    history.append({
+                        "date": date_str,
+                        "value": float(val),
+                        "volume": float(vol)
+                    })
+            
+            if current_price or history:
+                    return {
+                    "symbol": symbol,
+                    "name": item["name"],
+                    "type": item["type"],
+                    "resource": resource,
+                    "price": round(float(current_price or 0.0), 4),
+                    "change": round(float(change or 0.0), 4),
+                    "changePercent": round(float(change_p or 0.0), 2),
+                    "history": history
+                }
+
+        else:
+            # FMP Logic
+            # 1. Quote
+            quote_url = f"{FMP_BASE_URL}/quote"
+            quote_params = {"symbol": symbol, "apikey": FMP_API_KEY}
+            
+            # 2. History
+            hist_url = f"{FMP_BASE_URL}/historical-price-eod/light"
+            hist_params = {
+                "symbol": symbol,
+                "apikey": FMP_API_KEY,
+                "from": start_date,
+                "to": end_date
+            }
+            
+            # Run FMP requests concurrently for this item
+            q_res, h_res = await asyncio.gather(
+                client.get(quote_url, params=quote_params),
+                client.get(hist_url, params=hist_params),
+                return_exceptions=True
+            )
+            
+            current_price = 0.0
+            change = 0.0
+            change_p = 0.0
+            
+            if not isinstance(q_res, Exception) and q_res.status_code == 200:
+                q_data = q_res.json()
+                if isinstance(q_data, list) and len(q_data) > 0:
+                    q = q_data[0]
+                    current_price = float(q.get("price", 0))
+                    change = float(q.get("change", 0))
+                    change_p = float(q.get("changesPercentage", 0))
+            
+            history = []
+            if not isinstance(h_res, Exception) and h_res.status_code == 200:
+                h_data = h_res.json()
+                if isinstance(h_data, list) and len(h_data) > 0:
+                    h_data.sort(key=lambda x: x["date"])
+                    filtered_data = [d for d in h_data if d["date"] >= start_date]
+                    if not filtered_data and h_data:
+                        limit = min(len(h_data), days)
+                        filtered_data = h_data[-limit:]
+                    
+                    if filtered_data:
+                        for h in filtered_data:
+                            history.append({
+                                "date": h["date"],
+                                "value": float(h.get("price", h.get("close", 0))),
+                                "volume": float(h.get("volume", 0))
+                            })
+            
+            if current_price == 0 and history:
+                current_price = history[-1]["value"]
+                if len(history) > 1:
+                    prev_price = history[-2]["value"]
+                    change = current_price - prev_price
+                    change_p = (change / prev_price * 100) if prev_price != 0 else 0
+
+            if current_price != 0 or history:
+                return {
+                    "symbol": symbol,
+                    "name": item["name"],
+                    "type": item["type"],
+                    "resource": item.get("resource", "FMP"),
+                    "price": round(current_price, 4),
+                    "change": round(change, 4),
+                    "changePercent": round(change_p, 2),
+                    "history": history
+                }
+            else:
+                pass
+                
+    except Exception as e:
+        print(f"Error fetching commodity {item['symbol']}: {e}")
+        return None
 
 async def fetch_single_commodity(symbol: str, timeframe: str = "daily") -> Optional[Dict[str, Any]]:
     # Find item config
@@ -96,8 +217,7 @@ async def fetch_single_commodity(symbol: str, timeframe: str = "daily") -> Optio
         if item_config: break
     
     if not item_config:
-        # Check if it's a known symbol even if not in config (optional, but safer to stick to config)
-        return None
+        item_config = {"symbol": symbol, "name": symbol, "type": "Unknown", "resource": "FMP"}
 
     # Calculate date range
     today = datetime.datetime.now()
@@ -113,102 +233,9 @@ async def fetch_single_commodity(symbol: str, timeframe: str = "daily") -> Optio
     start_date = (today - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
     end_date = today.strftime("%Y-%m-%d")
 
-    resource = item_config.get("resource", "FMP")
-    
-    if resource == "yfinance":
-        hist_df, current_price, change, change_p = await fetch_yf_data(symbol, start_date, end_date)
-        
-        history = []
-        if not hist_df.empty:
-            hist_df = hist_df.reset_index()
-            for _, row in hist_df.iterrows():
-                date_val = row['Date']
-                # Handle different date formats/types from yfinance
-                if isinstance(date_val, (pd.Timestamp, datetime.date, datetime.datetime)):
-                     date_str = date_val.strftime('%Y-%m-%d')
-                else:
-                     date_str = str(date_val).split(' ')[0]
-
-                val = row['Close']
-                vol = row.get('Volume', 0)
-                if pd.isna(val): continue
-                
-                history.append({
-                    "date": date_str,
-                    "value": float(val),
-                    "volume": float(vol)
-                })
-        
-        return {
-            "symbol": symbol,
-            "name": item_config["name"],
-            "type": item_config["type"],
-            "resource": resource,
-            "price": round(float(current_price or 0.0), 4),
-            "change": round(float(change or 0.0), 4),
-            "changePercent": round(float(change_p or 0.0), 2),
-            "history": history
-        }
-    else:
-        # FMP implementation for single item
-        async with httpx.AsyncClient() as client:
-            # 1. Quote
-            quote_url = f"{FMP_BASE_URL}/quote"
-            quote_params = {"symbol": symbol, "apikey": FMP_API_KEY}
-            
-            curr = 0.0
-            change = 0.0
-            change_p = 0.0
-            
-            quote_res = await client.get(quote_url, params=quote_params)
-            if quote_res.status_code == 200:
-                q_data = quote_res.json()
-                if isinstance(q_data, list) and len(q_data) > 0:
-                    q = q_data[0]
-                    curr = float(q.get("price", 0))
-                    change = float(q.get("change", 0))
-                    change_p = float(q.get("changesPercentage", 0))
-
-            # 2. History
-            hist_url = f"{FMP_BASE_URL}/historical-price-eod/light"
-            hist_params = {
-                "symbol": symbol,
-                "apikey": FMP_API_KEY,
-                "from": start_date,
-                "to": end_date
-            }
-            
-            history = []
-            hist_res = await client.get(hist_url, params=hist_params)
-            if hist_res.status_code == 200:
-                h_data = hist_res.json()
-                if isinstance(h_data, list) and len(h_data) > 0:
-                    h_data.sort(key=lambda x: x["date"])
-                    filtered_data = [d for d in h_data if d["date"] >= start_date]
-                    if not filtered_data and h_data:
-                        limit = min(len(h_data), days)
-                        filtered_data = h_data[-limit:]
-                    
-                    for h in filtered_data:
-                        history.append({
-                            "date": h["date"],
-                            "value": float(h.get("price", h.get("close", 0))),
-                            "volume": float(h.get("volume", 0))
-                        })
-
-            if curr == 0 and history:
-                curr = history[-1]["value"]
-            
-            return {
-                "symbol": symbol,
-                "name": item_config["name"],
-                "type": item_config["type"],
-                "resource": resource,
-                "price": round(curr, 4),
-                "change": round(change, 4),
-                "changePercent": round(change_p, 2),
-                "history": history
-            }
+    # Reuse concurrent process_item logic but for single item
+    async with httpx.AsyncClient() as client:
+        return await process_item(client, item_config, start_date, end_date, days)
 
 async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
     """
@@ -233,126 +260,25 @@ async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
     
     # We can perform concurrent fetches
     async with httpx.AsyncClient() as client:
+        # Create tasks for all items across all categories
+        tasks = []
+        item_map = [] # To map results back to categories
+
         for category, items in COMMODITY_CATEGORIES.items():
-            print(f"[COMMODITY] Fetching category: {category}")
-            category_data = []
-            
+            # print(f"[COMMODITY] Preparing fetch for category: {category}")
             for item in items:
-                try:
-                    symbol = item["symbol"]
-                    resource = item.get("resource", "FMP")
-                    
-                    if resource == "yfinance":
-                        hist_df, current_price, change, change_p = await fetch_yf_data(symbol, start_date, end_date)
-                        
-                        history = []
-                        if not hist_df.empty:
-                            hist_df = hist_df.reset_index()
-                            for _, row in hist_df.iterrows():
-                                date_val = row['Date']
-                                if isinstance(date_val, (pd.Timestamp, datetime.date, datetime.datetime)):
-                                     date_str = date_val.strftime('%Y-%m-%d')
-                                else:
-                                     date_str = str(date_val).split(' ')[0]
-                                val = row['Close']
-                                vol = row.get('Volume', 0)
-                                if pd.isna(val): continue
-                                
-                                history.append({
-                                    "date": date_str,
-                                    "value": float(val),
-                                    "volume": float(vol)
-                                })
-                        
-                        if current_price or history:
-                             category_data.append({
-                                "symbol": symbol,
-                                "name": item["name"],
-                                "type": item["type"],
-                                "resource": resource,
-                                "price": round(float(current_price or 0.0), 4),
-                                "change": round(float(change or 0.0), 4),
-                                "changePercent": round(float(change_p or 0.0), 2),
-                                "history": history
-                            })
-
-                    else:
-                        # Existing FMP Logic (Duplicate logic but acceptable for now or can call fetch_single_commodity but inefficient to create new client every time)
-                        # Let's keep existing logic but fix potential issues
-                        
-                        # 1. Quote
-                        quote_url = f"{FMP_BASE_URL}/quote"
-                        quote_params = {"symbol": symbol, "apikey": FMP_API_KEY}
-                        
-                        current_price = 0.0
-                        change = 0.0
-                        change_p = 0.0
-                        
-                        quote_response = await client.get(quote_url, params=quote_params)
-                        if quote_response.status_code == 200:
-                            q_data = quote_response.json()
-                            if isinstance(q_data, list) and len(q_data) > 0:
-                                q = q_data[0]
-                                current_price = float(q.get("price", 0))
-                                change = float(q.get("change", 0))
-                                change_p = float(q.get("changesPercentage", 0))
-                        
-                        # 2. History
-                        hist_url = f"{FMP_BASE_URL}/historical-price-eod/light"
-                        hist_params = {
-                            "symbol": symbol,
-                            "apikey": FMP_API_KEY,
-                            "from": start_date,
-                            "to": end_date
-                        }
-                        
-                        history = []
-                        hist_response = await client.get(hist_url, params=hist_params)
-                        
-                        if hist_response.status_code == 200:
-                            h_data = hist_response.json()
-                            if isinstance(h_data, list) and len(h_data) > 0:
-                                h_data.sort(key=lambda x: x["date"])
-                                filtered_data = [d for d in h_data if d["date"] >= start_date]
-                                if not filtered_data and h_data:
-                                    limit = min(len(h_data), days)
-                                    filtered_data = h_data[-limit:]
-                                
-                                if filtered_data:
-                                    for h in filtered_data:
-                                        history.append({
-                                            "date": h["date"],
-                                            "value": float(h.get("price", h.get("close", 0))),
-                                            "volume": float(h.get("volume", 0))
-                                        })
-                        
-                        if current_price == 0 and history:
-                            current_price = history[-1]["value"]
-                            if len(history) > 1:
-                                prev_price = history[-2]["value"]
-                                change = current_price - prev_price
-                                change_p = (change / prev_price * 100) if prev_price != 0 else 0
-
-                        if current_price != 0 or history:
-                            category_data.append({
-                                "symbol": symbol,
-                                "name": item["name"],
-                                "type": item["type"],
-                                "resource": item.get("resource", "FMP"),
-                                "price": round(current_price, 4),
-                                "change": round(change, 4),
-                                "changePercent": round(change_p, 2),
-                                "history": history
-                            })
-                        else:
-                            # Optional: print only if verbose logging expected
-                             print(f"No data for commodity {symbol}")
-
-                except Exception as e:
-                    print(f"Error fetching commodity {item['symbol']}: {e}")
-            
-            if category_data:
-                results[category] = category_data
+                tasks.append(process_item(client, item, start_date, end_date, days))
+                item_map.append(category)
+        
+        # Execute all fetches concurrently
+        results_list = await asyncio.gather(*tasks)
+        
+        # Group results by category
+        for i, result in enumerate(results_list):
+            if result:
+                cat = item_map[i]
+                if cat not in results:
+                    results[cat] = []
+                results[cat].append(result)
                 
     return results
-

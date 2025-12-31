@@ -48,7 +48,7 @@ async def fetch_economic_indicator(name: str, from_date: str, to_date: str) -> L
         List of historical data points with date and value
     """
     if not FMP_API_KEY:
-        print(f"Warning: FMP_API_KEY not set. Cannot fetch {name}")
+        # print(f"Warning: FMP_API_KEY not set. Cannot fetch {name}")
         return []
     
     url = f"{FMP_BASE_URL}/economic-indicators"
@@ -82,7 +82,7 @@ async def fetch_economic_indicator(name: str, from_date: str, to_date: str) -> L
             return history
             
     except httpx.HTTPError as e:
-        print(f"HTTP error fetching {name}: {e}")
+        # print(f"HTTP error fetching {name}: {e}")
         return []
     except Exception as e:
         print(f"Error fetching {name}: {e}")

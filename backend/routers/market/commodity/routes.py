@@ -32,10 +32,11 @@ async def get_all_commodities():
         # cached_data = redis_client.get_cache("commodity:data:monthly")
         
         # if cached_data:
+        #     print("[COMMODITY_ROUTE] Cache HIT for commodity:data:monthly")
         #     return cached_data
         
         # Cache miss - fetch fresh data (fallback)
-        print("[COMMODITY_ROUTE] Fetching fresh commodity data (cache disabled for debug)...")
+        print("[COMMODITY_ROUTE] Cache DISABLED (Debug) - fetching fresh data...")
         # Use monthly timeframe to match the cache key convention (likely implying 1 year history)
         data = await fetch_commodity_data(timeframe="monthly")
         

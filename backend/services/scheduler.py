@@ -12,7 +12,7 @@ import json
 scheduler = AsyncIOScheduler()
 
 async def update_regional_indices():
-    print("Scheduler: Updating regional indices...")
+    # print("Scheduler: Updating regional indices...")
     try:
         data = await fetch_regional_indices_data()
         if data:
@@ -20,23 +20,23 @@ async def update_regional_indices():
             redis_client.set_cache("indices:regional:all:v2", data, ttl=3600)  # 1 hour TTL in case scheduler dies
             # Publish update
             redis_client.publish('market_updates', json.dumps({'type': 'indices_regional', 'data': data}))
-            print("Scheduler: Regional indices updated.")
+            # print("Scheduler: Regional indices updated.")
     except Exception as e:
         print(f"Scheduler Error (Regional Indices): {e}")
 
 async def update_major_indices():
-    print("Scheduler: Updating major indices...")
+    # print("Scheduler: Updating major indices...")
     try:
         data = await fetch_major_indices_data()
         if data:
             redis_client.set_cache("indices:data", data, ttl=3600)
             redis_client.publish('market_updates', json.dumps({'type': 'indices_major', 'data': data}))
-            print("Scheduler: Major indices updated.")
+            # print("Scheduler: Major indices updated.")
     except Exception as e:
         print(f"Scheduler Error (Major Indices): {e}")
 
 async def update_crypto_data():
-    print("Scheduler: Updating crypto data...")
+    # print("Scheduler: Updating crypto data...")
     try:
         # Default to daily timeframe for the dashboard fast view
         data = await fetch_crypto_data(timeframe="daily")
@@ -44,19 +44,19 @@ async def update_crypto_data():
             # Cache key matches router
             redis_client.set_cache("crypto:all:daily", data, ttl=900)
             redis_client.publish('market_updates', json.dumps({'type': 'crypto_all', 'data': data}))
-            print("Scheduler: Crypto data updated.")
+            # print("Scheduler: Crypto data updated.")
     except Exception as e:
         print(f"Scheduler Error (Crypto): {e}")
 
 async def update_currency_data():
-    print("Scheduler: Updating currency data...")
+    # print("Scheduler: Updating currency data...")
     try:
         # Fetching 'monthly' (1 year) data as default for the main dashboard view
         data = await fetch_currency_data(timeframe="monthly")
         if data:
             redis_client.set_cache("currency:data:monthly", data, ttl=3600)
             redis_client.publish('market_updates', json.dumps({'type': 'currency_update', 'data': data}))
-            print("Scheduler: Currency data updated.")
+            # print("Scheduler: Currency data updated.")
     except Exception as e:
         print(f"Scheduler Error (Currency): {e}")
 
@@ -73,14 +73,14 @@ async def update_commodity_data():
         print(f"Scheduler Error (Commodity): {e}")
 
 async def update_economic_data():
-    print("Scheduler: Updating economic data...")
+    # print("Scheduler: Updating economic data...")
     try:
         # Default to monthly (1y) for dashboard charts
         data = await fetch_all_economic_data(timeframe="monthly")
         if data:
             redis_client.set_cache("macro:monthly", data, ttl=14400)  # 4 hour TTL
             redis_client.publish('market_updates', json.dumps({'type': 'economic_update', 'data': data}))
-            print("Scheduler: Economic data updated.")
+            # print("Scheduler: Economic data updated.")
     except Exception as e:
         print(f"Scheduler Error (Economic): {e}")
 
@@ -114,12 +114,12 @@ def start_scheduler():
         replace_existing=True
     )
     
-    scheduler.add_job(
-        update_commodity_data,
-        trigger=IntervalTrigger(seconds=60), # 1 min
-        id='update_commodity_data',
-        replace_existing=True
-    )
+    # scheduler.add_job(
+    #     update_commodity_data,
+    #     trigger=IntervalTrigger(seconds=60), # 1 min
+    #     id='update_commodity_data',
+    #     replace_existing=True
+    # )
     
     scheduler.add_job(
         update_economic_data,
@@ -137,5 +137,5 @@ async def run_initial_fetch():
     await update_major_indices()
     await update_crypto_data()
     await update_currency_data()
-    await update_commodity_data()
+    # await update_commodity_data()
     await update_economic_data()

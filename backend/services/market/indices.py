@@ -60,7 +60,7 @@ async def fetch_regional_indices_data():
                             
                             # Handle potential FMP error responses in JSON
                             if isinstance(data, dict) and "Error Message" in data:
-                                print(f"FMP API Error for {index['symbol']}: {data['Error Message']}")
+                                # print(f"FMP API Error for {index['symbol']}: {data['Error Message']}")
                                 continue
 
                             if data and isinstance(data, list) and len(data) > 0:
@@ -92,10 +92,11 @@ async def fetch_regional_indices_data():
                                     "history": list(reversed(history))  # Oldest to newest
                                 })
                         else:
-                            print(f"FMP API error for {index['symbol']}: {response.status_code}")
+                            pass
+                            # print(f"FMP API error for {index['symbol']}: {response.status_code}")
                             
                     except Exception as e:
-                        print(f"Error fetching {index['symbol']}: {e}")
+                        # print(f"Error fetching {index['symbol']}: {e}")
                         continue
                 
                 if region_data:

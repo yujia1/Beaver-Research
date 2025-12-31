@@ -1248,7 +1248,7 @@ const loadTabContent = async (tab) => {
             if (currencyIndicators.value.length === 0) await fetchCurrencyData();
             break;
         case 'commodity':
-            if (Object.keys(commodityIndicators.value).length === 0) await fetchCommodityData();
+            if (commodityIndicators.value.financials.length === 0) await fetchCommodityData();
             break;
         case 'crypto':
             if (cryptoIndicators.value.length === 0) await fetchCryptoData();

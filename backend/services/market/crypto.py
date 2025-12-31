@@ -121,11 +121,11 @@ async def fetch_crypto_data(timeframe: str = "daily") -> List[Dict[str, Any]]:
                         "chart_type": "line"
                     })
                 else:
-                    print(f"FMP error for {symbol}: {response.status_code}")
+                    # print(f"FMP error for {symbol}: {response.status_code}")
                     results.append(create_empty_result(item, timeframe))
             
             except Exception as e:
-                print(f"Error fetching {item['ticker']} from FMP: {e}")
+                # print(f"Error fetching {item['ticker']} from FMP: {e}")
                 results.append(create_empty_result(item, timeframe))
                 
     return results
