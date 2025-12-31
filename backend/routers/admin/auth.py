@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from typing import Optional, List
 import os
 
@@ -20,11 +19,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
 
-# Configure passlib to use bcrypt
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # Pydantic models
@@ -96,6 +90,8 @@ class ResetPasswordRequest(BaseModel):
 # Password hashing
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
+    import bcrypt
+    
     if not plain_password or not hashed_password:
         return False
     
@@ -108,8 +104,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         hashed_password = str(hashed_password)
     
     try:
-        # Use passlib's verify which handles bcrypt properly
-        return pwd_context.verify(plain_password, hashed_password)
+        # Convert to bytes
+        password_bytes = plain_password.encode('utf-8')
+        hash_bytes = hashed_password.encode('utf-8')
+        
+        # Use bcrypt to verify
+        return bcrypt.checkpw(password_bytes, hash_bytes)
     except Exception as e:
         # Log but don't expose the error
         import logging
@@ -118,6 +118,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt"""
+    import bcrypt
+    
     if not password:
         raise ValueError("Password cannot be empty")
     
@@ -125,10 +127,16 @@ def get_password_hash(password: str) -> str:
     if not isinstance(password, str):
         password = str(password)
     
-    # Note: bcrypt has a 72-byte limit, but our validation ensures passwords are max 20 characters,
-    # which is well under this limit for any character encoding
     try:
-        return pwd_context.hash(password)
+        # Convert password to bytes
+        password_bytes = password.encode('utf-8')
+        
+        # Generate salt and hash
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password_bytes, salt)
+        
+        # Return as string
+        return hashed.decode('utf-8')
     except Exception as e:
         # Log the actual error for debugging
         import logging

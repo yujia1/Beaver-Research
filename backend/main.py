@@ -63,13 +63,7 @@ import models
 # Initialize default users for each role type
 def init_default_users():
     """Create default users for each role type if they don't exist"""
-    from passlib.context import CryptContext
-    
-    # Use the same password context as auth.py
-    pwd_context = CryptContext(
-        schemes=["bcrypt"],
-        deprecated="auto"
-    )
+    import bcrypt
     
     db = SessionLocal()
     try:
@@ -107,8 +101,10 @@ def init_default_users():
             ).first()
             
             if not existing_user:
-                # Hash password using passlib (same as auth.py)
-                hashed_password = pwd_context.hash(user_data["password"])
+                # Hash password using bcrypt directly (same as auth.py)
+                password_bytes = user_data["password"].encode('utf-8')
+                salt = bcrypt.gensalt()
+                hashed_password = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
                 
                 new_user = models.User(
                     username=user_data["username"],
