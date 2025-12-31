@@ -22,14 +22,55 @@
         "login_action": "Login",
         "logging_in": "Logging in...",
         "no_account": "Don't have an account?",
-        "signup": "Sign up"
+        "signup": "Sign up",
+        "signup_title": "Sign Up",
+        "signup_subtitle": "Create a new account",
+        "confirm_password": "Confirm Password",
+        "confirm_password_placeholder": "Confirm your password",
+        "signup_action": "Sign Up",
+        "creating_account": "Creating account...",
+        "password_hint": "Create a password (6-12 characters)",
+        "already_have_account": "Already have an account?",
+        "email_invalid": "Please enter a valid email address",
+        "email_dots_error": "Email cannot contain consecutive dots",
+        "email_start_end_error": "Email cannot start or end with a dot",
+        "password_mismatch": "Passwords do not match",
+        "password_length_error": "Password must be no more than 12 characters",
+        "password_min_length_error": "Password must be at least 6 characters",
+        "signup_failed": "Signup failed",
+        "signup_success": "Account created successfully! Redirecting to login...",
+        "server_error": "Server error",
+        "forgot_password_title": "Forgot Password",
+        "forgot_password_subtitle": "Enter your email address and we'll send you a link to reset your password.",
+        "send_reset_link": "Send Reset Link",
+        "sending": "Sending...",
+        "back_to_login": "Back to Login",
+        "reset_password_title": "Reset Password",
+        "reset_password_subtitle": "Enter your new password below.",
+        "new_password": "New Password",
+        "confirm_new_password": "Confirm Password",
+        "confirm_new_password_placeholder": "Confirm new password",
+        "new_password_placeholder": "At least 6 characters",
+        "set_new_password": "Set New Password",
+        "updating": "Updating...",
+        "click_to_login": "Click here to Login",
+        "invalid_token": "Invalid reset link. No token provided.",
+        "missing_token": "Missing reset token.",
+        "verify_email_title": "Email Verification",
+        "verifying": "Verifying your email...",
+        "verify_success": "Your email has been successfully verified!",
+        "go_to_dashboard": "Go to Dashboard",
+        "verify_failed": "Verification failed. The link may be invalid or expired.",
+        "no_token": "No verification token provided."
     },
     "common": {
         "loading": "Loading...",
         "error": "Error",
         "save": "Save",
         "cancel": "Cancel",
-        "delete": "Delete"
+        "delete": "Delete",
+        "edit": "Edit",
+        "preview": "Preview"
     },
     "dashboard": {
         "title": "Market Dashboard",
@@ -136,6 +177,55 @@
             "most_actives": "Most Actives",
             "top_gainers": "Top Gainers",
             "top_losers": "Top Losers"
+        },
+        "details": {
+            "indicator_name": "Indicator Name",
+            "description": "Description",
+            "current_value": "Current Value",
+            "last_updated": "Last Updated",
+            "release_frequency": "Release Frequency",
+            "next_release": "Next Release (Est.)",
+            "data_source": "Data Source",
+            "recent_history": "Recent History (Last 10 Releases)",
+            "date": "Date",
+            "value": "Value"
+        },
+        "policy_resources": {
+            "whitehouse": "White house briefings",
+            "whitehouse_desc": "White House Statements & Releases",
+            "fact_sheets": "White house fact sheets",
+            "fact_sheets_desc": "White House Fact Sheets",
+            "executive_orders": "Whitehouse executive orders",
+            "executive_orders_desc": "Executive Orders",
+            "federal_register": "Federal register",
+            "federal_register_desc": "Federal Register – Rules, Notices, Proposals",
+            "presidential_docs": "Federal register presidential",
+            "presidential_docs_desc": "Presidential Documents (EOs, Memos, Orders)",
+            "legislation": "Congress legislation",
+            "legislation_desc": "Congress.gov – All Legislation",
+            "subjects": "Congress subjects",
+            "subjects_desc": "Congress.gov – Policy Topics"
+        },
+        "calendar_section": {
+            "loading": "Loading Economic Calendar...",
+            "impact": "Impact:",
+            "select_impact": "Select Impact",
+            "country": "Country:",
+            "select_country": "Select Country",
+            "selected": "Selected",
+            "headers": {
+                "date": "Date",
+                "country": "Country",
+                "event": "Event",
+                "actual": "Actual",
+                "previous": "Previous",
+                "estimate": "Estimate",
+                "impact": "Impact"
+            },
+            "no_events": "No events match filters."
+        },
+        "crypto_section": {
+            "loading": "Loading Crypto Data..."
         },
         "access_equity": "Indices",
         "timeframes": {
@@ -585,7 +675,68 @@
             "timestamp": "Timestamp:",
             "metric": "Metric",
             "value": "Value"
+        },
+        "upload_modal": {
+            "title": "Upload Report",
+            "report_title": "Report Title",
+            "enter_title": "Enter title",
+            "ticker": "Ticker",
+            "ticker_placeholder": "e.g. TSLA",
+            "report_type": "Report Type",
+            "select_type": "Select Type",
+            "file_pdf": "File (PDF)",
+            "pdf_only": "PDF files only",
+            "upload_failed": "Upload failed",
+            "upload_success": "Report uploaded successfully"
         }
+    },
+    "pricing": {
+        "title": "Upgrade to Pro",
+        "subtitle": "Unlock exclusive market research, advanced analysis, and premium reports.",
+        "free_plan": "Basic",
+        "free_price": "Free",
+        "market_dashboard": "Market Dashboard",
+        "news_feed": "Basic News Feed",
+        "delayed_data": "Delayed Data",
+        "current_plan": "Current Plan",
+        "pro_plan": "Professional",
+        "most_popular": "MOST POPULAR",
+        "month": "/month",
+        "ai_reports": "Unlimited AI Research Reports",
+        "alphatrade": "Real-time AlphaTrade Signals",
+        "deep_dive": "Deep Dive Fundamental Analysis",
+        "bear_cave": "Exclusive \"Bear Cave\" Research",
+        "priority_support": "Priority Support",
+        "subscribe_now": "Subscribe Now",
+        "processing": "Processing...",
+        "active_subscription": "Active Subscription",
+        "login_to_subscribe": "Please log in to subscribe.",
+        "payment_error": "Payment initialization failed: {error}"
+    },
+    "payment": {
+        "success_title": "Payment Successful!",
+        "success_message": "Thank you for subscribing to Beaver Research Pro. Your account has been upgraded.",
+        "go_to_dashboard": "Go to Dashboard"
+    },
+    "security": {
+        "title": "Security",
+        "section_title": "🔒 Security",
+        "description": "This section will display security-related metrics and information.",
+        "coming_soon": "Coming soon: Cybersecurity metrics, threat intelligence, security incidents, and more."
+    },
+    "macro": {
+        "title": "Macro Economics",
+        "loading": "Loading Macro Economic Data...",
+        "update": "Update Data",
+        "updating": "Updating...",
+        "no_history": "No history data available"
+    },
+    "bond": {
+        "title": "Bond Market Data",
+        "loading": "Loading Bond Market Data...",
+        "update": "Update Data",
+        "updating": "Updating...",
+        "no_history": "No history data available"
     },
     "admin": {
         "header": {
@@ -973,7 +1124,6 @@
             "priceToOperatingCashFlowRatioTTM": "Price To Operating Cash Flow Ratio TTM",
             "priceToFairValueTTM": "Price To Fair Value TTM",
             "enterpriseValueMultipleTTM": "Enterprise Value Multiple TTM",
-            "enterpriseValueTTM": "Enterprise Value TTM",
             "receivablesTurnoverTTM": "Receivables Turnover TTM",
             "payablesTurnoverTTM": "Payables Turnover TTM",
             "inventoryTurnoverTTM": "Inventory Turnover TTM",

@@ -1,23 +1,23 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <h2>Forgot Password</h2>
-      <p>Enter your email address and we'll send you a link to reset your password.</p>
+      <h2>{{ t('auth.forgot_password_title') }}</h2>
+      <p>{{ t('auth.forgot_password_subtitle') }}</p>
       
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="email">Email Address</label>
+          <label for="email">{{ t('auth.email') }}</label>
           <input 
             type="email" 
             id="email" 
             v-model="email" 
             required 
-            placeholder="Enter your email"
+            :placeholder="t('auth.email_placeholder')"
           >
         </div>
 
         <button type="submit" :disabled="loading" class="submit-btn">
-          {{ loading ? 'Sending...' : 'Send Reset Link' }}
+          {{ loading ? t('auth.sending') : t('auth.send_reset_link') }}
         </button>
       </form>
 
@@ -29,7 +29,7 @@
       </div>
 
       <div class="links">
-        <router-link to="/login">Back to Login</router-link>
+        <router-link to="/login">{{ t('auth.back_to_login') }}</router-link>
       </div>
     </div>
   </div>
@@ -37,8 +37,10 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api';
 
+const { t } = useI18n();
 const email = ref('');
 const loading = ref(false);
 const message = ref('');
@@ -60,7 +62,7 @@ const handleSubmit = async () => {
        // Even if failed, we might want to be vague for security, 
        // but here we trust the backend to always return success structure unless 500
        const errData = await response.json();
-       throw new Error(errData.detail || 'An error occurred');
+       throw new Error(errData.detail || t('common.error'));
     }
 
     const data = await response.json();

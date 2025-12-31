@@ -1,9 +1,9 @@
 <template>
   <div class="bond-view">
     <div class="page-header">
-      <h2>Bond Market Data</h2>
+      <h2>{{ t('bond.title') }}</h2>
       <button @click="updateData" :disabled="loading" class="update-btn">
-        {{ loading ? 'Updating...' : 'Update Data' }}
+        {{ loading ? t('bond.updating') : t('bond.update') }}
       </button>
     </div>
     
@@ -22,7 +22,7 @@
 
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Loading Bond Market Data...</p>
+      <p>{{ t('bond.loading') }}</p>
     </div>
     <div v-else-if="error" class="error-state">
       <p class="error-message">{{ error }}</p>
@@ -30,7 +30,7 @@
     <div v-else class="bond-data">
       <!-- Treasury Yields -->
       <div v-if="activeCategory === 'treasury_yields'" class="category-section">
-        <h3 class="category-title">Government Bond Market Data - Treasury Yields</h3>
+        <h3 class="category-title">{{ t('bond_categories.treasury_yields') }}</h3>
         <div class="indicators-grid">
           <div v-for="item in bondData.treasury_yields" :key="item.title" class="bond-card">
             <h4>{{ item.title }}</h4>
@@ -59,7 +59,7 @@
               <Line :data="getChartData(item)" :options="chartOptions" />
             </div>
             <div v-else class="no-data">
-                <p>No history data available</p>
+                <p>{{ t('bond.no_history') }}</p>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@
 
       <!-- Yield Curve Spreads -->
       <div v-if="activeCategory === 'yield_curve'" class="category-section">
-        <h3 class="category-title">Yield Curve Spreads</h3>
+        <h3 class="category-title">{{ t('bond_categories.yield_curve') }}</h3>
         <div class="indicators-grid">
           <div v-for="item in bondData.yield_curve" :key="item.title" class="bond-card">
             <h4>{{ item.title }}</h4>
@@ -95,7 +95,7 @@
               <Line :data="getChartData(item)" :options="chartOptions" />
             </div>
              <div v-else class="no-data">
-                <p>No history data available</p>
+                <p>{{ t('bond.no_history') }}</p>
             </div>
           </div>
         </div>
@@ -103,7 +103,7 @@
 
       <!-- TIPS & Breakeven -->
       <div v-if="activeCategory === 'tips_breakeven'" class="category-section">
-        <h3 class="category-title">Inflation-Linked Bonds (TIPS) & Breakeven Rates</h3>
+        <h3 class="category-title">{{ t('bond_categories.tips_breakeven') }}</h3>
         <div class="indicators-grid">
           <div v-for="item in bondData.tips_breakeven" :key="item.title" class="bond-card">
             <h4>{{ item.title }}</h4>
@@ -131,7 +131,7 @@
               <Line :data="getChartData(item)" :options="chartOptions" />
             </div>
              <div v-else class="no-data">
-                <p>No history data available</p>
+                <p>{{ t('bond.no_history') }}</p>
             </div>
           </div>
         </div>
@@ -139,7 +139,7 @@
 
       <!-- Central Bank Rates -->
       <div v-if="activeCategory === 'central_bank_rates'" class="category-section">
-        <h3 class="category-title">Central Bank & Money Market Rates</h3>
+        <h3 class="category-title">{{ t('bond_categories.central_bank_rates') }}</h3>
         <div class="indicators-grid">
           <div v-for="item in bondData.central_bank_rates" :key="item.title" class="bond-card">
             <h4>{{ item.title }}</h4>
@@ -167,7 +167,7 @@
               <Line :data="getChartData(item)" :options="chartOptions" />
             </div>
              <div v-else class="no-data">
-                <p>No history data available</p>
+                <p>{{ t('bond.no_history') }}</p>
             </div>
           </div>
         </div>
@@ -175,7 +175,7 @@
 
       <!-- Credit Spreads -->
       <div v-if="activeCategory === 'credit_spreads'" class="category-section">
-        <h3 class="category-title">Credit Market Data - Corporate Bond Spreads</h3>
+        <h3 class="category-title">{{ t('bond_categories.credit_spreads') }}</h3>
         <div class="indicators-grid">
           <div v-for="item in bondData.credit_spreads" :key="item.title" class="bond-card">
             <h4>{{ item.title }}</h4>
@@ -203,7 +203,7 @@
               <Line :data="getChartData(item)" :options="chartOptions" />
             </div>
              <div v-else class="no-data">
-                <p>No history data available</p>
+                <p>{{ t('bond.no_history') }}</p>
             </div>
           </div>
         </div>
@@ -211,7 +211,7 @@
 
       <!-- Funding Stress -->
       <div v-if="activeCategory === 'funding_stress'" class="category-section">
-        <h3 class="category-title">Funding Stress Metrics</h3>
+        <h3 class="category-title">{{ t('bond_categories.funding_stress') }}</h3>
         <div class="indicators-grid">
           <div v-for="item in bondData.funding_stress" :key="item.title" class="bond-card">
             <h4>{{ item.title }}</h4>
@@ -239,7 +239,7 @@
               <Line :data="getChartData(item)" :options="chartOptions" />
             </div>
              <div v-else class="no-data">
-                <p>No history data available</p>
+                <p>{{ t('bond.no_history') }}</p>
             </div>
           </div>
         </div>
@@ -251,7 +251,8 @@
 <script setup>
 import API_BASE_URL from '@/config/api.js'
 
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -275,6 +276,8 @@ ChartJS.register(
   Legend
 )
 
+const { t } = useI18n();
+
 const bondData = ref({
   treasury_yields: [],
   yield_curve: [],
@@ -296,14 +299,14 @@ const timeframes = [
   { label: 'Max', value: 'max' }
 ];
 
-const categories = [
-  { label: 'Treasury Yields', value: 'treasury_yields' },
-  { label: 'Yield Curve', value: 'yield_curve' },
-  { label: 'TIPS & Breakeven', value: 'tips_breakeven' },
-  { label: 'Central Bank Rates', value: 'central_bank_rates' },
-  { label: 'Credit Spreads', value: 'credit_spreads' },
-  { label: 'Funding Stress', value: 'funding_stress' }
-];
+const categories = computed(() => [
+  { label: t('bond_categories.treasury_yields'), value: 'treasury_yields' },
+  { label: t('bond_categories.yield_curve'), value: 'yield_curve' },
+  { label: t('bond_categories.tips_breakeven'), value: 'tips_breakeven' },
+  { label: t('bond_categories.central_bank_rates'), value: 'central_bank_rates' },
+  { label: t('bond_categories.credit_spreads'), value: 'credit_spreads' },
+  { label: t('bond_categories.funding_stress'), value: 'funding_stress' }
+]);
 
 // Cache configuration
 const CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes

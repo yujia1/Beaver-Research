@@ -4,12 +4,12 @@
       <div class="icon-circle">
         ✓
       </div>
-      <h1>Payment Successful!</h1>
-      <p>Thank you for subscribing to Beaver Research Pro. Your account has been upgraded.</p>
+      <h1>{{ t('payment.success_title') }}</h1>
+      <p>{{ t('payment.success_message') }}</p>
       
       <div class="actions">
         <button @click="router.push('/dashboard')" class="dashboard-btn">
-          Go to Dashboard
+          {{ t('payment.go_to_dashboard') }}
         </button>
       </div>
     </div>
@@ -20,10 +20,12 @@
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/userStore';
+import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api';
 
 const router = useRouter();
 const userStore = useUserStore();
+const { t } = useI18n();
 
 onMounted(async () => {
   // Force refresh user data to update permission/payment status

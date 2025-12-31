@@ -1,34 +1,34 @@
 <template>
   <div class="pricing-container">
     <div class="pricing-header">
-      <h1>Upgrade to Pro</h1>
-      <p class="subtitle">Unlock exclusive market research, advanced analysis, and premium reports.</p>
+      <h1>{{ t('pricing.title') }}</h1>
+      <p class="subtitle">{{ t('pricing.subtitle') }}</p>
     </div>
 
     <div class="pricing-cards">
       <!-- Free Plan -->
       <div class="card basic">
-        <h2>Basic</h2>
-        <div class="price">Free</div>
+        <h2>{{ t('pricing.free_plan') }}</h2>
+        <div class="price">{{ t('pricing.free_price') }}</div>
         <ul class="features">
-          <li><span class="check">✓</span> Market Dashboard</li>
-          <li><span class="check">✓</span> Basic News Feed</li>
-          <li><span class="check">✓</span> Delayed Data</li>
+          <li><span class="check">✓</span> {{ t('pricing.market_dashboard') }}</li>
+          <li><span class="check">✓</span> {{ t('pricing.news_feed') }}</li>
+          <li><span class="check">✓</span> {{ t('pricing.delayed_data') }}</li>
         </ul>
-        <div class="current-plan" v-if="!userStore.user?.has_paid">Current Plan</div>
+        <div class="current-plan" v-if="!userStore.user?.has_paid">{{ t('pricing.current_plan') }}</div>
       </div>
 
       <!-- Pro Plan -->
       <div class="card pro">
-        <div class="popular-tag">MOST POPULAR</div>
-        <h2>Professional</h2>
-        <div class="price">$19<span>/month</span></div>
+        <div class="popular-tag">{{ t('pricing.most_popular') }}</div>
+        <h2>{{ t('pricing.pro_plan') }}</h2>
+        <div class="price">$19<span>{{ t('pricing.month') }}</span></div>
         <ul class="features">
-          <li><span class="check">✓</span> Unlimited AI Research Reports</li>
-          <li><span class="check">✓</span> Real-time AlphaTrade Signals</li>
-          <li><span class="check">✓</span> Deep Dive Fundamental Analysis</li>
-          <li><span class="check">✓</span> Exclusive "Bear Cave" Research</li>
-          <li><span class="check">✓</span> Priority Support</li>
+          <li><span class="check">✓</span> {{ t('pricing.ai_reports') }}</li>
+          <li><span class="check">✓</span> {{ t('pricing.alphatrade') }}</li>
+          <li><span class="check">✓</span> {{ t('pricing.deep_dive') }}</li>
+          <li><span class="check">✓</span> {{ t('pricing.bear_cave') }}</li>
+          <li><span class="check">✓</span> {{ t('pricing.priority_support') }}</li>
         </ul>
         
         <button 
@@ -37,10 +37,10 @@
           class="subscribe-btn" 
           :disabled="loading"
         >
-          {{ loading ? 'Processing...' : 'Subscribe Now' }}
+          {{ loading ? t('pricing.processing') : t('pricing.subscribe_now') }}
         </button>
         <div v-else class="subscribed-badge">
-          <span>✓ Active Subscription</span>
+          <span>✓ {{ t('pricing.active_subscription') }}</span>
         </div>
       </div>
     </div>
@@ -50,14 +50,16 @@
 <script setup>
 import { ref } from 'vue';
 import { useUserStore } from '@/stores/userStore';
+import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api';
 
 const userStore = useUserStore();
+const { t } = useI18n();
 const loading = ref(false);
 
 const handleSubscribe = async () => {
     if (!userStore.isAuthenticated) {
-        alert("Please log in to subscribe.");
+        alert(t('pricing.login_to_subscribe'));
         return;
     }
 
@@ -74,7 +76,7 @@ const handleSubscribe = async () => {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Failed to initiate payment');
+            throw new Error(error.detail || t('common.error'));
         }
 
         const data = await response.json();
@@ -86,7 +88,7 @@ const handleSubscribe = async () => {
         }
     } catch (e) {
         console.error("Payment error:", e);
-        alert(`Payment initialization failed: ${e.message}`);
+        alert(t('pricing.payment_error', { error: e.message }));
     } finally {
         loading.value = false;
     }

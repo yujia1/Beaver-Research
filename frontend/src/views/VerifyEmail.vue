@@ -1,24 +1,24 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <h2>Email Verification</h2>
+      <h2>{{ t('auth.verify_email_title') }}</h2>
       
       <div v-if="loading" class="status">
         <div class="spinner"></div>
-        <p>Verifying your email...</p>
+        <p>{{ t('auth.verifying') }}</p>
       </div>
 
       <div v-else-if="success" class="status success">
         <div class="icon">✓</div>
-        <p>Your email has been successfully verified!</p>
-        <router-link to="/dashboard" class="action-btn">Go to Dashboard</router-link>
+        <p>{{ t('auth.verify_success') }}</p>
+        <router-link to="/dashboard" class="action-btn">{{ t('auth.go_to_dashboard') }}</router-link>
       </div>
 
       <div v-else class="status error">
         <div class="icon">✕</div>
-        <p>Verification failed. The link may be invalid or expired.</p>
+        <p>{{ t('auth.verify_failed') }}</p>
         <p class="error-detail">{{ error }}</p>
-        <router-link to="/login" class="action-btn secondary">Back to Login</router-link>
+        <router-link to="/login" class="action-btn secondary">{{ t('auth.back_to_login') }}</router-link>
       </div>
     </div>
   </div>
@@ -27,9 +27,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api';
 
 const route = useRoute();
+const { t } = useI18n();
 const loading = ref(true);
 const success = ref(false);
 const error = ref('');
@@ -37,7 +39,7 @@ const error = ref('');
 onMounted(async () => {
     const token = route.query.token;
     if (!token) {
-        error.value = "No verification token provided.";
+        error.value = t('auth.no_token');
         loading.value = false;
         return;
     }
@@ -46,7 +48,7 @@ onMounted(async () => {
         const response = await fetch(`${API_BASE_URL}/api/auth/verify-email?token=${token}`);
         if (!response.ok) {
             const errData = await response.json();
-            throw new Error(errData.detail || 'Verification failed');
+            throw new Error(errData.detail || t('common.error'));
         }
         success.value = true;
     } catch (e) {

@@ -1,19 +1,20 @@
 <template>
   <div class="security-view">
-    <h2>Security</h2>
+    <h2>{{ t('security.title') }}</h2>
     
     <div class="content-section">
       <div class="info-card">
-        <h3>🔒 Security</h3>
-        <p>This section will display security-related metrics and information.</p>
-        <p class="coming-soon">Coming soon: Cybersecurity metrics, threat intelligence, security incidents, and more.</p>
+        <h3>{{ t('security.section_title') }}</h3>
+        <p>{{ t('security.description') }}</p>
+        <p class="coming-soon">{{ t('security.coming_soon') }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-// Component logic will be added here
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 </script>
 
 <style scoped>

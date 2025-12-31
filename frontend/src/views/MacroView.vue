@@ -1,15 +1,15 @@
 <template>
   <div class="macro-view">
     <div class="page-header">
-      <h2>Macro Economics</h2>
+      <h2>{{ t('macro.title') }}</h2>
       <button @click="updateData" :disabled="loading" class="update-btn">
-        {{ loading ? 'Updating...' : 'Update Data' }}
+        {{ loading ? t('macro.updating') : t('macro.update') }}
       </button>
     </div>
     
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Loading Macro Economic Data...</p>
+      <p>{{ t('macro.loading') }}</p>
     </div>
     <div v-else-if="error" class="error-state">
       <p class="error-message">{{ error }}</p>
@@ -45,7 +45,7 @@
            <Line v-else :data="getChartData(item)" :options="chartOptions" />
         </div>
         <div v-else class="no-data">
-            <p>No history data available</p>
+            <p>{{ t('macro.no_history') }}</p>
         </div>
       </div>
     </div>
@@ -56,6 +56,7 @@
 import API_BASE_URL from '@/config/api.js'
 
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -80,6 +81,8 @@ ChartJS.register(
   Tooltip,
   Legend
 )
+
+const { t } = useI18n();
 
 const indicators = ref([]);
 const loading = ref(true);

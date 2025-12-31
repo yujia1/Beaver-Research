@@ -50,7 +50,6 @@ const menuItems = computed(() => {
   
   // Base items that might be restricted
 
-  
   const reportItem = { 
     path: '/report', 
     name: t('nav.report'), 
@@ -161,7 +160,7 @@ onMounted(() => {
         <div v-else class="user-info">
           <div class="user-avatar">?</div>
           <div class="user-details">
-            <div class="username">Loading...</div>
+            <div class="username">{{ t('common.loading') }}</div>
           </div>
         </div>
         <button @click="logout" class="logout-btn">
@@ -174,7 +173,7 @@ onMounted(() => {
           <span class="auth-text">{{ t('nav.login') }}</span>
         </RouterLink>
         <RouterLink to="/signup" class="auth-link">
-          <span class="auth-text">Sign Up</span>
+          <span class="auth-text">{{ t('auth.signup') }}</span>
         </RouterLink>
       </div>
 

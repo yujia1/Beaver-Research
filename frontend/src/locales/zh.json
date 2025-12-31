@@ -22,14 +22,55 @@
         "login_action": "登录",
         "logging_in": "登录中...",
         "no_account": "还没有账户？",
-        "signup": "注册"
+        "signup": "注册",
+        "signup_title": "注册",
+        "signup_subtitle": "创建新账户",
+        "confirm_password": "确认密码",
+        "confirm_password_placeholder": "确认您的密码",
+        "signup_action": "注册",
+        "creating_account": "正在创建账户...",
+        "password_hint": "创建密码（6-12位）",
+        "already_have_account": "已有账户？",
+        "email_invalid": "请输入有效的邮箱地址",
+        "email_dots_error": "邮箱不能包含连续的点",
+        "email_start_end_error": "邮箱不能以点开头或结尾",
+        "password_mismatch": "密码不匹配",
+        "password_length_error": "密码长度必须在6到12位之间",
+        "password_min_length_error": "密码必须至少6位",
+        "signup_failed": "注册失败",
+        "signup_success": "账户创建成功！正在跳转登录...",
+        "server_error": "服务器错误",
+        "forgot_password_title": "忘记密码",
+        "forgot_password_subtitle": "输入您的邮箱地址，我们将发送重置链接。",
+        "send_reset_link": "发送重置链接",
+        "sending": "发送中...",
+        "back_to_login": "返回登录",
+        "reset_password_title": "重置密码",
+        "reset_password_subtitle": "输入您的新密码。",
+        "new_password": "新密码",
+        "confirm_new_password": "确认新密码",
+        "confirm_new_password_placeholder": "确认新密码",
+        "new_password_placeholder": "至少6位字符",
+        "set_new_password": "设置新密码",
+        "updating": "更新中...",
+        "click_to_login": "点击此处登录",
+        "invalid_token": "无效的重置链接。未提供令牌。",
+        "missing_token": "缺少重置令牌。",
+        "verify_email_title": "邮箱验证",
+        "verifying": "正在验证您的邮箱...",
+        "verify_success": "您的邮箱已成功验证！",
+        "go_to_dashboard": "前往控制台",
+        "verify_failed": "验证失败。链接可能无效或已过期。",
+        "no_token": "未提供验证令牌。"
     },
     "common": {
         "loading": "加载中...",
         "error": "错误",
         "save": "保存",
         "cancel": "取消",
-        "delete": "删除"
+        "delete": "删除",
+        "edit": "编辑",
+        "preview": "预览"
     },
     "dashboard": {
         "title": "市场看板",
@@ -133,6 +174,55 @@
             "most_actives": "主要交易",
             "top_gainers": "涨幅榜",
             "top_losers": "跌幅榜"
+        },
+        "details": {
+            "indicator_name": "指标名称",
+            "description": "描述",
+            "current_value": "当前值",
+            "last_updated": "上次更新",
+            "release_frequency": "发布频率",
+            "next_release": "下次发布 (预估)",
+            "data_source": "数据来源",
+            "recent_history": "近期历史 (最近10次)",
+            "date": "日期",
+            "value": "值"
+        },
+        "policy_resources": {
+            "whitehouse": "白宫简报",
+            "whitehouse_desc": "白宫声明与发布",
+            "fact_sheets": "白宫情况说明书",
+            "fact_sheets_desc": "白宫情况说明书",
+            "executive_orders": "白宫行政命令",
+            "executive_orders_desc": "行政命令",
+            "federal_register": "联邦公报",
+            "federal_register_desc": "联邦公报 – 规则、通知、提案",
+            "presidential_docs": "联邦公报总统文件",
+            "presidential_docs_desc": "总统文件 (行政命令、备忘录)",
+            "legislation": "国会立法",
+            "legislation_desc": "Congress.gov – 所有立法",
+            "subjects": "国会主题",
+            "subjects_desc": "Congress.gov – 政策主题"
+        },
+        "calendar_section": {
+            "loading": "加载财经日历...",
+            "impact": "影响:",
+            "select_impact": "选择影响",
+            "country": "国家:",
+            "select_country": "选择国家",
+            "selected": "已选",
+            "headers": {
+                "date": "日期",
+                "country": "国家",
+                "event": "事件",
+                "actual": "实际值",
+                "previous": "前值",
+                "estimate": "预测值",
+                "impact": "影响"
+            },
+            "no_events": "没有匹配的事件。"
+        },
+        "crypto_section": {
+            "loading": "加载加密货币数据..."
         },
         "access_equity": "主要指数",
         "timeframes": {
@@ -580,7 +670,68 @@
             "timestamp": "时间戳:",
             "metric": "指标",
             "value": "值"
+        },
+        "upload_modal": {
+            "title": "上传研报",
+            "report_title": "研报标题",
+            "enter_title": "输入标题",
+            "ticker": "股票代码",
+            "ticker_placeholder": "例如: TSLA",
+            "report_type": "研报类型",
+            "select_type": "选择类型",
+            "file_pdf": "文件 (PDF)",
+            "pdf_only": "仅支持 PDF 文件",
+            "upload_failed": "上传失败",
+            "upload_success": "研报上传成功"
         }
+    },
+    "pricing": {
+        "title": "升级到专业版",
+        "subtitle": "解锁独家市场研究、高级分析和优质报告。",
+        "free_plan": "基础版",
+        "free_price": "免费",
+        "market_dashboard": "市场看板",
+        "news_feed": "基础新闻流",
+        "delayed_data": "延时数据",
+        "current_plan": "当前计划",
+        "pro_plan": "专业版",
+        "most_popular": "最受欢迎",
+        "month": "/月",
+        "ai_reports": "无限 AI 研报",
+        "alphatrade": "实时 AlphaTrade 信号",
+        "deep_dive": "深度基本面分析",
+        "bear_cave": "独家“熊穴”研究",
+        "priority_support": "优先支持",
+        "subscribe_now": "立即订阅",
+        "processing": "处理中...",
+        "active_subscription": "订阅已激活",
+        "login_to_subscribe": "请登录后订阅。",
+        "payment_error": "支付初始化失败: {error}"
+    },
+    "payment": {
+        "success_title": "支付成功！",
+        "success_message": "感谢您订阅 Beaver Research Pro。您的账户已升级。",
+        "go_to_dashboard": "前往控制台"
+    },
+    "security": {
+        "title": "安全",
+        "section_title": "🔒 安全",
+        "description": "此部分将显示与安全相关的指标和信息。",
+        "coming_soon": "即将推出：网络安全指标、威胁情报、安全事件等。"
+    },
+    "macro": {
+        "title": "宏观经济",
+        "loading": "加载宏观经济数据...",
+        "update": "更新数据",
+        "updating": "更新中...",
+        "no_history": "暂无历史数据"
+    },
+    "bond": {
+        "title": "债券市场数据",
+        "loading": "加载债券市场数据...",
+        "update": "更新数据",
+        "updating": "更新中...",
+        "no_history": "暂无历史数据"
     },
     "admin": {
         "header": {
@@ -968,7 +1119,6 @@
             "priceToOperatingCashFlowRatioTTM": "价格/经营现金流 TTM",
             "priceToFairValueTTM": "价格/公允价值 TTM",
             "enterpriseValueMultipleTTM": "企业价值倍数 TTM",
-            "enterpriseValueTTM": "企业价值 TTM",
             "receivablesTurnoverTTM": "应收账款周转率 TTM",
             "payablesTurnoverTTM": "应付账款周转率 TTM",
             "inventoryTurnoverTTM": "存货周转率 TTM",

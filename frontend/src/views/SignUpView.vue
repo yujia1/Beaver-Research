@@ -2,18 +2,18 @@
   <div class="signup-view">
     <div class="signup-container">
       <div class="signup-card">
-        <h1>Sign Up</h1>
-        <p class="subtitle">Create a new account</p>
+        <h1>{{ t('auth.signup_title') }}</h1>
+        <p class="subtitle">{{ t('auth.signup_subtitle') }}</p>
         
         <form @submit.prevent="handleSignup" class="signup-form">
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="email">{{ t('auth.email') }}</label>
             <input
               id="email"
               v-model="email"
               type="email"
               required
-              placeholder="Enter your email"
+              :placeholder="t('auth.email_placeholder')"
               :disabled="loading"
               @blur="validateEmail"
               :class="{ 'invalid': emailError }"
@@ -22,13 +22,13 @@
           </div>
           
           <div class="form-group">
-            <label for="password">Password</label>
+            <label for="password">{{ t('auth.password') }}</label>
             <input
               id="password"
               v-model="password"
               type="password"
               required
-              placeholder="Create a password (6-12 characters)"
+              :placeholder="t('auth.password_hint')"
               :disabled="loading"
               minlength="6"
               maxlength="12"
@@ -36,13 +36,13 @@
           </div>
           
           <div class="form-group">
-            <label for="confirmPassword">Confirm Password</label>
+            <label for="confirmPassword">{{ t('auth.confirm_password') }}</label>
             <input
               id="confirmPassword"
               v-model="confirmPassword"
               type="password"
               required
-              placeholder="Confirm your password"
+              :placeholder="t('auth.confirm_password_placeholder')"
               :disabled="loading"
             />
           </div>
@@ -51,22 +51,22 @@
           <div v-if="success" class="success-message">{{ success }}</div>
           
           <button type="submit" class="submit-btn" :disabled="loading || !isFormValid">
-            {{ loading ? 'Creating account...' : 'Sign Up' }}
+            {{ loading ? t('auth.creating_account') : t('auth.signup_action') }}
           </button>
           
           <div v-if="password && password.length < 6" class="password-mismatch">
-            Password must be at least 6 characters
+            {{ t('auth.password_min_length_error') }}
           </div>
           <div v-if="password && password.length > 12" class="password-mismatch">
-            Password must be no more than 12 characters
+            {{ t('auth.password_length_error') }}
           </div>
           <div v-if="password && confirmPassword && password !== confirmPassword" class="password-mismatch">
-            Passwords do not match
+            {{ t('auth.password_mismatch') }}
           </div>
         </form>
         
         <div class="login-link">
-          <p>Already have an account? <router-link to="/login">Login</router-link></p>
+          <p>{{ t('auth.already_have_account') }} <router-link to="/login">{{ t('auth.login') }}</router-link></p>
         </div>
       </div>
     </div>
@@ -78,7 +78,9 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const email = ref('')
 const password = ref('')
@@ -98,18 +100,18 @@ const validateEmail = () => {
   // Basic email format validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email.value)) {
-    emailError.value = 'Please enter a valid email address'
+    emailError.value = t('auth.email_invalid')
     return false
   }
   
   // Additional validation: check for common issues
   if (email.value.includes('..')) {
-    emailError.value = 'Email cannot contain consecutive dots'
+    emailError.value = t('auth.email_dots_error')
     return false
   }
   
   if (email.value.startsWith('.') || email.value.endsWith('.')) {
-    emailError.value = 'Email cannot start or end with a dot'
+    emailError.value = t('auth.email_start_end_error')
     return false
   }
   
@@ -128,17 +130,17 @@ const isFormValid = computed(() => {
 const handleSignup = async () => {
   // Validate email before submitting
   if (!validateEmail()) {
-    error.value = emailError.value || 'Please enter a valid email address'
+    error.value = emailError.value || t('auth.email_invalid')
     return
   }
   
   if (password.value !== confirmPassword.value) {
-    error.value = 'Passwords do not match'
+    error.value = t('auth.password_mismatch')
     return
   }
   
   if (password.value.length < 6 || password.value.length > 12) {
-    error.value = 'Password must be between 6 and 12 characters'
+    error.value = t('auth.password_length_error')
     return
   }
   
@@ -167,18 +169,18 @@ const handleSignup = async () => {
     clearTimeout(timeoutId)
     
     if (!response.ok) {
-      let errorMessage = 'Signup failed'
+      let errorMessage = t('auth.signup_failed')
       try {
         const errorData = await response.json()
         errorMessage = errorData.detail || errorMessage
       } catch (e) {
-        errorMessage = `Server error: ${response.status} ${response.statusText}`
+        errorMessage = `${t('auth.server_error')}: ${response.status} ${response.statusText}`
       }
       throw new Error(errorMessage)
     }
     
     const data = await response.json()
-    success.value = 'Account created successfully! Redirecting to login...'
+    success.value = t('auth.signup_success')
     
     // Redirect to login after 2 seconds
     setTimeout(() => {
@@ -186,11 +188,11 @@ const handleSignup = async () => {
     }, 2000)
   } catch (err) {
     if (err.name === 'AbortError') {
-      error.value = 'Request timed out. Please check if the backend server is running on ${API_BASE_URL}'
+      error.value = `Request timed out. Please check if the backend server is running on ${API_BASE_URL}`
     } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-      error.value = 'Cannot connect to server. Please ensure the backend is running on ${API_BASE_URL}'
+      error.value = `Cannot connect to server. Please ensure the backend is running on ${API_BASE_URL}`
     } else {
-      error.value = err.message || 'An error occurred during signup'
+      error.value = err.message || t('auth.signup_failed')
     }
     console.error('Signup error:', err)
   } finally {

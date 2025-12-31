@@ -45,7 +45,7 @@
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
-              <span style="font-size: 11px; margin-left: 4px; font-weight: 600;">Edit</span>
+              <span style="font-size: 11px; margin-left: 4px; font-weight: 600;">{{ t('common.edit') }}</span>
             </div>
             <div class="switch-section preview-section" :class="{ 'active': viewMode === 'PREVIEW' }">
               <!-- Preview Icon -->
@@ -53,7 +53,7 @@
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
-              <span style="font-size: 11px; margin-left: 4px; font-weight: 600;">Preview</span>
+              <span style="font-size: 11px; margin-left: 4px; font-weight: 600;">{{ t('common.preview') }}</span>
             </div>
           </div>
         </div>
@@ -68,7 +68,7 @@
               <polyline points="17 8 12 3 7 8"></polyline>
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-            <span>Upload</span>
+            <span>{{ t('common.upload') }}</span>
           </button>
           <button @click="publishEditor" class="action-btn publish-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -194,31 +194,28 @@
     <div v-if="showUploadModal" class="modal-overlay" @click="closeUploadModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>Upload Report</h3>
+          <h3>{{ t('research.upload_modal.title') }}</h3>
           <button @click="closeUploadModal" class="close-modal-btn">×</button>
         </div>
         <div class="modal-body">
              <div class="upload-form">
                 <div class="form-group">
-                    <label>Report Title</label>
-                    <input v-model="uploadReportTitle" type="text" class="form-input" placeholder="Enter title">
+                    <label>{{ t('research.upload_modal.report_title') }}</label>
+                    <input v-model="uploadReportTitle" type="text" class="form-input" :placeholder="t('research.upload_modal.enter_title')">
                 </div>
                 <div class="form-group">
-                    <label>Ticker</label>
-                    <input v-model="uploadReportTicker" type="text" class="form-input" placeholder="e.g. TSLA">
+                    <label>{{ t('research.upload_modal.ticker') }}</label>
+                    <input v-model="uploadReportTicker" type="text" class="form-input" :placeholder="t('research.upload_modal.ticker_placeholder')">
                 </div>
                 <div class="form-group">
-                    <label>Report Type</label>
+                    <label>{{ t('research.upload_modal.report_type') }}</label>
                     <select v-model="uploadReportType" class="form-input">
-                        <option value="">Select Type</option>
-                        <option value="daily">Daily</option>
-                        <option value="long">Long Position</option>
-                        <option value="short">Short Position</option>
-                        <option value="market">Market</option>
+                        <option value="">{{ t('research.upload_modal.select_type') }}</option>
+                        <option v-for="type in reportTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>File (PDF)</label>
+                    <label>{{ t('research.upload_modal.file_pdf') }}</label>
                     <input type="file" accept=".pdf" @change="handleFileSelect" class="file-input">
                     <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
                 </div>
@@ -229,9 +226,9 @@
         </div>
         <div class="modal-footer">
           <button @click="uploadReport" class="modal-btn primary" :disabled="!canUpload || uploadingReport">
-            {{ uploadingReport ? 'Uploading...' : 'Upload' }}
+            {{ uploadingReport ? t('common.uploading') : t('common.upload') }}
           </button>
-          <button @click="closeUploadModal" class="modal-btn secondary">Cancel</button>
+          <button @click="closeUploadModal" class="modal-btn secondary">{{ t('common.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -391,7 +388,7 @@ const handleFileSelect = (event) => {
     uploadError.value = ''
   } else {
     selectedFile.value = null
-    uploadError.value = 'PDF files only'
+    uploadError.value = t('research.upload_modal.pdf_only')
   }
 }
 
@@ -431,10 +428,10 @@ const uploadReport = async () => {
         
         if (!response.ok) {
             const errorData = await response.json()
-            throw new Error(errorData.detail || 'Upload failed')
+            throw new Error(errorData.detail || t('research.upload_modal.upload_failed'))
         }
         
-        uploadSuccess.value = 'Report uploaded successfully'
+        uploadSuccess.value = t('research.upload_modal.upload_success')
         
         // Reset
         setTimeout(() => {

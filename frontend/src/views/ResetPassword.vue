@@ -1,36 +1,36 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <h2>Reset Password</h2>
-      <p>Enter your new password below.</p>
+      <h2>{{ t('auth.reset_password_title') }}</h2>
+      <p>{{ t('auth.reset_password_subtitle') }}</p>
       
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="password">New Password</label>
+          <label for="password">{{ t('auth.new_password') }}</label>
           <input 
             type="password" 
             id="password" 
             v-model="password" 
             required 
-            placeholder="At least 6 characters"
+            :placeholder="t('auth.new_password_placeholder')"
             minlength="6"
           >
         </div>
 
         <div class="form-group">
-          <label for="confirmPassword">Confirm Password</label>
+          <label for="confirmPassword">{{ t('auth.confirm_new_password') }}</label>
           <input 
             type="password" 
             id="confirmPassword" 
             v-model="confirmPassword" 
             required 
-            placeholder="Confirm new password"
+            :placeholder="t('auth.confirm_new_password_placeholder')"
             minlength="6"
           >
         </div>
 
         <button type="submit" :disabled="loading" class="submit-btn">
-          {{ loading ? 'Updating...' : 'Set New Password' }}
+          {{ loading ? t('auth.updating') : t('auth.set_new_password') }}
         </button>
       </form>
 
@@ -42,7 +42,7 @@
       </div>
 
       <div class="links" v-if="message">
-        <router-link to="/login">Click here to Login</router-link>
+        <router-link to="/login">{{ t('auth.click_to_login') }}</router-link>
       </div>
     </div>
   </div>
@@ -51,9 +51,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import API_BASE_URL from '@/config/api';
 
 const route = useRoute();
+const { t } = useI18n();
 const password = ref('');
 const confirmPassword = ref('');
 const loading = ref(false);
@@ -64,18 +66,18 @@ const token = ref('');
 onMounted(() => {
     token.value = route.query.token;
     if (!token.value) {
-        error.value = "Invalid reset link. No token provided.";
+        error.value = t('auth.invalid_token');
     }
 });
 
 const handleSubmit = async () => {
   if (password.value !== confirmPassword.value) {
-      error.value = "Passwords do not match";
+      error.value = t('auth.password_mismatch');
       return;
   }
   
   if (!token.value) {
-      error.value = "Missing reset token.";
+      error.value = t('auth.missing_token');
       return;
   }
 
@@ -95,7 +97,7 @@ const handleSubmit = async () => {
 
     if (!response.ok) {
        const errData = await response.json();
-       throw new Error(errData.detail || 'Failed to reset password');
+       throw new Error(errData.detail || t('common.error'));
     }
 
     const data = await response.json();
