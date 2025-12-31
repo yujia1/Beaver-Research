@@ -223,7 +223,7 @@ const fetchIndices = async () => {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/api/indices/regional`);
+        const response = await fetch(`${API_BASE_URL}/api/market/equity/indices/regional`);
         if (!response.ok) throw new Error('Failed to fetch regional indices');
         const data = await response.json();
         
@@ -257,7 +257,7 @@ const updateIndexTimeframe = async (index, timeframe) => {
     
     try {
         const encodedSymbol = encodeURIComponent(index.symbol);
-        const response = await fetch(`${API_BASE_URL}/api/indices/regional/series/${encodedSymbol}?timeframe=${timeframe}`);
+        const response = await fetch(`${API_BASE_URL}/api/market/equity/indices/regional/series/${encodedSymbol}?timeframe=${timeframe}`);
         
         if (!response.ok) throw new Error('Failed to fetch index history');
         

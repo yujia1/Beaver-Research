@@ -314,40 +314,43 @@ app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Mana
 app.include_router(payment.router) # Prefix handled in router
 
 # Market - Equity
-app.include_router(stocks.router, prefix="/api/internal", tags=["Stocks"])
-app.include_router(indices.router, prefix="/api/indices", tags=["Indices"])
-# Shim for deprecated internal indices endpoint
+app.include_router(stocks.router, prefix="/api/market/equity/stocks", tags=["Stocks"])
+app.include_router(indices.router, prefix="/api/market/equity/indices", tags=["Indices"])
+
+# Shim for deprecated internal indices endpoint (for backwards compatibility)
 @app.get("/api/internal/indices", tags=["Deprecated"])
 async def get_indices_shim():
     from routers.market.equity.indices import get_indices
     return await get_indices()
-    
-app.include_router(markets_wire.router, prefix="/api/stream-news", tags=["Stream News"])
+
+# Market - News & Streams    
+app.include_router(markets_wire.router, prefix="/api/market/news", tags=["Market News"])
 app.include_router(stream.router, prefix="/api/stream", tags=["Stream"])
 
-app.include_router(sec.router, prefix="/api/sec", tags=["SEC Data"])
+# Market - SEC
+app.include_router(sec.router, prefix="/api/market/sec", tags=["SEC Data"])
 
 # Market - Bond
-app.include_router(bond.router, prefix="/api/bond", tags=["Bond Data"])
+app.include_router(bond.router, prefix="/api/market/bond", tags=["Bond Data"])
 
 # Market - Commodity
-app.include_router(energy.router, prefix="/api/energy", tags=["Energy"])
-app.include_router(commodity_routes.router, prefix="/api/internal/commodities", tags=["Commodities"])
+app.include_router(energy.router, prefix="/api/market/commodity/energy", tags=["Energy"])
+app.include_router(commodity_routes.router, prefix="/api/market/commodity", tags=["Commodities"])
 
 # Market - Currency
-app.include_router(currency_routes.router, prefix="/api/internal/currencies", tags=["Currencies"])
+app.include_router(currency_routes.router, prefix="/api/market/currency", tags=["Currencies"])
 
 # Market - Economic
-app.include_router(macro.router, prefix="/api/internal", tags=["Macro"])
+app.include_router(macro.router, prefix="/api/market/economic", tags=["Economic Data"])
 
 # Market - Crypto
-app.include_router(crypto_routes.router, prefix="/api/internal/crypto", tags=["Crypto"])
+app.include_router(crypto_routes.router, prefix="/api/market/crypto", tags=["Crypto"])
 
 # Market - Policy
-app.include_router(policy_routes.router, prefix="/api/internal", tags=["Policy"])
+app.include_router(policy_routes.router, prefix="/api/market/policy", tags=["Policy"])
 
 # Market - External
-app.include_router(external.router, prefix="/api/external", tags=["External Data"])
+app.include_router(external.router, prefix="/api/market/external", tags=["External Data"])
 
 # Research
 app.include_router(research.router, prefix="/api/research", tags=["Research"])

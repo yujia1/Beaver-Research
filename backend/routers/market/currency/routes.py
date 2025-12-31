@@ -76,17 +76,20 @@ async def get_all_currencies():
         raise HTTPException(status_code=500, detail=f"Failed to fetch currency data: {str(e)}")
 
 @router.get("/currencies/{series_id}")
-async def get_currency_by_series(series_id: str):
+async def get_currency_by_series(series_id: str, timeframe: str = "monthly"):
     """
     Get a specific currency by its series ID.
     
     Args:
         series_id: The FRED series ID (e.g., 'DEXUSEU', 'DEXJPUS', 'DEXCHUS')
+        timeframe: Time period (currently only 'monthly' is supported)
     
     Returns:
         Currency data with history
     """
     try:
+        # For now, we only have monthly data cached by the scheduler
+        # In the future, we could fetch different timeframes from FMP
         cached_data = redis_client.get_cache("currency:data:monthly")
         
         if not cached_data or series_id not in cached_data:
@@ -109,7 +112,7 @@ async def get_currency_by_series(series_id: str):
             "value": latest_value,
             "date": latest_date,
             "history": history,
-            "selectedTimeframe": "monthly",
+            "selectedTimeframe": timeframe,
             "loading": False,
             "chart_type": "line",
             "category": "Currency"

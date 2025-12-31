@@ -428,7 +428,7 @@ const fetchBondData = async () => {
   
   try {
     // Initial fetch of all data with default 'monthly' (1Y) timeframe
-    const response = await fetch(`${API_BASE_URL}/api/bond/all?timeframe=monthly`);
+    const response = await fetch(`${API_BASE_URL}/api/market/bond/all?timeframe=monthly`);
     if (!response.ok) throw new Error('Failed to fetch bond data');
     const data = await response.json();
     
@@ -474,7 +474,7 @@ const updateBondItemTimeframe = async (item, timeframe) => {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/bond/series/${item.series_id}?timeframe=${timeframe}`);
+        const response = await fetch(`${API_BASE_URL}/api/market/bond/series/${item.series_id}?timeframe=${timeframe}`);
         if (!response.ok) throw new Error('Failed to fetch series');
         const data = await response.json();
         

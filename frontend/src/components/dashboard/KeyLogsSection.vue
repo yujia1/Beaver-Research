@@ -969,7 +969,7 @@
                                 <div v-for="item in cryptoIndicators" :key="item.indicator" class="indicator-card">
                                     <div class="card-content">
                                         <h3>{{ item.indicator }}</h3>
-                                        <p class="value">{{ item.value ? item.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
+                                        <p class="value">{{ item.price ? item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' }}</p>
                                         <p class="date">{{ item.date }}</p>
                                         <p class="desc">
                                             {{ item.description || '&nbsp;' }}
@@ -1783,7 +1783,7 @@ const fetchEconomicData = async () => {
   
   try {
     // Initial fetch of all data with default 'monthly' (1Y) timeframe
-    const response = await fetch(`${API_BASE_URL}/api/internal/macro?timeframe=monthly`);
+    const response = await fetch(`${API_BASE_URL}/api/market/economic/macro?timeframe=monthly`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -1873,7 +1873,7 @@ const fetchCurrencyData = async () => {
   
   try {
     // Fetch all currency data from the new endpoint
-    const response = await fetch(`${API_BASE_URL}/api/internal/currencies`);
+    const response = await fetch(`${API_BASE_URL}/api/market/currency/currencies`);
     if (!response.ok) throw new Error('Failed to fetch currency data');
     const data = await response.json();
     
@@ -1912,7 +1912,8 @@ const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+    // Use the new currency endpoint
+    const response = await fetch(`${API_BASE_URL}/api/market/currency/currencies/${item.series_id}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -1950,10 +1951,18 @@ const fetchCommodityData = async () => {
   }
   
   try {
+    console.log('[COMMODITY] Fetching from:', `${API_BASE_URL}/api/market/commodity/commodities`);
+    
     // Fetch all commodity data from the new endpoint
-    const response = await fetch(`${API_BASE_URL}/api/internal/commodities`);
-    if (!response.ok) throw new Error('Failed to fetch commodity data');
+    const response = await fetch(`${API_BASE_URL}/api/market/commodity/commodities`);
+    if (!response.ok) {
+      console.error('[COMMODITY] HTTP Error:', response.status, response.statusText);
+      throw new Error(`Failed to fetch commodity data: ${response.status}`);
+    }
+    
     const data = await response.json();
+    console.log('[COMMODITY] Received data:', data);
+    console.log('[COMMODITY] Data keys:', Object.keys(data));
     
     // Transform the data to match our frontend structure
     // Backend returns: { "Financials": [...], "Metals": [...], etc }
@@ -1971,6 +1980,8 @@ const fetchCommodityData = async () => {
     
     for (const [backendKey, frontendKey] of Object.entries(categoryMap)) {
       const items = data[backendKey] || [];
+      console.log(`[COMMODITY] Processing ${backendKey}:`, items.length, 'items');
+      
       processedData[frontendKey] = items.map(item => ({
         indicator: item.name,
         value: item.price,
@@ -1983,12 +1994,16 @@ const fetchCommodityData = async () => {
       }));
     }
     
+    console.log('[COMMODITY] Processed data:', processedData);
+    console.log('[COMMODITY] Financials count:', processedData.financials?.length || 0);
+    
     commodityIndicators.value = processedData;
     
     // Cache the data
     setDailyCache('commodity_data_monthly', processedData);
     
   } catch (err) {
+    console.error('[COMMODITY] Error:', err);
     commodityError.value = err.message;
   } finally {
     commodityLoading.value = false;
@@ -2058,7 +2073,7 @@ const fetchCryptoData = async () => {
   
   try {
     // Fetch data WITH history (like Bond/Economic tabs) - default timeframe is 'daily'
-    const response = await fetch(`${API_BASE_URL}/api/internal/crypto/all?timeframe=daily`);
+    const response = await fetch(`${API_BASE_URL}/api/market/crypto/all?timeframe=daily`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[ERROR] Backend returned error:', response.status, errorText);
@@ -2122,7 +2137,7 @@ const updateCryptoIndicatorTimeframe = async (item, timeframe) => {
   
   try {
     // Fetch history data from crypto endpoint (like Bond/Economic tabs)
-    const historyResponse = await fetch(`${API_BASE_URL}/api/internal/crypto/${item.series_id}/history?period=${timeframe}`);
+    const historyResponse = await fetch(`${API_BASE_URL}/api/market/crypto/${item.series_id}/history?period=${timeframe}`);
     if (!historyResponse.ok) throw new Error('Failed to fetch crypto history');
     
     const historyData = await historyResponse.json();
