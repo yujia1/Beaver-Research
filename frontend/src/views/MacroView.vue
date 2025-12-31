@@ -241,7 +241,7 @@ const fetchMacroData = async () => {
   
   try {
     // Initial fetch of all data with default 'monthly' (1Y) timeframe
-    const response = await fetch(`${API_BASE_URL}/api/internal/macro?timeframe=monthly`);
+    const response = await fetch(`${API_BASE_URL}/api/market/economic/macro?timeframe=monthly`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     
@@ -286,7 +286,7 @@ const updateIndicatorTimeframe = async (item, timeframe) => {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+        const response = await fetch(`${API_BASE_URL}/api/market/economic/macro/series/${item.series_id}?timeframe=${timeframe}`);
         if (!response.ok) throw new Error('Failed to fetch series');
         const data = await response.json();
         
