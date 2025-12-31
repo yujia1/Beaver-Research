@@ -471,7 +471,7 @@
                         <p class="error-message">{{ currencyError }}</p>
                     </div>
                     <div v-else class="indicators">
-                        <div v-for="item in currencyIndicators" :key="item.indicator" class="indicator-card">
+                        <div v-for="item in currencyIndicators" :key="item.series_id" class="indicator-card">
                             <div class="card-content">
                                 <h3>{{ item.indicator }}</h3>
                                 <p class="value">{{ item.value ? item.value.toFixed(4) : 'N/A' }}</p>
