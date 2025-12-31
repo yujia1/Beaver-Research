@@ -110,26 +110,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not isinstance(hashed_password, str):
         hashed_password = str(hashed_password)
     
-    # Bcrypt has a 72-byte limit - ensure we don't exceed it
     try:
-        password_bytes = plain_password.encode('utf-8')
-        # If password exceeds 72 bytes, truncate it
-        if len(password_bytes) > 72:
-            # Truncate to 72 bytes
-            password_bytes = password_bytes[:72]
-        
-        # Convert hash to bytes if it's a string
-        if isinstance(hashed_password, str):
-            hash_bytes = hashed_password.encode('utf-8')
-        else:
-            hash_bytes = hashed_password
-        
-        # Use bcrypt directly to avoid passlib issues
-        try:
-            return bcrypt.checkpw(password_bytes, hash_bytes)
-        except (ValueError, TypeError):
-            # Fallback to passlib if bcrypt fails
-            return pwd_context.verify(plain_password, hashed_password)
+        # Use passlib's verify which handles bcrypt properly
+        return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
         # Log but don't expose the error
         import logging
@@ -137,7 +120,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
+    """Hash a password using bcrypt"""
     if not password:
         raise ValueError("Password cannot be empty")
     
@@ -145,13 +128,17 @@ def get_password_hash(password: str) -> str:
     if not isinstance(password, str):
         password = str(password)
     
-    # Bcrypt has a 72-byte limit, truncate if necessary
-    password_bytes = password.encode('utf-8')
-    if len(password_bytes) > 72:
-        # Truncate to 72 bytes, then decode back to string
-        password = password_bytes[:72].decode('utf-8', errors='ignore')
-    
-    return pwd_context.hash(password)
+    # Note: bcrypt has a 72-byte limit, but our validation ensures passwords are max 20 characters,
+    # which is well under this limit for any character encoding
+    try:
+        return pwd_context.hash(password)
+    except Exception as e:
+        # Log the actual error for debugging
+        import logging
+        logging.error(f"Password hashing failed for password of length {len(password)}: {str(e)}", exc_info=True)
+        raise ValueError("Failed to hash password. Please try a different password.")
+
+
 
 # JWT token functions
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -319,10 +306,18 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         # Create new user
         try:
             hashed_password = get_password_hash(user_data.password)
+        except ValueError as ve:
+            # This is our custom error from get_password_hash
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(ve)
+            )
         except Exception as e:
+            import logging
+            logging.error(f"Unexpected error hashing password: {str(e)}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error hashing password: {str(e)}"
+                detail="An error occurred while processing your password. Please try again."
             )
         
         db_user = models.User(
