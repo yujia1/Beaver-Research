@@ -2,7 +2,7 @@ import httpx
 import os
 import datetime
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import yfinance as yf
 import pandas as pd
 import asyncio
