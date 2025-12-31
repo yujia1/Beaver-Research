@@ -24,25 +24,14 @@ async def fetch_regional_indices_data():
             {"symbol": "^GSPC", "name": "S&P 500"},
             {"symbol": "^DJI", "name": "Dow Jones"},
             {"symbol": "^IXIC", "name": "NASDAQ"},
-            {"symbol": "^NYA", "name": "NYSE Composite"},
-            {"symbol": "^RUT", "name": "Russell 2000"},
-            {"symbol": "^RUA", "name": "Russell 3000"}
+            {"symbol": "^RUT", "name": "Russell 2000"}
         ],
         "Europe": [
-            {"symbol": "^STOXX", "name": "STOXX 600"},
-            {"symbol": "^GDAXI", "name": "DAX"},
-            {"symbol": "^FCHI", "name": "CAC 40"},
-            {"symbol": "^FTSE", "name": "FTSE 100"},
-            {"symbol": "^IBEX", "name": "IBEX 35"},
-            {"symbol": "FTSEMIB.MI", "name": "FTSE MIB"}
+            {"symbol": "^FTSE", "name": "FTSE 100"}
         ],
         "Asia-Pacific": [
             {"symbol": "^N225", "name": "Nikkei 225"},
-            {"symbol": "^HSI", "name": "Hang Seng"},
-            {"symbol": "^AXJO", "name": "ASX 200"},
-            {"symbol": "^NSEI", "name": "NIFTY 50"},
-            {"symbol": "000001.SS", "name": "SSE Composite"},
-            {"symbol": "^KS11", "name": "KOSPI"}
+            {"symbol": "^HSI", "name": "Hang Seng"}
         ]
     }
     
