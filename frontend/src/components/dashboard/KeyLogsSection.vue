@@ -1862,13 +1862,20 @@ const fetchCurrencyData = async () => {
   currencyLoading.value = true;
   currencyError.value = null;
   
-  // Check daily cache first
+  // Check for cached data first
   const cached = getDailyCache('currency_data_monthly');
-  if (cached) {
-    console.log('Using cached currency data');
-    currencyIndicators.value = cached;
-    currencyLoading.value = false;
-    return;
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    // Validate cache is not garbage (old error objects)
+    const isValid = cached.every(item => item.symbol && !item.detail);
+    if (isValid) {
+      console.log('Using cached currency data');
+      currencyIndicators.value = cached;
+      currencyLoading.value = false;
+      return;
+    } else {
+      console.warn('[CURRENCY] Cached data is invalid/old, refetching...');
+      localStorage.removeItem('currency_data_monthly'); // Clear bad cache
+    }
   }
   
   try {
@@ -1958,11 +1965,14 @@ const fetchCommodityData = async () => {
   
   // Check daily cache first
   const cached = getDailyCache('commodity_data_monthly');
-  if (cached) {
+  if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
     console.log('Using cached commodity data');
     commodityIndicators.value = cached;
     commodityLoading.value = false;
     return;
+  } else if (cached) {
+    console.warn('[COMMODITY] Cached data is invalid/empty, refetching...');
+    localStorage.removeItem('commodity_data_monthly');
   }
   
   try {
