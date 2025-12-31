@@ -1866,33 +1866,20 @@ const fetchCurrencyData = async () => {
   const cached = getDailyCache('currency_data_monthly');
   if (cached) {
     console.log('Using cached currency data');
-    // Ensure history is preserved from cache (like Bond/Economic tabs)
-    const processedCached = cached.map(item => ({
-      ...item,
-      history: item.history || [], // Ensure history is always an array
-      selectedTimeframe: item.selectedTimeframe || 'monthly',
-      loading: false
-    }));
-    
-    currencyIndicators.value = processedCached;
+    currencyIndicators.value = cached;
     currencyLoading.value = false;
     return;
   }
   
   try {
-    // Fetch currency series
-    const currencySeries = ['DEXUSEU', 'DEXJPUS', 'DEXCHUS'];
-    const promises = currencySeries.map(seriesId => 
-      fetch(`${API_BASE_URL}/api/internal/macro/series/${seriesId}?timeframe=monthly`)
-        .then(res => res.json())
-    );
+    // Fetch all currency data from the new endpoint
+    const response = await fetch(`${API_BASE_URL}/api/internal/currencies`);
+    if (!response.ok) throw new Error('Failed to fetch currency data');
+    const data = await response.json();
     
-    const data = await Promise.all(promises);
-    
-    // Initialize with default timeframe state and ensure history is always an array
+    // Data is already in the correct format from the backend
     const processedData = data.map(item => ({
       ...item,
-      history: item.history || [], // Ensure history is always an array
       selectedTimeframe: 'monthly',
       loading: false
     }));
