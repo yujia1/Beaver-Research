@@ -31,7 +31,7 @@
               :placeholder="t('auth.password_hint')"
               :disabled="loading"
               minlength="6"
-              maxlength="12"
+              maxlength="20"
             />
           </div>
           
@@ -57,7 +57,7 @@
           <div v-if="password && password.length < 6" class="password-mismatch">
             {{ t('auth.password_min_length_error') }}
           </div>
-          <div v-if="password && password.length > 12" class="password-mismatch">
+          <div v-if="password && password.length > 20" class="password-mismatch">
             {{ t('auth.password_length_error') }}
           </div>
           <div v-if="password && confirmPassword && password !== confirmPassword" class="password-mismatch">
@@ -123,7 +123,7 @@ const isFormValid = computed(() => {
   return email.value && 
          !emailError.value && 
          password.value.length >= 6 && 
-         password.value.length <= 12 && 
+         password.value.length <= 20 && 
          password.value === confirmPassword.value
 })
 
@@ -139,7 +139,7 @@ const handleSignup = async () => {
     return
   }
   
-  if (password.value.length < 6 || password.value.length > 12) {
+  if (password.value.length < 6 || password.value.length > 20) {
     error.value = t('auth.password_length_error')
     return
   }
@@ -173,6 +173,9 @@ const handleSignup = async () => {
       try {
         const errorData = await response.json()
         errorMessage = errorData.detail || errorMessage
+        if (errorMessage && errorMessage.includes('password cannot be longer than 72 bytes')) {
+          errorMessage = t('auth.password_too_long')
+        }
       } catch (e) {
         errorMessage = `${t('auth.server_error')}: ${response.status} ${response.statusText}`
       }
