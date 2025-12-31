@@ -134,38 +134,80 @@
                 <div v-else-if="economicError" class="error-state">
                     <p class="error-message">{{ economicError }}</p>
                 </div>
-                <div v-else class="indicators">
-                    <div v-for="item in economicIndicators.filter(item => item.series_id !== 'FEDWATCH')" :key="item.indicator" class="indicator-card">
-                        <div class="card-content">
-                            <h3>{{ item.indicator }}</h3>
-                            <p class="value">{{ item.value }}</p>
-                            <p class="date">{{ item.date }}</p>
-                            <p class="desc">{{ item.description || '&nbsp;' }}</p>
+                <div v-else class="economic-list-container">
+                    <div 
+                        v-for="(item, index) in economicIndicators.filter(item => item.series_id !== 'FEDWATCH')" 
+                        :key="item.series_id" 
+                        class="economic-item"
+                        :class="{ expanded: expandedEconomicItems.has(index) }"
+                    >
+                        <!-- Indicator Header (Clickable) -->
+                        <div class="economic-header" @click="toggleEconomicItem(index)">
+                            <div class="header-left">
+                                <span class="expand-icon">{{ expandedEconomicItems.has(index) ? '▼' : '▶' }}</span>
+                                <h3 class="indicator-name">{{ item.indicator }}</h3>
+                                <span class="category-badge" :class="`category-${item.category.toLowerCase()}`">
+                                    {{ item.category }}
+                                </span>
+                            </div>
+                            <div class="header-right">
+                                <span class="current-value">{{ formatEconomicValue(item.value) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Expandable Details Table -->
+                        <div v-if="expandedEconomicItems.has(index)" class="economic-details">
+                            <table class="details-table">
+                                <tbody>
+                                    <tr>
+                                        <td class="label-cell">Indicator Name</td>
+                                        <td class="value-cell">{{ item.indicator }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Description</td>
+                                        <td class="value-cell">{{ item.description }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Current Value</td>
+                                        <td class="value-cell">{{ formatEconomicValue(item.value) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Last Updated</td>
+                                        <td class="value-cell">{{ item.date }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Release Frequency</td>
+                                        <td class="value-cell">{{ getEconomicFrequency(item.series_id) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Next Release (Est.)</td>
+                                        <td class="value-cell">{{ getNextReleaseDate(item.series_id, item.date) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label-cell">Data Source</td>
+                                        <td class="value-cell">{{ getEconomicSource(item.series_id) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                             
-                            <!-- Per-graph Timeframe Selector -->
-                            <div class="card-timeframe-selector">
-                                <button 
-                                    v-for="tf in economicTimeframes" 
-                                    :key="tf.value" 
-                                    :class="{ active: item.selectedTimeframe === tf.value }"
-                                    @click="updateIndicatorTimeframe(item, tf.value)"
-                                    :disabled="item.loading"
-                                >
-                                    {{ tf.label }}
-                                </button>
+                            <!-- Recent History -->
+                            <div v-if="item.history && item.history.length > 0" class="history-section">
+                                <h4>Recent History (Last 10 Releases)</h4>
+                                <table class="history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(h, hIndex) in getRecentHistory(item.history)" :key="hIndex">
+                                            <td>{{ h.date }}</td>
+                                            <td>{{ formatEconomicValue(h.value) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                        </div>
-                        
-                        <!-- Interactive Chart.js Chart -->
-                        <div class="chart-container" v-if="item.history && item.history.length > 0">
-                            <div v-if="item.loading" class="chart-loading-overlay">
-                                <div class="spinner-small"></div>
-                            </div>
-                            <Bar v-if="item.chart_type === 'bar'" :data="getEconomicChartData(item)" :options="barChartOptions" />
-                            <Line v-else :data="getEconomicChartData(item)" :options="economicChartOptions" />
-                        </div>
-                        <div v-else class="no-data">
-                            <p>{{ t('dashboard.no_data') }}</p>
                         </div>
                     </div>
                 </div>
@@ -1030,6 +1072,9 @@ const economicTimeframes = computed(() => [
     { label: t('dashboard.timeframes.yearly'), value: 'yearly' },
     { label: t('dashboard.timeframes.5y'), value: '5y' }
 ]);
+
+// Expandable economic items state
+const expandedEconomicItems = ref(new Set());
 
 // Fed Tab State
 const fedIndicators = ref([]);
@@ -2247,6 +2292,121 @@ const toggleCountry = (country) => {
         selectedCountries.value.push(country);
     }
 }
+
+// Economic expandable list functions
+const toggleEconomicItem = (index) => {
+    const newSet = new Set(expandedEconomicItems.value);
+    if (newSet.has(index)) {
+        newSet.delete(index);
+    } else {
+        newSet.add(index);
+    }
+    expandedEconomicItems.value = newSet;
+};
+
+const formatEconomicValue = (value) => {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'number') {
+        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return value;
+};
+
+const getRecentHistory = (history) => {
+    if (!history || history.length === 0) return [];
+    // Return last 10 items, sorted by date descending
+    return [...history]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 10);
+};
+
+const getEconomicFrequency = (seriesId) => {
+    const frequencies = {
+        'GDP': 'Quarterly',
+        'realGDP': 'Quarterly',
+        'nominalPotentialGDP': 'Quarterly',
+        'realGDPPerCapita': 'Quarterly',
+        'federalFunds': 'Monthly',
+        'CPI': 'Monthly',
+        'inflationRate': 'Monthly',
+        'inflation': 'Monthly',
+        'retailSales': 'Monthly',
+        'consumerSentiment': 'Monthly',
+        'durableGoods': 'Monthly',
+        'unemploymentRate': 'Monthly',
+        'totalNonfarmPayroll': 'Monthly',
+        'initialClaims': 'Weekly',
+        'industrialProductionTotalIndex': 'Monthly',
+        'newPrivatelyOwnedHousingUnitsStartedTotalUnits': 'Monthly',
+        'totalVehicleSales': 'Monthly',
+        'retailMoneyFunds': 'Weekly',
+        'smoothedUSRecessionProbabilities': 'Monthly',
+        '3MonthOr90DayRatesAndYieldsCertificatesOfDeposit': 'Daily',
+        'commercialBankInterestRateOnCreditCardPlansAllAccounts': 'Quarterly',
+        '30YearFixedRateMortgageAverage': 'Weekly',
+        '15YearFixedRateMortgageAverage': 'Weekly',
+        'tradeBalanceGoodsAndServices': 'Monthly'
+    };
+    return frequencies[seriesId] || 'Monthly';
+};
+
+const getNextReleaseDate = (seriesId, lastDate) => {
+    if (!lastDate) return 'TBD';
+    
+    const frequency = getEconomicFrequency(seriesId);
+    const last = new Date(lastDate);
+    let next = new Date(last);
+    
+    switch (frequency) {
+        case 'Weekly':
+            next.setDate(next.getDate() + 7);
+            break;
+        case 'Monthly':
+            next.setMonth(next.getMonth() + 1);
+            break;
+        case 'Quarterly':
+            next.setMonth(next.getMonth() + 3);
+            break;
+        case 'Daily':
+            next.setDate(next.getDate() + 1);
+            break;
+        default:
+            return 'TBD';
+    }
+    
+    return next.toISOString().split('T')[0];
+};
+
+const getEconomicSource = (seriesId) => {
+    const sources = {
+        'GDP': 'Bureau of Economic Analysis (BEA)',
+        'realGDP': 'Bureau of Economic Analysis (BEA)',
+        'nominalPotentialGDP': 'Congressional Budget Office (CBO)',
+        'realGDPPerCapita': 'Bureau of Economic Analysis (BEA)',
+        'federalFunds': 'Federal Reserve',
+        'CPI': 'Bureau of Labor Statistics (BLS)',
+        'inflationRate': 'Bureau of Labor Statistics (BLS)',
+        'inflation': 'Bureau of Labor Statistics (BLS)',
+        'retailSales': 'U.S. Census Bureau',
+        'consumerSentiment': 'University of Michigan',
+        'durableGoods': 'U.S. Census Bureau',
+        'unemploymentRate': 'Bureau of Labor Statistics (BLS)',
+        'totalNonfarmPayroll': 'Bureau of Labor Statistics (BLS)',
+        'initialClaims': 'Department of Labor',
+        'industrialProductionTotalIndex': 'Federal Reserve',
+        'newPrivatelyOwnedHousingUnitsStartedTotalUnits': 'U.S. Census Bureau',
+        'totalVehicleSales': 'Bureau of Economic Analysis (BEA)',
+        'retailMoneyFunds': 'Federal Reserve',
+        'smoothedUSRecessionProbabilities': 'Federal Reserve Bank',
+        '3MonthOr90DayRatesAndYieldsCertificatesOfDeposit': 'Federal Reserve',
+        'commercialBankInterestRateOnCreditCardPlansAllAccounts': 'Federal Reserve',
+        '30YearFixedRateMortgageAverage': 'Freddie Mac',
+        '15YearFixedRateMortgageAverage': 'Freddie Mac',
+        'tradeBalanceGoodsAndServices': 'U.S. Census Bureau'
+    };
+    return sources[seriesId] || 'Financial Modeling Prep';
+};
+
 const eventSource = ref(null);
 
 const setupStream = () => {
@@ -3324,4 +3484,213 @@ onUnmounted(() => {
     margin-left: 8px;
     color: #6b7280;
 }
+
+/* Economic List Styles */
+.economic-list-container {
+    max-width: 100%;
+    padding: 20px;
+}
+
+.economic-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.economic-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.economic-item.expanded {
+    border-color: #3b82f6;
+}
+
+.economic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.economic-header:hover {
+    background-color: #f9fafb;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.expand-icon {
+    color: #6b7280;
+    font-size: 12px;
+    width: 16px;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.indicator-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.category-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.category-macro {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.category-labor {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.category-business {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.category-housing {
+    background-color: #fce7f3;
+    color: #9f1239;
+}
+
+.category-financial {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.category-monetary {
+    background-color: #fef2f2;
+    color: #991b1b;
+}
+
+.category-rates {
+    background-color: #f3e8ff;
+    color: #6b21a8;
+}
+
+.category-credit {
+    background-color: #ffedd5;
+    color: #9a3412;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.current-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #059669;
+}
+
+.economic-details {
+    padding: 0 20px 20px 20px;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 1000px;
+    }
+}
+
+.details-table {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.details-table tr {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.details-table tr:last-child {
+    border-bottom: none;
+}
+
+.label-cell {
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #6b7280;
+    width: 200px;
+    background-color: #f9fafb;
+}
+
+.value-cell {
+    padding: 12px 16px;
+    color: #111827;
+}
+
+.history-section {
+    margin-top: 20px;
+}
+
+.history-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.history-table thead {
+    background-color: #f3f4f6;
+}
+
+.history-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+}
+
+.history-table td {
+    padding: 10px 16px;
+    border-top: 1px solid #e5e7eb;
+    color: #111827;
+    font-size: 13px;
+}
+
+.history-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
 </style>
