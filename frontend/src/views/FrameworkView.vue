@@ -375,7 +375,7 @@ const getRatioKeys = computed(() => {
 })
 
 const keyMatrixCategories = {
-  "Valuation Metrics": [
+  "valuation_metrics": [
     { label: "Market Cap", key: "marketCap" },
     { label: "Enterprise Value (EV) TTM", key: "enterpriseValueTTM" },
     { label: "EV To Sales TTM", key: "evToSalesTTM" },
@@ -387,7 +387,7 @@ const keyMatrixCategories = {
     { label: "Graham Number TTM", key: "grahamNumberTTM" },
     { label: "Graham Net Net TTM", key: "grahamNetNetTTM" }
   ],
-  "Profitability & Returns": [
+  "profitability_returns": [
     { label: "Return On Assets (ROA) TTM", key: "returnOnAssetsTTM" },
     { label: "Operating Return On Assets TTM", key: "operatingReturnOnAssetsTTM" },
     { label: "Return On Tangible Assets TTM", key: "returnOnTangibleAssetsTTM" },
@@ -398,7 +398,7 @@ const keyMatrixCategories = {
     { label: "Tax Burden TTM", key: "taxBurdenTTM" },
     { label: "Interest Burden TTM", key: "interestBurdenTTM" }
   ],
-  "Operating Efficiency & Working Capital": [
+  "operating_efficiency": [
     { label: "Days Of Sales Outstanding (DSO) TTM", key: "daysOfSalesOutstandingTTM" },
     { label: "Days Of Payables Outstanding (DPO) TTM", key: "daysOfPayablesOutstandingTTM" },
     { label: "Days Of Inventory Outstanding (DIO) TTM", key: "daysOfInventoryOutstandingTTM" },
@@ -408,7 +408,7 @@ const keyMatrixCategories = {
     { label: "Average Payables TTM", key: "averagePayablesTTM" },
     { label: "Average Inventory TTM", key: "averageInventoryTTM" }
   ],
-  "Capital Expenditure & Cost Structure": [
+  "capex_structure": [
     { label: "Capex To Operating Cash Flow TTM", key: "capexToOperatingCashFlowTTM" },
     { label: "Capex To Depreciation TTM", key: "capexToDepreciationTTM" },
     { label: "Capex To Revenue TTM", key: "capexToRevenueTTM" },
@@ -416,12 +416,12 @@ const keyMatrixCategories = {
     { label: "Research And Developement (R&D) To Revenue TTM", key: "researchAndDevelopementToRevenueTTM" },
     { label: "Stock Based Compensation To Revenue TTM", key: "stockBasedCompensationToRevenueTTM" }
   ],
-  "Liquidity & Solvency": [
+  "liquidity_solvency": [
     { label: "Current Ratio TTM", key: "currentRatioTTM" },
     { label: "Net Debt To EBITDA TTM", key: "netDebtToEBITDATTM" },
     { label: "Intangibles To Total Assets TTM", key: "intangiblesToTotalAssetsTTM" }
   ],
-  "Absolute Financial Values": [
+  "absolute_values": [
     { label: "Working Capital TTM", key: "workingCapitalTTM" },
     { label: "Invested Capital TTM", key: "investedCapitalTTM" },
     { label: "Tangible Asset Value TTM", key: "tangibleAssetValueTTM" },
@@ -432,7 +432,7 @@ const keyMatrixCategories = {
 }
 
 const financialRatioCategories = {
-  "Profitability & Margins": [
+  "profitability_margins": [
     { label: "Gross Profit Margin TTM", key: "grossProfitMarginTTM" },
     { label: "EBIT Margin TTM", key: "ebitMarginTTM" },
     { label: "EBITDA Margin TTM", key: "ebitdaMarginTTM" },
@@ -445,7 +445,7 @@ const financialRatioCategories = {
     { label: "Net Income Per EBT TTM (Tax Burden)", key: "netIncomePerEBTTTM" },
     { label: "EBT Per EBIT TTM (Interest Burden)", key: "ebtPerEbitTTM" }
   ],
-  "Valuation Multiples": [
+  "valuation_multiples": [
     { label: "Price To Earnings (P/E) Ratio TTM", key: "priceEarningsRatioTTM" },
     { label: "Price To Earnings Growth (PEG) Ratio TTM", key: "priceEarningsToGrowthRatioTTM" },
     { label: "Price To Book (P/B) Ratio TTM", key: "priceToBookRatioTTM" },
@@ -456,7 +456,7 @@ const financialRatioCategories = {
     { label: "Enterprise Value Multiple TTM", key: "enterpriseValueMultipleTTM" },
     { label: "Enterprise Value TTM", key: "enterpriseValueTTM" }
   ],
-  "Efficiency & Turnover": [
+  "efficiency_turnover": [
     { label: "Receivables Turnover TTM", key: "receivablesTurnoverTTM" },
     { label: "Payables Turnover TTM", key: "payablesTurnoverTTM" },
     { label: "Inventory Turnover TTM", key: "inventoryTurnoverTTM" },
@@ -464,13 +464,13 @@ const financialRatioCategories = {
     { label: "Asset Turnover TTM", key: "assetTurnoverTTM" },
     { label: "Working Capital Turnover Ratio TTM", key: "workingCapitalTurnoverRatioTTM" }
   ],
-  "Liquidity & Solvency": [
+  "liquidity_solvency": [
     { label: "Current Ratio TTM", key: "currentRatioTTM" },
     { label: "Quick Ratio TTM", key: "quickRatioTTM" },
     { label: "Cash Ratio TTM", key: "cashRatioTTM" },
     { label: "Solvency Ratio TTM", key: "solvencyRatioTTM" }
   ],
-  "Leverage & Debt Structure": [
+  "leverage_debt": [
     { label: "Debt To Assets Ratio TTM", key: "debtToAssetsRatioTTM" },
     { label: "Debt To Equity Ratio TTM", key: "debtToEquityRatioTTM" },
     { label: "Debt To Capital Ratio TTM", key: "debtToCapitalRatioTTM" },
@@ -478,7 +478,7 @@ const financialRatioCategories = {
     { label: "Financial Leverage Ratio TTM", key: "financialLeverageRatioTTM" },
     { label: "Debt To Market Cap TTM", key: "debtToMarketCapTTM" }
   ],
-  "Cash Flow & Coverage Ratios": [
+  "cash_flow_ratios": [
     { label: "Operating Cash Flow Ratio TTM", key: "operatingCashFlowRatioTTM" },
     { label: "Operating Cash Flow Sales Ratio TTM", key: "operatingCashFlowSalesRatioTTM" },
     { label: "Free Cash Flow / Operating Cash Flow Ratio TTM", key: "freeCashFlowOperatingCashFlowRatioTTM" },
@@ -491,7 +491,7 @@ const financialRatioCategories = {
     { label: "Dividend Payout Ratio TTM", key: "dividendPayoutRatioTTM" },
     { label: "Dividend Yield TTM", key: "dividendYieldTTM" }
   ],
-  "Per Share Data": [
+  "per_share_data": [
     { label: "Revenue Per Share TTM", key: "revenuePerShareTTM" },
     { label: "Net Income Per Share TTM", key: "netIncomePerShareTTM" },
     { label: "Interest Debt Per Share TTM", key: "interestDebtPerShareTTM" },
@@ -787,10 +787,10 @@ const closePoliticianModal = () => {
          <div v-if="ratioTab === 'key_matrix'">
             <div v-if="keyMetrics && keyMetrics.length > 0" class="metrics-container">
               <div v-for="(items, category) in keyMatrixCategories" :key="category" class="category-section" style="margin-bottom: 30px;">
-                <h3 style="font-size: 1.1em; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">{{ category }}</h3>
+                <h3 style="font-size: 1.1em; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">{{ t('framework.ratio_categories.' + category) }}</h3>
                 <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
                   <div v-for="item in items" :key="item.key" class="metric-card" style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
-                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 5px;">{{ item.label }}</div>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 5px;">{{ t('framework.ratios.' + item.key) }}</div>
                     <div style="font-size: 1.1em; font-weight: 600; color: #111827;">{{ formatMetric(keyMetrics[0][item.key]) }}</div>
                   </div>
                 </div>
@@ -803,24 +803,24 @@ const closePoliticianModal = () => {
          <div v-if="ratioTab === 'financial_ratio'">
             <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
                 <button class="styled-search-btn" @click="openTickerModal" style="font-size: 0.8rem; padding: 6px 12px;">
-                    Edit Comparison Tickers
+                    {{ t('framework.edit_comparison_tickers') }}
                 </button>
             </div>
             <div v-if="financialRatios && financialRatios.length > 0" class="data-table-wrapper ratio-scroll-container">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th class="line-item-header">Ratio</th>
+                    <th class="line-item-header">{{ t('framework.ratio_header') }}</th>
                     <th v-for="company in financialRatios" :key="company.symbol" class="period-header">{{ company.symbol }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template v-for="(items, category) in financialRatioCategories" :key="category">
                     <tr class="section-header" style="background-color: #f3f4f6;">
-                      <td :colspan="financialRatios.length + 1" style="font-weight: 600; color: #374151; padding: 12px 15px;">{{ category }}</td>
+                      <td :colspan="financialRatios.length + 1" style="font-weight: 600; color: #374151; padding: 12px 15px;">{{ t('framework.ratio_categories.' + category) }}</td>
                     </tr>
                     <tr v-for="item in items" :key="item.key" class="data-row">
-                      <td class="line-item-cell">{{ item.label }}</td>
+                      <td class="line-item-cell">{{ t('framework.ratios.' + item.key) }}</td>
                       <td v-for="company in financialRatios" :key="company.symbol + item.key" class="data-cell">
                         {{ formatMetric(company[item.key]) }}
                       </td>

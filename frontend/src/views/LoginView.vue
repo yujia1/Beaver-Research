@@ -2,46 +2,46 @@
   <div class="login-view">
     <div class="login-container">
       <div class="login-card">
-        <h1>Login</h1>
-        <p class="subtitle">Sign in to your account</p>
+        <h1>{{ t('auth.login_title') }}</h1>
+        <p class="subtitle">{{ t('auth.subtitle') }}</p>
         
         <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
-            <label for="username">Email</label>
+            <label for="username">{{ t('auth.email') }}</label>
             <input
               id="username"
               v-model="username"
               type="email"
               required
-              placeholder="Enter your email"
+              :placeholder="t('auth.email_placeholder')"
               :disabled="loading"
             />
           </div>
           
           <div class="form-group">
-            <label for="password">Password</label>
+            <label for="password">{{ t('auth.password') }}</label>
             <input
               id="password"
               v-model="password"
               type="password"
               required
-              placeholder="Enter your password"
+              :placeholder="t('auth.password_placeholder')"
               :disabled="loading"
             />
             <div class="forgot-password">
-              <router-link to="/forgot-password">Forgot Password?</router-link>
+              <router-link to="/forgot-password">{{ t('auth.forgot_password') }}</router-link>
             </div>
           </div>
           
           <div v-if="error" class="error-message">{{ error }}</div>
           
           <button type="submit" class="submit-btn" :disabled="loading">
-            {{ loading ? 'Logging in...' : 'Login' }}
+            {{ loading ? t('auth.logging_in') : t('auth.login_action') }}
           </button>
         </form>
         
         <div class="signup-link">
-          <p>Don't have an account? <router-link to="/signup">Sign up</router-link></p>
+          <p>{{ t('auth.no_account') }} <router-link to="/signup">{{ t('auth.signup') }}</router-link></p>
         </div>
       </div>
     </div>
@@ -54,7 +54,9 @@ import API_BASE_URL from '@/config/api.js'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const username = ref('')
 const password = ref('')

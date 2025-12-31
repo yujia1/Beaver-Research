@@ -37,7 +37,7 @@ const router = createRouter({
       path: '/research',
       name: 'research',
       component: ResearchView,
-      meta: { requiresAuth: true } // Controlled dynamically
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
 
 
@@ -45,7 +45,7 @@ const router = createRouter({
       path: '/report',
       name: 'report',
       component: ReportView,
-      meta: { requiresAuth: false, requiresPayment: true }
+      meta: { requiresAuth: true, requiresPayment: true }
     },
     {
       path: '/admin',
@@ -57,13 +57,13 @@ const router = createRouter({
       path: '/portfolio',
       name: 'portfolio',
       component: PortfolioView,
-      meta: { requiresAuth: false } // Controlled dynamically
+      meta: { requiresAuth: true }
     },
     {
       path: '/academy',
       name: 'academy',
       component: AcademyView,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: true }
     },
     {
       path: '/framework',
