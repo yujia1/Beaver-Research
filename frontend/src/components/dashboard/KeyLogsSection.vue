@@ -30,13 +30,6 @@
                 </button>
                 <button 
                     class="tab-btn" 
-                    :class="{ active: activeTab === 'fed' }"
-                    @click="activeTab = 'fed'"
-                >
-                    {{ t('dashboard.tabs.fed') }}
-                </button>
-                <button 
-                    class="tab-btn" 
                     :class="{ active: activeTab === 'currency' }"
                     @click="activeTab = 'currency'"
                 >
@@ -59,6 +52,13 @@
                 </button>
                 <button 
                     class="tab-btn" 
+                    :class="{ active: activeTab === 'calendar' }"
+                    @click="activeTab = 'calendar'"
+                >
+                    {{ t('dashboard.tabs.calendar') }}
+                </button>
+                <button 
+                    class="tab-btn" 
                     :class="{ active: activeTab === 'policy' }"
                     @click="activeTab = 'policy'"
                 >
@@ -66,10 +66,10 @@
                 </button>
                 <button 
                     class="tab-btn" 
-                    :class="{ active: activeTab === 'calendar' }"
-                    @click="activeTab = 'calendar'"
+                    :class="{ active: activeTab === 'fed' }"
+                    @click="activeTab = 'fed'"
                 >
-                    {{ t('dashboard.tabs.calendar') }}
+                    {{ t('dashboard.tabs.fed') }}
                 </button>
             </div>
 
