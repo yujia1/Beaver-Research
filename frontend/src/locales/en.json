@@ -83,8 +83,11 @@
         "categories": {
             "liquidity": "Liquidity",
             "forecasting": "Forecasting",
+            "financials": "Financials",
             "metals": "Metals",
+            "agriculture": "Agriculture",
             "agricultural": "Agricultural",
+            "softs_livestock": "Softs & Livestock",
             "industrial": "Industrial",
             "energy": "Energy",
             "balance_sheet": "Balance Sheet / QT",
