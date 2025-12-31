@@ -330,7 +330,7 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
             username=user_data.username,
             hashed_password=hashed_password,
             role=user_data.role,
-            is_verified=False  # User must verify email
+            is_verified=False  
         )
         
         try:
@@ -418,6 +418,20 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Check if email is verified
+        if not user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please verify your email address before logging in. Check your inbox for the verification link."
+            )
+        
+        # Check if account is active
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account has been deactivated. Please contact support."
             )
         
         # Ensure user has a role (default to "user" if missing)
