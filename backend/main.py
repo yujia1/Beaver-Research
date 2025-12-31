@@ -153,15 +153,21 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 logger.info("FastAPI application initialized")
 
-# CORS configuration - Dynamic based on environment
-# Read allowed origins from environment variable, or use defaults for local development
+# CORS configuration
+origins = []
+
+# 1. Load from explicit ALLOWED_ORIGINS env var (comma separated)
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 if allowed_origins_env:
-    # Parse comma-separated origins from environment variable
-    origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
-    logger.info(f"Using CORS origins from ALLOWED_ORIGINS env var: {origins}")
-else:
-    # Default origins for local development
+    origins.extend([origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()])
+
+# 2. Load from FRONTEND_URL env var (single url) - specific user request
+frontend_url = os.getenv("FRONTEND_URL", "")
+if frontend_url:
+    origins.append(frontend_url.strip())
+
+# 3. If no origins defined via env, fallback to local defaults
+if not origins:
     origins = [
         "http://localhost:5173",  # Vue.js dev server (default)
         "http://localhost:5174",  # Vue.js dev server (alternative port)
@@ -170,43 +176,19 @@ else:
         "http://127.0.0.1:8000",
     ]
     logger.info("Using default CORS origins for local development")
-
-# For Railway deployments, allow all Railway app URLs
-# This is safe because Railway URLs are unique and controlled
-allow_all_railway = os.getenv("ALLOW_RAILWAY_ORIGINS", "true").lower() == "true"
-
-if allow_all_railway:
-    # Use a custom origin validator that allows Railway domains
-    def validate_origin(origin: str) -> bool:
-        """Allow Railway domains and configured origins"""
-        if origin in origins:
-            return True
-        # Allow any Railway app domain
-        if ".railway.app" in origin or ".up.railway.app" in origin:
-            return True
-        return False
-    
-    # For Railway, we'll use allow_origin_regex instead
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins for Railway
-        allow_credentials=False,  # Must be False when using allow_origins=["*"]
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
-    logger.info("CORS configured to allow all Railway domains")
 else:
-    # Use explicit origins list
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
-    logger.info(f"CORS configured with explicit origins: {origins}")
+    # Deduplicate origins
+    origins = list(set(origins))
+    logger.info(f"Configured CORS origins from environment: {origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 
 
 @app.on_event("startup")
