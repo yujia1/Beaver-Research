@@ -6,26 +6,26 @@ from redis_client import redis_client
 router = APIRouter()
 
 class CurrencyData(BaseModel):
-    series_id: str
-    indicator: str
+    symbol: str
+    name: str
     description: str
     value: Optional[float] = None
     date: Optional[str] = None
     history: List[Dict[str, Any]]
 
-# Currency metadata
+# Currency metadata (matches currency.py)
 CURRENCY_METADATA = {
-    "DEXUSEU": {
-        "indicator": "U.S. / Euro Foreign Exchange Rate",
-        "description": "U.S. Dollars to One Euro"
+    "EURUSD": {
+        "name": "EUR/USD",
+        "description": "Euro to U.S. Dollar"
     },
-    "DEXJPUS": {
-        "indicator": "Japanese Yen to U.S. Dollar Spot Exchange Rate",
-        "description": "Japanese Yen to One U.S. Dollar"
+    "USDJPY": {
+        "name": "USD/JPY",
+        "description": "U.S. Dollar to Japanese Yen"
     },
-    "DEXCHUS": {
-        "indicator": "China / U.S. Foreign Exchange Rate",
-        "description": "Chinese Yuan to One U.S. Dollar"
+    "USDCNY": {
+        "name": "USD/CNY",
+        "description": "U.S. Dollar to Chinese Yuan"
     }
 }
 
@@ -48,17 +48,17 @@ async def get_all_currencies():
         
         # Transform to frontend format
         results = []
-        for series_id, history in cached_data.items():
-            if series_id in CURRENCY_METADATA:
-                metadata = CURRENCY_METADATA[series_id]
+        for symbol, history in cached_data.items():
+            if symbol in CURRENCY_METADATA:
+                metadata = CURRENCY_METADATA[symbol]
                 
                 # Get latest value
                 latest_value = history[-1]["value"] if history else 0.0
                 latest_date = history[-1]["date"] if history else ""
                 
                 results.append({
-                    "series_id": series_id,
-                    "indicator": metadata["indicator"],
+                    "symbol": symbol,
+                    "name": metadata["name"],
                     "description": metadata["description"],
                     "value": latest_value,
                     "date": latest_date,
@@ -75,13 +75,13 @@ async def get_all_currencies():
         print(f"Error fetching currencies: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch currency data: {str(e)}")
 
-@router.get("/{series_id}")
-async def get_currency_by_series(series_id: str, timeframe: str = "monthly"):
+@router.get("/{symbol}")
+async def get_currency_by_symbol(symbol: str, timeframe: str = "monthly"):
     """
-    Get a specific currency by its series ID.
+    Get a specific currency by its symbol.
     
     Args:
-        series_id: The FRED series ID (e.g., 'DEXUSEU', 'DEXJPUS', 'DEXCHUS')
+        symbol: The FMP forex symbol (e.g., 'EURUSD', 'USDJPY', 'USDCNY')
         timeframe: Time period (currently only 'monthly' is supported)
     
     Returns:
@@ -92,22 +92,22 @@ async def get_currency_by_series(series_id: str, timeframe: str = "monthly"):
         # In the future, we could fetch different timeframes from FMP
         cached_data = redis_client.get_cache("currency:data:monthly")
         
-        if not cached_data or series_id not in cached_data:
-            raise HTTPException(status_code=404, detail=f"Currency {series_id} not found")
+        if not cached_data or symbol not in cached_data:
+            raise HTTPException(status_code=404, detail=f"Currency {symbol} not found")
         
-        if series_id not in CURRENCY_METADATA:
-            raise HTTPException(status_code=404, detail=f"Unknown currency series: {series_id}")
+        if symbol not in CURRENCY_METADATA:
+            raise HTTPException(status_code=404, detail=f"Unknown currency symbol: {symbol}")
         
-        metadata = CURRENCY_METADATA[series_id]
-        history = cached_data[series_id]
+        metadata = CURRENCY_METADATA[symbol]
+        history = cached_data[symbol]
         
         # Get latest value
         latest_value = history[-1]["value"] if history else 0.0
         latest_date = history[-1]["date"] if history else ""
         
         return {
-            "series_id": series_id,
-            "indicator": metadata["indicator"],
+            "symbol": symbol,
+            "name": metadata["name"],
             "description": metadata["description"],
             "value": latest_value,
             "date": latest_date,
@@ -121,5 +121,5 @@ async def get_currency_by_series(series_id: str, timeframe: str = "monthly"):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching currency {series_id}: {e}")
+        print(f"Error fetching currency {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch currency: {str(e)}")
