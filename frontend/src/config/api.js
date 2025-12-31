@@ -3,9 +3,10 @@
 
 function getApiBaseUrl() {
     const hostname = window.location.hostname
+    console.log('Detected hostname:', hostname)
 
     // Local development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
         return 'http://localhost:8000'
     }
 

@@ -586,7 +586,7 @@ const aiReportRunning = ref(false)
 
 const fetchAIReportConfig = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('access_token')
     const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/config`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -606,7 +606,7 @@ const toggleAIReport = async () => {
     aiReportEnabled.value = newValue
     
     try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('access_token')
         await fetch(`${API_BASE_URL}/api/admin/ai-report/config`, {
             method: 'POST',
             headers: { 
@@ -625,7 +625,7 @@ const toggleAIReport = async () => {
 const runAIReport = async () => {
     aiReportRunning.value = true
     try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('access_token')
         const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/run`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
