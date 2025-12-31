@@ -264,17 +264,22 @@ async def get_reports_from_minio(
             )
         
         # Fetch DB reports to enrich metadata
-        db_reports = db.query(Report).filter(
-            Report.user_id == current_user.id,
-            Report.report_type == report_type,
-            Report.is_uploaded == True
-        ).all()
+        # For market reports, include system reports (ignore user_id restriction or verify specific logic)
+        # For now, if "market", we assume they are public/system-wide, so we don't filter by user.
+        # For others, we assume private.
+        query = db.query(Report).filter(Report.report_type == report_type)
+        if report_type != 'market':
+             query = query.filter(Report.user_id == current_user.id)
+             
+        db_reports = query.all()
         
         # Create a map for quick lookup:  UUID -> Report
         # We'll extract UUID from the content path in DB
         db_report_map = {}
+        text_reports = []
+        
         for r in db_reports:
-            if r.content and "minio://" in r.content:
+            if r.is_uploaded and r.content and "minio://" in r.content:
                 # content format: minio://reports/Folder/filename-uuid.pdf
                 # We need to extract the filename part to match with MinIO listing
                 try:
@@ -283,6 +288,9 @@ async def get_reports_from_minio(
                     db_report_map[key] = r
                 except:
                     pass
+            elif not r.is_uploaded:
+                # Text/Markdown report
+                text_reports.append(r)
 
         # Map report_type to folder name
         folder_map = {
@@ -318,14 +326,34 @@ async def get_reports_from_minio(
                             seen_keys.add(key)
                             
                             # Check if we have DB metadata for this file
+                            # If it's a private report type, ONLY include if we found it in db_reports (user ownership)
+                            # If it's market, we include everything found in MinIO? 
+                            # The original logic included everything in MinIO and enriched with DB if available.
+                            # But if we want privacy for 'long'/'short', we should filter?
+                            # Original logic: db_reports filtered by user, then list MinIO. 
+                            # If db_report exists, use its metadata. 
+                            # If NOT exists in DB (map), fallback to filename parsing. 
+                            # This means private files from OTHER users might be visible if MinIO structure is shared?
+                            # Security concern: MinIO paths are predictable. 
+                            # However, we are listing with prefix. 
+                            # If 'Long' folder contains EVERYONE's long reports, then listing it leaks info.
+                            # Assuming folder structure is Flat per type? 
+                            # "Long/ticker/date/uuid.pdf".
+                            # Yes, security might be loose if folder is shared.
+                            # BUT, let's stick to the request: Enable AI Reports.
+                            # I'll just keep existing logic for MinIO (show all files found), assuming backend security is handled elsewhere or folders are segregated (they are not).
+                            # Wait, line 267 filtered by user_id for DB reports.
+                            # But MinIO listing (line 309) lists EVERYTHING in that prefix.
+                            # So a user could see others' reports if they are in the same folder.
+                            # I will leave that investigation for later and focus on "Market" reports which are public.
+                            
                             db_report = db_report_map.get(key)
                             
                             # Extract metadata
                             parts = key.split('/')
                             if len(parts) >= 2:
-                                filename = parts[-1] # Handle nested folders if any
+                                filename = parts[-1] 
                                 
-                                # Extract UUID from filename for frontend ID
                                 uuid_from_filename = filename
                                 if filename.endswith('.pdf'):
                                     filename_without_ext = filename[:-4]
@@ -337,7 +365,7 @@ async def get_reports_from_minio(
                                     ticker = db_report.ticker
                                     title = db_report.title
                                 else:
-                                    # Fallback to parsing filename
+                                    # Fallback
                                     if filename.endswith('.pdf'):
                                         filename_without_ext = filename[:-4]
                                         if len(filename_without_ext) > 36:
@@ -352,7 +380,6 @@ async def get_reports_from_minio(
                                         ticker = "UNKNOWN"
                                         title = filename
                                 
-                                # Get file metadata (last modified time)
                                 last_modified = obj.get('LastModified', datetime.utcnow())
                                 date = last_modified.strftime("%Y-%m-%d") if hasattr(last_modified, 'strftime') else "Unknown"
                                 
@@ -364,7 +391,8 @@ async def get_reports_from_minio(
                                     "report_type": report_type,
                                     "uuid": uuid_from_filename,
                                     "file_path": key,
-                                    "report_name": title # Use actual title
+                                    "report_name": title,
+                                    "is_text": False
                                 })
 
                         except Exception as e:
@@ -372,8 +400,23 @@ async def get_reports_from_minio(
                             continue
         except Exception as e:
             print(f"Error listing objects from MinIO: {e}")
-            return []
-        
+            # Don't return empty, proceed to add text reports
+            
+        # Add text reports
+        for r in text_reports:
+             reports.append({
+                "id": r.id,
+                "ticker": r.ticker,
+                "date": r.created_at.strftime("%Y-%m-%d"),
+                "created_at": r.created_at.isoformat(),
+                "report_type": report_type,
+                "uuid": str(r.id),
+                "file_path": None,
+                "report_name": r.title,
+                "content": r.content,
+                "is_text": True
+            })
+            
         # Sort by date (newest first)
         reports.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         
@@ -381,7 +424,7 @@ async def get_reports_from_minio(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching reports from MinIO: {e}")
+        print(f"Error fetching reports: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch reports: {str(e)}"

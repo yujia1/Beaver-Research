@@ -1,11 +1,13 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 from redis_client import redis_client
 from services.market.indices import fetch_regional_indices_data, fetch_major_indices_data
 from services.market.crypto import fetch_crypto_data
 from services.market.currency import fetch_currency_data
 from services.market.commodity import fetch_commodity_data
 from services.market.economic import fetch_all_economic_data
+from services.ai_report import generate_market_report
 import asyncio
 import json
 
@@ -84,6 +86,16 @@ async def update_economic_data():
     except Exception as e:
         print(f"Scheduler Error (Economic): {e}")
 
+async def scheduled_market_report():
+    try:
+        config = redis_client.get_cache("ai_report:config")
+        if config and config.get("enabled"):
+            print("Scheduler: Starting scheduled AI Market Report...")
+            await generate_market_report()
+            print("Scheduler: Scheduled AI Market Report completed.")
+    except Exception as e:
+        print(f"Scheduler Error (AI Report): {e}")
+
 def start_scheduler():
     # Schedule jobs
     scheduler.add_job(
@@ -125,6 +137,13 @@ def start_scheduler():
         update_economic_data,
         trigger=IntervalTrigger(seconds=300), # 5 mins - economic data updates less frequently
         id='update_economic_data',
+        replace_existing=True
+    )
+
+    scheduler.add_job(
+        scheduled_market_report,
+        trigger=CronTrigger(day_of_week='mon-fri', hour=9, minute=20),
+        id='ai_market_report',
         replace_existing=True
     )
     

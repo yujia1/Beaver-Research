@@ -424,8 +424,31 @@
       </div>
 
       <div v-if="reportManagementTab === 'ai_report'" class="admin-content">
-          <div class="no-results">
-              <p>AI Report content coming soon...</p>
+          <div class="ai-report-section">
+            <h3>AI Market Report Automation</h3>
+            <p class="subtitle">Automatically generate and publish daily market reports using AI.</p>
+            
+            <div class="control-panel">
+                <div class="control-item">
+                    <span class="control-label">Daily Schedule (9:20 AM Mon-Fri)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" :checked="aiReportEnabled" @change="toggleAIReport">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="status-panel">
+                    <p><strong>Last Run:</strong> {{ aiReportLastRun ? formatDate(aiReportLastRun) : 'Never' }}</p>
+                    <p><strong>Status:</strong> <span :class="['job-status', aiReportLastStatus || 'idle']">{{ (aiReportLastStatus || 'unknown').toUpperCase() }}</span></p>
+                </div>
+                
+                <div class="actions-panel">
+                    <button @click="runAIReport" class="action-button verify" :disabled="aiReportRunning">
+                        {{ aiReportRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                    </button>
+                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                </div>
+            </div>
           </div>
       </div>
     </div>
@@ -554,6 +577,79 @@ const reportManagementTab = ref('report')
 const loadingReports = ref(false)
 const reportsError = ref('')
 const reportSearchQuery = ref('')
+
+// AI Report State
+const aiReportEnabled = ref(false)
+const aiReportLastRun = ref(null)
+const aiReportLastStatus = ref(null)
+const aiReportRunning = ref(false)
+
+const fetchAIReportConfig = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/config`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      aiReportEnabled.value = data.enabled
+      aiReportLastRun.value = data.last_run
+      aiReportLastStatus.value = data.last_status
+    }
+  } catch (e) {
+    console.error('Failed to fetch AI report config', e)
+  }
+}
+
+const toggleAIReport = async () => {
+    const newValue = !aiReportEnabled.value
+    aiReportEnabled.value = newValue
+    
+    try {
+        const token = localStorage.getItem('token')
+        await fetch(`${API_BASE_URL}/api/admin/ai-report/config`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled: newValue })
+        })
+    } catch (e) {
+        aiReportEnabled.value = !newValue
+        message.value = t('admin.errors.general')
+        messageType.value = 'error'
+    }
+}
+
+const runAIReport = async () => {
+    aiReportRunning.value = true
+    try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/run`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+             message.value = "Market Report generation started in background."
+             messageType.value = "success"
+             setTimeout(fetchAIReportConfig, 2000)
+        } else {
+            throw new Error('Failed to start')
+        }
+    } catch (e) {
+        message.value = "Failed to start generation."
+        messageType.value = "error"
+    } finally {
+        aiReportRunning.value = false
+    }
+}
+
+watch(reportManagementTab, (newTab) => {
+    if (newTab === 'ai_report') {
+        fetchAIReportConfig()
+    }
+})
 const reportTypeFilter = ref('')
 const deletingReportId = ref(null)
 const reportToDelete = ref(null)
@@ -2163,6 +2259,48 @@ input:disabled + .slider {
   border-bottom-color: #000;
   font-weight: 600;
   background-color: transparent;
+}
+
+.ai-report-section {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+}
+.control-panel {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 600px;
+}
+.control-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+.control-label {
+    font-weight: 500;
+}
+.status-panel {
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+.status-panel p {
+    margin: 5px 0;
+}
+.actions-panel {
+    margin-top: 10px;
+}
+.hint-text {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 5px;
 }
 </style>
 

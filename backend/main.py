@@ -292,6 +292,8 @@ async def startup_event():
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
 app.include_router(payment.router) # Prefix handled in router
+from routers.admin import ai_report_routes
+app.include_router(ai_report_routes.router, prefix="/api/admin/ai-report", tags=["AI Report"])
 
 # Market - Equity
 app.include_router(stocks.router, prefix="/api/market/equity/stocks", tags=["Stocks"])
