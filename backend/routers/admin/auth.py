@@ -849,10 +849,6 @@ async def initialize_permissions(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
         
-    count = db.query(models.RolePermission).count()
-    if count > 0:
-        return {"message": "Permissions already initialized", "count": count}
-        
     resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework"]
     roles = ["creator", "contributor", "user"]
     
@@ -864,13 +860,20 @@ async def initialize_permissions(
     added = 0
     for role in roles:
         for resource in resources:
-            perm = models.RolePermission(
-                role=role,
-                resource=resource,
-                can_access=True
-            )
-            db.add(perm)
-            added += 1
+            # Check if exists
+            exists = db.query(models.RolePermission).filter(
+                models.RolePermission.role == role,
+                models.RolePermission.resource == resource
+            ).first()
+            
+            if not exists:
+                perm = models.RolePermission(
+                    role=role,
+                    resource=resource,
+                    can_access=True
+                )
+                db.add(perm)
+                added += 1
             
     db.commit()
     

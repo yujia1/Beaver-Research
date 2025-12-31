@@ -262,6 +262,11 @@
           <div class="permission-legend">
             <p><small>{{ t('admin.access.legend.admin') }}</small></p>
             <p><small>{{ t('admin.access.legend.refresh') }}</small></p>
+            <div style="margin-top: 20px;">
+              <button @click="initializePermissions" class="action-button verify" :disabled="loadingPermissions">
+                {{ t('admin.access.actions.reset_defaults') || 'Reset Default Permissions' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
