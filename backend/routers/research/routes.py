@@ -3,7 +3,7 @@ Research Intelligence Layer - Data Interpretation Service
 Handles agent-based data interpretation using AI
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
-from routers.admin.auth import verify_premium_access
+from routers.admin.auth import verify_premium_access, get_current_user
 import models
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -80,7 +80,7 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat_interaction(
     request: ChatRequest,
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Direct chat interaction with specific agents.
@@ -143,7 +143,7 @@ engine = ResearchEngine()
 async def process_data_agent(
     request: InterpretRequest,
     data_agent: str = Query(..., alias="data-agent", description="The agent to use for data processing"),
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Process data by collecting fresh data based on agent type, then generating analysis.

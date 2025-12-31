@@ -110,9 +110,18 @@
               <td>{{ user.username }}</td>
               <td>{{ user.email }}</td>
               <td>
-                <span :class="['role-badge', `role-${user.role}`]">
-                  {{ user.role }}
-                </span>
+                <select 
+                  :value="user.role" 
+                  @change="updateUserRole(user, $event.target.value)"
+                  class="role-select"
+                  :class="`role-${user.role}`"
+                  :disabled="updatingUserId === user.id || isCurrentUser(user)"
+                >
+                  <option value="admin">ADMIN</option>
+                  <option value="creator">CREATOR</option>
+                  <option value="contributor">CONTRIBUTOR</option>
+                  <option value="user">USER</option>
+                </select>
               </td>
               <td>
                 <span :class="['payment-badge', user.has_paid ? 'paid' : 'unpaid']">
@@ -649,6 +658,54 @@ const loadUsers = async () => {
     error.value = t('admin.errors.load_users')
   } finally {
     loading.value = false
+  }
+}
+
+const updateUserRole = async (user, newRole) => {
+  if (user.role === newRole) return
+
+  const oldRole = user.role
+  updatingUserId.value = user.id
+  message.value = ''
+
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/auth/users/${user.id}/role`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: newRole })
+    })
+
+    if (!response.ok) {
+        throw new Error(t('admin.errors.update_role') || 'Failed to update role')
+    }
+    
+    // Update successful
+    user.role = newRole
+    message.value = t('admin.messages.role_updated', { username: user.username }) || `Role updated to ${newRole}`
+    messageType.value = 'success'
+    setTimeout(() => message.value = '', 3000)
+
+  } catch (err) {
+    console.error('Error updating role:', err)
+    message.value = err.message
+    messageType.value = 'error'
+    // Revert UI
+    // Force DOM update if needed, but since we rely on :value prop re-render might happen?
+    // Vue's re-render might not trigger if data didn't change (user.role didn't change).
+    // But the <select> value changed by user interaction.
+    // We need to force it back.
+    const selectEl = document.querySelector(`.user-row:nth-child(${users.value.indexOf(user) + 1}) .role-select`)
+    if(selectEl) selectEl.value = oldRole
+    
+    setTimeout(() => {
+      message.value = ''
+    }, 5000)
+  } finally {
+    updatingUserId.value = null
   }
 }
 
@@ -2012,6 +2069,42 @@ input:checked + .slider:before {
 input:disabled + .slider {
     background-color: #e0e0e0;
     cursor: not-allowed;
+}
+
+.role-select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid #e5e5e5;
+  background-color: white;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.5rem;
+}
+
+.role-select.role-admin {
+  background-color: #000;
+  color: #fff;
+  border-color: #000;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23fff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+}
+
+.role-select.role-creator {
+  background-color: #4b5563;
+  color: #fff;
+  border-color: #4b5563;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23fff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+}
+
+.role-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
 }
 </style>
 

@@ -247,6 +247,16 @@ async def get_reports_from_minio(
     try:
         # Validate report type
         valid_report_types = ["daily", "long", "short", "market"]
+        
+        # Access Control: Partially restrict non-paid users
+        is_premium = current_user.role in ["admin", "creator"] or (hasattr(current_user, 'has_paid') and current_user.has_paid)
+        allowed_types_free = ["market", "daily"]
+        
+        if report_type not in allowed_types_free and not is_premium:
+            raise HTTPException(
+                status_code=403,
+                detail="Premium subscription required to access this report type. Please upgrade your plan."
+            )
         if report_type not in valid_report_types:
             raise HTTPException(
                 status_code=400,
@@ -387,6 +397,16 @@ async def get_pdf_from_minio(
 ):
     """Get PDF content from MinIO"""
     try:
+        # Access Control for PDF download
+        is_premium = current_user.role in ["admin", "creator"] or (hasattr(current_user, 'has_paid') and current_user.has_paid)
+        allowed_types_free = ["market", "daily"]
+        
+        if report_type not in allowed_types_free and not is_premium:
+            raise HTTPException(
+                status_code=403,
+                detail="Premium subscription required to access this report."
+            )
+
         # Map report_type to folder name
         folder_map = {
             "daily": "Daily",

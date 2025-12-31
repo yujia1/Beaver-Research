@@ -186,7 +186,7 @@ from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
 # Position endpoints
 @router.get("/positions", response_model=List[PositionResponse])
 async def get_positions(
-    current_user: models.User = Depends(verify_premium_access),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get all positions for the current user with lots and fundamental analysis"""
@@ -444,7 +444,7 @@ def update_fundamental_analysis(
 
 # Stock price endpoint (existing)
 @router.get("/portfolio")
-async def get_portfolio_summary(current_user: models.User = Depends(verify_premium_access)):
+async def get_portfolio_summary(current_user: models.User = Depends(get_current_user)):
     """Get current stock price and info"""
     # This function body needs to be adapted to work with a portfolio summary
     # For now, it's a placeholder based on the original get_stock_data
@@ -457,7 +457,7 @@ async def get_portfolio_summary(current_user: models.User = Depends(verify_premi
 @router.post("/trading-signal")
 async def generate_trading_signal(
     signal_request: TradingSignalRequest,
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(get_current_user)
 ):
     """Get current stock prices for multiple tickers"""
     # This function body needs to be adapted for trading signals.

@@ -667,6 +667,9 @@ class UpdatePaymentStatusRequest(BaseModel):
     has_paid: bool
     transaction_id: Optional[str] = None
 
+class UserRoleUpdate(BaseModel):
+    role: str
+
 @router.post("/update-payment-status")
 async def update_payment_status(
     payment_data: UpdatePaymentStatusRequest,
@@ -698,6 +701,50 @@ async def update_payment_status(
     
     return {
         "message": "Payment status updated successfully",
+        "user": UserResponse.model_validate(user)
+    }
+
+@router.put("/users/{user_id}/role")
+async def update_user_role(
+    user_id: int,
+    role_data: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update a user's role (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can update user roles"
+        )
+    
+    # Prevent admin from changing their own role (avoid lockout)
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot change your own role"
+        )
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    valid_roles = ["admin", "creator", "contributor", "user"]
+    if role_data.role not in valid_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+        )
+        
+    user.role = role_data.role
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "User role updated successfully",
         "user": UserResponse.model_validate(user)
     }
 

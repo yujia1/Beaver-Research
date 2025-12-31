@@ -11,11 +11,13 @@ router = APIRouter()
 @router.post("/generate_report")
 async def generate_report(
     request: ReportRequest, 
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Generate a report using the AI agent.
     """
+    if current_user.role not in ["admin", "creator"]:
+        raise HTTPException(status_code=403, detail="Access denied. Research generation is restricted to Admin and Creator.")
     try:
         report = await agent_service.generate_report(request.data_context, request.prompt_customization)
         return {"report": report}
