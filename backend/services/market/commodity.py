@@ -234,6 +234,7 @@ async def fetch_commodity_data(timeframe: str = "daily") -> Dict[str, Any]:
     # We can perform concurrent fetches
     async with httpx.AsyncClient() as client:
         for category, items in COMMODITY_CATEGORIES.items():
+            print(f"[COMMODITY] Fetching category: {category}")
             category_data = []
             
             for item in items:

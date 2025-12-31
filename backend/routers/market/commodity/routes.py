@@ -29,19 +29,20 @@ async def get_all_commodities():
     """
     try:
         # Get cached data from scheduler
-        cached_data = redis_client.get_cache("commodity:data:monthly")
+        # cached_data = redis_client.get_cache("commodity:data:monthly")
         
-        if cached_data:
-            return cached_data
+        # if cached_data:
+        #     return cached_data
         
         # Cache miss - fetch fresh data (fallback)
-        print("Cache miss for commodity:data:monthly, fetching fresh data...")
+        print("[COMMODITY_ROUTE] Fetching fresh commodity data (cache disabled for debug)...")
         # Use monthly timeframe to match the cache key convention (likely implying 1 year history)
         data = await fetch_commodity_data(timeframe="monthly")
         
         if data:
             # Cache for 4 hours
-            redis_client.set_cache("commodity:data:monthly", data, ttl=14400)
+            # redis_client.set_cache("commodity:data:monthly", data, ttl=14400)
+            print(f"[COMMODITY_ROUTE] Successfully fetched {sum(len(v) for v in data.values())} items")
             return data
             
         # Return empty structure if fetch fails (shouldn't happen often as fetch_commodity_data returns empty dict at worst)

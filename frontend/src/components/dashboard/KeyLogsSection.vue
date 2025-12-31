@@ -2062,12 +2062,17 @@ const updateCommodityIndicatorTimeframe = async (item, timeframe) => {
   
   try {
     const response = await fetch(`${API_BASE_URL}/api/market/commodity/history/${encodeURIComponent(item.series_id)}?timeframe=${timeframe}`);
-    if (!response.ok) throw new Error('Failed to fetch data');
+    console.log(`[COMMODITY] Fetching history for ${item.series_id} at ${timeframe}`);
+    if (!response.ok) {
+        console.error(`[COMMODITY] Failed to fetch history for ${item.series_id}:`, response.status);
+        throw new Error('Failed to fetch data');
+    }
     const data = await response.json();
+    console.log(`[COMMODITY] Received history for ${item.series_id}:`, data.history?.length, 'points');
     
     item.history = data.history || [];
-    item.value = data.value;
-    item.date = data.date;
+    item.value = data.price || data.value; // Handle price/value mismatch
+    item.date = data.date || (item.history.length > 0 ? item.history[item.history.length - 1].date : item.date);
     item.selectedTimeframe = timeframe;
     
     // Cache the data
