@@ -105,7 +105,7 @@ const fetchNews = async () => {
     try {
         // Use the configured API base URL (handling https if needed via config logic)
         // Note: API_BASE_URL usually doesn't end with slash
-        const response = await fetch(`${API_BASE_URL}/api/stream-news/market-news-feed`);
+        const response = await fetch(`${API_BASE_URL}/api/market/news/market-news-feed`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
