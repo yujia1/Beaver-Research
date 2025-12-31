@@ -48,6 +48,7 @@ const {
   politicianTrades,
   businessDescription,
   historicalPrice,
+  executives,
   fetchFinancialData: fetchFinData,
   fetchPoliticianTrades,
   fetchFinancialRatiosComparison,
@@ -1167,6 +1168,12 @@ const closePoliticianModal = () => {
             >
               {{ t('framework.profile_tabs.employee_count') }}
             </button>
+            <button
+              :class="['profile-tab', { active: profileTab === 'executives' }]"
+              @click="profileTab = 'executives'"
+            >
+              {{ t('framework.profile_tabs.executives') }}
+            </button>
           </div>
 
           <div class="profile-content">
@@ -1189,6 +1196,33 @@ const closePoliticianModal = () => {
                 />
               </div>
               <p v-else class="placeholder-text">No employee count data available</p>
+            </div>
+
+            <!-- Executives Tab -->
+            <div v-if="profileTab === 'executives'">
+              <div v-if="executives && executives.length > 0" class="data-table-wrapper" style="margin-top: 2rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="period-header">{{ t('framework.executives.name') }}</th>
+                      <th class="period-header">{{ t('framework.executives.title') }}</th>
+                      <th class="period-header">{{ t('framework.executives.pay') }}</th>
+                      <th class="period-header">{{ t('framework.executives.year_born') }}</th>
+                      <th class="period-header">{{ t('framework.executives.gender') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(exec, index) in executives" :key="index" class="data-row">
+                      <td class="data-cell">{{ exec.name }}</td>
+                      <td class="data-cell">{{ exec.title }}</td>
+                      <td class="data-cell">{{ exec.pay ? formatCurrency(exec.pay) : '-' }}</td>
+                      <td class="data-cell">{{ exec.yearBorn || '-' }}</td>
+                      <td class="data-cell" style="text-transform: capitalize;">{{ exec.gender || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p v-else class="placeholder-text">{{ t('framework.executives.no_data') }}</p>
             </div>
 
 

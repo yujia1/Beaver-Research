@@ -1053,7 +1053,16 @@
         "profile_tabs": {
             "business": "Business",
             "employee_count": "Employee Count",
-            "mergers_acquisitions": "Mergers & Acquisitions"
+            "mergers_acquisitions": "Mergers & Acquisitions",
+            "executives": "Executives"
+        },
+        "executives": {
+            "name": "Name",
+            "title": "Title",
+            "pay": "Pay",
+            "year_born": "Year Born",
+            "gender": "Gender",
+            "no_data": "No executives data available"
         },
         "analysis": {
             "profile": "Company Profile",
