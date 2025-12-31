@@ -114,12 +114,12 @@ def start_scheduler():
         replace_existing=True
     )
     
-    # scheduler.add_job(
-    #     update_commodity_data,
-    #     trigger=IntervalTrigger(seconds=60), # 1 min
-    #     id='update_commodity_data',
-    #     replace_existing=True
-    # )
+    scheduler.add_job(
+        update_commodity_data,
+        trigger=IntervalTrigger(seconds=60), # 1 min
+        id='update_commodity_data',
+        replace_existing=True
+    )
     
     scheduler.add_job(
         update_economic_data,
@@ -137,5 +137,5 @@ async def run_initial_fetch():
     await update_major_indices()
     await update_crypto_data()
     await update_currency_data()
-    # await update_commodity_data()
+    await update_commodity_data()
     await update_economic_data()
