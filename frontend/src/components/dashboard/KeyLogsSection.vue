@@ -1877,12 +1877,20 @@ const fetchCurrencyData = async () => {
     if (!response.ok) throw new Error('Failed to fetch currency data');
     const data = await response.json();
     
+    console.log('[CURRENCY] Received data:', data);
+    console.log('[CURRENCY] Data length:', data.length);
+    
     // Data is already in the correct format from the backend
-    const processedData = data.map(item => ({
-      ...item,
-      selectedTimeframe: 'monthly',
-      loading: false
-    }));
+    const processedData = data.map(item => {
+      console.log('[CURRENCY] Processing item:', item.indicator, 'series_id:', item.series_id);
+      return {
+        ...item,
+        selectedTimeframe: 'monthly',
+        loading: false
+      };
+    });
+    
+    console.log('[CURRENCY] Processed data:', processedData);
     
     currencyIndicators.value = processedData;
     
@@ -1899,6 +1907,12 @@ const fetchCurrencyData = async () => {
 const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   if (item.selectedTimeframe === timeframe) return;
   
+  // Safety check for series_id
+  if (!item.series_id) {
+    console.error('[CURRENCY] Missing series_id for item:', item);
+    return;
+  }
+  
   item.selectedTimeframe = timeframe;
   item.loading = true;
   
@@ -1912,6 +1926,7 @@ const updateCurrencyIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
+    console.log('[CURRENCY] Fetching timeframe data for:', item.series_id, 'timeframe:', timeframe);
     // Use the new currency endpoint
     const response = await fetch(`${API_BASE_URL}/api/market/currency/${item.series_id}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
