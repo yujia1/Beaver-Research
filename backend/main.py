@@ -39,7 +39,6 @@ from routers import stream
 
 from routers.market.equity import indices, markets_wire, sec, stocks
 from routers.market.bond import routes as bond
-from routers.market.commodity import energy
 from routers.market.commodity import routes as commodity_routes
 from routers.market.currency import routes as currency_routes
 from routers.market.policy import routes as policy_routes
@@ -334,7 +333,6 @@ app.include_router(sec.router, prefix="/api/market/sec", tags=["SEC Data"])
 app.include_router(bond.router, prefix="/api/market/bond", tags=["Bond Data"])
 
 # Market - Commodity
-app.include_router(energy.router, prefix="/api/market/commodity/energy", tags=["Energy"])
 app.include_router(commodity_routes.router, prefix="/api/market/commodity", tags=["Commodities"])
 
 # Market - Currency
