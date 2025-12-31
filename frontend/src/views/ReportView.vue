@@ -1,7 +1,6 @@
 <template>
   <div class="report-view">
-    <PaymentGate v-if="!hasPaid && !loading" />
-    <div v-else-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
       <p>{{ t('reports_page.checking_access') }}</p>
     </div>
@@ -36,8 +35,12 @@
               <div v-else>
                 <!-- Long Position Reports -->
                 <div v-if="activeCategory === 'long'" class="report-category">
-                    <div v-if="longReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.long') }}</div>
-                    <ul v-else class="report-list">
+                    <div v-if="!hasPaid">
+                        <PaymentGate />
+                    </div>
+                    <div v-else>
+                        <div v-if="longReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.long') }}</div>
+                        <ul v-else class="report-list">
                         <li v-for="savedReport in longReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
                                 <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
@@ -57,6 +60,7 @@
                             </div>
                         </li>
                     </ul>
+                    </div>
             </div>
             
                 <!-- Daily Reports -->
@@ -111,8 +115,12 @@
 
                 <!-- Short Position Reports -->
                 <div v-if="activeCategory === 'short'" class="report-category">
-                    <div v-if="shortReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.short') }}</div>
-            <ul v-else class="report-list">
+                    <div v-if="!hasPaid">
+                        <PaymentGate />
+                    </div>
+                    <div v-else>
+                        <div v-if="shortReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.short') }}</div>
+                        <ul v-else class="report-list">
                         <li v-for="savedReport in shortReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
                                 <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
@@ -132,6 +140,7 @@
                             </div>
                 </li>
             </ul>
+            </div>
         </div>
     </div>
             </div>
@@ -281,9 +290,9 @@ const checkPaymentStatus = async () => {
       const status = await response.json();
       hasPaid.value = status.has_paid || false;
       // Fetch reports if user has paid
-      if (hasPaid.value) {
-        fetchReports();
-      }
+      hasPaid.value = status.has_paid || false;
+      // Fetch reports
+      fetchReports();
     } else if (response.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('access_token');
@@ -305,15 +314,11 @@ const handlePaymentVerified = () => {
 };
 
 const handleReportPublished = () => {
-  if (hasPaid.value) {
-    fetchReports();
-  }
+  fetchReports();
 };
 
 const handleReportDeleted = () => {
-  if (hasPaid.value) {
-    fetchReports(); // Refetch reports when one is deleted
-  }
+  fetchReports(); // Refetch reports when one is deleted
 };
 
 onMounted(() => {

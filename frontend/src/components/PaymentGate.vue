@@ -10,7 +10,7 @@
         <div class="features-list">
           <h2>{{ t('payment_gate.features_title') }}</h2>
           <ul>
-            <li>✓ {{ t('payment_gate.features.ai_analysis') }}</li>
+            <li>✓ {{ t('payment_gate.features.analysis') }}</li>
             <li>✓ {{ t('payment_gate.features.market_data') }}</li>
             <li>✓ {{ t('payment_gate.features.research_tools') }}</li>
             <li>✓ {{ t('payment_gate.features.data_vault') }}</li>
