@@ -2061,7 +2061,7 @@ const updateCommodityIndicatorTimeframe = async (item, timeframe) => {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/internal/macro/series/${item.series_id}?timeframe=${timeframe}`);
+    const response = await fetch(`${API_BASE_URL}/api/market/commodity/history/${encodeURIComponent(item.series_id)}?timeframe=${timeframe}`);
     if (!response.ok) throw new Error('Failed to fetch data');
     const data = await response.json();
     

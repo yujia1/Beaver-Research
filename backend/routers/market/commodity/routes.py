@@ -14,11 +14,14 @@ class CommodityData(BaseModel):
     changePercent: float
     history: List[Dict[str, Any]]
 
+from services.market.commodity import fetch_commodity_data
+
 @router.get("/", response_model=Dict[str, List[Dict[str, Any]]])
 async def get_all_commodities():
     """
     Get all commodity data organized by category.
     Returns data from Redis cache populated by the scheduler.
+    If cache is empty, fetches fresh data immediately.
     
     Returns:
         Dict with categories as keys (Financials, Metals, Energy, Agriculture, Softs & Livestock)
@@ -30,15 +33,25 @@ async def get_all_commodities():
         
         if cached_data:
             return cached_data
-        else:
-            # Return empty structure if no data yet
-            return {
-                "Financials": [],
-                "Metals": [],
-                "Energy": [],
-                "Agriculture": [],
-                "Softs & Livestock": []
-            }
+        
+        # Cache miss - fetch fresh data (fallback)
+        print("Cache miss for commodity:data:monthly, fetching fresh data...")
+        # Use monthly timeframe to match the cache key convention (likely implying 1 year history)
+        data = await fetch_commodity_data(timeframe="monthly")
+        
+        if data:
+            # Cache for 4 hours
+            redis_client.set_cache("commodity:data:monthly", data, ttl=14400)
+            return data
+            
+        # Return empty structure if fetch fails (shouldn't happen often as fetch_commodity_data returns empty dict at worst)
+        return {
+            "Financials": [],
+            "Metals": [],
+            "Energy": [],
+            "Agriculture": [],
+            "Softs & Livestock": []
+        }
             
     except Exception as e:
         print(f"Error fetching commodities: {e}")
@@ -74,3 +87,23 @@ async def get_commodity_by_symbol(symbol: str):
     except Exception as e:
         print(f"Error fetching commodity {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch commodity: {str(e)}")
+
+from services.market.commodity import fetch_single_commodity
+
+@router.get("/history/{symbol}")
+async def get_commodity_history(symbol: str, timeframe: str = "daily"):
+    """
+    Get history for a specific commodity by symbol and timeframe.
+    """
+    try:
+        # For now, fetch live data. Can implement caching later if needed.
+        data = await fetch_single_commodity(symbol, timeframe)
+        if not data:
+            raise HTTPException(status_code=404, detail=f"Commodity {symbol} not found")
+        return data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching commodity history {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch commodity history: {str(e)}")
