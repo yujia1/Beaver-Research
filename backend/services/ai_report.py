@@ -129,40 +129,59 @@ def format_data_for_agent(data: dict) -> str:
 
     # Equity
     if "equity" in data:
-        major = data["equity"].get("major_indices", [])
-        summary.append(format_list("Equity: Major Indices", major, 'symbol', 'price', 'changesPercentage'))
+        if "error" in data["equity"]:
+             summary.append(f"\n## Equity\nError collecting data: {data['equity']['error']}")
+        else:
+            major = data["equity"].get("major_indices", [])
+            summary.append(format_list("Equity: Major Indices", major, 'symbol', 'price', 'changesPercentage'))
 
     # Bond
     if "bond" in data:
-        # Bond data is structured by categories in the router return
         bonds = data["bond"]
-        summary.append("\n## Bond Market")
-        for cat, items in bonds.items():
-            summary.append(f"\n### {cat}")
-            for item in items:
-                title = item.get('title')
-                val = item.get('current_value')
-                summary.append(f"- {title}: {val}")
+        if "error" in bonds:
+            summary.append(f"\n## Bond Market\nError collecting data: {bonds['error']}")
+        else:
+            summary.append("\n## Bond Market")
+            for cat, items in bonds.items():
+                if not isinstance(items, list): continue
+                summary.append(f"\n### {cat}")
+                for item in items:
+                    if not isinstance(item, dict): continue
+                    title = item.get('title')
+                    val = item.get('current_value')
+                    summary.append(f"- {title}: {val}")
 
     # Currency
     if "currency" in data:
         curr = data["currency"]
-        summary.append(format_list("Currency", curr, 'ticker', 'price', 'changesPercentage'))
+        if isinstance(curr, dict) and "error" in curr:
+             summary.append(f"\n## Currency\nError collecting data: {curr['error']}")
+        elif isinstance(curr, list):
+             summary.append(format_list("Currency", curr, 'ticker', 'price', 'changesPercentage'))
 
     # Commodity
     if "commodity" in data:
         comm = data["commodity"]
-        summary.append(format_list("Commodities", comm, 'name', 'price', 'changesPercentage'))
+        if isinstance(comm, dict) and "error" in comm:
+             summary.append(f"\n## Commodities\nError collecting data: {comm['error']}")
+        elif isinstance(comm, list):
+             summary.append(format_list("Commodities", comm, 'name', 'price', 'changesPercentage'))
 
     # Crypto
     if "crypto" in data:
         cry = data["crypto"]
-        summary.append(format_list("Crypto", cry, 'symbol', 'price', 'changesPercentage'))
+        if isinstance(cry, dict) and "error" in cry:
+             summary.append(f"\n## Crypto\nError collecting data: {cry['error']}")
+        elif isinstance(cry, list):
+             summary.append(format_list("Crypto", cry, 'symbol', 'price', 'changesPercentage'))
 
     # Economic
     if "economic" in data:
-        eco = data["economic"].get("indicators", [])
-        summary.append(format_list("Economic Indicators (Latest)", eco, 'indicator', 'value', ''))
+        if "error" in data["economic"]:
+             summary.append(f"\n## Economic Indicators\nError collecting data: {data['economic']['error']}")
+        else:
+             eco = data["economic"].get("indicators", [])
+             summary.append(format_list("Economic Indicators (Latest)", eco, 'indicator', 'value', ''))
 
     # Calendar
     if "calendar" in data:
