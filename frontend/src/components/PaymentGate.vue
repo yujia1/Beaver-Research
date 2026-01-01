@@ -23,6 +23,7 @@
           <div class="plan-options">
             <button 
               :class="['plan-option', { selected: selectedPlan === 'monthly' }]"
+              :disabled="isProcessing"
               @click="selectPlan('monthly')"
             >
               <div class="plan-header">
@@ -35,6 +36,7 @@
             
             <button 
               :class="['plan-option', { selected: selectedPlan === 'annual' }]"
+              :disabled="isProcessing"
               @click="selectPlan('annual')"
             >
               <div class="plan-header">
@@ -67,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { loadStripe } from '@stripe/stripe-js'
@@ -79,61 +81,64 @@ const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const selectedPlan = ref('annual') // Default to annual (better value)
+const isProcessing = ref(false) // Prevent double-clicks
 
 // Check if Stripe key is configured
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
-if (!stripePublishableKey) {
-  error.value = 'Stripe is not configured. Please contact support.'
-  loading.value = false
-}
-
+// Initialize Stripe Promise globally
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 let checkoutInstance = null
 
 const selectPlan = async (plan) => {
-  if (selectedPlan.value === plan) return // Don't reinitialize if same plan
+  if (selectedPlan.value === plan || isProcessing.value) return // Don't reinitialize if same plan or processing
   
+  isProcessing.value = true
   selectedPlan.value = plan
   
-  // Properly destroy previous checkout
+  // Cleanup previous instance
   if (checkoutInstance) {
     try {
       await checkoutInstance.destroy()
-      console.log('Previous checkout destroyed')
     } catch (e) {
-      console.log('Error destroying checkout:', e)
+      // Ignore cleanup errors
     }
     checkoutInstance = null
   }
   
-  // Reinitialize checkout with new plan
+  // Reinitialize
   await initializeCheckout()
+  isProcessing.value = false
 }
 
 const initializeCheckout = async () => {
+  // Only set loading true if we aren't just switching plans? 
+  // Actually, we need to show loading because we are fetching a new session
   loading.value = true
   error.value = ''
   
-  // Destroy previous checkout if exists (safety check)
+  // Cleanup safety check
   if (checkoutInstance) {
     try {
       await checkoutInstance.destroy()
-      console.log('Checkout destroyed before reinitializing')
     } catch (e) {
-      console.log('Checkout already destroyed')
+      // Ignore
     }
     checkoutInstance = null
   }
   
   try {
+    if (!stripePublishableKey) {
+      throw new Error('Stripe is not configured. Please contact support.')
+    }
+
     const token = localStorage.getItem('access_token')
     if (!token) {
       router.push('/login')
       return
     }
 
-    // Create checkout session with selected plan
+    // Create checkout session
     const response = await fetch(`${API_BASE_URL}/api/payment/create-checkout-session`, {
       method: 'POST',
       headers: {
@@ -151,45 +156,39 @@ const initializeCheckout = async () => {
     }
 
     const data = await response.json()
-    console.log('Checkout session response:', data)
-    
     const { clientSecret } = data
     
     if (!clientSecret) {
       throw new Error('No client secret returned from server')
     }
     
-    // Initialize Stripe
+    // Load Stripe
     const stripe = await stripePromise
-    
     if (!stripe) {
-      throw new Error('Stripe failed to load. Please check your publishable key.')
+      throw new Error('Stripe failed to initialize')
     }
     
-    // Wait for next tick to ensure DOM is ready (keep loading=true during this)
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Reveal container
+    loading.value = false
+    await nextTick()
     
-    // Verify the checkout element exists
+    // Verify DOM
     const checkoutElement = document.getElementById('checkout')
     if (!checkoutElement) {
       throw new Error('Checkout container not found in DOM')
     }
     
-    console.log('Mounting Stripe checkout...')
-    
-    // Mount embedded checkout
+    // Mount
     checkoutInstance = await stripe.initEmbeddedCheckout({
       clientSecret
     })
     
     checkoutInstance.mount('#checkout')
-    console.log('Stripe checkout mounted successfully')
     
   } catch (err) {
-    console.error('Checkout error:', err)
-    error.value = err.message || 'Failed to load payment form. Please try again.'
-  } finally {
-    // Always set loading to false when done (success or error)
+    console.error('Payment initialization error:', err)
+    error.value = err.message || 'Failed to request payment session.'
+    // Ensure loading is false so error is shown
     loading.value = false
   }
 }
@@ -199,13 +198,11 @@ onMounted(() => {
 })
 
 onUnmounted(async () => {
-  // Cleanup checkout instance when component is destroyed
   if (checkoutInstance) {
     try {
       await checkoutInstance.destroy()
-      console.log('Checkout cleaned up on unmount')
     } catch (e) {
-      console.log('Error cleaning up checkout:', e)
+      // Ignore
     }
     checkoutInstance = null
   }
@@ -310,7 +307,13 @@ onUnmounted(async () => {
   text-align: left;
 }
 
-.plan-option:hover {
+.plan-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.plan-option:not(:disabled):hover {
   border-color: #000000;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -422,126 +425,5 @@ onUnmounted(async () => {
   .plan-options {
     grid-template-columns: 1fr;
   }
-}
-</style>
-
-<style scoped>
-.payment-gate {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  padding: 2rem;
-}
-
-.payment-container {
-  max-width: 800px;
-  width: 100%;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 3rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.payment-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.payment-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.5rem;
-}
-
-.subtitle {
-  color: #4b5563;
-  font-size: 1rem;
-}
-
-.payment-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.features-list {
-  background: #f9fafb;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.features-list h2 {
-  color: #000000;
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.features-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.features-list li {
-  color: #1f2937;
-  padding: 0.5rem 0;
-  font-size: 1rem;
-}
-
-.checkout-section {
-  min-height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 2rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #000000;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.error-message {
-  color: #ef4444;
-  margin-bottom: 1rem;
-}
-
-.retry-button {
-  background: #000000;
-  color: #ffffff;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.retry-button:hover {
-  background: #262626;
-  transform: translateY(-2px);
-}
-
-#checkout {
-  width: 100%;
 }
 </style>
