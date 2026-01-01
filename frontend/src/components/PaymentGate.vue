@@ -82,7 +82,6 @@ const selectedPlan = ref('annual') // Default to annual (better value)
 
 // Check if Stripe key is configured
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-console.log('Stripe publishable key configured:', !!stripePublishableKey)
 
 if (!stripePublishableKey) {
   error.value = 'Stripe is not configured. Please contact support.'
