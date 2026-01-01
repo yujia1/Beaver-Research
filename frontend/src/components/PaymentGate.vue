@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { loadStripe } from '@stripe/stripe-js'
@@ -91,22 +91,37 @@ if (!stripePublishableKey) {
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 let checkoutInstance = null
 
-const selectPlan = (plan) => {
+const selectPlan = async (plan) => {
+  if (selectedPlan.value === plan) return // Don't reinitialize if same plan
+  
   selectedPlan.value = plan
+  
+  // Properly destroy previous checkout
+  if (checkoutInstance) {
+    try {
+      await checkoutInstance.destroy()
+      console.log('Previous checkout destroyed')
+    } catch (e) {
+      console.log('Error destroying checkout:', e)
+    }
+    checkoutInstance = null
+  }
+  
   // Reinitialize checkout with new plan
-  initializeCheckout()
+  await initializeCheckout()
 }
 
 const initializeCheckout = async () => {
   loading.value = true
   error.value = ''
   
-  // Unmount previous checkout if exists
+  // Destroy previous checkout if exists (safety check)
   if (checkoutInstance) {
     try {
-      checkoutInstance.unmount()
+      await checkoutInstance.destroy()
+      console.log('Checkout destroyed before reinitializing')
     } catch (e) {
-      console.log('Checkout already unmounted')
+      console.log('Checkout already destroyed')
     }
     checkoutInstance = null
   }
@@ -182,6 +197,19 @@ const initializeCheckout = async () => {
 
 onMounted(() => {
   initializeCheckout()
+})
+
+onUnmounted(async () => {
+  // Cleanup checkout instance when component is destroyed
+  if (checkoutInstance) {
+    try {
+      await checkoutInstance.destroy()
+      console.log('Checkout cleaned up on unmount')
+    } catch (e) {
+      console.log('Error cleaning up checkout:', e)
+    }
+    checkoutInstance = null
+  }
 })
 </script>
 
