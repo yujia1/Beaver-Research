@@ -134,8 +134,12 @@ const menuItems = computed(() => {
 // Update stores on mount
 onMounted(() => {
   // Check if we have token
-  if (userStore.isAuthenticated && !userStore.user) {
-    userStore.fetchUser(API_BASE_URL)
+  // Check if we have token
+  if (userStore.isAuthenticated) {
+    if (!userStore.user) {
+      userStore.fetchUser(API_BASE_URL)
+    }
+    // Always fetch latest permissions to ensure UI matches backend state
     permissionStore.fetch(API_BASE_URL)
   }
 })

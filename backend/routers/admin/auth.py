@@ -928,11 +928,16 @@ async def initialize_permissions(
     # Default Policy:
     # Creator: Access to everything
     # Contributor: Access to everything
-    # User: Access to everything (start open, let admin restrict)
+    # User: Restricted access to premium features
     
     added = 0
     for role in roles:
         for resource in resources:
+            # Determine default access
+            default_access = True
+            if role == "user" and resource in ["/research", "/agent", "/report"]:
+                default_access = False
+
             # Check if exists
             exists = db.query(models.RolePermission).filter(
                 models.RolePermission.role == role,
@@ -943,7 +948,7 @@ async def initialize_permissions(
                 perm = models.RolePermission(
                     role=role,
                     resource=resource,
-                    can_access=True
+                    can_access=default_access
                 )
                 db.add(perm)
                 added += 1
