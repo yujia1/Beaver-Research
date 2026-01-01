@@ -33,6 +33,15 @@ def create_checkout_session(
     """
     if not stripe.api_key:
          raise HTTPException(status_code=500, detail="Stripe API key not configured")
+    
+    if not STRIPE_PRICE_MONTHLY or not STRIPE_PRICE_ANNUAL:
+        raise HTTPException(
+            status_code=500, 
+            detail="Stripe price IDs not configured. Please set STRIPE_PRICE_MONTHLY and STRIPE_PRICE_ANNUAL environment variables."
+        )
+    
+    if not FRONTEND_URL:
+        raise HTTPException(status_code=500, detail="FRONTEND_URL not configured")
 
     # Select price based on plan
     if request.plan == "annual":
