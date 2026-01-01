@@ -922,7 +922,7 @@ async def initialize_permissions(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
         
-    resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework"]
+    resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market"]
     roles = ["creator", "contributor", "user"]
     
     # Default Policy:

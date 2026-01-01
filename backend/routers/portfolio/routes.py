@@ -189,7 +189,7 @@ from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
 # Position endpoints
 @router.get("/positions", response_model=List[PositionResponse])
 async def get_positions(
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Get all positions for the current user with lots and fundamental analysis"""
@@ -240,7 +240,7 @@ async def get_positions(
 @router.post("/positions")
 async def create_position(
     position: PositionCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Create a new position for the current user"""
@@ -275,7 +275,7 @@ async def create_position(
 @router.delete("/positions/{ticker}")
 def delete_position(
     ticker: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Delete a position and all associated lots for the current user"""
@@ -297,7 +297,7 @@ def delete_position(
 def add_lot(
     ticker: str,
     lot: LotCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Add a lot to a position for the current user"""
@@ -336,7 +336,7 @@ def add_lot(
 def update_lot(
     lot_id: int,
     lot: LotUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Update a lot (verify user owns the position)"""
@@ -371,7 +371,7 @@ def update_lot(
 @router.delete("/lots/{lot_id}")
 def delete_lot(
     lot_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Delete a lot (verify user owns the position)"""
@@ -405,7 +405,7 @@ def delete_lot(
 def update_fundamental_analysis(
     ticker: str,
     analysis: FundamentalAnalysisUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
     """Update fundamental analysis for a position owned by current user"""
@@ -447,7 +447,7 @@ def update_fundamental_analysis(
 
 # Stock price endpoint (existing)
 @router.get("/portfolio")
-async def get_portfolio_summary(current_user: models.User = Depends(get_current_user)):
+async def get_portfolio_summary(current_user: models.User = Depends(require_portfolio_access)):
     """Get current stock price and info"""
     # This function body needs to be adapted to work with a portfolio summary
     # For now, it's a placeholder based on the original get_stock_data
@@ -460,7 +460,7 @@ async def get_portfolio_summary(current_user: models.User = Depends(get_current_
 @router.post("/trading-signal")
 async def generate_trading_signal(
     signal_request: TradingSignalRequest,
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(require_portfolio_access)
 ):
     """Get current stock prices for multiple tickers"""
     # This function body needs to be adapted for trading signals.

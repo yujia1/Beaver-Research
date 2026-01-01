@@ -83,7 +83,7 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat_interaction(
     request: ChatRequest,
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(require_research_access)
 ):
     """
     Direct chat interaction with specific agents.
@@ -146,7 +146,7 @@ engine = ResearchEngine()
 async def process_data_agent(
     request: InterpretRequest,
     data_agent: str = Query(..., alias="data-agent", description="The agent to use for data processing"),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(require_research_access)
 ):
     """
     Process data by collecting fresh data based on agent type, then generating analysis.
@@ -465,7 +465,11 @@ def get_icon_for_type(data_type: str) -> str:
 
 
 @router.get("/financial-analysis/{ticker}")
-async def get_financial_analysis(ticker: str, period: str = "annual"):
+async def get_financial_analysis(
+    ticker: str, 
+    period: str = "annual",
+    current_user: models.User = Depends(require_research_access)
+):
     """Fetch and analyze comprehensive financial statements for a ticker."""
     try:
         print(f"[FINANCIAL_ANALYSIS] Fetching financial analysis for {ticker}, period: {period}")
@@ -564,7 +568,8 @@ async def get_financial_analysis(ticker: str, period: str = "annual"):
 async def get_company_data(
     ticker: str, 
     agent: str = Query(..., description="Agent ID"),
-    refresh: bool = Query(False, description="Force refresh and bypass cache")
+    refresh: bool = Query(False, description="Force refresh and bypass cache"),
+    current_user: models.User = Depends(require_research_access)
 ):
     """
     Fetch company data bubbles for the given ticker and agent.
@@ -932,7 +937,8 @@ async def process_market_data_with_agent(raw_data: Dict, agent_id: str, sub_agen
 @router.get("/market-data")
 async def get_market_data(
     agent: str = Query(..., description="Agent ID"),
-    refresh: bool = Query(False, description="Force refresh and bypass cache")
+    refresh: bool = Query(False, description="Force refresh and bypass cache"),
+    current_user: models.User = Depends(require_research_access)
 ):
     """
     Fetch global market data bubbles for the given agent.
