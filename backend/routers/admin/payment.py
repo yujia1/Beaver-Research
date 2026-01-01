@@ -13,9 +13,9 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 router = APIRouter(prefix="/api/payment", tags=["payment"])
 
 # Price IDs for monthly and annual subscriptions
-STRIPE_PRICE_MONTHLY = os.getenv("STRIPE_PRICE_MONTHLY", "price_1SktANGas9HsTlXLX1sYzWLx")
-STRIPE_PRICE_ANNUAL = os.getenv("STRIPE_PRICE_ANNUAL", "price_1SktBJGas9HsTlXLDXm9H3lr")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+STRIPE_PRICE_MONTHLY = os.getenv("STRIPE_PRICE_MONTHLY")
+STRIPE_PRICE_ANNUAL = os.getenv("STRIPE_PRICE_ANNUAL")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 class CheckoutRequest(BaseModel):
     plan: str  # "monthly" or "annual"
