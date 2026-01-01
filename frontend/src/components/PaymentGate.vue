@@ -166,10 +166,7 @@ const initializeCheckout = async () => {
       throw new Error('Stripe failed to load. Please check your publishable key.')
     }
     
-    // Stop loading to show the checkout container
-    loading.value = false
-    
-    // Wait for next tick to ensure DOM is updated
+    // Wait for next tick to ensure DOM is ready (keep loading=true during this)
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // Verify the checkout element exists
@@ -191,6 +188,8 @@ const initializeCheckout = async () => {
   } catch (err) {
     console.error('Checkout error:', err)
     error.value = err.message || 'Failed to load payment form. Please try again.'
+  } finally {
+    // Always set loading to false when done (success or error)
     loading.value = false
   }
 }
