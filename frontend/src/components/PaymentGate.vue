@@ -215,14 +215,14 @@ onUnmounted(async () => {
 
 .payment-container {
   display: grid;
-  grid-template-columns: 1fr 1.2fr; /* Right side slightly wider for checkout */
-  gap: 3rem;
-  max-width: 1100px;
-  width: 100%;
+  grid-template-columns: 0.8fr 1.2fr; /* Give more space to checkout form */
+  gap: 4rem; /* Increased gap for better separation */
+  max-width: 1400px; /* Much wider container */
+  width: 95%; /* Take up most of width on smaller screens */
   background: #ffffff;
   border-radius: 20px;
-  padding: 3rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08); /* Softer, more modern shadow */
+  padding: 3rem 4rem; /* More horizontal padding */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.03);
   align-items: start;
 }
