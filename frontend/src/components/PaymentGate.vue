@@ -2,8 +2,8 @@
   <div class="payment-gate">
     <div class="payment-container">
       
-      <!-- LEFT COLUMN: Inputs (Plan Selection + Payment) -->
-      <div class="input-column">
+      <!-- LEFT COLUMN: Plan Selection & Summary -->
+      <div class="left-column">
         
         <!-- Header -->
         <div class="brand-header">
@@ -51,7 +51,54 @@
           </div>
         </section>
 
-        <!-- 2. Pay With (Stripe) -->
+        <!-- 2. Plan Details (Summary) -->
+        <section class="summary-section">
+          <div class="summary-card">
+            <h2 class="summary-title">Plan details</h2>
+            
+            <div class="selected-plan-info">
+              <h3 class="plan-name">{{ selectedPlan === 'annual' ? 'Professional Annual' : 'Professional Monthly' }}</h3>
+              <p class="plan-desc">Premium market intelligence access</p>
+              
+              <div class="big-price">
+                {{ selectedPlan === 'annual' ? '$300' : '$29' }} 
+                <span class="period">/ {{ selectedPlan === 'annual' ? 'year' : 'month' }}</span>
+              </div>
+            </div>
+
+            <div class="feature-divider"></div>
+
+            <p class="includes-label">This includes:</p>
+            <ul class="summary-features">
+              <li>
+                <span class="check-icon">✓</span>
+                <span>Real-time market analysis & insights</span>
+              </li>
+              <li>
+                <span class="check-icon">✓</span>
+                <span>Advanced AI Research Reports</span>
+              </li>
+              <li>
+                <span class="check-icon">✓</span>
+                <span>Exclusive Data Vault access</span>
+              </li>
+              <li>
+                <span class="check-icon">✓</span>
+                <span>Full institutional-grade toolkit</span>
+              </li>
+            </ul>
+
+            <div class="total-line">
+              <span>Total due today</span>
+              <span class="total-amount">{{ selectedPlan === 'annual' ? '$300.00' : '$29.00' }}</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Payment Form (Embedded Checkout) -->
+      <div class="right-column">
         <section class="payment-section">
           <h2 class="section-title">Pay with</h2>
           
@@ -64,51 +111,6 @@
             <div id="checkout"></div>
           </div>
         </section>
-
-      </div>
-
-      <!-- RIGHT COLUMN: Summary (Plan Details) -->
-      <div class="summary-column">
-        <div class="summary-card">
-          <h2 class="summary-title">Plan details</h2>
-          
-          <div class="selected-plan-info">
-            <h3 class="plan-name">{{ selectedPlan === 'annual' ? 'Professional Annual' : 'Professional Monthly' }}</h3>
-            <p class="plan-desc">Premium market intelligence access</p>
-            
-            <div class="big-price">
-              {{ selectedPlan === 'annual' ? '$300' : '$29' }} 
-              <span class="period">/ {{ selectedPlan === 'annual' ? 'year' : 'month' }}</span>
-            </div>
-          </div>
-
-          <div class="feature-divider"></div>
-
-          <p class="includes-label">This includes:</p>
-          <ul class="summary-features">
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Real-time market analysis & insights</span>
-            </li>
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Advanced AI Research Reports</span>
-            </li>
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Exclusive Data Vault access</span>
-            </li>
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Full institutional-grade toolkit</span>
-            </li>
-          </ul>
-
-          <div class="total-line">
-            <span>Total due today</span>
-            <span class="total-amount">{{ selectedPlan === 'annual' ? '$300.00' : '$29.00' }}</span>
-          </div>
-        </div>
       </div>
 
     </div>
@@ -164,24 +166,18 @@ const fetchClientSecret = async () => {
 }
 
 const selectPlan = async (plan) => {
-  if (selectedPlan.value === plan || isProcessing.value) return 
+  if (selectedPlan.value === plan) return 
   
-  isProcessing.value = true
   selectedPlan.value = plan
   
   // Cleanup previous instance
   if (checkoutInstance) {
-    try {
-      await checkoutInstance.destroy()
-    } catch (e) {
-      // Ignore cleanup errors
-    }
+    await checkoutInstance.destroy()
     checkoutInstance = null
   }
   
   // Reinitialize with new plan
   await initializeCheckout()
-  isProcessing.value = false
 }
 
 const initializeCheckout = async () => {
@@ -195,7 +191,7 @@ const initializeCheckout = async () => {
   
   try {
     if (!stripePublishableKey) {
-      throw new Error('Stripe is not configured.')
+      throw new Error('Stripe is not configured. Please contact support.')
     }
 
     const stripe = await stripePromise
@@ -213,7 +209,6 @@ const initializeCheckout = async () => {
     checkoutInstance.mount('#checkout')
     
   } catch (err) {
-    console.error('Payment initialization error:', err)
     error.value = err.message || 'Failed to load payment form.'
   }
 }
@@ -244,18 +239,18 @@ onUnmounted(async () => {
 
 .payment-container {
   display: grid;
-  grid-template-columns: 1fr 400px; /* Main input area + Fixed width summary */
+  grid-template-columns: 1fr 1fr; /* Equivalent columns */
   gap: 4rem;
   max-width: 1200px;
   width: 100%;
   align-items: start;
 }
 
-/* --- Left Column: Inputs --- */
-.input-column {
+/* --- Left Column: Selection + Summary --- */
+.left-column {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 3rem;
 }
 
 .brand-header {
@@ -376,16 +371,7 @@ onUnmounted(async () => {
   font-weight: 500;
 }
 
-/* Payment Section */
-.checkout-wrapper {
-  margin-top: 0.5rem;
-}
-
-/* --- Right Column: Summary --- */
-.summary-column {
-  margin-top: 3.5rem; /* Align with content below header */
-}
-
+/* Summary Card */
 .summary-card {
   background: white;
   border-radius: 12px;
@@ -485,6 +471,14 @@ onUnmounted(async () => {
   font-size: 1.25rem;
 }
 
+/* Payment Section */
+.right-column .checkout-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem; /* Optional wrapper padding */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
 .error-banner {
   background: #fef2f2;
   color: #ef4444;
@@ -513,9 +507,8 @@ onUnmounted(async () => {
     padding: 1rem;
   }
   
-  .summary-column {
-    margin-top: 0;
-    order: -1; /* Show summary first on mobile? Or last? Keeping last for now */
+  .right-column {
+    order: 1; /* Keep payment last on mobile? */
   }
 }
 </style>
