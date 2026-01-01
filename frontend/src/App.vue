@@ -136,10 +136,8 @@ onMounted(() => {
   // Check if we have token
   // Check if we have token
   if (userStore.isAuthenticated) {
-    if (!userStore.user) {
-      userStore.fetchUser(API_BASE_URL)
-    }
-    // Always fetch latest permissions to ensure UI matches backend state
+    // Always fetch fresh user data (for has_paid status) and permissions
+    userStore.fetchUser(API_BASE_URL)
     permissionStore.fetch(API_BASE_URL)
   }
 })
