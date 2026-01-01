@@ -103,7 +103,11 @@ const initializeCheckout = async () => {
   
   // Unmount previous checkout if exists
   if (checkoutInstance) {
-    checkoutInstance.unmount()
+    try {
+      checkoutInstance.unmount()
+    } catch (e) {
+      console.log('Checkout already unmounted')
+    }
     checkoutInstance = null
   }
   
@@ -147,17 +151,31 @@ const initializeCheckout = async () => {
       throw new Error('Stripe failed to load. Please check your publishable key.')
     }
     
+    // Stop loading to show the checkout container
+    loading.value = false
+    
+    // Wait for next tick to ensure DOM is updated
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Verify the checkout element exists
+    const checkoutElement = document.getElementById('checkout')
+    if (!checkoutElement) {
+      throw new Error('Checkout container not found in DOM')
+    }
+    
+    console.log('Mounting Stripe checkout...')
+    
     // Mount embedded checkout
     checkoutInstance = await stripe.initEmbeddedCheckout({
       clientSecret
     })
     
     checkoutInstance.mount('#checkout')
+    console.log('Stripe checkout mounted successfully')
     
   } catch (err) {
     console.error('Checkout error:', err)
     error.value = err.message || 'Failed to load payment form. Please try again.'
-  } finally {
     loading.value = false
   }
 }
