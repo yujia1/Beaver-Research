@@ -175,6 +175,12 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
+  // Redirect paid users away from pricing page
+  if (to.path === '/pricing' && user && user.has_paid) {
+    next('/')
+    return
+  }
+
   // Check admin requirement
   if (requiresAdmin) {
     if (!user || user.role !== 'admin') {
