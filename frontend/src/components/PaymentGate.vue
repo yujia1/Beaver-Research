@@ -17,31 +17,49 @@
           </ul>
         </div>
         
-        <div class="payment-section">
-          <div class="paypal-button-container">
-            <a 
-              href="https://www.paypal.com/paypalme/beaverinvest/19.99" 
-              target="_blank"
-              rel="noopener noreferrer"
-              class="paypal-button"
+        <!-- Plan Selection -->
+        <div class="plan-selection">
+          <h3>Choose Your Plan</h3>
+          <div class="plan-options">
+            <button 
+              :class="['plan-option', { selected: selectedPlan === 'monthly' }]"
+              @click="selectPlan('monthly')"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12c0 1.66-1.34 3-3 3H6c-1.66 0-3-1.34-3-3s1.34-3 3-3h12c1.66 0 3 1.34 3 3z"></path>
-                <path d="M6 9h12"></path>
-                <path d="M6 15h12"></path>
-              </svg>
-              {{ t('payment_gate.pay_button') }}
-            </a>
+              <div class="plan-header">
+                <span class="plan-name">Monthly</span>
+                <span class="plan-badge" v-if="selectedPlan === 'monthly'">✓</span>
+              </div>
+              <div class="plan-price">$29<span class="plan-period">/month</span></div>
+              <div class="plan-description">Billed monthly</div>
+            </button>
+            
+            <button 
+              :class="['plan-option', { selected: selectedPlan === 'annual' }]"
+              @click="selectPlan('annual')"
+            >
+              <div class="plan-header">
+                <span class="plan-name">Annual</span>
+                <span class="plan-badge popular">SAVE 14%</span>
+              </div>
+              <div class="plan-price">$300<span class="plan-period">/year</span></div>
+              <div class="plan-description">$25/month, billed annually</div>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Stripe Embedded Checkout -->
+        <div class="checkout-section">
+          <div v-if="loading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading payment form...</p>
           </div>
           
-          <div class="verification-section">
-            <div class="pending-status">
-              <div class="pending-badge">
-                <span class="pending-icon">⏳</span>
-                <span>{{ t('payment_gate.verification_pending') }}</span>
-              </div>
-            </div>
+          <div v-else-if="error" class="error-state">
+            <p class="error-message">{{ error }}</p>
+            <button @click="initializeCheckout" class="retry-button">Try Again</button>
           </div>
+          
+          <div v-else id="checkout"></div>
         </div>
       </div>
     </div>
@@ -49,9 +67,83 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { loadStripe } from '@stripe/stripe-js'
+import API_BASE_URL from '@/config/api.js'
 
 const { t } = useI18n()
+const router = useRouter()
+
+const loading = ref(true)
+const error = ref('')
+const selectedPlan = ref('annual') // Default to annual (better value)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+let checkoutInstance = null
+
+const selectPlan = (plan) => {
+  selectedPlan.value = plan
+  // Reinitialize checkout with new plan
+  initializeCheckout()
+}
+
+const initializeCheckout = async () => {
+  loading.value = true
+  error.value = ''
+  
+  // Unmount previous checkout if exists
+  if (checkoutInstance) {
+    checkoutInstance.unmount()
+    checkoutInstance = null
+  }
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    // Create checkout session with selected plan
+    const response = await fetch(`${API_BASE_URL}/api/payment/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        plan: selectedPlan.value
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create checkout session')
+    }
+
+    const { clientSecret } = await response.json()
+    
+    // Initialize Stripe
+    const stripe = await stripePromise
+    
+    // Mount embedded checkout
+    checkoutInstance = await stripe.initEmbeddedCheckout({
+      clientSecret
+    })
+    
+    checkoutInstance.mount('#checkout')
+    
+  } catch (err) {
+    console.error('Checkout error:', err)
+    error.value = 'Failed to load payment form. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  initializeCheckout()
+})
 </script>
 
 <style scoped>
@@ -65,7 +157,7 @@ const { t } = useI18n()
 }
 
 .payment-container {
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
   background: #ffffff;
   border-radius: 16px;
@@ -122,67 +214,268 @@ const { t } = useI18n()
   font-size: 1rem;
 }
 
-.payment-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.plan-selection {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.paypal-button-container {
-  display: flex;
-  justify-content: center;
-}
-
-.paypal-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
-  color: #ffffff;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 112, 186, 0.3);
-}
-
-.paypal-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 112, 186, 0.4);
-}
-
-.paypal-button svg {
-  width: 20px;
-  height: 20px;
-}
-
-.verification-section {
+.plan-selection h3 {
+  color: #000000;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
   text-align: center;
 }
 
-.pending-status {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.plan-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
-.pending-badge {
-  display: inline-flex;
+.plan-option {
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.plan-option:hover {
+  border-color: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.plan-option.selected {
+  border-color: #000000;
+  background: #f9fafb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 8px;
-  color: #d97706;
+  margin-bottom: 0.75rem;
+}
+
+.plan-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #000000;
+}
+
+.plan-badge {
+  background: #000000;
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 600;
+}
+
+.plan-badge.popular {
+  background: #10b981;
+}
+
+.plan-price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 0.5rem;
+}
+
+.plan-period {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.plan-description {
+  color: #6b7280;
   font-size: 0.9rem;
 }
 
-.pending-icon {
-  font-size: 1.2rem;
+.checkout-section {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #000000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.retry-button {
+  background: #000000;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #262626;
+  transform: translateY(-2px);
+}
+
+#checkout {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .plan-options {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 
+<style scoped>
+.payment-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 2rem;
+}
+
+.payment-container {
+  max-width: 800px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.payment-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #4b5563;
+  font-size: 1rem;
+}
+
+.payment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.features-list {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.features-list h2 {
+  color: #000000;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.features-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.features-list li {
+  color: #1f2937;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.checkout-section {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #000000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.retry-button {
+  background: #000000;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #262626;
+  transform: translateY(-2px);
+}
+
+#checkout {
+  width: 100%;
+}
+</style>

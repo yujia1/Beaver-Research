@@ -85,6 +85,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/payment/return',
+      name: 'payment-return',
+      component: () => import('../views/PaymentReturn.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/payment/cancel',
       name: 'payment-cancel',
       component: () => import('../views/PricingView.vue'), // Redirect back to pricing
