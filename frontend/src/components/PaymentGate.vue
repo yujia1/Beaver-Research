@@ -79,7 +79,17 @@ const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const selectedPlan = ref('annual') // Default to annual (better value)
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
+// Check if Stripe key is configured
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+console.log('Stripe publishable key configured:', !!stripePublishableKey)
+
+if (!stripePublishableKey) {
+  error.value = 'Stripe is not configured. Please contact support.'
+  loading.value = false
+}
+
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 let checkoutInstance = null
 
 const selectPlan = (plan) => {
@@ -118,13 +128,25 @@ const initializeCheckout = async () => {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to create checkout session')
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to create checkout session')
     }
 
-    const { clientSecret } = await response.json()
+    const data = await response.json()
+    console.log('Checkout session response:', data)
+    
+    const { clientSecret } = data
+    
+    if (!clientSecret) {
+      throw new Error('No client secret returned from server')
+    }
     
     // Initialize Stripe
     const stripe = await stripePromise
+    
+    if (!stripe) {
+      throw new Error('Stripe failed to load. Please check your publishable key.')
+    }
     
     // Mount embedded checkout
     checkoutInstance = await stripe.initEmbeddedCheckout({
@@ -135,7 +157,7 @@ const initializeCheckout = async () => {
     
   } catch (err) {
     console.error('Checkout error:', err)
-    error.value = 'Failed to load payment form. Please try again.'
+    error.value = err.message || 'Failed to load payment form. Please try again.'
   } finally {
     loading.value = false
   }
