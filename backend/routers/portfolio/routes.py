@@ -12,7 +12,10 @@ import xml.etree.ElementTree as ET
 import re
 from redis_client import redis_client
 
-from routers.admin.auth import get_current_user, verify_premium_access
+from routers.admin.auth import get_current_user, verify_premium_access, create_resource_dependency
+
+# Create resource-specific access dependency
+require_portfolio_access = create_resource_dependency('/portfolio')
 
 router = APIRouter()
 

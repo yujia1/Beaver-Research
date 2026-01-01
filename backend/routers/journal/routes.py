@@ -12,8 +12,11 @@ from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
-from routers.admin.auth import get_current_user, verify_premium_access
+from routers.admin.auth import get_current_user, verify_premium_access, create_resource_dependency
 import models
+
+# Create resource-specific access dependency
+require_report_access = create_resource_dependency('/report')
 
 # Token verification for query parameter (for iframe access)
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
@@ -102,7 +105,7 @@ class ReportSummary(BaseModel):
 def create_report(
     report: ReportCreate, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(require_report_access)
 ):
     db_report = Report(
         title=report.title,
@@ -120,7 +123,7 @@ def create_report(
 @router.get("/", response_model=List[ReportSummary])
 async def get_reports(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(require_report_access)
 ):
     reports = db.query(Report).filter(Report.user_id == current_user.id).order_by(Report.created_at.desc()).all()
     return reports
@@ -129,7 +132,7 @@ async def get_reports(
 async def get_report(
     report_id: int, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(verify_premium_access)
+    current_user: models.User = Depends(require_report_access)
 ):
     report = db.query(Report).filter(Report.id == report_id).first()
     if report is None:
@@ -248,8 +251,10 @@ async def get_reports_from_minio(
         # Validate report type
         valid_report_types = ["daily", "long", "short", "market"]
         
-        # Access Control: Partially restrict non-paid users
-        is_premium = current_user.role in ["admin", "creator"] or (hasattr(current_user, 'has_paid') and current_user.has_paid)
+        # Access Control: Report type access based on payment status
+        # Admin: always premium
+        # All others (including creator): premium only if has_paid=true
+        is_premium = current_user.role == "admin" or (hasattr(current_user, 'has_paid') and current_user.has_paid)
         allowed_types_free = ["market", "daily"]
         
         if report_type not in allowed_types_free and not is_premium:
@@ -441,7 +446,9 @@ async def get_pdf_from_minio(
     """Get PDF content from MinIO"""
     try:
         # Access Control for PDF download
-        is_premium = current_user.role in ["admin", "creator"] or (hasattr(current_user, 'has_paid') and current_user.has_paid)
+        # Admin: always premium
+        # All others (including creator): premium only if has_paid=true
+        is_premium = current_user.role == "admin" or (hasattr(current_user, 'has_paid') and current_user.has_paid)
         allowed_types_free = ["market", "daily"]
         
         if report_type not in allowed_types_free and not is_premium:

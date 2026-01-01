@@ -240,16 +240,20 @@ def require_role(allowed_roles: List[str]):
 
 async def verify_premium_access(current_user: models.User = Depends(get_current_user)):
     """
-    Dependency to verify if user has premium access.
+    Dependency to verify if user has premium access for REPORTS.
+    This controls access to creating/viewing reports, NOT route visibility.
+    
     Access is granted if:
-    1. User has 'admin' or 'creator' role
-    2. User has 'has_paid' = True
+    1. User has 'admin' role (always)
+    2. User has 'has_paid' = True (including creators, contributors, users)
+    
+    Note: Route/feature visibility is controlled by Access Management permissions (frontend).
     """
-    # Admins and Creators always have access
-    if current_user.role in ["admin", "creator"]:
+    # Admin always has access
+    if current_user.role == "admin":
         return current_user
     
-    # Check payment status
+    # Check payment status for all other roles (including creator)
     if not current_user.has_paid:
         print(f"Access denied for user {current_user.username}: Payment required")
         raise HTTPException(
@@ -257,6 +261,75 @@ async def verify_premium_access(current_user: models.User = Depends(get_current_
             detail="Premium access required. Please verify your payment to access this feature."
         )
     return current_user
+
+
+async def verify_resource_access(
+    resource: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Two-level hierarchical access control:
+    Level 1 (Higher Priority): Check Access Management Permissions
+    Level 2 (Lower Priority): Check Payment Status
+    
+    Admin bypasses both checks.
+    
+    Args:
+        resource: The resource path (e.g., '/report', '/research', '/portfolio')
+        current_user: Current authenticated user
+        db: Database session
+    
+    Returns:
+        Current user if access is granted
+    
+    Raises:
+        HTTPException: If access is denied at either level
+    """
+    # Admin always has full access
+    if current_user.role == "admin":
+        return current_user
+    
+    # Level 1: Check Access Management Permissions (Higher Priority)
+    permission = db.query(models.RolePermission).filter(
+        models.RolePermission.role == current_user.role,
+        models.RolePermission.resource == resource
+    ).first()
+    
+    if not permission or not permission.can_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your role ({current_user.role}) does not have access to {resource}. Contact administrator to request access."
+        )
+    
+    # Level 2: Check Payment Status (Lower Priority)
+    if not current_user.has_paid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Premium subscription required. Please upgrade your plan to access this feature."
+        )
+    
+    return current_user
+
+
+def create_resource_dependency(resource: str):
+    """
+    Factory function to create resource-specific access dependencies.
+    
+    Usage:
+        require_report_access = create_resource_dependency('/report')
+        
+        @router.get("/")
+        async def get_reports(current_user = Depends(require_report_access)):
+            ...
+    """
+    async def dependency(
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+    ):
+        return await verify_resource_access(resource, current_user, db)
+    return dependency
+
 
 # Routes
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
