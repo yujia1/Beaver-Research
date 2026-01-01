@@ -74,17 +74,12 @@
         <!-- Stripe Embedded Checkout -->
         <div class="checkout-wrapper">
           <div class="checkout-section">
-            <div v-if="loading" class="loading-state">
-              <div class="spinner"></div>
-              <p>Loading secure payment...</p>
-            </div>
-            
-            <div v-else-if="error" class="error-state">
+            <div v-if="error" class="error-state">
               <p class="error-message">{{ error }}</p>
               <button @click="initializeCheckout" class="retry-button">Try Again</button>
             </div>
             
-            <div v-else id="checkout"></div>
+            <div id="checkout"></div>
           </div>
         </div>
       </div>
@@ -94,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { loadStripe } from '@stripe/stripe-js'
@@ -103,20 +98,46 @@ import API_BASE_URL from '@/config/api.js'
 const { t } = useI18n()
 const router = useRouter()
 
-const loading = ref(true)
 const error = ref('')
-const selectedPlan = ref('annual') // Default to annual (better value)
-const isProcessing = ref(false) // Prevent double-clicks
+const selectedPlan = ref('annual') // Default to annual
+const isProcessing = ref(false)
 
 // Check if Stripe key is configured
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
-// Initialize Stripe Promise globally
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 let checkoutInstance = null
 
+// Function to fetch client secret, passed to Stripe
+const fetchClientSecret = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    router.push('/login')
+    throw new Error('User not authenticated')
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/payment/create-checkout-session`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      plan: selectedPlan.value
+    })
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.detail || 'Failed to create checkout session')
+  }
+
+  const data = await response.json()
+  return data.clientSecret
+}
+
 const selectPlan = async (plan) => {
-  if (selectedPlan.value === plan || isProcessing.value) return // Don't reinitialize if same plan or processing
+  if (selectedPlan.value === plan || isProcessing.value) return 
   
   isProcessing.value = true
   selectedPlan.value = plan
@@ -131,22 +152,17 @@ const selectPlan = async (plan) => {
     checkoutInstance = null
   }
   
-  // Reinitialize
+  // Reinitialize with new plan
   await initializeCheckout()
   isProcessing.value = false
 }
 
 const initializeCheckout = async () => {
-  loading.value = true
   error.value = ''
   
   // Cleanup safety check
   if (checkoutInstance) {
-    try {
-      await checkoutInstance.destroy()
-    } catch (e) {
-      // Ignore
-    }
+    await checkoutInstance.destroy()
     checkoutInstance = null
   }
   
@@ -155,63 +171,23 @@ const initializeCheckout = async () => {
       throw new Error('Stripe is not configured. Please contact support.')
     }
 
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-
-    // Create checkout session
-    const response = await fetch(`${API_BASE_URL}/api/payment/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        plan: selectedPlan.value
-      })
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to create checkout session')
-    }
-
-    const data = await response.json()
-    const { clientSecret } = data
-    
-    if (!clientSecret) {
-      throw new Error('No client secret returned from server')
-    }
-    
-    // Load Stripe
     const stripe = await stripePromise
     if (!stripe) {
       throw new Error('Stripe failed to initialize')
     }
-    
-    // Reveal container
-    loading.value = false
-    await nextTick()
-    
-    // Verify DOM
-    const checkoutElement = document.getElementById('checkout')
-    if (!checkoutElement) {
-      throw new Error('Checkout container not found in DOM')
-    }
-    
-    // Mount
+
+    // Initialize Embedded Checkout with fetchClientSecret
+    // This delegates loading and retry logic to Stripe
     checkoutInstance = await stripe.initEmbeddedCheckout({
-      clientSecret
+      fetchClientSecret
     })
-    
+
+    // Mount to the container
     checkoutInstance.mount('#checkout')
     
   } catch (err) {
     console.error('Payment initialization error:', err)
-    error.value = err.message || 'Failed to request payment session.'
-    loading.value = false
+    error.value = err.message || 'Failed to load payment form.'
   }
 }
 
@@ -221,11 +197,7 @@ onMounted(() => {
 
 onUnmounted(async () => {
   if (checkoutInstance) {
-    try {
-      await checkoutInstance.destroy()
-    } catch (e) {
-      // Ignore
-    }
+    await checkoutInstance.destroy()
     checkoutInstance = null
   }
 })
