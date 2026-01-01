@@ -55,6 +55,7 @@
                                         class="pdf-viewer"
                                         frameborder="0"
                                     ></iframe>
+                                    <div v-else-if="savedReport.is_text" v-html="getReportContent(savedReport)" class="report-text-content"></div>
                                     <div v-else class="report-error">{{ t('reports_page.pdf_unavailable') }}</div>
                                 </div>
                             </div>
@@ -106,6 +107,7 @@
                                         class="pdf-viewer"
                                         frameborder="0"
                                     ></iframe>
+                                    <div v-else-if="savedReport.is_text" v-html="getReportContent(savedReport)" class="report-text-content"></div>
                                     <div v-else class="report-error">{{ t('reports_page.pdf_unavailable') }}</div>
                                 </div>
                             </div>
@@ -135,6 +137,7 @@
                                         class="pdf-viewer"
                                         frameborder="0"
                                     ></iframe>
+                                    <div v-else-if="savedReport.is_text" v-html="getReportContent(savedReport)" class="report-text-content"></div>
                                     <div v-else class="report-error">{{ t('reports_page.pdf_unavailable') }}</div>
                                 </div>
                             </div>
@@ -428,6 +431,10 @@ const getReportPdfUrl = (savedReportSummary) => {
     const uuid = savedReportSummary.uuid || savedReportSummary.id;
     
     if (!uuid || !date) {
+        return null;
+    }
+    
+    if (savedReportSummary.is_text) {
         return null;
     }
     
