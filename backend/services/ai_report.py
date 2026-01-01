@@ -11,6 +11,29 @@ from services.market import indices, crypto, currency, commodity, economic
 # but assuming routers don't import this service yet.
 from routers.market.bond import routes as bond_routes
 from routers.framework import routes as framework_routes
+import markdown
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from io import BytesIO
+import boto3
+import uuid
+import os
+
+# S3/MinIO Configuration
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "reports")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "minioadmin")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "http://minio:9000")
+
+s3_client = boto3.client(
+    's3',
+    endpoint_url=S3_ENDPOINT_URL,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    config=boto3.session.Config(signature_version='s3v4')
+)
 
 logger = logging.getLogger(__name__)
 
@@ -245,18 +268,62 @@ async def generate_market_report(manual_trigger=False):
         admin_user = db.query(models.User).filter(models.User.role == "admin").first()
         user_id = admin_user.id if admin_user else 1 # Fallback
         
-        # We save the HTML/Markdown content directly? 
-        # ReportView expects PDF path in 'content' for 'is_uploaded=True', or HTML for 'is_uploaded=False'?
-        # The prompt says "Market Reports ... in ReportView ... to support Markdown/HTML".
-        # So we create `is_uploaded=False` report.
+        # Convert Markdown to PDF
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
         
+        # Simple Markdown parsing (ReportLab doesn't support full MD natively, so we do basic cleanup)
+        # For a production app, we might want markdown2pdf or similar, but let's do a simple pass
+        # Convert MD to HTML-ish compatible with ReportLab or just plain paragraphs
+        
+        # Title
+        story.append(Paragraph(f"Daily Market Report - {today_str}", styles['Title']))
+        story.append(Spacer(1, 12))
+        
+        # Process lines
+        lines = report_content.split('\n')
+        for line in lines:
+            if line.startswith('## '):
+                story.append(Paragraph(line.replace('## ', ''), styles['Heading2']))
+            elif line.startswith('### '):
+                story.append(Paragraph(line.replace('### ', ''), styles['Heading3']))
+            elif line.startswith('- ') or line.startswith('* '):
+                 story.append(Paragraph(line.replace('- ', '• ').replace('* ', '• '), styles['BodyText']))
+            elif line.strip():
+                story.append(Paragraph(line, styles['BodyText']))
+            story.append(Spacer(1, 6))
+
+        doc.build(story)
+        pdf_value = pdf_buffer.getvalue()
+        
+        # Upload to S3
+        report_uuid = str(uuid.uuid4())
+        file_path = f"Market/{today_str}/{report_uuid}.pdf"
+        
+        try:
+            s3_client.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_path,
+                Body=pdf_value,
+                ContentType='application/pdf'
+            )
+            is_uploaded = True
+            logging.info(f"Uploaded PDF to S3: {file_path}")
+        except Exception as s3_err:
+            logging.error(f"Failed to upload PDF to S3: {s3_err}")
+            is_uploaded = False
+            file_path = None # Fallback to text storage if upload fails
+
         db_report = models.Report(
             title=f"Market Report - {today_str}",
-            content=report_content,
+            content=report_content, # Keep text content as backup/searchable
             report_type="market",
-            ticker="MARKET", # generic ticker
+            ticker="MARKET",
             user_id=user_id,
-            is_uploaded=False,
+            is_uploaded=is_uploaded, 
+            file_path=file_path if is_uploaded else None,
             created_at=datetime.datetime.utcnow()
         )
         db.add(db_report)
