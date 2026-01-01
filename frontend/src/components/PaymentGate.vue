@@ -1,22 +1,46 @@
 <template>
   <div class="payment-gate">
     <div class="payment-container">
-      <div class="payment-header">
-        <h1>{{ t('payment_gate.title') }}</h1>
-        <p class="subtitle">{{ t('payment_gate.subtitle') }}</p>
-      </div>
       
-      <div class="payment-content">
+      <!-- Left Panel: Info & Features -->
+      <div class="left-panel">
+        <div class="payment-header">
+          <h1>{{ t('payment_gate.title') }}</h1>
+          <p class="subtitle">{{ t('payment_gate.subtitle') }}</p>
+        </div>
+        
         <div class="features-list">
           <h2>{{ t('payment_gate.features_title') }}</h2>
           <ul>
-            <li>✓ {{ t('payment_gate.features.analysis') }}</li>
-            <li>✓ {{ t('payment_gate.features.market_data') }}</li>
-            <li>✓ {{ t('payment_gate.features.research_tools') }}</li>
-            <li>✓ {{ t('payment_gate.features.data_vault') }}</li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>{{ t('payment_gate.features.analysis') }}</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>{{ t('payment_gate.features.market_data') }}</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>{{ t('payment_gate.features.research_tools') }}</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>{{ t('payment_gate.features.data_vault') }}</span>
+            </li>
           </ul>
         </div>
         
+        <div class="trust-badges">
+          <!-- Optional: Add trust badges or secure payment text here if needed -->
+          <p class="secure-text">
+            <span class="lock-icon">🔒</span> Secure Payment via Stripe
+          </p>
+        </div>
+      </div>
+      
+      <!-- Right Panel: Action -->
+      <div class="right-panel">
         <!-- Plan Selection -->
         <div class="plan-selection">
           <h3>Choose Your Plan</h3>
@@ -26,12 +50,11 @@
               :disabled="isProcessing"
               @click="selectPlan('monthly')"
             >
-              <div class="plan-header">
+              <div class="plan-header-row">
                 <span class="plan-name">Monthly</span>
                 <span class="plan-badge" v-if="selectedPlan === 'monthly'">✓</span>
               </div>
-              <div class="plan-price">$29<span class="plan-period">/month</span></div>
-              <div class="plan-description">Billed monthly</div>
+              <div class="plan-price">$29<span class="plan-period">/mo</span></div>
             </button>
             
             <button 
@@ -39,31 +62,33 @@
               :disabled="isProcessing"
               @click="selectPlan('annual')"
             >
-              <div class="plan-header">
+              <div class="plan-header-row">
                 <span class="plan-name">Annual</span>
                 <span class="plan-badge popular">SAVE 14%</span>
               </div>
-              <div class="plan-price">$300<span class="plan-period">/year</span></div>
-              <div class="plan-description">$25/month, billed annually</div>
+              <div class="plan-price">$300<span class="plan-period">/yr</span></div>
             </button>
           </div>
         </div>
         
         <!-- Stripe Embedded Checkout -->
-        <div class="checkout-section">
-          <div v-if="loading" class="loading-state">
-            <div class="spinner"></div>
-            <p>Loading payment form...</p>
+        <div class="checkout-wrapper">
+          <div class="checkout-section">
+            <div v-if="loading" class="loading-state">
+              <div class="spinner"></div>
+              <p>Loading secure payment...</p>
+            </div>
+            
+            <div v-else-if="error" class="error-state">
+              <p class="error-message">{{ error }}</p>
+              <button @click="initializeCheckout" class="retry-button">Try Again</button>
+            </div>
+            
+            <div v-else id="checkout"></div>
           </div>
-          
-          <div v-else-if="error" class="error-state">
-            <p class="error-message">{{ error }}</p>
-            <button @click="initializeCheckout" class="retry-button">Try Again</button>
-          </div>
-          
-          <div v-else id="checkout"></div>
         </div>
       </div>
+      
     </div>
   </div>
 </template>
@@ -112,8 +137,6 @@ const selectPlan = async (plan) => {
 }
 
 const initializeCheckout = async () => {
-  // Only set loading true if we aren't just switching plans? 
-  // Actually, we need to show loading because we are fetching a new session
   loading.value = true
   error.value = ''
   
@@ -188,7 +211,6 @@ const initializeCheckout = async () => {
   } catch (err) {
     console.error('Payment initialization error:', err)
     error.value = err.message || 'Failed to request payment session.'
-    // Ensure loading is false so error is shown
     loading.value = false
   }
 }
@@ -215,80 +237,125 @@ onUnmounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: #f8fafc;
   padding: 2rem;
 }
 
 .payment-container {
-  max-width: 800px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr; /* Right side slightly wider for checkout */
+  gap: 3rem;
+  max-width: 1100px;
   width: 100%;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 3rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08); /* Softer, more modern shadow */
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  align-items: start;
+}
+
+/* --- Left Panel --- */
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  padding-top: 1rem;
 }
 
 .payment-header {
-  text-align: center;
-  margin-bottom: 2rem;
+  text-align: left;
+  margin-bottom: 2.5rem;
 }
 
 .payment-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.5rem;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
 }
 
 .subtitle {
-  color: #4b5563;
-  font-size: 1rem;
-}
-
-.payment-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  color: #6b7280;
+  font-size: 1.1rem;
+  line-height: 1.5;
 }
 
 .features-list {
   background: #f9fafb;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .features-list h2 {
-  color: #000000;
+  color: #111827;
   font-size: 1.25rem;
-  margin-bottom: 1rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
 }
 
 .features-list ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .features-list li {
-  color: #1f2937;
-  padding: 0.5rem 0;
-  font-size: 1rem;
+  color: #374151;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.plan-selection {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+.check-icon {
+  color: #10b981;
+  font-weight: 800;
+  font-size: 1.1rem;
+  background: rgba(16, 185, 129, 0.1);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trust-badges {
+  margin-top: auto;
+  padding-top: 2rem;
+}
+
+.secure-text {
+  color: #6b7280;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Right Panel --- */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-left: 1rem;
+  border-left: 1px solid #f3f4f6;
 }
 
 .plan-selection h3 {
-  color: #000000;
+  color: #111827;
   font-size: 1.25rem;
+  font-weight: 700;
   margin-bottom: 1rem;
-  text-align: center;
+  text-align: left;
 }
 
 .plan-options {
@@ -301,49 +368,46 @@ onUnmounted(async () => {
   background: #ffffff;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem 1.25rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-align: left;
-}
-
-.plan-option:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .plan-option:not(:disabled):hover {
-  border-color: #000000;
+  border-color: #9ca3af;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .plan-option.selected {
-  border-color: #000000;
+  border-color: #111827;
   background: #f9fafb;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.plan-header {
+.plan-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .plan-name {
   font-weight: 700;
-  font-size: 1.1rem;
-  color: #000000;
+  font-size: 1rem;
+  color: #111827;
 }
 
 .plan-badge {
-  background: #000000;
+  background: #111827;
   color: #ffffff;
-  padding: 0.25rem 0.5rem;
+  padding: 0.15rem 0.4rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
@@ -352,43 +416,44 @@ onUnmounted(async () => {
 }
 
 .plan-price {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
 }
 
 .plan-period {
-  font-size: 1rem;
-  font-weight: 400;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: #6b7280;
+  margin-left: 2px;
 }
 
-.plan-description {
-  color: #6b7280;
-  font-size: 0.9rem;
+/* --- Checkout Section --- */
+.checkout-wrapper {
+  background: #ffffff;
+  min-height: 400px; /* Reduced min-height to reduce scrolling */
 }
 
 .checkout-section {
-  min-height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
 }
 
 .loading-state,
 .error-state {
   text-align: center;
-  padding: 2rem;
+  padding: 4rem 2rem;
+  background: #f9fafb;
+  border-radius: 12px;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #000000;
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #111827;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   margin: 0 auto 1rem;
 }
 
@@ -402,28 +467,38 @@ onUnmounted(async () => {
 }
 
 .retry-button {
-  background: #000000;
+  background: #111827;
   color: #ffffff;
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.retry-button:hover {
-  background: #262626;
-  transform: translateY(-2px);
 }
 
 #checkout {
   width: 100%;
 }
 
-@media (max-width: 640px) {
-  .plan-options {
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .payment-container {
     grid-template-columns: 1fr;
+    max-width: 600px;
+    padding: 2rem;
+    gap: 2rem;
+  }
+  
+  .right-panel {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 2rem;
+  }
+  
+  .payment-gate {
+    padding: 1rem;
+    align-items: flex-start; /* Allow scrolling on mobile */
   }
 }
 </style>
