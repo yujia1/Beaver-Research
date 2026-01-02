@@ -35,7 +35,7 @@ async def get_regional_indices():
     data = await fetch_regional_indices_data()
     if data:
         # Cache for shorter time to ensure freshness during market hours
-        redis_client.set_cache(cache_key, data, ttl=300)
+        redis_client.set_cache(cache_key, data, ttl=900)  # 15 min cache
     return data
 
 @router.get("/regional/series/{symbol}")
@@ -171,7 +171,7 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
                     "history": formatted_history
                 }
                 
-                redis_client.set_cache(cache_key, result, ttl=300) # 5 min cache for specific queries
+                redis_client.set_cache(cache_key, result, ttl=900)  # 15 min cache
                 return result
                 
             else:

@@ -252,13 +252,13 @@ const fetchBondData = async () => {
   bondLoading.value = true;
   bondError.value = null;
   
-  // Check daily cache first
-  const cached = getDailyCache('bond_data_monthly');
-  if (cached) {
-    bondData.value = cached;
-    bondLoading.value = false;
-    return;
-  }
+  // Cache disabled for real-time data - backend has 5-min cache
+  // const cached = getDailyCache('bond_data_monthly');
+  // if (cached) {
+  //   bondData.value = cached;
+  //   bondLoading.value = false;
+  //   return;
+  // }
   
   try {
     // Initial fetch of all data with default 'monthly' (1Y) timeframe

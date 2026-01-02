@@ -215,7 +215,7 @@ async def get_treasury_yields(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=300)
+    redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
     return results
 
 @router.get("/yield-curve", response_model=List[BondData])
@@ -344,7 +344,7 @@ async def get_yield_curve(timeframe: str = "monthly"):
                 "series_id": "SPREAD_5S30S"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=300)
+    redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
     return results
 
 @router.get("/series/{series_id}", response_model=BondData)
@@ -557,7 +557,7 @@ async def get_tips_breakeven(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=300)
+    redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
     return results
 
 @router.get("/central-bank-rates", response_model=List[BondData])
@@ -595,7 +595,7 @@ async def get_central_bank_rates(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=300)
+    redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
     return results
 
 @router.get("/credit-spreads", response_model=List[BondData])
@@ -632,7 +632,7 @@ async def get_credit_spreads(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=300)
+    redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
     return results
 
 @router.get("/funding-stress", response_model=List[BondData])
@@ -753,7 +753,7 @@ async def get_funding_stress(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=300)
+    redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
     return results
 
 @router.get("/all", response_model=Dict[str, List[BondData]])

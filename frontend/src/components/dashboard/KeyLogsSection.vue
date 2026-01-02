@@ -1860,16 +1860,14 @@ const fetchCurrencyData = async () => {
   currencyLoading.value = true;
   currencyError.value = null;
   
-  // Check daily cache first
-  /*
-  const cached = getDailyCache('currency_data_monthly');
-  if (cached) {
-    console.log('Using cached currency data');
-    currencyIndicators.value = cached;
-    currencyLoading.value = false;
-    return;
-  }
-  */
+  // Cache disabled for real-time data - backend has 1-hour cache
+  // const cached = getDailyCache('currency_data_monthly');
+  // if (cached) {
+  //   console.log('Using cached currency data');
+  //   currencyIndicators.value = cached;
+  //   currencyLoading.value = false;
+  //   return;
+  // }
   
   try {
     // Fetch all currency data from the new endpoint
@@ -2068,21 +2066,21 @@ const fetchCryptoData = async () => {
   cryptoLoading.value = true;
   cryptoError.value = null;
   
-  // Check daily cache first
-  const cached = getDailyCache('crypto_data_daily');
-  if (cached) {
-    // Ensure history is preserved from cache (like Bond/Economic tabs)
-    const processedCached = cached.map(item => ({
-      ...item,
-      history: item.history || [], // Ensure history is always an array
-      selectedTimeframe: item.selectedTimeframe || 'daily',
-      loading: false
-    }));
-    
-    cryptoIndicators.value = processedCached;
-    cryptoLoading.value = false;
-    return;
-  }
+  // Cache disabled for real-time data - backend has 15-min cache
+  // const cached = getDailyCache('crypto_data_daily');
+  // if (cached) {
+  //   // Ensure history is preserved from cache (like Bond/Economic tabs)
+  //   const processedCached = cached.map(item => ({
+  //     ...item,
+  //     history: item.history || [], // Ensure history is always an array
+  //     selectedTimeframe: item.selectedTimeframe || 'daily',
+  //     loading: false
+  //   }));
+  //   
+  //   cryptoIndicators.value = processedCached;
+  //   cryptoLoading.value = false;
+  //   return;
+  // }
   
   try {
     // Fetch data WITH history (like Bond/Economic tabs) - default timeframe is 'daily'

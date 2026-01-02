@@ -42,7 +42,7 @@ async def get_all_commodities():
         
         if data:
             # Cache for 4 hours
-            redis_client.set_cache("commodity:data:monthly", data, ttl=14400)
+            redis_client.set_cache("commodity:data:monthly", data, ttl=1800)  # 30 min cache
             print(f"[COMMODITY_ROUTE] Successfully fetched {sum(len(v) for v in data.values())} items")
             return data
             

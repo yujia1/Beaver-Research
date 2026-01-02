@@ -19,7 +19,7 @@ async def update_regional_indices():
         data = await fetch_regional_indices_data()
         if data:
             # Cache key matches what router expects
-            redis_client.set_cache("indices:regional:all:v2", data, ttl=3600)  # 1 hour TTL in case scheduler dies
+            redis_client.set_cache("indices:regional:all:v7", data, ttl=900)  # 15 min
             # Publish update
             redis_client.publish('market_updates', json.dumps({'type': 'indices_regional', 'data': data}))
             # print("Scheduler: Regional indices updated.")
@@ -31,7 +31,7 @@ async def update_major_indices():
     try:
         data = await fetch_major_indices_data()
         if data:
-            redis_client.set_cache("indices:data", data, ttl=3600)
+            redis_client.set_cache("indices:data", data, ttl=3600)  # 1 hour
             redis_client.publish('market_updates', json.dumps({'type': 'indices_major', 'data': data}))
             # print("Scheduler: Major indices updated.")
     except Exception as e:
@@ -56,7 +56,7 @@ async def update_currency_data():
         # Fetching 'monthly' (1 year) data as default for the main dashboard view
         data = await fetch_currency_data(timeframe="monthly")
         if data:
-            redis_client.set_cache("currency:data:monthly:v2", data, ttl=3600)
+            redis_client.set_cache("currency:data:monthly:v2", data, ttl=3600)  # 1 hour
             redis_client.publish('market_updates', json.dumps({'type': 'currency_update', 'data': data}))
             # print("Scheduler: Currency data updated.")
     except Exception as e:
@@ -68,7 +68,7 @@ async def update_commodity_data():
         # Default to monthly (1y) for dashboard charts
         data = await fetch_commodity_data(timeframe="monthly")
         if data:
-            redis_client.set_cache("commodity:data:monthly", data, ttl=3600)
+            redis_client.set_cache("commodity:data:monthly", data, ttl=1800)  # 30 min
             redis_client.publish('market_updates', json.dumps({'type': 'commodity_update', 'data': data}))
             print("Scheduler: Commodity data updated.")
     except Exception as e:

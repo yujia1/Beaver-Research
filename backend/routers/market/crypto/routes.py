@@ -39,7 +39,7 @@ async def get_all_crypto_data(timeframe: str = "daily"):
         results = await fetch_crypto_data(timeframe)
         
         if results:
-            redis_client.set_cache(cache_key, results, ttl=900)
+            redis_client.set_cache(cache_key, results, ttl=3600)  # 1 hour cache
             
         return results
     except Exception as e:

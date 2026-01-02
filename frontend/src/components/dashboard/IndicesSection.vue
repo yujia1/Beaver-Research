@@ -214,17 +214,17 @@ const fetchIndices = async () => {
     loading.value = true;
     error.value = null;
     
-    // Check cache first
-    const cached = getDailyCache('indices_regional_data');
-    if (cached) {
-        allRegionalIndices.value = cached;
-        // Initialize default timeframe for each index if not present
-        Object.values(allRegionalIndices.value).flat().forEach(idx => {
-             if (!idx.selectedTimeframe) idx.selectedTimeframe = '1Y';
-        });
-        loading.value = false;
-        return;
-    }
+    // Cache disabled for real-time data - backend has 5-min cache
+    // const cached = getDailyCache('indices_regional_data');
+    // if (cached) {
+    //     allRegionalIndices.value = cached;
+    //     // Initialize default timeframe for each index if not present
+    //     Object.values(allRegionalIndices.value).flat().forEach(idx => {
+    //          if (!idx.selectedTimeframe) idx.selectedTimeframe = '1Y';
+    //     });
+    //     loading.value = false;
+    //     return;
+    // }
     
     try {
         const response = await fetch(`${API_BASE_URL}/api/market/equity/indices/regional`);
