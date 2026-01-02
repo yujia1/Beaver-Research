@@ -35,6 +35,26 @@ async def fetch_regional_indices_data():
         ]
     }
     
+    # 1. Collect all symbols to batch fetch quotes
+    all_symbols = []
+    for region in regional_indices.values():
+        for index in region:
+            all_symbols.append(index["symbol"])
+            
+    # 2. Fetch Live Quotes in Batch
+    quotes_map = {}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            quotes_url = f"{FMP_BASE_URL}/quote/{','.join(all_symbols)}"
+            quotes_resp = await client.get(quotes_url, params={"apikey": FMP_API_KEY})
+            if quotes_resp.status_code == 200:
+                quotes_data = quotes_resp.json()
+                if isinstance(quotes_data, list):
+                    for q in quotes_data:
+                        quotes_map[q["symbol"]] = q
+    except Exception as e:
+        print(f"Error fetching batch quotes: {e}")
+
     result = {}
     
     try:
@@ -44,56 +64,88 @@ async def fetch_regional_indices_data():
                 
                 for index in indices:
                     try:
-                        # Fetch current price data from FMP using the centralized BASE URL
+                        symbol = index["symbol"]
+                        
+                        # Fetch historical data
                         endpoint = "historical-price-eod/light"
                         url = f"{FMP_BASE_URL}/{endpoint}"
                         
                         params = {
-                            "symbol": index["symbol"],
+                            "symbol": symbol,
                             "apikey": FMP_API_KEY
                         }
                         
                         response = await client.get(url, params=params)
                         
+                        history = []
                         if response.status_code == 200:
                             data = response.json()
-                            
-                            # Handle potential FMP error responses in JSON
-                            if isinstance(data, dict) and "Error Message" in data:
-                                # print(f"FMP API Error for {index['symbol']}: {data['Error Message']}")
-                                continue
-
-                            if data and isinstance(data, list) and len(data) > 0:
-                                latest = data[0]
-                                previous = data[1] if len(data) > 1 else latest
-                                
-                                # Fix: 'light' endpoint uses 'price' instead of 'close'
-                                current_price = latest.get("price", 0)
-                                previous_close = previous.get("price", current_price)
-                                change = current_price - previous_close
-                                change_percent = (change / previous_close * 100) if previous_close != 0 else 0
-                                
-                                # Get historical data for chart (last 1 year)
-                                history = []
+                            if data and isinstance(data, list):
+                                # Get historical data (last 1 year)
                                 for item in data[:252]:
                                     history.append({
-                                        "symbol": index["symbol"],
+                                        "symbol": symbol,
                                         "date": item.get("date"),
-                                        "price": item.get("price", 0),
+                                        "price": item.get("price", 0) or item.get("close", 0),
                                         "volume": item.get("volume", 0)
                                     })
-                                
-                                region_data.append({
-                                    "symbol": index["symbol"],
-                                    "name": index["name"],
-                                    "price": round(current_price, 2),
-                                    "change": round(change, 2),
-                                    "changePercent": round(change_percent, 2),
-                                    "history": list(reversed(history))  # Oldest to newest
-                                })
+                        
+                        # Use Live Quote if available, otherwise fallback to history
+                        quote = quotes_map.get(symbol)
+                        
+                        if quote:
+                            current_price = quote.get("price", 0)
+                            change = quote.get("change", 0)
+                            change_percent = quote.get("changesPercentage", 0) # FMP Key is changesPercentage
+                            
+                            # Update History with Live Point?
+                            # If the quote timestamp/date is newer than the last history point, append it.
+                            # FMP history dates are string YYYY-MM-DD. Quote timestamp is unix.
+                            # Usually, EOD is previous day. Live is today.
+                            # So we should append live point to history for chart continuity.
+                            if history:
+                                last_date_str = history[0]["date"] # History is newest first from API? yes.
+                                # Check if we need to insert today
+                                # Simple check: just insert it at the beginning (newest)
+                                # But verify we don't duplicate via date check?
+                                # Ideally convert quote timestamp to YYYY-MM-DD
+                                import datetime
+                                ts = quote.get("timestamp")
+                                if ts:
+                                    quote_date = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+                                    if quote_date != last_date_str:
+                                         history.insert(0, {
+                                            "symbol": symbol,
+                                            "date": quote_date,
+                                            "price": current_price,
+                                            "volume": quote.get("volume", 0)
+                                        })
+                                    else:
+                                        # Update today's bar
+                                        history[0]["price"] = current_price
+                                        history[0]["volume"] = quote.get("volume", 0)
+                            
+                        elif history:
+                            # Fallback to historical calculation
+                            latest = history[0]
+                            previous = history[1] if len(history) > 1 else latest
+                            current_price = latest["price"]
+                            prev_price = previous["price"]
+                            change = current_price - prev_price
+                            change_percent = (change / prev_price * 100) if prev_price != 0 else 0
                         else:
-                            pass
-                            # print(f"FMP API error for {index['symbol']}: {response.status_code}")
+                            current_price = 0
+                            change = 0 
+                            change_percent = 0
+
+                        region_data.append({
+                            "symbol": symbol,
+                            "name": index["name"],
+                            "price": round(current_price, 2),
+                            "change": round(change, 2),
+                            "changePercent": round(change_percent, 2),
+                            "history": list(reversed(history[:200]))  # Limit and Oldest to newest
+                        })
                             
                     except Exception as e:
                         # print(f"Error fetching {index['symbol']}: {e}")

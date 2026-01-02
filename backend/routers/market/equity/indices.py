@@ -101,6 +101,9 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
                 # Sort ascending
                 historical = sorted(historical, key=lambda x: x["date"])
                 
+                # Sort ascending
+                historical = sorted(historical, key=lambda x: x["date"])
+                
                 # Format history
                 formatted_history = []
                 for item in historical:
@@ -111,12 +114,47 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
                         "volume": item.get("volume", 0)
                     })
                 
-                # Calculate change stats
+                # Fetch Live Quote to append/update
                 current_price = formatted_history[-1]["price"] if formatted_history else 0
-                prev_price = formatted_history[-2]["price"] if len(formatted_history) > 1 else current_price
-                change = current_price - prev_price
-                change_percent = (change / prev_price * 100) if prev_price != 0 else 0
+                change = 0
+                change_percent = 0
                 
+                try:
+                    quote_url = f"{FMP_BASE_URL}/quote/{symbol}"
+                    quote_resp = await client.get(quote_url, params={"apikey": FMP_API_KEY})
+                    if quote_resp.status_code == 200:
+                        q_data = quote_resp.json()
+                        if isinstance(q_data, list) and len(q_data) > 0:
+                            quote = q_data[0]
+                            current_price = quote.get("price", current_price)
+                            change = quote.get("change", 0)
+                            change_percent = quote.get("changesPercentage", 0)
+                            
+                            # Merge into history
+                            if formatted_history:
+                                last_hist_date = formatted_history[-1]["date"]
+                                ts = quote.get("timestamp")
+                                if ts:
+                                    quote_date = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+                                    if quote_date != last_hist_date:
+                                        formatted_history.append({
+                                            "symbol": symbol,
+                                            "date": quote_date,
+                                            "price": current_price,
+                                            "volume": quote.get("volume", 0)
+                                        })
+                                    else:
+                                        # Update last bar
+                                        formatted_history[-1]["price"] = current_price
+                                        formatted_history[-1]["volume"] = quote.get("volume", 0)
+                except Exception as e:
+                    print(f"Error merging live quote for {symbol}: {e}")
+                    # Fallback to calc from history
+                    if formatted_history:
+                        prev_price = formatted_history[-2]["price"] if len(formatted_history) > 1 else current_price
+                        change = current_price - prev_price
+                        change_percent = (change / prev_price * 100) if prev_price != 0 else 0
+
                 result = {
                     "symbol": symbol,
                     "price": round(current_price, 2),
