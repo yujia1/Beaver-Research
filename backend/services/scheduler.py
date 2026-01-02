@@ -142,7 +142,7 @@ def start_scheduler():
 
     scheduler.add_job(
         scheduled_market_report,
-        trigger=CronTrigger(day_of_week='mon-fri', hour=9, minute=20),
+        trigger=CronTrigger(day_of_week='mon-fri', hour=9, minute=20, timezone='America/New_York'),
         id='ai_market_report',
         replace_existing=True
     )

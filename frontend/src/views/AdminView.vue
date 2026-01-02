@@ -430,7 +430,7 @@
             
             <div class="control-panel">
                 <div class="control-item">
-                    <span class="control-label">Daily Schedule (9:20 AM Mon-Fri)</span>
+                    <span class="control-label">Daily Schedule (9:20 AM ET Mon-Fri)</span>
                     <label class="toggle-switch">
                         <input type="checkbox" :checked="aiReportEnabled" @change="toggleAIReport">
                         <span class="slider round"></span>
@@ -937,12 +937,13 @@ const formatDate = (dateString) => {
   if (!dateString) return '-'
   try {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/New_York'
     })
   } catch {
     return '-'
