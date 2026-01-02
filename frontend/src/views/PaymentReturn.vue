@@ -33,6 +33,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/userStore'
 import API_BASE_URL from '@/config/api.js'
 
 const router = useRouter()
@@ -71,13 +72,22 @@ const checkStatus = async () => {
     status.value = data.status
     
     if (data.status === 'complete') {
-      // Emit event to refresh user data
+      // Emit event to refresh user data (legacy support if needed)
       window.dispatchEvent(new Event('payment-verified'))
+      
+      // Update user store immediately
+      try {
+        const userStore = useUserStore()
+        await userStore.fetchUser(API_BASE_URL)
+        console.log('User data refreshed after payment')
+      } catch (e) {
+        console.error('Failed to refresh user data:', e)
+      }
       
       // Redirect after a short delay
       setTimeout(() => {
         router.push('/')
-      }, 2000)
+      }, 1500)
     }
     
   } catch (err) {

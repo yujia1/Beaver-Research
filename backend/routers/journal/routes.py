@@ -12,7 +12,7 @@ from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
-from routers.admin.auth import get_current_user, verify_premium_access, create_resource_dependency
+from routers.admin.auth import get_current_user, verify_premium_access, create_resource_dependency, create_role_dependency
 import models
 
 # Create resource-specific access dependency
@@ -240,11 +240,14 @@ async def publish_research_report(
             detail=f"Failed to save report: {str(e)}"
         )
 
+# Create partial access dependency (Role check only, Payment check internal)
+require_report_role = create_role_dependency('/report')
+
 @router.get("/minio/{report_type}")
 async def get_reports_from_minio(
     report_type: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(require_report_role)
 ):
     """Get reports from MinIO by type (daily, long, short, market)"""
     try:

@@ -330,6 +330,45 @@ def create_resource_dependency(resource: str):
         return await verify_resource_access(resource, current_user, db)
     return dependency
 
+async def verify_role_access(
+    resource: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Check ONLY Level 1 (Role Permission).
+    Do NOT check Level 2 (Payment).
+    Use this for endpoints that support Partial Access (e.g. Free Tier content).
+    """
+    # Admin always has full access
+    if current_user.role == "admin":
+        return current_user
+    
+    # Check Access Management Permissions
+    permission = db.query(models.RolePermission).filter(
+        models.RolePermission.role == current_user.role,
+        models.RolePermission.resource == resource
+    ).first()
+    
+    if not permission or not permission.can_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your role ({current_user.role}) does not have access to {resource}. Contact administrator to request access."
+        )
+    
+    return current_user
+
+def create_role_dependency(resource: str):
+    """
+    Factory validation dependency that checks Permission but NOT Payment.
+    """
+    async def dependency(
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+    ):
+        return await verify_role_access(resource, current_user, db)
+    return dependency
+
 
 # Routes
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -930,30 +969,61 @@ async def initialize_permissions(
     # Contributor: Access to everything
     # User: Restricted access to premium features
     
+    
+    # Define restricted resources for 'user' role
+    # Note: '/report' is REMOVED from restriction because it supports partial access (market/daily reports)
+    # for unpaid users. If we restrict it here, they get 403 immediately and can't see free reports.
+    user_restricted = ["/research", "/agent"]
+    
     added = 0
+    updated = 0
+    
     for role in roles:
         for resource in resources:
-            # Determine default access
-            default_access = True
-            if role == "user" and resource in ["/research", "/agent", "/report"]:
-                default_access = False
+            # Determine default access policy
+            # START with True for everyone
+            should_access = True
+            
+            # Apply restrictions for 'user' role
+            if role == "user" and resource in user_restricted:
+                should_access = False
 
-            # Check if exists
-            exists = db.query(models.RolePermission).filter(
+            # Check if permission rule exists
+            perm = db.query(models.RolePermission).filter(
                 models.RolePermission.role == role,
                 models.RolePermission.resource == resource
             ).first()
             
-            if not exists:
+            if not perm:
+                # Create new permission
                 perm = models.RolePermission(
                     role=role,
                     resource=resource,
-                    can_access=default_access
+                    can_access=should_access
                 )
                 db.add(perm)
                 added += 1
+            else:
+                # Fix: Ensure basic features are enabled for user if they were disabled
+                # We specifically check for '/report' and ensure it's True for 'user'
+                target_state = should_access
+                
+                # If the current state differs from target state (specifically if we want to enable it)
+                if role == 'user' and not perm.can_access and should_access:
+                     perm.can_access = True
+                     perm.updated_at = datetime.utcnow()
+                     updated += 1
             
     db.commit()
+    
+    # Clear all permission caches
+    redis_client.delete_cache("permissions:*")
+    
+    return {
+        "message": "Permissions initialized and fixed", 
+        "added": added, 
+        "updated": updated
+    }
     
     # Clear all permission caches
     redis_client.delete_cache("permissions:*")

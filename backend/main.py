@@ -272,6 +272,50 @@ async def startup_event():
         except Exception as e:
             logger.error(f"Failed to init default users (non-fatal): {e}")
 
+        # 1.5 Init Permissions (Ensure 'user' role has correct access)
+        try:
+            logger.info("Initializing default permissions...")
+            db = SessionLocal()
+            try:
+                resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market"]
+                roles = ["creator", "contributor", "user"]
+                user_restricted = ["/research", "/agent", "/report"]
+                
+                for role in roles:
+                    for resource in resources:
+                        should_access = True
+                        if role == "user" and resource in user_restricted:
+                            should_access = False
+                            
+                        # Check exist
+                        perm = db.query(models.RolePermission).filter(
+                            models.RolePermission.role == role,
+                            models.RolePermission.resource == resource
+                        ).first()
+                        
+                        if not perm:
+                            perm = models.RolePermission(
+                                role=role,
+                                resource=resource,
+                                can_access=should_access
+                            )
+                            db.add(perm)
+                        else:
+                            # Fix: Ensure basic features are enabled for user if they were disabled
+                            if role == 'user' and resource not in user_restricted and not perm.can_access:
+                                 perm.can_access = True
+                                 perm.updated_at = datetime.utcnow()
+                
+                db.commit()
+                logger.info("✓ Default permissions initialized/verified")
+            except Exception as e:
+                db.rollback()
+                logger.error(f"Error initializing permissions: {e}")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Failed to init permissions (non-fatal): {e}")
+
         # 2. Start Background Tasks
         try:
             from services.scheduler import start_scheduler, run_initial_fetch
