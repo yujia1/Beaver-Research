@@ -39,40 +39,43 @@ async def verify_token_from_query(token: str = Query(...), db: Session = Depends
 router = APIRouter()
 
 # MinIO configuration
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET", "reports")
+# S3/MinIO configuration
+# Prefer AWS_ variables (Railway/Production), fallback to MINIO_ (Local)
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY") or os.getenv("MINIO_SECRET_KEY", "minioadmin")
+AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL") or os.getenv("MINIO_ENDPOINT", "localhost:9000")
+AWS_S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME") or os.getenv("MINIO_BUCKET", "reports")
+AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
 
-# Initialize MinIO client
+# Initialize MinIO/S3 client
 def get_minio_client():
     # Check if endpoint already has protocol
-    if MINIO_ENDPOINT.startswith('http://') or MINIO_ENDPOINT.startswith('https://'):
-        endpoint_url = MINIO_ENDPOINT
+    if AWS_ENDPOINT_URL.startswith('http://') or AWS_ENDPOINT_URL.startswith('https://'):
+        endpoint_url = AWS_ENDPOINT_URL
     else:
-        endpoint_url = f"{'https' if MINIO_USE_SSL else 'http'}://{MINIO_ENDPOINT}"
+        endpoint_url = f"{'https' if MINIO_USE_SSL else 'http'}://{AWS_ENDPOINT_URL}"
     
     return boto3.client(
         's3',
         endpoint_url=endpoint_url,
-        aws_access_key_id=MINIO_ACCESS_KEY,
-        aws_secret_access_key=MINIO_SECRET_KEY,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
         config=Config(signature_version='s3v4'),
-        region_name='us-east-1'
+        region_name=AWS_DEFAULT_REGION
     )
 
 # Ensure bucket exists
 def ensure_bucket_exists():
     try:
         client = get_minio_client()
-        client.head_bucket(Bucket=MINIO_BUCKET)
+        client.head_bucket(Bucket=AWS_S3_BUCKET_NAME)
     except:
         try:
             client = get_minio_client()
-            client.create_bucket(Bucket=MINIO_BUCKET)
+            client.create_bucket(Bucket=AWS_S3_BUCKET_NAME)
         except Exception as e:
-            print(f"Warning: Could not create bucket {MINIO_BUCKET}: {e}")
+            print(f"Warning: Could not create bucket {AWS_S3_BUCKET_NAME}: {e}")
 
 class ReportCreate(BaseModel):
     title: str
@@ -200,7 +203,7 @@ async def publish_research_report(
         # Upload PDF to MinIO
         client = get_minio_client()
         client.put_object(
-            Bucket=MINIO_BUCKET,
+            Bucket=AWS_S3_BUCKET_NAME,
             Key=file_path,
             Body=pdf_content,
             ContentType='application/pdf'
@@ -208,7 +211,7 @@ async def publish_research_report(
         
         # Also save to database for quick access
         # Store MinIO path in content field so we can delete it later
-        minio_path_in_db = f"minio://{MINIO_BUCKET}/{file_path}"
+        minio_path_in_db = f"minio://{AWS_S3_BUCKET_NAME}/{file_path}"
         # Use report_name if provided, otherwise use default format
         report_title = report_name if report_name and report_name.strip() else f"{ticker} - {date_str}"
         db_report = Report(
@@ -292,7 +295,7 @@ async def get_reports_from_minio(
                 # We need to extract the filename part to match with MinIO listing
                 try:
                     # key = Folder/filename-uuid.pdf
-                    key = r.content.split(f"minio://{MINIO_BUCKET}/")[-1]
+                    key = r.content.split(f"minio://{AWS_S3_BUCKET_NAME}/")[-1]
                     db_report_map[key] = r
                 except:
                     pass
@@ -322,7 +325,7 @@ async def get_reports_from_minio(
         try:
             # Use paginator to handle all pages of results
             paginator = client.get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=MINIO_BUCKET, Prefix=prefix)
+            pages = paginator.paginate(Bucket=AWS_S3_BUCKET_NAME, Prefix=prefix)
             
             for page in pages:
                 if 'Contents' in page:
@@ -476,7 +479,7 @@ async def get_pdf_from_minio(
         try:
             # List all files in the folder
             prefix = f"{folder_name}/"
-            response = client.list_objects_v2(Bucket=MINIO_BUCKET, Prefix=prefix)
+            response = client.list_objects_v2(Bucket=AWS_S3_BUCKET_NAME, Prefix=prefix)
             
             file_path = None
             if 'Contents' in response:
@@ -493,7 +496,7 @@ async def get_pdf_from_minio(
                 )
             
             # Get PDF from MinIO
-            obj_response = client.get_object(Bucket=MINIO_BUCKET, Key=file_path)
+            obj_response = client.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_path)
             pdf_content = obj_response['Body'].read()
             
             from fastapi.responses import Response
@@ -546,9 +549,9 @@ async def delete_report(
         # Check if content field contains MinIO path
         if report.content and report.content.startswith("minio://"):
             # Extract path from minio://bucket/path format
-            minio_path = report.content.replace(f"minio://{MINIO_BUCKET}/", "")
+            minio_path = report.content.replace(f"minio://{AWS_S3_BUCKET_NAME}/", "")
             try:
-                client.delete_object(Bucket=MINIO_BUCKET, Key=minio_path)
+                client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=minio_path)
                 print(f"Deleted report from MinIO: {minio_path}")
                 minio_deleted = True
             except Exception as e:
@@ -586,14 +589,14 @@ async def delete_report(
                 # Only proceed if we have a valid prefix
                 if prefix:
                     # List objects with this prefix
-                    response = client.list_objects_v2(Bucket=MINIO_BUCKET, Prefix=prefix)
+                    response = client.list_objects_v2(Bucket=AWS_S3_BUCKET_NAME, Prefix=prefix)
                     
                     if 'Contents' in response:
                         # Delete all files matching this report (same ticker, type, and date)
                         for obj in response['Contents']:
                             minio_path = obj['Key']
                             try:
-                                client.delete_object(Bucket=MINIO_BUCKET, Key=minio_path)
+                                client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=minio_path)
                                 print(f"Deleted report from MinIO: {minio_path}")
                                 minio_deleted = True
                             except Exception as e:

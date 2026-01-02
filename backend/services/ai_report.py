@@ -22,20 +22,37 @@ import uuid
 import os
 
 # S3/MinIO Configuration
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "reports")
+# S3/MinIO Configuration
+# Prefer AWS_ variables (Railway/Production), fallback to S3_/MINIO_ (Local)
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "minioadmin")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
-S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "http://minio:9000")
+AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+
+S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME") or os.getenv("S3_BUCKET_NAME", "reports")
+S3_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL") or os.getenv("S3_ENDPOINT_URL", "http://localhost:9000")
+
+# Ensure endpoint has protocol
+if S3_ENDPOINT_URL and not (S3_ENDPOINT_URL.startswith('http://') or S3_ENDPOINT_URL.startswith('https://')):
+    S3_ENDPOINT_URL = f"https://{S3_ENDPOINT_URL}" # Default to https for remote, http usually explicit for local
+
+logger = logging.getLogger(__name__)
+
+# Log S3 Configuration (Masking credentials)
+logger.info("-" * 40)
+logger.info(f"S3 Configuration:")
+logger.info(f"  Endpoint: {S3_ENDPOINT_URL}")
+logger.info(f"  Bucket:   {S3_BUCKET_NAME}")
+logger.info(f"  Region:   {AWS_DEFAULT_REGION}")
+logger.info("-" * 40)
 
 s3_client = boto3.client(
     's3',
     endpoint_url=S3_ENDPOINT_URL,
     aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    config=boto3.session.Config(signature_version='s3v4')
+    config=boto3.session.Config(signature_version='s3v4'),
+    region_name=AWS_DEFAULT_REGION
 )
-
-logger = logging.getLogger(__name__)
 
 async def collect_market_data():
     """
@@ -366,19 +383,23 @@ async def generate_market_report(manual_trigger=False):
             )
             is_uploaded = True
             logging.info(f"Uploaded PDF to S3: {file_path}")
+            # Save MinIO path in content field as per user request to restructure storage
+            # content will be: minio://bucket/path
+            final_content = f"minio://{S3_BUCKET_NAME}/{file_path}"
         except Exception as s3_err:
             logging.error(f"Failed to upload PDF to S3: {s3_err}")
             is_uploaded = False
-            file_path = None # Fallback to text storage if upload fails
+            file_path = None 
+            final_content = report_content # Fallback to saving text content
 
         db_report = models.Report(
             title=f"Market Report - {today_str}",
-            content=report_content, # Keep text content as backup/searchable
+            content=final_content,
             report_type="market",
             ticker="MARKET",
             user_id=user_id,
             is_uploaded=is_uploaded, 
-            file_path=file_path if is_uploaded else None,
+            file_path=file_path,
             created_at=datetime.datetime.utcnow()
         )
         db.add(db_report)
