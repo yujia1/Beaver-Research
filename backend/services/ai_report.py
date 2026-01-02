@@ -59,8 +59,12 @@ async def collect_market_data():
         # using 'daily' timeframe for report
         major_indices = await indices.fetch_major_indices_data()
         regional_indices = await indices.fetch_regional_indices_data()
+        sectors = await indices.fetch_sector_performance()
+        industries = await indices.fetch_industry_performance()
         data["equity"]["major_indices"] = major_indices
         data["equity"]["regional_indices"] = regional_indices
+        data["equity"]["sectors"] = sectors
+        data["equity"]["industries"] = industries
     except Exception as e:
         logger.error(f"Error collecting equity data: {e}")
         data["equity"]["error"] = str(e)
@@ -165,6 +169,15 @@ def format_data_for_agent(data: dict) -> str:
                     for idx in indices:
                         # regional returns {symbol, name, price, changePercent...}
                         summary.append(f"- {idx.get('name')}: {idx.get('price')} ({idx.get('changePercent')}%)")
+
+            sectors = data["equity"].get("sectors", [])
+            if sectors:
+                 # sector data: {sector: Name, changesPercentage: Val}
+                 summary.append(format_list("Equity: Sector Performance", sectors, 'sector', 'changesPercentage', ''))
+
+            industries = data["equity"].get("industries", [])
+            if industries:
+                 summary.append(format_list("Equity: Top/Bottom Industries", industries, 'industry', 'changesPercentage', ''))
 
 
     # Bond
@@ -273,19 +286,21 @@ async def generate_market_report(manual_trigger=False):
     
     # 3. Generate Report Content
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    prompt_customization = """
-    Create a professional "Daily Market Report" based on the provided data.
+    prompt_customization = f"""
+    Create a professional "Daily Market Report - {today_str}" based on the provided data.
     
     Structure the report with the following sections:
-    1. **Market Overview**: Key takeaways and sentiment summary. Must include key data points to support conclusions. Use bullet points for key takeaways.
-    2. **Equity**: Analysis of major indices and market movers. Cite specific index levels and changes.
+    1. **Market Overview**: Comprehensive analysis, predictions, and risk assessment. Synthesize the data to provide a conclusion on market direction. Support with key data points. Use bullet points.
+    2. **Equity**: Analysis of major indices, regional markets, SECTOR, and INDUSTRY performance. Identify leading/lagging sectors and notable industry moves.
     3. **Bond Market**: Treasury yields, curve analysis, and stress metrics.
     4. **Currency**: Key FX pairs and dollar strength/weakness. Cite specific rates.
     5. **Commodities**: Energy, Metals, and Agriculture trends. Cite specific prices.
-    6. **Crypto**: Major crypto assets performance. Use bullet points with data driven insights.
-    7. **Economic Calendar**: Upcoming key events and their potential impact.
+    6. **Crypto**: Major crypto assets performance (e.g. Bitcoin, Ethereum). Identify assets by NAME. Use bullet points with data driven insights.
+    7. **Economic Calendar**: Key Medium/High impact events. MUST list specific Date & Time for each event.
 
     Format in Markdown. 
+    **TONE**: Straightforward, critical, and human-like (avoid robotic hedging).
+    
     **CRITICAL**: 
     - Use bullet points for lists and readability.
     - Support all claims with DATA (prices, % changes) from the input.

@@ -175,3 +175,67 @@ async def fetch_major_indices_data():
         print(f"Error fetching indices: {e}")
         # Return empty results on critical failure
         return [{"name": idx["name"], "key": idx["key"], "value": 0.0, "change": 0.0, "history": []} for idx in indices_config]
+
+async def fetch_sector_performance():
+    """
+    Fetch sector performance from FMP.
+    Returns list of {sector, changesPercentage}.
+    """
+    if not FMP_API_KEY:
+        return []
+
+    url = f"{FMP_BASE_URL}/sector-performance"
+    params = {"apikey": FMP_API_KEY}
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                # Clean percentages
+                for item in data:
+                    c = item.get('changesPercentage', 0)
+                    if isinstance(c, str):
+                        try:
+                            item['changesPercentage'] = float(c.strip('%'))
+                        except:
+                            item['changesPercentage'] = 0.0
+                return data
+    except Exception as e:
+        print(f"Error fetching sector performance: {e}")
+    return []
+
+async def fetch_industry_performance():
+    """
+    Fetch industry performance from FMP.
+    Returns list of top 5 and bottom 5 industries.
+    """
+    if not FMP_API_KEY:
+        return []
+
+    url = f"{FMP_BASE_URL}/stock-market-performance/industry-performance"
+    params = {"apikey": FMP_API_KEY}
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                   for item in data:
+                       c = item.get('changesPercentage', 0)
+                       if isinstance(c, str):
+                           try:
+                               item['changesPercentage'] = float(c.strip('%'))
+                           except:
+                               item['changesPercentage'] = 0.0
+                   
+                   # Sort descending
+                   data.sort(key=lambda x: x.get('changesPercentage', 0), reverse=True)
+                   
+                   top_5 = data[:5]
+                   bottom_5 = data[-5:]
+                   return top_5 + bottom_5
+    except Exception as e:
+        print(f"Error fetching industry performance: {e}")
+    return []
