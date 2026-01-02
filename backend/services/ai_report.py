@@ -414,6 +414,7 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
     3. Generate new PDF
     4. Upload to S3 and save to DB
     """
+    logger.info(f"Processing uploaded report: File={filename}, Type={report_type}, Date={publish_date}")
     db = SessionLocal()
     try:
         # 1. Extract Text
@@ -476,7 +477,9 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
         if safe_filename.lower().endswith('.pdf'):
             safe_filename = safe_filename[:-4]
             
-        s3_key = f"{folder}/{safe_filename}-{report_uuid}.pdf"
+        # Add date to filename
+        date_str = publish_date if publish_date else datetime.datetime.now().strftime("%Y-%m-%d")
+        s3_key = f"{folder}/{safe_filename}-{date_str}-{report_uuid}.pdf"
         
         s3_client.put_object(
             Bucket=S3_BUCKET_NAME,

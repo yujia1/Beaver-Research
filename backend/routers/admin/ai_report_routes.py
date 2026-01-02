@@ -130,29 +130,31 @@ async def run_uploaded_report_task(content: bytes, filename: str, report_type: s
 @router.post("/short-report/run")
 async def run_short_report(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
     publish_date: Optional[str] = Form(None),
+    file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user)
 ):
     """Trigger AI Short Report generation (Rewrite uploaded file)"""
+    logger.info(f"Short Report Run: File={file.filename}, Date={publish_date}, User={current_user.id}")
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
         
     content = await file.read()
-    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "short", current_user.id, publish_date)
+    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "short", current_user.id, publish_date=publish_date)
     return {"message": "Short Report processing started"}
 
 @router.post("/long-report/run")
 async def run_long_report(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
     publish_date: Optional[str] = Form(None),
+    file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user)
 ):
     """Trigger AI Long Report generation (Rewrite uploaded file)"""
+    logger.info(f"Long Report Run: File={file.filename}, Date={publish_date}, User={current_user.id}")
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
         
     content = await file.read()
-    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "long", current_user.id, publish_date)
+    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "long", current_user.id, publish_date=publish_date)
     return {"message": "Long Report processing started"}
