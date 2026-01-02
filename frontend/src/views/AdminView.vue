@@ -743,11 +743,11 @@ const runShortJournal = async () => {
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             })
+            const result = await response.json()
             if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.detail || 'Failed to run short journal')
+                throw new Error(result.detail || 'Failed to run short journal')
             }
-            message.value = "Short Report generation started."
+            message.value = result.message || "Short Report generation started."
             messageType.value = "success"
             setTimeout(fetchAIReportConfig, 1000)
         } else {
@@ -798,11 +798,11 @@ const runLongJournal = async () => {
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             })
+            const result = await response.json()
             if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.detail || 'Failed to run long journal')
+                throw new Error(result.detail || 'Failed to run long journal')
             }
-            message.value = "Long Report generation started."
+            message.value = result.message || "Long Report generation started."
             messageType.value = "success"
             setTimeout(fetchAIReportConfig, 1000)
         } else {
