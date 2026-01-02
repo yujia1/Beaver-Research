@@ -107,7 +107,44 @@ def fetch_yfinance_series(ticker: str, start_date: str):
         hist['value'] = hist['value'].astype(float)
         # Filter to only include dates >= start_date
         hist = hist[hist['date'] >= start_date]
-        return hist.to_dict(orient='records')
+        
+        records = hist.to_dict(orient='records')
+        
+        # Merge Real-Time Data using fast_info
+        try:
+            # fast_info provides efficient access to latest price
+            last_price = stock.fast_info.last_price
+            # timezone = stock.fast_info.timezone # usually 'America/New_York'
+            
+            # Simple check: if valid price
+            if last_price is not None and last_price > 0:
+                # Get Today's date
+                today_str = datetime.today().strftime('%Y-%m-%d')
+                
+                # Check if we need to append or update
+                if records:
+                    last_record_date = records[-1]['date']
+                    if last_record_date != today_str:
+                        # Append new record for today
+                        records.append({
+                            'date': today_str,
+                            'value': float(last_price)
+                        })
+                    else:
+                        # Update today's record (it might be partial/EOD)
+                        records[-1]['value'] = float(last_price)
+                else:
+                    # No history, just add today
+                    records.append({
+                        'date': today_str,
+                        'value': float(last_price)
+                    })
+                    
+        except Exception as e:
+            # print(f"Error fetching fast_info for {ticker}: {e}")
+            pass
+            
+        return records
     except Exception as e:
         print(f"Error fetching yfinance series {ticker}: {e}")
         return []
