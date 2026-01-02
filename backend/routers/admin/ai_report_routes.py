@@ -20,6 +20,10 @@ class AIReportStatus(BaseModel):
     enabled: bool
     last_run: Optional[str] = None
     last_status: Optional[str] = None # 'success', 'failed'
+    short_last_run: Optional[str] = None
+    short_last_status: Optional[str] = None
+    long_last_run: Optional[str] = None
+    long_last_status: Optional[str] = None
 
 @router.get("/config", response_model=AIReportStatus)
 @router.get("/config", response_model=AIReportStatus)
@@ -37,10 +41,19 @@ async def get_config(
     last_run = redis_client.get_cache("ai_report:last_run") # e.g. "2023-10-27T09:20:00"
     last_status = redis_client.get_cache("ai_report:last_status") # e.g. "success"
     
+    short_last_run = redis_client.get_cache("ai_report:short:last_run")
+    short_last_status = redis_client.get_cache("ai_report:short:last_status")
+    long_last_run = redis_client.get_cache("ai_report:long:last_run")
+    long_last_status = redis_client.get_cache("ai_report:long:last_status")
+    
     return {
         "enabled": config.get("enabled", False),
         "last_run": last_run,
-        "last_status": last_status
+        "last_status": last_status,
+        "short_last_run": short_last_run,
+        "short_last_status": short_last_status,
+        "long_last_run": long_last_run,
+        "long_last_status": long_last_status
     }
 
 @router.post("/config", response_model=AIReportStatus)
@@ -102,6 +115,18 @@ async def run_report_task():
     redis_client.set_cache("ai_report:last_status", status, ttl=31536000)
 
 
+async def run_uploaded_report_task(content: bytes, filename: str, report_type: str, user_id: int):
+    """Wrapper to run uploaded report and update status"""
+    import datetime
+    key_prefix = f"ai_report:{report_type}" # short or long
+    redis_client.set_cache(f"{key_prefix}:last_run", datetime.datetime.now().isoformat(), ttl=31536000)
+    redis_client.set_cache(f"{key_prefix}:last_status", "running", ttl=31536000)
+    
+    success = await process_uploaded_report(content, filename, report_type, user_id)
+    
+    status = "success" if success else "failed"
+    redis_client.set_cache(f"{key_prefix}:last_status", status, ttl=31536000)
+
 @router.post("/short-report/run")
 async def run_short_report(
     background_tasks: BackgroundTasks,
@@ -113,7 +138,7 @@ async def run_short_report(
         raise HTTPException(status_code=403, detail="Admin only")
         
     content = await file.read()
-    background_tasks.add_task(process_uploaded_report, content, file.filename, "short", current_user.id)
+    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "short", current_user.id)
     return {"message": "Short Report processing started"}
 
 @router.post("/long-report/run")
@@ -127,5 +152,5 @@ async def run_long_report(
         raise HTTPException(status_code=403, detail="Admin only")
         
     content = await file.read()
-    background_tasks.add_task(process_uploaded_report, content, file.filename, "long", current_user.id)
+    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "long", current_user.id)
     return {"message": "Long Report processing started"}

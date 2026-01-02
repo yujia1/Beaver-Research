@@ -731,6 +731,7 @@ const runShortJournal = async () => {
             if (!response.ok) throw new Error('Failed to run short journal')
             message.value = "Short Report generation started."
             messageType.value = "success"
+            setTimeout(fetchAIReportConfig, 1000)
         } else {
              // Mock run if no file
              await new Promise(resolve => setTimeout(resolve, 2000))
@@ -775,6 +776,7 @@ const runLongJournal = async () => {
             if (!response.ok) throw new Error('Failed to run long journal')
             message.value = "Long Report generation started."
             messageType.value = "success"
+            setTimeout(fetchAIReportConfig, 1000)
         } else {
              // Mock run if no file
              await new Promise(resolve => setTimeout(resolve, 2000))
@@ -800,6 +802,12 @@ const fetchAIReportConfig = async () => {
       aiReportEnabled.value = data.enabled
       aiReportLastRun.value = data.last_run
       aiReportLastStatus.value = data.last_status
+      
+      // Update Short/Long status
+      aiShortJournalLastRun.value = data.short_last_run
+      aiShortJournalLastStatus.value = data.short_last_status
+      aiLongJournalLastRun.value = data.long_last_run
+      aiLongJournalLastStatus.value = data.long_last_status
     }
   } catch (e) {
     console.error('Failed to fetch AI report config', e)
