@@ -121,8 +121,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { loadStripe } from '@stripe/stripe-js'
 import API_BASE_URL from '@/config/api.js'
+import { StripeCheckoutService } from '@/services/stripeService'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -130,12 +130,6 @@ const router = useRouter()
 const error = ref('')
 const selectedPlan = ref('annual') // Default to annual
 const isProcessing = ref(false)
-
-// Check if Stripe key is configured
-const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
-let checkoutInstance = null
 
 // Function to fetch client secret, passed to Stripe
 const fetchClientSecret = async () => {
@@ -165,9 +159,6 @@ const fetchClientSecret = async () => {
   return data.clientSecret
 }
 
-// Track initialization version to prevent race conditions
-let initVersion = 0
-
 const selectPlan = async (plan) => {
   if (selectedPlan.value === plan) return 
   selectedPlan.value = plan
@@ -177,61 +168,12 @@ const selectPlan = async (plan) => {
 
 const initializeCheckout = async () => {
   error.value = ''
-  // Increment version to invalidate previous pending inits
-  const currentVersion = ++initVersion
-  
-  // Cleanup existing instance immediately
-  if (checkoutInstance) {
-    try {
-      await checkoutInstance.destroy()
-    } catch (e) {
-      console.warn('Error destroying previous checkout instance:', e)
-    }
-    checkoutInstance = null
-  }
-  
   try {
-    if (!stripePublishableKey) {
-      throw new Error('Stripe is not configured. Please contact support.')
-    }
-
-    const stripe = await stripePromise
-    if (!stripe) {
-      throw new Error('Stripe failed to initialize')
-    }
-
-    // Check if we became stale while loading stripe
-    if (currentVersion !== initVersion) return
-
-    // Initialize Embedded Checkout
-    // fetchClientSecret will be called by Stripe internally
-    const instance = await stripe.initEmbeddedCheckout({
-      fetchClientSecret: async () => {
-          // Wrap fetchClientSecret to ensure we don't fetch for stale versions?
-          // Stripe calls this internally. If we destroy the instance, this promise chain might break.
-          // But our fetchClientSecret logic is stateless (uses current selectedPlan).
-          // However, selectedPlan might have changed!
-          // We should use the plan that was active *when this init started*?
-          // Actually, stripe.initEmbeddedCheckout expects the secret for the *current* session.
-          // It's safer to just return the promise.
-          return await fetchClientSecret()
-      }
-    })
-
-    // Check staleness again before mounting
-    if (currentVersion !== initVersion) {
-      instance.destroy()
-      return
-    }
-
-    checkoutInstance = instance
-    checkoutInstance.mount('#checkout')
-    
+    // Delegate to Global Service
+    await StripeCheckoutService.mount('#checkout', fetchClientSecret)
   } catch (err) {
-    // Only show error if we are still the active version
-    if (currentVersion === initVersion) {
-      error.value = err.message || 'Failed to load payment form.'
-    }
+    console.error(err)
+    error.value = err.message || 'Failed to load payment form.'
   }
 }
 
@@ -240,10 +182,7 @@ onMounted(() => {
 })
 
 onUnmounted(async () => {
-  if (checkoutInstance) {
-    await checkoutInstance.destroy()
-    checkoutInstance = null
-  }
+  await StripeCheckoutService.destroy()
 })
 </script>
 

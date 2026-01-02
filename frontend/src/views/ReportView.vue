@@ -33,12 +33,14 @@
           <div class="main-report-area">
               <div v-if="loadingReports" class="loading">{{ t('reports_page.loading') }}</div>
               <div v-else>
+                
+                <!-- Premium Lock: Show PaymentGate if user is unpaid and trying to access premium tabs -->
+                <div v-if="!hasPaid && (activeCategory === 'long' || activeCategory === 'short')" class="report-category">
+                    <PaymentGate />
+                </div>
+
                 <!-- Long Position Reports -->
-                <div v-if="activeCategory === 'long'" class="report-category">
-                    <div v-if="!hasPaid">
-                        <PaymentGate />
-                    </div>
-                    <div v-else>
+                <div v-if="activeCategory === 'long' && hasPaid" class="report-category">
                         <div v-if="longReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.long') }}</div>
                         <ul v-else class="report-list">
                         <li v-for="savedReport in longReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
@@ -61,10 +63,9 @@
                             </div>
                         </li>
                     </ul>
-                    </div>
             </div>
             
-                <!-- Daily Reports -->
+                <!-- Daily Reports (Free/Partial) -->
                 <div v-if="activeCategory === 'daily'" class="report-category">
                     <div v-if="dailyReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.daily') }}</div>
                     <ul v-else class="report-list">
@@ -89,7 +90,7 @@
                     </ul>
         </div>
 
-                <!-- Market Reports -->
+                <!-- Market Reports (Free/Partial) -->
                 <div v-if="activeCategory === 'market'" class="report-category">
                     <div v-if="marketReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.market') }}</div>
                     <ul v-else class="report-list">
@@ -116,11 +117,7 @@
         </div>
 
                 <!-- Short Position Reports -->
-                <div v-if="activeCategory === 'short'" class="report-category">
-                    <div v-if="!hasPaid">
-                        <PaymentGate />
-                    </div>
-                    <div v-else>
+                <div v-if="activeCategory === 'short' && hasPaid" class="report-category">
                         <div v-if="shortReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.short') }}</div>
                         <ul v-else class="report-list">
                         <li v-for="savedReport in shortReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
@@ -146,10 +143,9 @@
             </div>
         </div>
     </div>
-            </div>
-        </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
