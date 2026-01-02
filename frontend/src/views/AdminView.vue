@@ -507,17 +507,11 @@
             </div>
 
             <div v-if="aiReportTab === 'short'" class="ai-report-section">
-                <h3>AI Short Journal</h3>
+                <h3>AI Short Report</h3>
                 <p class="subtitle">Automatically generate and publish short journal using AI.</p>
                 
                 <div class="control-panel">
-                    <div class="control-item">
-                        <span class="control-label">Daily Schedule</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" :checked="aiShortJournalEnabled" @change="toggleShortJournal">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
+
                     
                     <div class="status-panel">
                         <p><strong>Last Run:</strong> {{ aiShortJournalLastRun ? formatDate(aiShortJournalLastRun) : 'Never' }}</p>
@@ -525,6 +519,11 @@
                     </div>
                     
                     <div class="actions-panel">
+                        <div class="file-upload-control" style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Upload Source PDF (Optional)</label>
+                            <input type="file" @change="handleShortFileChange" accept="application/pdf" />
+                            <p v-if="shortReportFile" style="margin-top: 0.5rem; font-size: 0.9em; color: #4b5563;">Selected: {{ shortReportFile.name }}</p>
+                        </div>
                         <button @click="runShortJournal" class="action-button verify" :disabled="aiShortJournalRunning">
                             {{ aiShortJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
                         </button>
@@ -534,17 +533,11 @@
             </div>
 
             <div v-if="aiReportTab === 'long'" class="ai-report-section">
-                <h3>Long Journal</h3>
+                <h3>Long Report</h3>
                 <p class="subtitle">Automatically generate and publish long journal using AI.</p>
                 
                 <div class="control-panel">
-                    <div class="control-item">
-                        <span class="control-label">Daily Schedule</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" :checked="aiLongJournalEnabled" @change="toggleLongJournal">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
+
                     
                     <div class="status-panel">
                         <p><strong>Last Run:</strong> {{ aiLongJournalLastRun ? formatDate(aiLongJournalLastRun) : 'Never' }}</p>
@@ -552,6 +545,11 @@
                     </div>
                     
                     <div class="actions-panel">
+                        <div class="file-upload-control" style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Upload Source PDF (Optional)</label>
+                            <input type="file" @change="handleLongFileChange" accept="application/pdf" />
+                            <p v-if="longReportFile" style="margin-top: 0.5rem; font-size: 0.9em; color: #4b5563;">Selected: {{ longReportFile.name }}</p>
+                        </div>
                         <button @click="runLongJournal" class="action-button verify" :disabled="aiLongJournalRunning">
                             {{ aiLongJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
                         </button>
@@ -703,21 +701,93 @@ const aiDailyJournalRunning = ref(false)
 const runDailyJournal = () => { aiDailyJournalRunning.value = true; setTimeout(() => aiDailyJournalRunning.value = false, 2000) }
 const toggleDailyJournal = () => { aiDailyJournalEnabled.value = !aiDailyJournalEnabled.value }
 
-// AI Short Journal State
-const aiShortJournalEnabled = ref(false)
+// AI Short Report State
 const aiShortJournalLastRun = ref(null)
 const aiShortJournalLastStatus = ref(null)
 const aiShortJournalRunning = ref(false)
-const runShortJournal = () => { aiShortJournalRunning.value = true; setTimeout(() => aiShortJournalRunning.value = false, 2000) }
-const toggleShortJournal = () => { aiShortJournalEnabled.value = !aiShortJournalEnabled.value }
+const shortReportFile = ref(null)
 
-// Long Journal State
-const aiLongJournalEnabled = ref(false)
+const handleShortFileChange = (event) => {
+    const file = event.target.files[0]
+    if (file && file.type === 'application/pdf') {
+        shortReportFile.value = file
+    } else {
+        shortReportFile.value = null
+    }
+}
+
+const runShortJournal = async () => {
+    aiShortJournalRunning.value = true
+    try {
+        if (shortReportFile.value) {
+            const formData = new FormData()
+            formData.append('file', shortReportFile.value)
+            const token = localStorage.getItem('access_token')
+            const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/short-report/run`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            })
+            if (!response.ok) throw new Error('Failed to run short journal')
+            message.value = "Short Report generation started."
+            messageType.value = "success"
+        } else {
+             // Mock run if no file
+             await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+    } catch (e) {
+        message.value = e.message || "Failed to run short journal"
+        messageType.value = "error"
+    } finally {
+        aiShortJournalRunning.value = false
+    }
+}
+
+
+
+// Long Report State
 const aiLongJournalLastRun = ref(null)
 const aiLongJournalLastStatus = ref(null)
 const aiLongJournalRunning = ref(false)
-const runLongJournal = () => { aiLongJournalRunning.value = true; setTimeout(() => aiLongJournalRunning.value = false, 2000) }
-const toggleLongJournal = () => { aiLongJournalEnabled.value = !aiLongJournalEnabled.value }
+const longReportFile = ref(null)
+
+const handleLongFileChange = (event) => {
+    const file = event.target.files[0]
+    if (file && file.type === 'application/pdf') {
+        longReportFile.value = file
+    } else {
+        longReportFile.value = null
+    }
+}
+
+const runLongJournal = async () => {
+    aiLongJournalRunning.value = true
+    try {
+        if (longReportFile.value) {
+            const formData = new FormData()
+            formData.append('file', longReportFile.value)
+            const token = localStorage.getItem('access_token')
+            const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/long-report/run`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            })
+            if (!response.ok) throw new Error('Failed to run long journal')
+            message.value = "Long Report generation started."
+            messageType.value = "success"
+        } else {
+             // Mock run if no file
+             await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+    } catch (e) {
+        message.value = e.message || "Failed to run long journal"
+        messageType.value = "error"
+    } finally {
+        aiLongJournalRunning.value = false
+    }
+}
+
+
 
 const fetchAIReportConfig = async () => {
   try {

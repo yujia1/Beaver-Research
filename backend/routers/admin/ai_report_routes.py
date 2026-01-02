@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional
 from routers.admin.auth import get_current_user
 import models
-from services.ai_report import generate_market_report
+from services.ai_report import generate_market_report, process_uploaded_report
 from redis_client import redis_client
 import json
 import logging
@@ -101,3 +101,31 @@ async def run_report_task():
     status = "success" if success else "failed"
     redis_client.set_cache("ai_report:last_status", status, ttl=31536000)
 
+
+@router.post("/short-report/run")
+async def run_short_report(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Trigger AI Short Report generation (Rewrite uploaded file)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+        
+    content = await file.read()
+    background_tasks.add_task(process_uploaded_report, content, file.filename, "short", current_user.id)
+    return {"message": "Short Report processing started"}
+
+@router.post("/long-report/run")
+async def run_long_report(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Trigger AI Long Report generation (Rewrite uploaded file)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+        
+    content = await file.read()
+    background_tasks.add_task(process_uploaded_report, content, file.filename, "long", current_user.id)
+    return {"message": "Long Report processing started"}

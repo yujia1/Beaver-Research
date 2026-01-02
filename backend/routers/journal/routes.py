@@ -216,12 +216,12 @@ async def publish_research_report(
         
         # Also save to database for quick access
         # Store MinIO path in content field so we can delete it later
-        minio_path_in_db = f"minio://{AWS_S3_BUCKET_NAME}/{file_path}"
+        s3_path_in_db = f"s3://{AWS_S3_BUCKET_NAME}/{file_path}"
         # Use report_name if provided, otherwise use default format
         report_title = report_name if report_name and report_name.strip() else f"{ticker} - {date_str}"
         db_report = Report(
             title=report_title,
-            content=minio_path_in_db,  # Store MinIO path instead of content
+            content=s3_path_in_db,  # Store MinIO path instead of content
             report_type=report_type,
             ticker=ticker,
             user_id=current_user.id,
@@ -295,12 +295,12 @@ async def get_reports_from_minio(
         text_reports = []
         
         for r in db_reports:
-            if r.is_uploaded and r.content and "minio://" in r.content:
-                # content format: minio://reports/Folder/filename-uuid.pdf
+            if r.is_uploaded and r.content and "s3://" in r.content:
+                # content format: s3://reports/Folder/filename-uuid.pdf
                 # We need to extract the filename part to match with MinIO listing
                 try:
                     # key = Folder/filename-uuid.pdf
-                    key = r.content.split(f"minio://{AWS_S3_BUCKET_NAME}/")[-1]
+                    key = r.content.split(f"s3://{AWS_S3_BUCKET_NAME}/")[-1]
                     db_report_map[key] = r
                 except:
                     pass
@@ -552,15 +552,15 @@ async def delete_report(
         minio_deleted = False
         
         # Check if content field contains MinIO path
-        if report.content and report.content.startswith("minio://"):
-            # Extract path from minio://bucket/path format
-            minio_path = report.content.replace(f"minio://{AWS_S3_BUCKET_NAME}/", "")
+        if report.content and report.content.startswith("s3://"):
+            # Extract path from s3://bucket/path format
+            s3_path = report.content.replace(f"s3://{AWS_S3_BUCKET_NAME}/", "")
             try:
-                client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=minio_path)
-                logger.info(f"Deleted report from MinIO: {minio_path}")
+                client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=s3_path)
+                logger.info(f"Deleted report from MinIO: {s3_path}")
                 minio_deleted = True
             except Exception as e:
-                logger.warning(f"Warning: Could not delete from MinIO ({minio_path}): {e}")
+                logger.warning(f"Warning: Could not delete from MinIO ({s3_path}): {e}")
         
         # For reports published from research view (daily/long/short/market), search MinIO
         if not minio_deleted and report.report_type in ["daily", "long", "short", "market"]:
@@ -599,13 +599,13 @@ async def delete_report(
                     if 'Contents' in response:
                         # Delete all files matching this report (same ticker, type, and date)
                         for obj in response['Contents']:
-                            minio_path = obj['Key']
+                            s3_path = obj['Key']
                             try:
-                                client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=minio_path)
-                                logger.info(f"Deleted report from MinIO: {minio_path}")
+                                client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=s3_path)
+                                logger.info(f"Deleted report from MinIO: {s3_path}")
                                 minio_deleted = True
                             except Exception as e:
-                                logger.warning(f"Warning: Could not delete file {minio_path} from MinIO: {e}")
+                                logger.warning(f"Warning: Could not delete file {s3_path} from MinIO: {e}")
                     else:
                         logger.info(f"No files found in MinIO with prefix: {prefix}")
             except Exception as e:

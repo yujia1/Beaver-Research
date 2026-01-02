@@ -20,6 +20,7 @@ from io import BytesIO
 import boto3
 import uuid
 import os
+import pdfplumber
 
 # S3/MinIO Configuration
 # Prefer AWS_ variables (Railway/Production), fallback to S3_/MINIO_ (Local)
@@ -36,13 +37,6 @@ if S3_ENDPOINT_URL and not (S3_ENDPOINT_URL.startswith('http://') or S3_ENDPOINT
 
 logger = logging.getLogger(__name__)
 
-# Log S3 Configuration (Masking credentials)
-logger.info("-" * 40)
-logger.info(f"S3 Configuration:")
-logger.info(f"  Endpoint: {S3_ENDPOINT_URL}")
-logger.info(f"  Bucket:   {S3_BUCKET_NAME}")
-logger.info(f"  Region:   {AWS_DEFAULT_REGION}")
-logger.info("-" * 40)
 
 s3_client = boto3.client(
     's3',
@@ -288,6 +282,33 @@ def format_data_for_agent(data: dict) -> str:
 
     return "\n".join(summary)
 
+def create_pdf_from_markdown(content: str, title: str) -> bytes:
+    """Helper to convert markdown content to PDF bytes"""
+    pdf_buffer = BytesIO()
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    story.append(Paragraph(title, styles['Title']))
+    story.append(Spacer(1, 12))
+    
+    # Process lines
+    lines = content.split('\n')
+    for line in lines:
+        if line.startswith('## '):
+            story.append(Paragraph(line.replace('## ', ''), styles['Heading2']))
+        elif line.startswith('### '):
+            story.append(Paragraph(line.replace('### ', ''), styles['Heading3']))
+        elif line.startswith('- ') or line.startswith('* '):
+                story.append(Paragraph(line.replace('- ', '• ').replace('* ', '• '), styles['BodyText']))
+        elif line.strip():
+            story.append(Paragraph(line, styles['BodyText']))
+        story.append(Spacer(1, 6))
+
+    doc.build(story)
+    return pdf_buffer.getvalue()
+
 async def generate_market_report(manual_trigger=False):
     """
     Main function to generate the daily market report.
@@ -340,34 +361,7 @@ async def generate_market_report(manual_trigger=False):
         user_id = admin_user.id if admin_user else 1 # Fallback
         
         # Convert Markdown to PDF
-        pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = []
-        
-        # Simple Markdown parsing (ReportLab doesn't support full MD natively, so we do basic cleanup)
-        # For a production app, we might want markdown2pdf or similar, but let's do a simple pass
-        # Convert MD to HTML-ish compatible with ReportLab or just plain paragraphs
-        
-        # Title
-        story.append(Paragraph(f"Daily Market Report - {today_str}", styles['Title']))
-        story.append(Spacer(1, 12))
-        
-        # Process lines
-        lines = report_content.split('\n')
-        for line in lines:
-            if line.startswith('## '):
-                story.append(Paragraph(line.replace('## ', ''), styles['Heading2']))
-            elif line.startswith('### '):
-                story.append(Paragraph(line.replace('### ', ''), styles['Heading3']))
-            elif line.startswith('- ') or line.startswith('* '):
-                 story.append(Paragraph(line.replace('- ', '• ').replace('* ', '• '), styles['BodyText']))
-            elif line.strip():
-                story.append(Paragraph(line, styles['BodyText']))
-            story.append(Spacer(1, 6))
-
-        doc.build(story)
-        pdf_value = pdf_buffer.getvalue()
+        pdf_value = create_pdf_from_markdown(report_content, f"Daily Market Report - {today_str}")
         
         # Upload to S3
         report_uuid = str(uuid.uuid4())
@@ -383,8 +377,8 @@ async def generate_market_report(manual_trigger=False):
             is_uploaded = True
             logging.info(f"Uploaded PDF to S3: {file_path}")
             # Save MinIO path in content field as per user request to restructure storage
-            # content will be: minio://bucket/path
-            final_content = f"minio://{S3_BUCKET_NAME}/{file_path}"
+            # content will be: s3://bucket/path
+            final_content = f"s3://{S3_BUCKET_NAME}/{file_path}"
         except Exception as s3_err:
             logging.error(f"Failed to upload PDF to S3: {s3_err}")
             is_uploaded = False
@@ -407,6 +401,106 @@ async def generate_market_report(manual_trigger=False):
         return True
     except Exception as e:
         logger.error(f"Database save failed: {e}")
+        db.rollback()
+        return False
+    finally:
+        db.close()
+
+async def process_uploaded_report(file_content: bytes, filename: str, report_type: str, user_id: int):
+    """
+    Process uploaded report:
+    1. Extract text from uploaded PDF
+    2. Rewite content using AI Agent
+    3. Generate new PDF
+    4. Upload to S3 and save to DB
+    """
+    db = SessionLocal()
+    try:
+        # 1. Extract Text
+        text_content = ""
+        try:
+            with pdfplumber.open(BytesIO(file_content)) as pdf:
+                for page in pdf.pages:
+                    extracted = page.extract_text()
+                    if extracted:
+                        text_content += extracted + "\n"
+        except Exception as e:
+            logger.error(f"Failed to extract text from PDF: {e}")
+            return False
+            
+        if not text_content.strip():
+            logger.warning("Empty text extracted from PDF")
+            return False
+
+        # 2. AI Rewrite
+        logger.info("Sending extracted text to AI for rewriting...")
+        prompt = f"""
+        You are a Senior Financial Editor and Equity Research Analyst.
+        Your task is to rewrite the provided investment journal/report to be more professional, concise, and structured.
+        
+        Guidelines:
+        - Maintain all original data, numbers, and key arguments. Do NOT halluncinate new numbers.
+        - Start with the conclusion/thesis, and unfold the analysis layer by layer (Pyramid Principle).
+        - Improve the flow and readability.
+        - Use professional financial terminology.
+        - Format with clear Markdown headings (##, ###) and bullet points.
+        - Start with an "Executive Summary" if one is missing.
+        
+        Original Filename: {filename}
+        Report Type: {report_type.capitalize()}
+        """
+        
+        rewritten_content = await agent_service.generate_report(text_content, prompt)
+        
+        if not rewritten_content:
+            logger.error("AI returned empty content")
+            return False
+            
+        # 3. Generate PDF
+        title_text = f"{filename.replace('.pdf', '')} (AI Rewritten)"
+        new_pdf_bytes = create_pdf_from_markdown(rewritten_content, title_text)
+        
+        # 4. Upload
+        folder = "Short" if report_type == "short" else "Long"
+        report_uuid = str(uuid.uuid4())
+        safe_filename = "".join(c for c in filename if c.isalnum() or c in (' ', '.', '-', '_')).strip()
+        if safe_filename.lower().endswith('.pdf'):
+            safe_filename = safe_filename[:-4]
+            
+        s3_key = f"{folder}/{safe_filename}-{report_uuid}.pdf"
+        
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=s3_key,
+            Body=new_pdf_bytes,
+            ContentType='application/pdf'
+        )
+        
+        logger.info(f"Uploaded rewritten report to {s3_key}")
+        
+        # 5. DB Record
+        s3_path = f"s3://{S3_BUCKET_NAME}/{s3_key}"
+        
+        # Assign to Admin
+        admin_user = db.query(models.User).filter(models.User.role == "admin").first()
+        system_user_id = admin_user.id if admin_user else 1
+        
+        report = models.Report(
+            title=title_text,
+            content=s3_path,
+            report_type=report_type,
+            ticker="GENERAL",
+            user_id=system_user_id,
+            is_uploaded=True,
+            created_at=datetime.datetime.utcnow()
+        )
+        db.add(report)
+        db.commit()
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error processing report: {e}")
         db.rollback()
         return False
     finally:
