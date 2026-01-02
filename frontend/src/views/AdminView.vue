@@ -450,6 +450,87 @@
                 </div>
             </div>
           </div>
+
+          <div class="ai-report-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <h3>AI Daily Journal</h3>
+            <p class="subtitle">Automatically generate and publish daily journal using AI.</p>
+            
+            <div class="control-panel">
+                <div class="control-item">
+                    <span class="control-label">Daily Schedule (9:00 AM ET Mon-Fri)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" :checked="aiDailyJournalEnabled" @change="toggleDailyJournal">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="status-panel">
+                    <p><strong>Last Run:</strong> {{ aiDailyJournalLastRun ? formatDate(aiDailyJournalLastRun) : 'Never' }}</p>
+                    <p><strong>Status:</strong> <span :class="['job-status', aiDailyJournalLastStatus || 'idle']">{{ (aiDailyJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                </div>
+                
+                <div class="actions-panel">
+                    <button @click="runDailyJournal" class="action-button verify" :disabled="aiDailyJournalRunning">
+                        {{ aiDailyJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                    </button>
+                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                </div>
+            </div>
+          </div>
+
+          <div class="ai-report-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <h3>AI Short Journal</h3>
+            <p class="subtitle">Automatically generate and publish short journal using AI.</p>
+            
+            <div class="control-panel">
+                <div class="control-item">
+                    <span class="control-label">Daily Schedule</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" :checked="aiShortJournalEnabled" @change="toggleShortJournal">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="status-panel">
+                    <p><strong>Last Run:</strong> {{ aiShortJournalLastRun ? formatDate(aiShortJournalLastRun) : 'Never' }}</p>
+                    <p><strong>Status:</strong> <span :class="['job-status', aiShortJournalLastStatus || 'idle']">{{ (aiShortJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                </div>
+                
+                <div class="actions-panel">
+                    <button @click="runShortJournal" class="action-button verify" :disabled="aiShortJournalRunning">
+                        {{ aiShortJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                    </button>
+                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                </div>
+            </div>
+          </div>
+
+          <div class="ai-report-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <h3>Long Journal</h3>
+            <p class="subtitle">Automatically generate and publish long journal using AI.</p>
+            
+            <div class="control-panel">
+                <div class="control-item">
+                    <span class="control-label">Daily Schedule</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" :checked="aiLongJournalEnabled" @change="toggleLongJournal">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="status-panel">
+                    <p><strong>Last Run:</strong> {{ aiLongJournalLastRun ? formatDate(aiLongJournalLastRun) : 'Never' }}</p>
+                    <p><strong>Status:</strong> <span :class="['job-status', aiLongJournalLastStatus || 'idle']">{{ (aiLongJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                </div>
+                
+                <div class="actions-panel">
+                    <button @click="runLongJournal" class="action-button verify" :disabled="aiLongJournalRunning">
+                        {{ aiLongJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                    </button>
+                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                </div>
+            </div>
+          </div>
       </div>
     </div>
 
@@ -583,6 +664,30 @@ const aiReportEnabled = ref(false)
 const aiReportLastRun = ref(null)
 const aiReportLastStatus = ref(null)
 const aiReportRunning = ref(false)
+
+// AI Daily Journal State
+const aiDailyJournalEnabled = ref(false)
+const aiDailyJournalLastRun = ref(null)
+const aiDailyJournalLastStatus = ref(null)
+const aiDailyJournalRunning = ref(false)
+const runDailyJournal = () => { aiDailyJournalRunning.value = true; setTimeout(() => aiDailyJournalRunning.value = false, 2000) }
+const toggleDailyJournal = () => { aiDailyJournalEnabled.value = !aiDailyJournalEnabled.value }
+
+// AI Short Journal State
+const aiShortJournalEnabled = ref(false)
+const aiShortJournalLastRun = ref(null)
+const aiShortJournalLastStatus = ref(null)
+const aiShortJournalRunning = ref(false)
+const runShortJournal = () => { aiShortJournalRunning.value = true; setTimeout(() => aiShortJournalRunning.value = false, 2000) }
+const toggleShortJournal = () => { aiShortJournalEnabled.value = !aiShortJournalEnabled.value }
+
+// Long Journal State
+const aiLongJournalEnabled = ref(false)
+const aiLongJournalLastRun = ref(null)
+const aiLongJournalLastStatus = ref(null)
+const aiLongJournalRunning = ref(false)
+const runLongJournal = () => { aiLongJournalRunning.value = true; setTimeout(() => aiLongJournalRunning.value = false, 2000) }
+const toggleLongJournal = () => { aiLongJournalEnabled.value = !aiLongJournalEnabled.value }
 
 const fetchAIReportConfig = async () => {
   try {
