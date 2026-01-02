@@ -731,11 +731,14 @@ const runShortJournal = async () => {
         if (shortReportFile.value) {
             const formData = new FormData()
             formData.append('file', shortReportFile.value)
+            
+            let url = `${API_BASE_URL}/api/admin/ai-report/short-report/run`
             if (shortReportDate.value) {
-                formData.append('publish_date', shortReportDate.value)
+                url += `?publish_date=${encodeURIComponent(shortReportDate.value)}`
             }
+            
             const token = localStorage.getItem('access_token')
-            const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/short-report/run`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -780,11 +783,14 @@ const runLongJournal = async () => {
         if (longReportFile.value) {
             const formData = new FormData()
             formData.append('file', longReportFile.value)
+            
+            let url = `${API_BASE_URL}/api/admin/ai-report/long-report/run`
             if (longReportDate.value) {
-                formData.append('publish_date', longReportDate.value)
+                 url += `?publish_date=${encodeURIComponent(longReportDate.value)}`
             }
+
             const token = localStorage.getItem('access_token')
-            const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/long-report/run`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData

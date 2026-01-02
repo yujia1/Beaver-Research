@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form, Query
 from pydantic import BaseModel
 from typing import Optional
 from routers.admin.auth import get_current_user
@@ -130,7 +130,7 @@ async def run_uploaded_report_task(content: bytes, filename: str, report_type: s
 @router.post("/short-report/run")
 async def run_short_report(
     background_tasks: BackgroundTasks,
-    publish_date: Optional[str] = Form(None),
+    publish_date: Optional[str] = Query(None),
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -146,7 +146,7 @@ async def run_short_report(
 @router.post("/long-report/run")
 async def run_long_report(
     background_tasks: BackgroundTasks,
-    publish_date: Optional[str] = Form(None),
+    publish_date: Optional[str] = Query(None),
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user)
 ):
