@@ -423,111 +423,140 @@
       </div>
       </div>
 
-      <div v-if="reportManagementTab === 'ai_report'" class="admin-content">
-          <div class="ai-report-section">
-            <h3>AI Market Report Automation</h3>
-            <p class="subtitle">Automatically generate and publish daily market reports using AI.</p>
-            
-            <div class="control-panel">
-                <div class="control-item">
-                    <span class="control-label">Daily Schedule (9:20 AM ET Mon-Fri)</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" :checked="aiReportEnabled" @change="toggleAIReport">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                
-                <div class="status-panel">
-                    <p><strong>Last Run:</strong> {{ aiReportLastRun ? formatDate(aiReportLastRun) : 'Never' }}</p>
-                    <p><strong>Status:</strong> <span :class="['job-status', aiReportLastStatus || 'idle']">{{ (aiReportLastStatus || 'unknown').toUpperCase() }}</span></p>
-                </div>
-                
-                <div class="actions-panel">
-                    <button @click="runAIReport" class="action-button verify" :disabled="aiReportRunning">
-                        {{ aiReportRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
-                    </button>
-                    <p class="hint-text">Manual trigger runs the report immediately.</p>
-                </div>
-            </div>
+      <div v-if="reportManagementTab === 'ai_report'">
+          <div class="sub-tabs" style="margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 0;">
+            <button 
+              :class="['sub-tab-btn', { active: aiReportTab === 'market' }]" 
+              @click="aiReportTab = 'market'"
+            >
+              Market Report
+            </button>
+            <button 
+              :class="['sub-tab-btn', { active: aiReportTab === 'daily' }]" 
+              @click="aiReportTab = 'daily'"
+            >
+              Daily Report
+            </button>
+            <button 
+              :class="['sub-tab-btn', { active: aiReportTab === 'short' }]" 
+              @click="aiReportTab = 'short'"
+            >
+              Short Report
+            </button>
+            <button 
+              :class="['sub-tab-btn', { active: aiReportTab === 'long' }]" 
+              @click="aiReportTab = 'long'"
+            >
+              Long Report
+            </button>
           </div>
 
-          <div class="ai-report-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <h3>AI Daily Journal</h3>
-            <p class="subtitle">Automatically generate and publish daily journal using AI.</p>
-            
-            <div class="control-panel">
-                <div class="control-item">
-                    <span class="control-label">Daily Schedule (9:00 AM ET Mon-Fri)</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" :checked="aiDailyJournalEnabled" @change="toggleDailyJournal">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
+          <div class="admin-content">
+            <div v-if="aiReportTab === 'market'" class="ai-report-section">
+                <h3>AI Market Report Automation</h3>
+                <p class="subtitle">Automatically generate and publish daily market reports using AI.</p>
                 
-                <div class="status-panel">
-                    <p><strong>Last Run:</strong> {{ aiDailyJournalLastRun ? formatDate(aiDailyJournalLastRun) : 'Never' }}</p>
-                    <p><strong>Status:</strong> <span :class="['job-status', aiDailyJournalLastStatus || 'idle']">{{ (aiDailyJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
-                </div>
-                
-                <div class="actions-panel">
-                    <button @click="runDailyJournal" class="action-button verify" :disabled="aiDailyJournalRunning">
-                        {{ aiDailyJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
-                    </button>
-                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                <div class="control-panel">
+                    <div class="control-item">
+                        <span class="control-label">Daily Schedule (9:20 AM ET Mon-Fri)</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" :checked="aiReportEnabled" @change="toggleAIReport">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="status-panel">
+                        <p><strong>Last Run:</strong> {{ aiReportLastRun ? formatDate(aiReportLastRun) : 'Never' }}</p>
+                        <p><strong>Status:</strong> <span :class="['job-status', aiReportLastStatus || 'idle']">{{ (aiReportLastStatus || 'unknown').toUpperCase() }}</span></p>
+                    </div>
+                    
+                    <div class="actions-panel">
+                        <button @click="runAIReport" class="action-button verify" :disabled="aiReportRunning">
+                            {{ aiReportRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                        </button>
+                        <p class="hint-text">Manual trigger runs the report immediately.</p>
+                    </div>
                 </div>
             </div>
-          </div>
 
-          <div class="ai-report-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <h3>AI Short Journal</h3>
-            <p class="subtitle">Automatically generate and publish short journal using AI.</p>
-            
-            <div class="control-panel">
-                <div class="control-item">
-                    <span class="control-label">Daily Schedule</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" :checked="aiShortJournalEnabled" @change="toggleShortJournal">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
+            <div v-if="aiReportTab === 'daily'" class="ai-report-section">
+                <h3>AI Daily Journal</h3>
+                <p class="subtitle">Automatically generate and publish daily journal using AI.</p>
                 
-                <div class="status-panel">
-                    <p><strong>Last Run:</strong> {{ aiShortJournalLastRun ? formatDate(aiShortJournalLastRun) : 'Never' }}</p>
-                    <p><strong>Status:</strong> <span :class="['job-status', aiShortJournalLastStatus || 'idle']">{{ (aiShortJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
-                </div>
-                
-                <div class="actions-panel">
-                    <button @click="runShortJournal" class="action-button verify" :disabled="aiShortJournalRunning">
-                        {{ aiShortJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
-                    </button>
-                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                <div class="control-panel">
+                    <div class="control-item">
+                        <span class="control-label">Daily Schedule (9:00 AM ET Mon-Fri)</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" :checked="aiDailyJournalEnabled" @change="toggleDailyJournal">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="status-panel">
+                        <p><strong>Last Run:</strong> {{ aiDailyJournalLastRun ? formatDate(aiDailyJournalLastRun) : 'Never' }}</p>
+                        <p><strong>Status:</strong> <span :class="['job-status', aiDailyJournalLastStatus || 'idle']">{{ (aiDailyJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                    </div>
+                    
+                    <div class="actions-panel">
+                        <button @click="runDailyJournal" class="action-button verify" :disabled="aiDailyJournalRunning">
+                            {{ aiDailyJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                        </button>
+                        <p class="hint-text">Manual trigger runs the report immediately.</p>
+                    </div>
                 </div>
             </div>
-          </div>
 
-          <div class="ai-report-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <h3>Long Journal</h3>
-            <p class="subtitle">Automatically generate and publish long journal using AI.</p>
-            
-            <div class="control-panel">
-                <div class="control-item">
-                    <span class="control-label">Daily Schedule</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" :checked="aiLongJournalEnabled" @change="toggleLongJournal">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
+            <div v-if="aiReportTab === 'short'" class="ai-report-section">
+                <h3>AI Short Journal</h3>
+                <p class="subtitle">Automatically generate and publish short journal using AI.</p>
                 
-                <div class="status-panel">
-                    <p><strong>Last Run:</strong> {{ aiLongJournalLastRun ? formatDate(aiLongJournalLastRun) : 'Never' }}</p>
-                    <p><strong>Status:</strong> <span :class="['job-status', aiLongJournalLastStatus || 'idle']">{{ (aiLongJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                <div class="control-panel">
+                    <div class="control-item">
+                        <span class="control-label">Daily Schedule</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" :checked="aiShortJournalEnabled" @change="toggleShortJournal">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="status-panel">
+                        <p><strong>Last Run:</strong> {{ aiShortJournalLastRun ? formatDate(aiShortJournalLastRun) : 'Never' }}</p>
+                        <p><strong>Status:</strong> <span :class="['job-status', aiShortJournalLastStatus || 'idle']">{{ (aiShortJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                    </div>
+                    
+                    <div class="actions-panel">
+                        <button @click="runShortJournal" class="action-button verify" :disabled="aiShortJournalRunning">
+                            {{ aiShortJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                        </button>
+                        <p class="hint-text">Manual trigger runs the report immediately.</p>
+                    </div>
                 </div>
+            </div>
+
+            <div v-if="aiReportTab === 'long'" class="ai-report-section">
+                <h3>Long Journal</h3>
+                <p class="subtitle">Automatically generate and publish long journal using AI.</p>
                 
-                <div class="actions-panel">
-                    <button @click="runLongJournal" class="action-button verify" :disabled="aiLongJournalRunning">
-                        {{ aiLongJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
-                    </button>
-                    <p class="hint-text">Manual trigger runs the report immediately.</p>
+                <div class="control-panel">
+                    <div class="control-item">
+                        <span class="control-label">Daily Schedule</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" :checked="aiLongJournalEnabled" @change="toggleLongJournal">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="status-panel">
+                        <p><strong>Last Run:</strong> {{ aiLongJournalLastRun ? formatDate(aiLongJournalLastRun) : 'Never' }}</p>
+                        <p><strong>Status:</strong> <span :class="['job-status', aiLongJournalLastStatus || 'idle']">{{ (aiLongJournalLastStatus || 'unknown').toUpperCase() }}</span></p>
+                    </div>
+                    
+                    <div class="actions-panel">
+                        <button @click="runLongJournal" class="action-button verify" :disabled="aiLongJournalRunning">
+                            {{ aiLongJournalRunning ? 'Generating...' : 'Run Now (Manual Trigger)' }}
+                        </button>
+                        <p class="hint-text">Manual trigger runs the report immediately.</p>
+                    </div>
                 </div>
             </div>
           </div>
@@ -660,6 +689,7 @@ const reportsError = ref('')
 const reportSearchQuery = ref('')
 
 // AI Report State
+const aiReportTab = ref('market')
 const aiReportEnabled = ref(false)
 const aiReportLastRun = ref(null)
 const aiReportLastStatus = ref(null)
