@@ -406,7 +406,7 @@ async def generate_market_report(manual_trigger=False):
     finally:
         db.close()
 
-async def process_uploaded_report(file_content: bytes, filename: str, report_type: str, user_id: int):
+async def process_uploaded_report(file_content: bytes, filename: str, report_type: str, user_id: int, publish_date: str = None):
     """
     Process uploaded report:
     1. Extract text from uploaded PDF
@@ -494,6 +494,20 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
         admin_user = db.query(models.User).filter(models.User.role == "admin").first()
         system_user_id = admin_user.id if admin_user else 1
         
+        # Date handling
+        created_at_dt = datetime.datetime.utcnow()
+        if publish_date:
+            try:
+                # Parse YYYY-MM-DD
+                dt = datetime.datetime.strptime(publish_date, "%Y-%m-%d")
+                # Set time to roughly now or end of day? 
+                # Let's keep time as current UTC time but change date, or just 00:00?
+                # User likely wants the date to show up correctly in sort.
+                # If I set only date, time defaults to 00:00.
+                created_at_dt = dt.replace(hour=12, minute=0, second=0) 
+            except Exception as e:
+                logger.error(f"Invalid publish_date {publish_date}: {e}")
+
         report = models.Report(
             title=title_text,
             content=s3_path,
@@ -501,7 +515,7 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
             ticker="GENERAL",
             user_id=system_user_id,
             is_uploaded=True,
-            created_at=datetime.datetime.utcnow()
+            created_at=created_at_dt
         )
         db.add(report)
         db.commit()

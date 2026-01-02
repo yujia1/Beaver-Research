@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional
 from routers.admin.auth import get_current_user
@@ -115,14 +115,14 @@ async def run_report_task():
     redis_client.set_cache("ai_report:last_status", status, ttl=31536000)
 
 
-async def run_uploaded_report_task(content: bytes, filename: str, report_type: str, user_id: int):
+async def run_uploaded_report_task(content: bytes, filename: str, report_type: str, user_id: int, publish_date: Optional[str] = None):
     """Wrapper to run uploaded report and update status"""
     import datetime
     key_prefix = f"ai_report:{report_type}" # short or long
     redis_client.set_cache(f"{key_prefix}:last_run", datetime.datetime.now().isoformat(), ttl=31536000)
     redis_client.set_cache(f"{key_prefix}:last_status", "running", ttl=31536000)
     
-    success = await process_uploaded_report(content, filename, report_type, user_id)
+    success = await process_uploaded_report(content, filename, report_type, user_id, publish_date)
     
     status = "success" if success else "failed"
     redis_client.set_cache(f"{key_prefix}:last_status", status, ttl=31536000)
@@ -131,6 +131,7 @@ async def run_uploaded_report_task(content: bytes, filename: str, report_type: s
 async def run_short_report(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    publish_date: Optional[str] = Form(None),
     current_user: models.User = Depends(get_current_user)
 ):
     """Trigger AI Short Report generation (Rewrite uploaded file)"""
@@ -138,13 +139,14 @@ async def run_short_report(
         raise HTTPException(status_code=403, detail="Admin only")
         
     content = await file.read()
-    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "short", current_user.id)
+    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "short", current_user.id, publish_date)
     return {"message": "Short Report processing started"}
 
 @router.post("/long-report/run")
 async def run_long_report(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    publish_date: Optional[str] = Form(None),
     current_user: models.User = Depends(get_current_user)
 ):
     """Trigger AI Long Report generation (Rewrite uploaded file)"""
@@ -152,5 +154,5 @@ async def run_long_report(
         raise HTTPException(status_code=403, detail="Admin only")
         
     content = await file.read()
-    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "long", current_user.id)
+    background_tasks.add_task(run_uploaded_report_task, content, file.filename, "long", current_user.id, publish_date)
     return {"message": "Long Report processing started"}

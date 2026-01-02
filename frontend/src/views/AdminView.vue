@@ -519,6 +519,10 @@
                     </div>
                     
                     <div class="actions-panel">
+                        <div class="date-control" style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Publish Date (Optional)</label>
+                            <input type="date" v-model="shortReportDate" style="width: 100%; max-width: 300px; border: 1px solid #ddd; padding: 8px; border-radius: 4px;">
+                        </div>
                         <div class="file-upload-control" style="margin-bottom: 1rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Upload Source PDF (Optional)</label>
                             <input type="file" @change="handleShortFileChange" accept="application/pdf" />
@@ -545,6 +549,10 @@
                     </div>
                     
                     <div class="actions-panel">
+                        <div class="date-control" style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Publish Date (Optional)</label>
+                            <input type="date" v-model="longReportDate" style="width: 100%; max-width: 300px; border: 1px solid #ddd; padding: 8px; border-radius: 4px;">
+                        </div>
                         <div class="file-upload-control" style="margin-bottom: 1rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Upload Source PDF (Optional)</label>
                             <input type="file" @change="handleLongFileChange" accept="application/pdf" />
@@ -706,6 +714,7 @@ const aiShortJournalLastRun = ref(null)
 const aiShortJournalLastStatus = ref(null)
 const aiShortJournalRunning = ref(false)
 const shortReportFile = ref(null)
+const shortReportDate = ref(null)
 
 const handleShortFileChange = (event) => {
     const file = event.target.files[0]
@@ -722,6 +731,9 @@ const runShortJournal = async () => {
         if (shortReportFile.value) {
             const formData = new FormData()
             formData.append('file', shortReportFile.value)
+            if (shortReportDate.value) {
+                formData.append('publish_date', shortReportDate.value)
+            }
             const token = localStorage.getItem('access_token')
             const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/short-report/run`, {
                 method: 'POST',
@@ -751,6 +763,7 @@ const aiLongJournalLastRun = ref(null)
 const aiLongJournalLastStatus = ref(null)
 const aiLongJournalRunning = ref(false)
 const longReportFile = ref(null)
+const longReportDate = ref(null)
 
 const handleLongFileChange = (event) => {
     const file = event.target.files[0]
@@ -767,6 +780,9 @@ const runLongJournal = async () => {
         if (longReportFile.value) {
             const formData = new FormData()
             formData.append('file', longReportFile.value)
+            if (longReportDate.value) {
+                formData.append('publish_date', longReportDate.value)
+            }
             const token = localStorage.getItem('access_token')
             const response = await fetch(`${API_BASE_URL}/api/admin/ai-report/long-report/run`, {
                 method: 'POST',
