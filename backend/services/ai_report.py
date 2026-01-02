@@ -125,8 +125,6 @@ def format_data_for_agent(data: dict) -> str:
     Format the raw data dictionary into a readable string for the AI agent.
     Truncates generic history lists to save tokens, keeping latest values.
     """
-    # Create a simplified version of data for the prompt
-    
     summary = []
     summary.append(f"MARKET REPORT DATA ({data.get('generated_at')})")
     summary.append("=" * 50)
@@ -140,9 +138,9 @@ def format_data_for_agent(data: dict) -> str:
         
         # Limit to top 20 items to avoid token overflow
         for item in items[:20]:
-            name = item.get(key_name) or item.get('symbol') or item.get('title')
-            val = item.get(val_name) or item.get('price') or item.get('current_value')
-            change = item.get(change_name) or item.get('change_percent') or 0
+            name = item.get(key_name) or item.get('symbol') or item.get('title') or "Unknown"
+            val = item.get(val_name) or item.get('price') or item.get('current_value') or item.get('close')
+            change = item.get(change_name) or item.get('change_percent') or item.get('change') or 0
             
             line = f"- {name}: {val}"
             if change:
@@ -156,7 +154,18 @@ def format_data_for_agent(data: dict) -> str:
              summary.append(f"\n## Equity\nError collecting data: {data['equity']['error']}")
         else:
             major = data["equity"].get("major_indices", [])
-            summary.append(format_list("Equity: Major Indices", major, 'symbol', 'price', 'changesPercentage'))
+            # major_indices returns {name, key, value, change}
+            summary.append(format_list("Equity: Major Indices", major, 'name', 'value', 'change'))
+            
+            regional = data["equity"].get("regional_indices", {})
+            if regional:
+                summary.append("\n## Equity: Regional Indices")
+                for region, indices in regional.items():
+                    summary.append(f"\n### {region}")
+                    for idx in indices:
+                        # regional returns {symbol, name, price, changePercent...}
+                        summary.append(f"- {idx.get('name')}: {idx.get('price')} ({idx.get('changePercent')}%)")
+
 
     # Bond
     if "bond" in data:
@@ -179,6 +188,22 @@ def format_data_for_agent(data: dict) -> str:
         curr = data["currency"]
         if isinstance(curr, dict) and "error" in curr:
              summary.append(f"\n## Currency\nError collecting data: {curr['error']}")
+        elif isinstance(curr, dict):
+             # curr is { symbol: [ {date, value}... ] }
+             curr_clean = []
+             for sym, hist in curr.items():
+                 if not hist: continue
+                 # hist is sorted by date
+                 latest = hist[-1]
+                 val = latest['value']
+                 change = 0
+                 if len(hist) > 1:
+                     prev = hist[-2]['value']
+                     if prev != 0:
+                        change = ((val - prev) / prev) * 100
+                 curr_clean.append({'ticker': sym, 'price': round(val, 4), 'change': round(change, 2)})
+             
+             summary.append(format_list("Currency", curr_clean, 'ticker', 'price', 'change'))
         elif isinstance(curr, list):
              summary.append(format_list("Currency", curr, 'ticker', 'price', 'changesPercentage'))
 
@@ -187,6 +212,17 @@ def format_data_for_agent(data: dict) -> str:
         comm = data["commodity"]
         if isinstance(comm, dict) and "error" in comm:
              summary.append(f"\n## Commodities\nError collecting data: {comm['error']}")
+        elif isinstance(comm, dict):
+             # comm is { Category: [ {symbol, name, price, changePercent...} ] }
+             summary.append("\n## Commodities")
+             for cat, items in comm.items():
+                  if not items: continue
+                  summary.append(f"\n### {cat}")
+                  for item in items:
+                      n = item.get('name')
+                      p = item.get('price')
+                      c = item.get('changePercent')
+                      summary.append(f"- {n}: {p} ({c}%)")
         elif isinstance(comm, list):
              summary.append(format_list("Commodities", comm, 'name', 'price', 'changesPercentage'))
 
@@ -196,6 +232,7 @@ def format_data_for_agent(data: dict) -> str:
         if isinstance(cry, dict) and "error" in cry:
              summary.append(f"\n## Crypto\nError collecting data: {cry['error']}")
         elif isinstance(cry, list):
+             # crypto returns {symbol, price, changesPercentage}
              summary.append(format_list("Crypto", cry, 'symbol', 'price', 'changesPercentage'))
 
     # Economic
@@ -211,7 +248,7 @@ def format_data_for_agent(data: dict) -> str:
         cal = data["calendar"]
         summary.append("\n## Economic Calendar (Upcoming)")
         if isinstance(cal, list):
-            for event in cal[:20]: # Limit
+            for event in cal[:20]:
                 date = event.get('date') or event.get('formatted_date')
                 event_name = event.get('event')
                 country = event.get('country')
@@ -240,16 +277,19 @@ async def generate_market_report(manual_trigger=False):
     Create a professional "Daily Market Report" based on the provided data.
     
     Structure the report with the following sections:
-    1. **Market Overview**: Key takeaways and sentiment sumary.
-    2. **Equity**: Analysis of major indices and market movers.
+    1. **Market Overview**: Key takeaways and sentiment summary. Must include key data points to support conclusions. Use bullet points for key takeaways.
+    2. **Equity**: Analysis of major indices and market movers. Cite specific index levels and changes.
     3. **Bond Market**: Treasury yields, curve analysis, and stress metrics.
-    4. **Currency**: Key FX pairs and dollar strength/weakness.
-    5. **Commodities**: Energy, Metals, and Agriculture trends.
-    6. **Crypto**: Major crypto assets performance.
+    4. **Currency**: Key FX pairs and dollar strength/weakness. Cite specific rates.
+    5. **Commodities**: Energy, Metals, and Agriculture trends. Cite specific prices.
+    6. **Crypto**: Major crypto assets performance. Use bullet points with data driven insights.
     7. **Economic Calendar**: Upcoming key events and their potential impact.
 
-    Format in Markdown. Use tables where appropriate for data comparison. 
-    Be concise but insightful. Highlight anomalies or significant moves.
+    Format in Markdown. 
+    **CRITICAL**: 
+    - Use bullet points for lists and readability.
+    - Support all claims with DATA (prices, % changes) from the input.
+    - Do not state "absence of data" unless truly empty.
     """
     
     try:
