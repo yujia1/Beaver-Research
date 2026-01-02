@@ -165,27 +165,28 @@ const fetchClientSecret = async () => {
   return data.clientSecret
 }
 
+// Track initialization version to prevent race conditions
+let initVersion = 0
+
 const selectPlan = async (plan) => {
   if (selectedPlan.value === plan) return 
-  
   selectedPlan.value = plan
-  
-  // Cleanup previous instance
-  if (checkoutInstance) {
-    await checkoutInstance.destroy()
-    checkoutInstance = null
-  }
-  
-  // Reinitialize with new plan
+  // Trigger re-initialization
   await initializeCheckout()
 }
 
 const initializeCheckout = async () => {
   error.value = ''
+  // Increment version to invalidate previous pending inits
+  const currentVersion = ++initVersion
   
-  // Cleanup safety check
+  // Cleanup existing instance immediately
   if (checkoutInstance) {
-    await checkoutInstance.destroy()
+    try {
+      await checkoutInstance.destroy()
+    } catch (e) {
+      console.warn('Error destroying previous checkout instance:', e)
+    }
     checkoutInstance = null
   }
   
@@ -199,17 +200,38 @@ const initializeCheckout = async () => {
       throw new Error('Stripe failed to initialize')
     }
 
-    // Initialize Embedded Checkout with fetchClientSecret
-    // This delegates loading and retry logic to Stripe
-    checkoutInstance = await stripe.initEmbeddedCheckout({
-      fetchClientSecret
+    // Check if we became stale while loading stripe
+    if (currentVersion !== initVersion) return
+
+    // Initialize Embedded Checkout
+    // fetchClientSecret will be called by Stripe internally
+    const instance = await stripe.initEmbeddedCheckout({
+      fetchClientSecret: async () => {
+          // Wrap fetchClientSecret to ensure we don't fetch for stale versions?
+          // Stripe calls this internally. If we destroy the instance, this promise chain might break.
+          // But our fetchClientSecret logic is stateless (uses current selectedPlan).
+          // However, selectedPlan might have changed!
+          // We should use the plan that was active *when this init started*?
+          // Actually, stripe.initEmbeddedCheckout expects the secret for the *current* session.
+          // It's safer to just return the promise.
+          return await fetchClientSecret()
+      }
     })
 
-    // Mount to the container
+    // Check staleness again before mounting
+    if (currentVersion !== initVersion) {
+      instance.destroy()
+      return
+    }
+
+    checkoutInstance = instance
     checkoutInstance.mount('#checkout')
     
   } catch (err) {
-    error.value = err.message || 'Failed to load payment form.'
+    // Only show error if we are still the active version
+    if (currentVersion === initVersion) {
+      error.value = err.message || 'Failed to load payment form.'
+    }
   }
 }
 
