@@ -108,10 +108,18 @@ async def fetch_crypto_data(timeframe: str = "daily") -> List[Dict[str, Any]]:
                     
                     current_price = history_list[-1]["value"] if history_list else 0
                     
+                    # Calculate daily change percentage
+                    change_percent = 0
+                    if len(history_list) > 1:
+                        prev_price = history_list[-2]["value"]
+                        if prev_price != 0:
+                            change_percent = ((current_price - prev_price) / prev_price) * 100
+
                     results.append({
                         "ticker": item["ticker"],
                         "name": item["name"],
                         "price": float(current_price),
+                        "changesPercentage": round(change_percent, 2),
                         "date": datetime.datetime.now().strftime('%Y-%m-%d'),
                         "description": item["description"],
                         "series_id": item["ticker"],

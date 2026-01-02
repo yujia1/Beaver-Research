@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 import boto3
+import logging
 from botocore.client import Config
 import uuid
 import os
@@ -38,7 +39,6 @@ async def verify_token_from_query(token: str = Query(...), db: Session = Depends
 
 router = APIRouter()
 
-# MinIO configuration
 # S3/MinIO configuration
 # Prefer AWS_ variables (Railway/Production), fallback to MINIO_ (Local)
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("MINIO_ACCESS_KEY", "minioadmin")
@@ -47,6 +47,11 @@ AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL") or os.getenv("MINIO_ENDPOINT", 
 AWS_S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME") or os.getenv("MINIO_BUCKET", "reports")
 AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
+
+logger = logging.getLogger(__name__)
+# Add detailed configuration logs
+logger.info("Initializing S3/MinIO Routes...")
+logger.info(f"S3 Config: Endpoint={AWS_ENDPOINT_URL}, Region={AWS_DEFAULT_REGION}, Bucket={AWS_S3_BUCKET_NAME}")
 
 # Initialize MinIO/S3 client
 def get_minio_client():
@@ -75,7 +80,7 @@ def ensure_bucket_exists():
             client = get_minio_client()
             client.create_bucket(Bucket=AWS_S3_BUCKET_NAME)
         except Exception as e:
-            print(f"Warning: Could not create bucket {AWS_S3_BUCKET_NAME}: {e}")
+            logger.warning(f"Warning: Could not create bucket {AWS_S3_BUCKET_NAME}: {e}")
 
 class ReportCreate(BaseModel):
     title: str
@@ -237,7 +242,7 @@ async def publish_research_report(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error saving report to MinIO: {e}")
+        logger.error(f"Error saving report to MinIO: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to save report: {str(e)}"
@@ -435,7 +440,7 @@ async def get_reports_from_minio(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching reports: {e}")
+        logger.error(f"Error fetching reports: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch reports: {str(e)}"
@@ -552,10 +557,10 @@ async def delete_report(
             minio_path = report.content.replace(f"minio://{AWS_S3_BUCKET_NAME}/", "")
             try:
                 client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=minio_path)
-                print(f"Deleted report from MinIO: {minio_path}")
+                logger.info(f"Deleted report from MinIO: {minio_path}")
                 minio_deleted = True
             except Exception as e:
-                print(f"Warning: Could not delete from MinIO ({minio_path}): {e}")
+                logger.warning(f"Warning: Could not delete from MinIO ({minio_path}): {e}")
         
         # For reports published from research view (daily/long/short/market), search MinIO
         if not minio_deleted and report.report_type in ["daily", "long", "short", "market"]:
@@ -597,14 +602,14 @@ async def delete_report(
                             minio_path = obj['Key']
                             try:
                                 client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=minio_path)
-                                print(f"Deleted report from MinIO: {minio_path}")
+                                logger.info(f"Deleted report from MinIO: {minio_path}")
                                 minio_deleted = True
                             except Exception as e:
-                                print(f"Warning: Could not delete file {minio_path} from MinIO: {e}")
+                                logger.warning(f"Warning: Could not delete file {minio_path} from MinIO: {e}")
                     else:
-                        print(f"No files found in MinIO with prefix: {prefix}")
+                        logger.info(f"No files found in MinIO with prefix: {prefix}")
             except Exception as e:
-                print(f"Warning: Could not search MinIO for report: {e}")
+                logger.warning(f"Warning: Could not search MinIO for report: {e}")
         
         # Delete from database
         db.delete(report)

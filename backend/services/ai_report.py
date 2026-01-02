@@ -22,7 +22,6 @@ import uuid
 import os
 
 # S3/MinIO Configuration
-# S3/MinIO Configuration
 # Prefer AWS_ variables (Railway/Production), fallback to S3_/MINIO_ (Local)
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "minioadmin")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
@@ -263,7 +262,7 @@ def format_data_for_agent(data: dict) -> str:
              summary.append(f"\n## Crypto\nError collecting data: {cry['error']}")
         elif isinstance(cry, list):
              # crypto returns {symbol, price, changesPercentage}
-             summary.append(format_list("Crypto", cry, 'symbol', 'price', 'changesPercentage'))
+             summary.append(format_list("Crypto", cry, 'name', 'price', 'changesPercentage'))
 
     # Economic
     if "economic" in data:
