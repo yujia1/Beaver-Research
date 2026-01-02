@@ -9,7 +9,8 @@
         "research": "Research",
         "admin": "Admin Panel",
         "login": "Login",
-        "logout": "Logout"
+        "logout": "Logout",
+        "upgrade": "Upgrade"
     },
     "auth": {
         "login": "Login",
@@ -740,6 +741,30 @@
         "success_title": "Payment Successful!",
         "success_message": "Thank you for subscribing to Beaver Research Pro. Your account has been upgraded.",
         "go_to_dashboard": "Go to Dashboard"
+    },
+    "payment_gate": {
+        "header": "Beaver Research",
+        "choose_plan": "Choose your plan",
+        "monthly_sub": "Monthly subscription",
+        "annual_sub": "Annual subscription",
+        "save_14": "Save 14%",
+        "plan_details": "Plan details",
+        "pro_annual": "Professional Annual",
+        "pro_monthly": "Professional Monthly",
+        "plan_desc": "Premium market intelligence access",
+        "year": "/ year",
+        "month": "/ month",
+        "includes": "This includes:",
+        "features": {
+            "realtime": "Real-time market analysis & insights",
+            "ai_research": "Advanced AI Research Reports",
+            "data_vault": "Exclusive Data Vault access",
+            "toolkit": "Full institutional-grade toolkit"
+        },
+        "total_due": "Total due today",
+        "pay_with": "Pay with",
+        "retry": "Try again",
+        "error_init": "Failed to load payment form"
     },
     "security": {
         "title": "Security",

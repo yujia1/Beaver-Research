@@ -9,7 +9,32 @@
         "research": "深度研究",
         "admin": "管理后台",
         "login": "登录",
-        "logout": "退出登录"
+        "logout": "退出登录",
+        "upgrade": "升级会员"
+    },
+    "payment_gate": {
+        "header": "Beaver Research",
+        "choose_plan": "选择您的计划",
+        "monthly_sub": "月度订阅",
+        "annual_sub": "年度订阅",
+        "save_14": "节省 14%",
+        "plan_details": "计划详情",
+        "pro_annual": "专业版年度计划",
+        "pro_monthly": "专业版月度计划",
+        "plan_desc": "高级市场情报访问权限",
+        "year": "/ 年",
+        "month": "/ 月",
+        "includes": "包含内容：",
+        "features": {
+            "realtime": "实时市场分析与洞察",
+            "ai_research": "高级 AI 研究报告",
+            "data_vault": "独家数据金库访问",
+            "toolkit": "完整的机构级工具包"
+        },
+        "total_due": "今日应付总额",
+        "pay_with": "支付方式",
+        "retry": "重试",
+        "error_init": "无法加载支付表单"
     },
     "auth": {
         "login": "登录",

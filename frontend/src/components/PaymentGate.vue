@@ -8,12 +8,12 @@
         <!-- Header -->
         <div class="brand-header">
           <div class="logo-circle">B</div>
-          <h1>Beaver Research</h1>
+          <h1>{{ t('payment_gate.header') }}</h1>
         </div>
 
         <!-- 1. Choose Your Plan -->
         <section class="selection-section">
-          <h2 class="section-title">Choose your plan</h2>
+          <h2 class="section-title">{{ t('payment_gate.choose_plan') }}</h2>
           
           <div class="plan-radios">
             <!-- Monthly Plan -->
@@ -26,7 +26,7 @@
                 <div class="radio-dot" v-if="selectedPlan === 'monthly'"></div>
               </div>
               <div class="radio-content">
-                <span class="radio-label">Monthly subscription</span>
+                <span class="radio-label">{{ t('payment_gate.monthly_sub') }}</span>
                 <span class="radio-price">$29/mo</span>
               </div>
             </div>
@@ -41,9 +41,9 @@
                 <div class="radio-dot" v-if="selectedPlan === 'annual'"></div>
               </div>
               <div class="radio-content">
-                <span class="radio-label">Annual subscription</span>
+                <span class="radio-label">{{ t('payment_gate.annual_sub') }}</span>
                 <div class="radio-right">
-                  <span class="save-badge">Save 14%</span>
+                  <span class="save-badge">{{ t('payment_gate.save_14') }}</span>
                   <span class="radio-price">$300/yr</span>
                 </div>
               </div>
@@ -54,42 +54,42 @@
         <!-- 2. Plan Details (Summary) -->
         <section class="summary-section">
           <div class="summary-card">
-            <h2 class="summary-title">Plan details</h2>
+            <h2 class="summary-title">{{ t('payment_gate.plan_details') }}</h2>
             
             <div class="selected-plan-info">
-              <h3 class="plan-name">{{ selectedPlan === 'annual' ? 'Professional Annual' : 'Professional Monthly' }}</h3>
-              <p class="plan-desc">Premium market intelligence access</p>
+              <h3 class="plan-name">{{ selectedPlan === 'annual' ? t('payment_gate.pro_annual') : t('payment_gate.pro_monthly') }}</h3>
+              <p class="plan-desc">{{ t('payment_gate.plan_desc') }}</p>
               
               <div class="big-price">
                 {{ selectedPlan === 'annual' ? '$300' : '$29' }} 
-                <span class="period">/ {{ selectedPlan === 'annual' ? 'year' : 'month' }}</span>
+                <span class="period">{{ selectedPlan === 'annual' ? t('payment_gate.year') : t('payment_gate.month') }}</span>
               </div>
             </div>
 
             <div class="feature-divider"></div>
 
-            <p class="includes-label">This includes:</p>
+            <p class="includes-label">{{ t('payment_gate.includes') }}</p>
             <ul class="summary-features">
               <li>
                 <span class="check-icon">✓</span>
-                <span>Real-time market analysis & insights</span>
+                <span>{{ t('payment_gate.features.realtime') }}</span>
               </li>
               <li>
                 <span class="check-icon">✓</span>
-                <span>Advanced AI Research Reports</span>
+                <span>{{ t('payment_gate.features.ai_research') }}</span>
               </li>
               <li>
                 <span class="check-icon">✓</span>
-                <span>Exclusive Data Vault access</span>
+                <span>{{ t('payment_gate.features.data_vault') }}</span>
               </li>
               <li>
                 <span class="check-icon">✓</span>
-                <span>Full institutional-grade toolkit</span>
+                <span>{{ t('payment_gate.features.toolkit') }}</span>
               </li>
             </ul>
 
             <div class="total-line">
-              <span>Total due today</span>
+              <span>{{ t('payment_gate.total_due') }}</span>
               <span class="total-amount">{{ selectedPlan === 'annual' ? '$300.00' : '$29.00' }}</span>
             </div>
           </div>
@@ -100,12 +100,12 @@
       <!-- RIGHT COLUMN: Payment Form (Embedded Checkout) -->
       <div class="right-column">
         <section class="payment-section">
-          <h2 class="section-title">Pay with</h2>
+          <h2 class="section-title">{{ t('payment_gate.pay_with') }}</h2>
           
           <div class="checkout-wrapper">
              <div v-if="error" class="error-banner">
               <p>{{ error }}</p>
-              <button @click="initializeCheckout" class="retry-link">Try again</button>
+              <button @click="initializeCheckout" class="retry-link">{{ t('payment_gate.retry') }}</button>
             </div>
             
             <div id="checkout"></div>
@@ -173,7 +173,7 @@ const initializeCheckout = async () => {
     await StripeCheckoutService.mount('#checkout', fetchClientSecret)
   } catch (err) {
     console.error(err)
-    error.value = err.message || 'Failed to load payment form.'
+    error.value = err.message || t('payment_gate.error_init')
   }
 }
 
