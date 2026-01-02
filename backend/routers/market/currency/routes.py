@@ -43,8 +43,18 @@ async def get_all_currencies():
         cached_data = redis_client.get_cache("currency:data:monthly:v2")
         
         if not cached_data:
-            # Return empty list if no data yet
-            return []
+            # Fallback: fetch on-demand if cache is empty
+            print("[CURRENCY_ROUTE] Cache MISS for currency:data:monthly:v2, fetching fresh data...")
+            from services.market.currency import fetch_currency_data
+            cached_data = await fetch_currency_data(timeframe="monthly")
+            
+            if cached_data:
+                # Cache for 1 hour
+                redis_client.set_cache("currency:data:monthly:v2", cached_data, ttl=3600)
+                print(f"[CURRENCY_ROUTE] Successfully fetched {len(cached_data)} currency pairs")
+            else:
+                # Return empty list if fetch fails
+                return []
         
         # Transform to frontend format
         results = []

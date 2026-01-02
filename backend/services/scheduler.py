@@ -56,7 +56,7 @@ async def update_currency_data():
         # Fetching 'monthly' (1 year) data as default for the main dashboard view
         data = await fetch_currency_data(timeframe="monthly")
         if data:
-            redis_client.set_cache("currency:data:monthly", data, ttl=3600)
+            redis_client.set_cache("currency:data:monthly:v2", data, ttl=3600)
             redis_client.publish('market_updates', json.dumps({'type': 'currency_update', 'data': data}))
             # print("Scheduler: Currency data updated.")
     except Exception as e:

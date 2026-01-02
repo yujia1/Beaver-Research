@@ -25,8 +25,8 @@ CURRENCIES = {
 
 async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
     """
-    Fetch currency data using FMP API.
-    Returns a dict keyed by FMP symbol (EURUSD, JPYUSD, CNYUSD)
+    Fetch currency data using FMP API with real-time quotes.
+    Returns a dict keyed by FMP symbol (EURUSD, USDJPY, USDCNY)
     """
     results = {}
     
@@ -49,7 +49,7 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
         # Batch fetch live quotes for all currencies
         quotes_map = {}
         try:
-            symbols_str = ",".join(CURRENCIES.keys())  # "JPYUSD,CNYUSD,EURUSD"
+            symbols_str = ",".join(CURRENCIES.keys())  # "EURUSD,USDJPY,USDCNY"
             quotes_url = f"{FMP_BASE_URL}/quote/{symbols_str}"
             quotes_resp = await client.get(quotes_url, params={"apikey": FMP_API_KEY})
             
@@ -57,11 +57,7 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
                 quotes_data = quotes_resp.json()
                 if isinstance(quotes_data, list):
                     for q in quotes_data:
-                        sym = q["symbol"]
-                        quotes_map[sym] = q
-                        # Handle potential symbol variations (with/without prefix)
-                        if not sym.startswith("^"):
-                            quotes_map[f"^{sym}"] = q
+                        quotes_map[q["symbol"]] = q
         except Exception as e:
             print(f"Error fetching currency quotes: {e}")
         
@@ -129,4 +125,5 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
                 print(f"Error fetching currency {symbol}: {e}")
                 
     return results
+
 
