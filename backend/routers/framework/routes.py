@@ -570,6 +570,23 @@ async def get_house_trades_by_name(name: str):
         return {"name": name, "data": []}
 
 
+@router.get("/news/{ticker}")
+async def get_stock_news(ticker: str, limit: int = 20, page: int = 0):
+    """
+    Fetch stock news
+    """
+    ticker = ticker.upper()
+    endpoint = "news/stock"
+    params = {"symbols": ticker, "limit": limit, "page": page}
+    
+    try:
+        data = await fetch_fmp_data(endpoint, params)
+        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+    except Exception as e:
+        print(f"Error fetching stock news: {e}")
+        return {"ticker": ticker, "data": []}
+
+
 @router.get("/all/{ticker}")
 async def get_all_statements(
     ticker: str,
@@ -604,6 +621,7 @@ async def get_all_statements(
             get_historical_price_full(ticker),
             get_company_profile(ticker),
             get_key_executives(ticker),
+            get_stock_news(ticker),
             # Run SEC blocking calls in executor
             loop.run_in_executor(None, edgar_service.get_recent_filings, ticker, 100)
         ]
@@ -638,7 +656,8 @@ async def get_all_statements(
         historical_price = get_result(15, {"historical": []})
         profile_res = get_result(16, {})
         executives_res = get_result(17, {})
-        filings_data = get_result(18, [])
+        news_res = get_result(18, {"data": []})
+        filings_data = get_result(19, [])
 
         # Process Business Description from FMP Profile
         business_description = ""
@@ -670,7 +689,8 @@ async def get_all_statements(
             "insider_trading": insider_trading.get("data", []) if isinstance(insider_trading, dict) else [],
             "senate_trades": senate_trades.get("data", []) if isinstance(senate_trades, dict) else [],
             "house_trades": house_trades.get("data", []) if isinstance(house_trades, dict) else [],
-            "executives": executives_res.get("data", []) if isinstance(executives_res, dict) else []
+            "executives": executives_res.get("data", []) if isinstance(executives_res, dict) else [],
+            "stock_news": news_res.get("data", []) if isinstance(news_res, dict) else []
         }
     except Exception as e:
         import traceback

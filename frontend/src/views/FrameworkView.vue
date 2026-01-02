@@ -49,6 +49,7 @@ const {
   businessDescription,
   historicalPrice,
   executives,
+  stockNews,
   fetchFinancialData: fetchFinData,
   fetchPoliticianTrades,
   fetchFinancialRatiosComparison,
@@ -744,6 +745,12 @@ const closePoliticianModal = () => {
           >
              {{ t('framework.main_tabs.politicians') }}
           </button>
+          <button
+            :class="['main-tab', { active: mainTab === 'news' }]"
+            @click="mainTab = 'news'"
+          >
+             NEWS
+          </button>
         </div>
 
         <!-- Sub-tabs and Period Toggle Container -->
@@ -1149,6 +1156,28 @@ const closePoliticianModal = () => {
              </div>
              <p v-else class="placeholder-text">{{ t('framework.politicians_tabs.no_house_data') || 'No House trading data available' }}</p>
           </div>
+      </div>
+      
+      <!-- News Content -->
+      <div v-if="mainTab === 'news'" class="news-analysis">
+         <div v-if="stockNews && stockNews.length > 0" class="news-feed">
+             <div v-for="(item, index) in stockNews" :key="index" class="news-item">
+                 <div class="news-image-container" v-if="item.image">
+                     <img :src="item.image" :alt="item.title" class="news-image" loading="lazy" @error="$event.target.style.display='none'" />
+                 </div>
+                 <div class="news-content">
+                      <div class="news-meta">
+                          <span class="news-publisher">{{ item.site }} - {{ item.publisher }}</span>
+                          <span class="news-date">{{ formatFilingDate(item.publishedDate) }}</span>
+                      </div>
+                      <a :href="item.url" target="_blank" class="news-title-link">
+                          <h4 class="news-title">{{ item.title }}</h4>
+                      </a>
+                      <p class="news-text">{{ item.text }}</p>
+                 </div>
+             </div>
+         </div>
+         <p v-else class="placeholder-text">No news available for {{ ticker }}</p>
       </div>
 
       <!-- Fundamental Analysis Tab Content -->
@@ -2256,6 +2285,108 @@ const closePoliticianModal = () => {
   color: #1e293b;
   text-align: left !important;
   vertical-align: middle !important;
+}
+
+/* News Styles */
+.news-analysis {
+  margin-top: 1rem;
+}
+
+.news-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.news-item {
+  display: flex;
+  gap: 1.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 1rem;
+  transition: box-shadow 0.2s;
+}
+
+.news-item:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.news-image-container {
+    width: 200px;
+    height: 120px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #f3f4f6;
+}
+
+.news-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.news-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.news-meta {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.news-publisher {
+    font-weight: 500;
+    color: #374151;
+}
+
+.news-date {
+  color: #9ca3af;
+}
+
+.news-title-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.news-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+}
+
+.news-title:hover {
+    color: #2563eb;
+}
+
+.news-text {
+    font-size: 0.95rem;
+    color: #4b5563;
+    line-height: 1.5;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .news-item {
+        flex-direction: column;
+    }
+    .news-image-container {
+        width: 100%;
+        height: 180px;
+    }
 }
 </style>
 

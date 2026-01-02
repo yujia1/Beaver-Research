@@ -25,6 +25,7 @@ export function useFinancialData() {
     const senateTrades = ref([])
     const houseTrades = ref([])
 
+    const stockNews = ref([])
     const politicianTrades = ref([]) // For detail view
 
     const fetchFinancialData = async (tickerValue, periodValue) => {
@@ -69,6 +70,7 @@ export function useFinancialData() {
             businessDescription.value = data.business_description || ''
             historicalPrice.value = data.historical_price || []
             executives.value = data.executives || []
+            stockNews.value = data.stock_news || []
         } catch (err) {
             error.value = err.message
             console.error('Error fetching financial data:', err)
@@ -190,6 +192,7 @@ export function useFinancialData() {
         businessDescription,
         historicalPrice,
         executives,
+        stockNews,
         fetchHistoricalPrice,
         fetchFinancialData,
         fetchPoliticianTrades,
