@@ -436,15 +436,14 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
         logger.info("Sending extracted text to AI for rewriting...")
         prompt = f"""
         You are a Senior Financial Editor and Equity Research Analyst.
-        Your task is to rewrite the provided investment journal/report to be more professional, concise, and structured.
+        Your task is to rewrite the provided investment journal/report into a compelling financial narrative.
         
         Guidelines:
-        - Maintain all original data, numbers, and key arguments. Do NOT halluncinate new numbers.
-        - Start with the conclusion/thesis, and unfold the analysis layer by layer (Pyramid Principle).
-        - Improve the flow and readability.
-        - Use professional financial terminology.
-        - Format with clear Markdown headings (##, ###) and bullet points.
-        - Start with an "Executive Summary" if one is missing.
+        1. **Title**: Generate a powerful, professional title for this report based on its content. Put it on the very first line. Do NOT use markdown for the title line.
+        2. **Narrative Style**: Start with a story-like, engaging narrative from your perspective (as an expert analyst) that hooks the reader. Avoid dry "Executive Summary" label at the very top; weave the summary into this narrative.
+        3. **Pyramid Principle**: Unfold the analysis layer by layer, starting with the core thesis/conclusion.
+        4. **Data Integrity**: Maintain all original data, numbers, and key arguments. Do NOT hallucinate new numbers.
+        5. **Structure**: After the narrative opening, use clear Markdown headings (##, ###) for detailed analysis.
         
         Original Filename: {filename}
         Report Type: {report_type.capitalize()}
@@ -456,8 +455,18 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
             logger.error("AI returned empty content")
             return False
             
+        # Parse Title (First Line)
+        lines = rewritten_content.split('\n')
+        title_text = f"{filename} (AI Revised)" # Default
+        
+        if lines:
+            potential_title = lines[0].strip().replace('#', '').strip()
+            # Heuristic: Title shouldn't be too long (e.g. < 150 chars)
+            if 5 < len(potential_title) < 150:
+                title_text = potential_title
+                rewritten_content = "\n".join(lines[1:]).strip()
+            
         # 3. Generate PDF
-        title_text = f"{filename.replace('.pdf', '')} (AI Rewritten)"
         new_pdf_bytes = create_pdf_from_markdown(rewritten_content, title_text)
         
         # 4. Upload
