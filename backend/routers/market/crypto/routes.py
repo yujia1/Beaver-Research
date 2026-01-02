@@ -28,7 +28,7 @@ async def get_all_crypto_data(timeframe: str = "daily"):
     Includes history data for the specified timeframe.
     Caches results for 15 minutes.
     """
-    cache_key = f"crypto:all:{timeframe}"
+    cache_key = f"crypto:all:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data

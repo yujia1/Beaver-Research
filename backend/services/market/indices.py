@@ -44,14 +44,40 @@ async def fetch_regional_indices_data():
     # 2. Fetch Live Quotes in Batch
     quotes_map = {}
     try:
+        import urllib.parse
+        # URL encode individual symbols but keep the comma separators
+        safe_symbols = [urllib.parse.quote(s) for s in all_symbols]
+        safe_symbols_str = ",".join(safe_symbols)
+        
         async with httpx.AsyncClient(timeout=10.0) as client:
-            quotes_url = f"{FMP_BASE_URL}/quote/{','.join(all_symbols)}"
+            # Note: httpx will auto-encode path params if not careful, but we are constructing path.
+            # Using encoded string in f-string path should work as httpx default assumes path is encoded?
+            # Actually, standard practice is let client handle it or careful construction.
+            # safe_symbols_str like %5EGSPC,%5EDJI
+            quotes_url = f"{FMP_BASE_URL}/quote/{safe_symbols_str}"
+            
+            # print(f"DEBUG: Fetching quotes from {quotes_url}")
             quotes_resp = await client.get(quotes_url, params={"apikey": FMP_API_KEY})
             if quotes_resp.status_code == 200:
                 quotes_data = quotes_resp.json()
+                # print(f"DEBUG: Received {len(quotes_data)} quotes")
                 if isinstance(quotes_data, list):
                     for q in quotes_data:
-                        quotes_map[q["symbol"]] = q
+                        sym = q["symbol"]
+                        quotes_map[sym] = q
+                        # Handle potential mismatch where FMP returns "GSPC" for "^GSPC"
+                        if sym.startswith("^"):
+                             quotes_map[sym[1:]] = q
+                        # Or vice versa, if response is GSPC but we asked for ^GSPC and stored that in all_symbols
+                        # We will look up by index["symbol"] which has ^.
+                        # So if response has "GSPC", we map "GSPC"->q.
+                        # But lookup will be "^GSPC".
+                        # So we should validly map GSPC -> ^GSPC logic? 
+                        # No, just ensure we can find it.
+                        if not sym.startswith("^"):
+                            quotes_map[f"^{sym}"] = q
+            else:
+                 print(f"Error fetching quotes: Status {quotes_resp.status_code} - {quotes_resp.text}")
     except Exception as e:
         print(f"Error fetching batch quotes: {e}")
 

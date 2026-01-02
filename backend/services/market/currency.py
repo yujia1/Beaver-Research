@@ -46,11 +46,28 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
     end_date = today.strftime("%Y-%m-%d")
 
     async with httpx.AsyncClient() as client:
+        # Batch fetch live quotes for all currencies
+        quotes_map = {}
+        try:
+            symbols_str = ",".join(CURRENCIES.keys())  # "JPYUSD,CNYUSD,EURUSD"
+            quotes_url = f"{FMP_BASE_URL}/quote/{symbols_str}"
+            quotes_resp = await client.get(quotes_url, params={"apikey": FMP_API_KEY})
+            
+            if quotes_resp.status_code == 200:
+                quotes_data = quotes_resp.json()
+                if isinstance(quotes_data, list):
+                    for q in quotes_data:
+                        sym = q["symbol"]
+                        quotes_map[sym] = q
+                        # Handle potential symbol variations (with/without prefix)
+                        if not sym.startswith("^"):
+                            quotes_map[f"^{sym}"] = q
+        except Exception as e:
+            print(f"Error fetching currency quotes: {e}")
+        
         for symbol, metadata in CURRENCIES.items():
             try:
-                # Note: Verify if FMP supports JPYUSD/CNYUSD or requires USDJPY/USDCNY. 
-                # Provided request asked for JPYUSD/CNHUSD(CNYUSD). 
-                # If FMP returns emtpy, it might be due to invalid ticker.
+                # Fetch historical data
                 url = f"{FMP_BASE_URL}/historical-price-eod/light"
                 params = {
                     "symbol": symbol,
@@ -77,6 +94,29 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
                                 "date": item["date"],
                                 "value": float(item.get("price", item.get("close", 0)))
                             })
+                        
+                        # Merge live quote data
+                        quote = quotes_map.get(symbol)
+                        if quote and formatted_history:
+                            # Convert timestamp to date
+                            ts = quote.get("timestamp")
+                            if ts:
+                                today_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+                            else:
+                                today_str = datetime.datetime.now().strftime('%Y-%m-%d')
+                            
+                            current_price = quote.get("price", 0)
+                            
+                            # Check if we need to append or update
+                            if formatted_history[-1]["date"] != today_str:
+                                # Append new record for today
+                                formatted_history.append({
+                                    "date": today_str,
+                                    "value": float(current_price)
+                                })
+                            else:
+                                # Update today's record with live price
+                                formatted_history[-1]["value"] = float(current_price)
                             
                         if formatted_history:
                             results[symbol] = formatted_history
@@ -89,3 +129,4 @@ async def fetch_currency_data(timeframe: str = "daily") -> Dict[str, Any]:
                 print(f"Error fetching currency {symbol}: {e}")
                 
     return results
+

@@ -71,6 +71,18 @@ async def fetch_crypto_data(timeframe: str = "daily") -> List[Dict[str, Any]]:
                 
                 response = await client.get(url, params=params)
                 
+                # Fetch live quote for real-time data
+                quote = None
+                try:
+                    quote_url = f"{FMP_BASE_URL}/quote/{symbol}"
+                    quote_resp = await client.get(quote_url, params={"apikey": FMP_API_KEY})
+                    if quote_resp.status_code == 200:
+                        q_data = quote_resp.json()
+                        if isinstance(q_data, list) and len(q_data) > 0:
+                            quote = q_data[0]
+                except Exception as e:
+                    print(f"Error fetching quote for {symbol}: {e}")
+                
                 if response.status_code == 200:
                     data = response.json()
                     
@@ -106,14 +118,40 @@ async def fetch_crypto_data(timeframe: str = "daily") -> List[Dict[str, Any]]:
                             "volume": float(h.get("volume", 0))
                         })
                     
-                    current_price = history_list[-1]["value"] if history_list else 0
-                    
-                    # Calculate daily change percentage
-                    change_percent = 0
-                    if len(history_list) > 1:
-                        prev_price = history_list[-2]["value"]
-                        if prev_price != 0:
-                            change_percent = ((current_price - prev_price) / prev_price) * 100
+                    # Use quote data for current price and change
+                    if quote:
+                        current_price = quote.get("price", 0)
+                        change_percent = quote.get("changePercentage", 0)
+                        
+                        # Merge live quote into history
+                        ts = quote.get("timestamp")
+                        if ts:
+                            today_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+                        else:
+                            today_str = datetime.datetime.now().strftime('%Y-%m-%d')
+                        
+                        # Check if we need to append or update
+                        if history_list and history_list[-1]["date"] != today_str:
+                            # Append new record for today
+                            history_list.append({
+                                "date": today_str,
+                                "value": float(current_price),
+                                "volume": float(quote.get("volume", 0))
+                            })
+                        elif history_list:
+                            # Update today's record with live price
+                            history_list[-1]["value"] = float(current_price)
+                            history_list[-1]["volume"] = float(quote.get("volume", 0))
+                    else:
+                        # Fallback to historical data
+                        current_price = history_list[-1]["value"] if history_list else 0
+                        
+                        # Calculate daily change percentage
+                        change_percent = 0
+                        if len(history_list) > 1:
+                            prev_price = history_list[-2]["value"]
+                            if prev_price != 0:
+                                change_percent = ((current_price - prev_price) / prev_price) * 100
 
                     results.append({
                         "ticker": item["ticker"],

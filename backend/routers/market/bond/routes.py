@@ -166,7 +166,7 @@ async def get_treasury_yields(timeframe: str = "monthly"):
     Yahoo Finance provides more up-to-date data than FRED.
     Caches results for 1 hour.
     """
-    cache_key = f"bond:treasury:{timeframe}"
+    cache_key = f"bond:treasury:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -215,7 +215,7 @@ async def get_treasury_yields(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=3600)
+    redis_client.set_cache(cache_key, results, ttl=300)
     return results
 
 @router.get("/yield-curve", response_model=List[BondData])
@@ -225,7 +225,7 @@ async def get_yield_curve(timeframe: str = "monthly"):
     Uses Yahoo Finance data (primary) or FRED (fallback) for underlying yields.
     Caches results for 1 hour.
     """
-    cache_key = f"bond:yield_curve:{timeframe}"
+    cache_key = f"bond:yield_curve:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -344,7 +344,7 @@ async def get_yield_curve(timeframe: str = "monthly"):
                 "series_id": "SPREAD_5S30S"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=3600)
+    redis_client.set_cache(cache_key, results, ttl=300)
     return results
 
 @router.get("/series/{series_id}", response_model=BondData)
@@ -528,7 +528,7 @@ async def get_tips_breakeven(timeframe: str = "monthly"):
     Fetch TIPS (Treasury Inflation-Protected Securities) and Breakeven Rates.
     Caches results for 1 hour.
     """
-    cache_key = f"bond:tips:{timeframe}"
+    cache_key = f"bond:tips:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -557,7 +557,7 @@ async def get_tips_breakeven(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=3600)
+    redis_client.set_cache(cache_key, results, ttl=300)
     return results
 
 @router.get("/central-bank-rates", response_model=List[BondData])
@@ -566,7 +566,7 @@ async def get_central_bank_rates(timeframe: str = "monthly"):
     Fetch Central Bank & Money Market Rates (Fed Funds, SOFR, etc.).
     Caches results for 1 hour.
     """
-    cache_key = f"bond:rates:{timeframe}"
+    cache_key = f"bond:rates:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -595,7 +595,7 @@ async def get_central_bank_rates(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=3600)
+    redis_client.set_cache(cache_key, results, ttl=300)
     return results
 
 @router.get("/credit-spreads", response_model=List[BondData])
@@ -604,7 +604,7 @@ async def get_credit_spreads(timeframe: str = "monthly"):
     Fetch Corporate Bond Spreads (Investment Grade & High Yield).
     Caches results for 1 hour.
     """
-    cache_key = f"bond:credit:{timeframe}"
+    cache_key = f"bond:credit:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -632,7 +632,7 @@ async def get_credit_spreads(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=3600)
+    redis_client.set_cache(cache_key, results, ttl=300)
     return results
 
 @router.get("/funding-stress", response_model=List[BondData])
@@ -645,7 +645,7 @@ async def get_funding_stress(timeframe: str = "monthly"):
     - Inter-bank spreads
     Caches results for 1 hour.
     """
-    cache_key = f"bond:stress:{timeframe}"
+    cache_key = f"bond:stress:{timeframe}:v2"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -753,7 +753,7 @@ async def get_funding_stress(timeframe: str = "monthly"):
                 "chart_type": "line"
             })
     
-    redis_client.set_cache(cache_key, results, ttl=3600)
+    redis_client.set_cache(cache_key, results, ttl=300)
     return results
 
 @router.get("/all", response_model=Dict[str, List[BondData]])

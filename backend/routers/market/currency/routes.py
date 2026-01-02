@@ -40,7 +40,7 @@ async def get_all_currencies():
     """
     try:
         # Get cached data from scheduler
-        cached_data = redis_client.get_cache("currency:data:monthly")
+        cached_data = redis_client.get_cache("currency:data:monthly:v2")
         
         if not cached_data:
             # Return empty list if no data yet
@@ -90,7 +90,7 @@ async def get_currency_by_symbol(symbol: str, timeframe: str = "monthly"):
     try:
         # For now, we only have monthly data cached by the scheduler
         # In the future, we could fetch different timeframes from FMP
-        cached_data = redis_client.get_cache("currency:data:monthly")
+        cached_data = redis_client.get_cache("currency:data:monthly:v2")
         
         if not cached_data or symbol not in cached_data:
             raise HTTPException(status_code=404, detail=f"Currency {symbol} not found")

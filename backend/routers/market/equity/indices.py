@@ -25,7 +25,7 @@ async def get_regional_indices():
     Serves data from Redis cache (populated by background scheduler).
     Fallbacks to on-demand fetch if cache is empty.
     """
-    cache_key = "indices:regional:all:v2"
+    cache_key = "indices:regional:all:v7"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -34,7 +34,8 @@ async def get_regional_indices():
     print("Cache miss for regional indices, fetching on-demand...")
     data = await fetch_regional_indices_data()
     if data:
-        redis_client.set_cache(cache_key, data, ttl=900)
+        # Cache for shorter time to ensure freshness during market hours
+        redis_client.set_cache(cache_key, data, ttl=300)
     return data
 
 @router.get("/regional/series/{symbol}")
@@ -46,7 +47,7 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
     # Normalize symbol (decode URL encoded if needed, usually handled by FastAPI)
     symbol = symbol.strip()
     
-    cache_key = f"indices:regional:{symbol}:{timeframe}"
+    cache_key = f"indices:regional:{symbol}:{timeframe}:v7"
     cached_data = redis_client.get_cache(cache_key)
     if cached_data:
         return cached_data
@@ -68,10 +69,10 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
     days = tf_map.get(timeframe.upper(), 365)
     
     endpoint = "historical-price-eod/full"  # Default to full for flexibility, or filter light
-    # But full is heavy. 
     # If days <= 365, use light? light is last 1 year (approx 252 trading days).
     # Actually 'full' with 'from' date is best.
     
+    # httpx handles encoding
     url = f"{FMP_BASE_URL}/{endpoint}/{symbol}"
     params = {"apikey": FMP_API_KEY}
     
@@ -120,7 +121,11 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
                 change_percent = 0
                 
                 try:
+                    # httpx automatically encodes path segments, so manual encoding causes double encoding
+                    # e.g. ^GSPC -> %5EGSPC. 
+                    # If we manually encode: ^GSPC -> %5EGSPC -> httpx sends %255EGSPC (wrong)
                     quote_url = f"{FMP_BASE_URL}/quote/{symbol}"
+                    
                     quote_resp = await client.get(quote_url, params={"apikey": FMP_API_KEY})
                     if quote_resp.status_code == 200:
                         q_data = quote_resp.json()
@@ -136,6 +141,7 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
                                 ts = quote.get("timestamp")
                                 if ts:
                                     quote_date = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+                                    # print(f"DEBUG: Merging quote for {symbol}: {quote_date} vs Last: {last_hist_date}")
                                     if quote_date != last_hist_date:
                                         formatted_history.append({
                                             "symbol": symbol,
@@ -147,6 +153,8 @@ async def get_regional_index_series(symbol: str, timeframe: str = "1Y"):
                                         # Update last bar
                                         formatted_history[-1]["price"] = current_price
                                         formatted_history[-1]["volume"] = quote.get("volume", 0)
+                    else:
+                         print(f"Error fetching quote for {symbol}: Status {quote_resp.status_code}")
                 except Exception as e:
                     print(f"Error merging live quote for {symbol}: {e}")
                     # Fallback to calc from history
