@@ -45,7 +45,7 @@
                         <ul v-else class="report-list">
                         <li v-for="savedReport in longReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
-                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+                                <span class="report-ticker">{{ savedReport.ticker }}</span>
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">
@@ -122,7 +122,7 @@
                         <ul v-else class="report-list">
                         <li v-for="savedReport in shortReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
                             <div class="report-item-header" @click="toggleReport(savedReport)">
-                                <span class="report-ticker">{{ savedReport.ticker }} - {{ new Date(savedReport.created_at || savedReport.date || savedReport.timestamp).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+                                <span class="report-ticker">{{ savedReport.ticker }}</span>
                                 <span class="report-date">{{ formatDate(savedReport.created_at || savedReport.date || savedReport.timestamp) }}</span>
                             </div>
                             <div v-if="expandedReportIds.has(savedReport.id || savedReport.uuid)" class="report-item-content">

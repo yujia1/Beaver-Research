@@ -503,10 +503,8 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
             try:
                 # Parse YYYY-MM-DD
                 dt = datetime.datetime.strptime(publish_date, "%Y-%m-%d")
-                # Set time to roughly now or end of day? 
-                # Let's keep time as current UTC time but change date, or just 00:00?
-                # User likely wants the date to show up correctly in sort.
-                # If I set only date, time defaults to 00:00.
+                # Make timezone aware (UTC)
+                dt = dt.replace(tzinfo=datetime.timezone.utc)
                 created_at_dt = dt.replace(hour=12, minute=0, second=0) 
             except Exception as e:
                 logger.error(f"Invalid publish_date {publish_date}: {e}")
@@ -518,7 +516,8 @@ async def process_uploaded_report(file_content: bytes, filename: str, report_typ
             ticker="GENERAL",
             user_id=system_user_id,
             is_uploaded=True,
-            created_at=created_at_dt
+            created_at=created_at_dt,
+            updated_at=created_at_dt # Force updated_at to match
         )
         db.add(report)
         db.commit()

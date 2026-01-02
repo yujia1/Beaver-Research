@@ -340,29 +340,6 @@ async def get_reports_from_minio(
                             if key in seen_keys:
                                 continue
                             seen_keys.add(key)
-                            
-                            # Check if we have DB metadata for this file
-                            # If it's a private report type, ONLY include if we found it in db_reports (user ownership)
-                            # If it's market, we include everything found in MinIO? 
-                            # The original logic included everything in MinIO and enriched with DB if available.
-                            # But if we want privacy for 'long'/'short', we should filter?
-                            # Original logic: db_reports filtered by user, then list MinIO. 
-                            # If db_report exists, use its metadata. 
-                            # If NOT exists in DB (map), fallback to filename parsing. 
-                            # This means private files from OTHER users might be visible if MinIO structure is shared?
-                            # Security concern: MinIO paths are predictable. 
-                            # However, we are listing with prefix. 
-                            # If 'Long' folder contains EVERYONE's long reports, then listing it leaks info.
-                            # Assuming folder structure is Flat per type? 
-                            # "Long/ticker/date/uuid.pdf".
-                            # Yes, security might be loose if folder is shared.
-                            # BUT, let's stick to the request: Enable AI Reports.
-                            # I'll just keep existing logic for MinIO (show all files found), assuming backend security is handled elsewhere or folders are segregated (they are not).
-                            # Wait, line 267 filtered by user_id for DB reports.
-                            # But MinIO listing (line 309) lists EVERYTHING in that prefix.
-                            # So a user could see others' reports if they are in the same folder.
-                            # I will leave that investigation for later and focus on "Market" reports which are public.
-                            
                             db_report = db_report_map.get(key)
                             
                             # Extract metadata
@@ -397,13 +374,21 @@ async def get_reports_from_minio(
                                         title = filename
                                 
                                 last_modified = obj.get('LastModified', datetime.utcnow())
-                                date = last_modified.strftime("%Y-%m-%d") if hasattr(last_modified, 'strftime') else "Unknown"
+                                
+                                # Use DB date if available, otherwise S3 LastModified
+                                if db_report and db_report.created_at:
+                                    date_obj = db_report.created_at
+                                    date = date_obj.strftime("%Y-%m-%d")
+                                    created_at_iso = date_obj.isoformat()
+                                else:
+                                    date = last_modified.strftime("%Y-%m-%d") if hasattr(last_modified, 'strftime') else "Unknown"
+                                    created_at_iso = last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified)
                                 
                                 reports.append({
                                     "id": uuid_from_filename,
                                     "ticker": ticker,
                                     "date": date,
-                                    "created_at": last_modified.isoformat() if hasattr(last_modified, 'isoformat') else str(last_modified),
+                                    "created_at": created_at_iso,
                                     "report_type": report_type,
                                     "uuid": uuid_from_filename,
                                     "file_path": key,
