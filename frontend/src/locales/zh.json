@@ -12,30 +12,6 @@
         "logout": "退出登录",
         "upgrade": "升级会员"
     },
-    "payment_gate": {
-        "header": "Beaver Research",
-        "choose_plan": "选择您的计划",
-        "monthly_sub": "月度订阅",
-        "annual_sub": "年度订阅",
-        "save_14": "节省 14%",
-        "plan_details": "计划详情",
-        "pro_annual": "专业版年度计划",
-        "pro_monthly": "专业版月度计划",
-        "plan_desc": "高级市场情报访问权限",
-        "year": "/ 年",
-        "month": "/ 月",
-        "includes": "包含内容：",
-        "features": {
-            "realtime": "实时市场分析与洞察",
-            "ai_research": "高级 AI 研究报告",
-            "data_vault": "独家数据金库访问",
-            "toolkit": "完整的机构级工具包"
-        },
-        "total_due": "今日应付总额",
-        "pay_with": "支付方式",
-        "retry": "重试",
-        "error_init": "无法加载支付表单"
-    },
     "auth": {
         "login": "登录",
         "login_title": "登录",
@@ -1008,12 +984,31 @@
         "title": "研究访问权限",
         "subtitle": "高级研究工具需付费使用",
         "features_title": "您将获得：",
+        "header": "Beaver Research",
+        "choose_plan": "选择您的计划",
+        "monthly_sub": "月度订阅",
+        "annual_sub": "年度订阅",
+        "save_14": "节省 14%",
+        "plan_details": "计划详情",
+        "pro_annual": "专业版年度计划",
+        "pro_monthly": "专业版月度计划",
+        "plan_desc": "高级市场情报访问权限",
+        "year": "/ 年",
+        "month": "/ 月",
+        "includes": "包含内容：",
         "features": {
             "analysis": "来自市场、公司和机构的实时分析与洞察",
             "market_data": "实时市场数据与基本面",
             "research_tools": "实时公司与市场研究工具",
-            "data_vault": "可访问所有数据的独家数据金库"
+            "data_vault": "独家数据金库访问",
+            "realtime": "实时市场分析与洞察",
+            "ai_research": "高级 AI 研究报告",
+            "toolkit": "完整的机构级工具包"
         },
+        "total_due": "今日应付总额",
+        "pay_with": "支付方式",
+        "retry": "重试",
+        "error_init": "无法加载支付表单",
         "pay_button": "使用 PayPal/Strip 支付 $29.99",
         "verification_pending": "付款验证处理中"
     },
