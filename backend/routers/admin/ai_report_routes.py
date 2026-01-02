@@ -7,6 +7,7 @@ from services.ai_report import generate_market_report, process_uploaded_report
 from redis_client import redis_client
 import json
 import logging
+import datetime
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -138,10 +139,16 @@ async def run_short_report(
     logger.info(f"Short Report Run: File={file.filename}, Date={publish_date}, User={current_user.id}")
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
+    
+    if publish_date:
+        try:
+            datetime.datetime.strptime(publish_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid date format: '{publish_date}'. Expected YYYY-MM-DD")
         
     content = await file.read()
     background_tasks.add_task(run_uploaded_report_task, content, file.filename, "short", current_user.id, publish_date=publish_date)
-    return {"message": "Short Report processing started"}
+    return {"message": f"Short Report processing started for date {publish_date or 'today'}"}
 
 @router.post("/long-report/run")
 async def run_long_report(
@@ -155,6 +162,12 @@ async def run_long_report(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
         
+    if publish_date:
+        try:
+            datetime.datetime.strptime(publish_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid date format: '{publish_date}'. Expected YYYY-MM-DD")
+
     content = await file.read()
     background_tasks.add_task(run_uploaded_report_task, content, file.filename, "long", current_user.id, publish_date=publish_date)
-    return {"message": "Long Report processing started"}
+    return {"message": f"Long Report processing started for date {publish_date or 'today'}"}
