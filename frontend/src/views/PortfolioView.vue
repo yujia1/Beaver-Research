@@ -790,6 +790,13 @@ const handleDragEnd = () => {
   draggedIndex.value = null
   dragOverIndex.value = null
 }
+
+// Helper function to open links
+const openLink = (url) => {
+  if (url) {
+    window.open(url, '_blank')
+  }
+}
 </script>
 
 <template>
@@ -1039,7 +1046,7 @@ const handleDragEnd = () => {
                       <button 
                         class="action-btn link-btn"
                         :class="{ disabled: !lot.link }"
-                        @click.stop="lot.link && window.open(lot.link, '_blank')"
+                        @click.stop="openLink(lot.link)"
                         :disabled="!lot.link"
                         title="Open Link"
                       >
