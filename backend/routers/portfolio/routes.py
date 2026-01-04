@@ -351,6 +351,7 @@ def update_lot(
     db_lot.purchase_date = lot.purchaseDate
     db_lot.quantity = lot.quantity
     db_lot.cost_per_share = lot.costPerShare
+    db_lot.side = lot.side
     db_lot.link = lot.link
     db_lot.note = lot.note
     
