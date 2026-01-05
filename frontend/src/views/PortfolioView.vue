@@ -723,6 +723,7 @@ const handleEditLot = async (updatedData) => {
   if (position && editingLot.value) {
     loading.value = true
     try {
+      console.log('Updating lot with data:', updatedData)
       const token = localStorage.getItem('access_token')
       const response = await fetch(`${API_BASE_URL}/api/portfolio/lots/${editingLot.value.id}`, {
         method: 'PUT',
@@ -740,7 +741,8 @@ const handleEditLot = async (updatedData) => {
         editingTicker.value = ''
       } else {
         const error = await response.json()
-        throw new Error(error.detail || 'Failed to update lot')
+        console.error('Server error response:', error)
+        throw new Error(JSON.stringify(error.detail || error))
       }
     } catch (error) {
        console.error('Error updating lot:', error)

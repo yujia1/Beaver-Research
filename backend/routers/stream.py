@@ -40,13 +40,32 @@ async def stream_market_data():
             # Send initial ping
             yield "event: connected\ndata: {\"status\":\"connected\"}\n\n"
             
-            async for message in pubsub.listen():
-                if message['type'] == 'message':
-                    payload = message['data']
-                    yield f"data: {payload}\n\n"
+            # Create a task for listening to messages
+            listen_task = asyncio.create_task(pubsub.listen().__anext__())
+            
+            while True:
+                # Wait for either a message or a timeout (30 seconds)
+                done, pending = await asyncio.wait(
+                    [listen_task],
+                    timeout=30.0,
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                
+                if done:
+                    # We got a message
+                    message = listen_task.result()
+                    if message['type'] == 'message':
+                        payload = message['data']
+                        yield f"data: {payload}\n\n"
+                    
+                    # Create a new listen task for the next message
+                    listen_task = asyncio.create_task(pubsub.listen().__anext__())
+                else:
+                    # Timeout - send a heartbeat ping to keep connection alive
+                    yield ": heartbeat\n\n"
                     
         except asyncio.CancelledError:
-            print("Client disconnected from stream")
+            logger.info("Client disconnected from stream")
         except Exception as e:
             logger.error(f"Stream error: {e}")
             yield f"event: error\ndata: {{\"error\": \"{str(e)}\"}}\n\n"
