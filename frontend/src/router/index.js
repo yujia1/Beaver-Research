@@ -71,6 +71,12 @@ const router = createRouter({
       component: FrameworkView,
       meta: { requiresAuth: false }
     },
+    {
+      path: '/quant',
+      name: 'quant',
+      component: () => import('../views/QuantView.vue'),
+      meta: { requiresAuth: false }
+    },
     // Payment Routes
     {
       path: '/pricing',
