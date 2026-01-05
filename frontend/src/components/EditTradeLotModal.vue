@@ -20,6 +20,7 @@ const formData = ref({
   purchaseDate: '',
   quantity: '',
   costPerShare: '',
+  side: 'LONG',
   link: '',
   note: ''
 })
@@ -31,6 +32,7 @@ watch(() => props.lot, (newLot) => {
       purchaseDate: newLot.purchaseDate,
       quantity: newLot.quantity.toString(),
       costPerShare: newLot.costPerShare.toString(),
+      side: newLot.side || 'LONG',
       link: newLot.link || '',
       note: newLot.note || ''
     }
@@ -63,6 +65,7 @@ const handleSubmit = () => {
       purchaseDate: formData.value.purchaseDate,
       quantity: parseInt(formData.value.quantity),
       costPerShare: parseFloat(formData.value.costPerShare),
+      side: formData.value.side,
       link: formData.value.link.trim(),
       note: formData.value.note.trim()
     })
