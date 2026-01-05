@@ -277,7 +277,7 @@ async def startup_event():
             logger.info("Initializing default permissions...")
             db = SessionLocal()
             try:
-                resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market"]
+                resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market", "/quant"]
                 roles = ["creator", "contributor", "user"]
                 user_restricted = ["/research", "/agent", "/report"]
                 

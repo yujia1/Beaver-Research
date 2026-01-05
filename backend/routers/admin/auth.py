@@ -931,7 +931,7 @@ async def get_my_permissions(
     """Get list of resources the current user can access"""
     # Admin gets access to everything by default
     if current_user.role == "admin":
-        return ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework"]
+        return ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/quant"]
     
     # Try to get from cache
     cache_key = f"permissions:{current_user.role}"
@@ -961,7 +961,7 @@ async def initialize_permissions(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
         
-    resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market"]
+    resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market", "/quant"]
     roles = ["creator", "contributor", "user"]
     
     # Default Policy:
