@@ -37,7 +37,7 @@ const router = createRouter({
       path: '/research',
       name: 'research',
       component: ResearchView,
-      meta: { requiresAuth: true, requiresAdmin: true }
+      meta: { requiresAuth: true }
     },
 
 
