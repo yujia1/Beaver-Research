@@ -336,15 +336,18 @@ async def verify_role_access(
     db: Session = Depends(get_db)
 ):
     """
-    Check ONLY Level 1 (Role Permission).
-    Do NOT check Level 2 (Payment).
-    Use this for endpoints that support Partial Access (e.g. Free Tier content).
+    Tiered Access Control:
+    - Admin/Creator/Contributor: Check ONLY role permissions (Level 1)
+    - Regular User: Check role permissions (Level 1) AND payment status (Level 2)
+    
+    This allows admin to grant access to creator/contributor roles via Access Management,
+    while regular users still need to pay for premium features.
     """
     # Admin always has full access
     if current_user.role == "admin":
         return current_user
     
-    # Check Access Management Permissions
+    # Level 1: Check Access Management Permissions
     permission = db.query(models.RolePermission).filter(
         models.RolePermission.role == current_user.role,
         models.RolePermission.resource == resource
@@ -355,6 +358,15 @@ async def verify_role_access(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Your role ({current_user.role}) does not have access to {resource}. Contact administrator to request access."
         )
+    
+    # Level 2: Check Payment Status (ONLY for regular users)
+    # Creator and Contributor roles bypass payment check
+    if current_user.role == "user":
+        if not current_user.has_paid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Premium subscription required. Please upgrade your plan to access this feature."
+            )
     
     return current_user
 

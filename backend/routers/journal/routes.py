@@ -13,11 +13,11 @@ from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
-from routers.admin.auth import get_current_user, verify_premium_access, create_resource_dependency, create_role_dependency
+from routers.admin.auth import get_current_user, verify_premium_access, create_role_dependency
 import models
 
-# Create resource-specific access dependency
-require_report_access = create_resource_dependency('/report')
+# Create role-specific access dependency (tiered: creator/contributor bypass payment)
+require_report_access = create_role_dependency('/report')
 
 # Token verification for query parameter (for iframe access)
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
@@ -248,31 +248,33 @@ async def publish_research_report(
             detail=f"Failed to save report: {str(e)}"
         )
 
-# Create partial access dependency (Role check only, Payment check internal)
-require_report_role = create_role_dependency('/report')
-
 @router.get("/minio/{report_type}")
 async def get_reports_from_minio(
     report_type: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_report_role)
+    current_user: models.User = Depends(require_report_access)
 ):
     """Get reports from MinIO by type (daily, long, short, market)"""
     try:
         # Validate report type
         valid_report_types = ["daily", "long", "short", "market"]
         
-        # Access Control: Report type access based on payment status
-        # Admin: always premium
-        # All others (including creator): premium only if has_paid=true
-        is_premium = current_user.role == "admin" or (hasattr(current_user, 'has_paid') and current_user.has_paid)
+        # Tiered Access Control for Report Types:
+        # - Admin: Full access to all report types
+        # - Creator/Contributor: Full access to all report types (bypass payment)
+        # - Regular User: Free access to "market" and "daily", payment required for "long" and "short"
+        
         allowed_types_free = ["market", "daily"]
         
-        if report_type not in allowed_types_free and not is_premium:
-            raise HTTPException(
-                status_code=403,
-                detail="Premium subscription required to access this report type. Please upgrade your plan."
-            )
+        # Check if user needs payment for this report type
+        if current_user.role == "user":
+            # Regular users need payment for premium report types
+            if report_type not in allowed_types_free:
+                if not (hasattr(current_user, 'has_paid') and current_user.has_paid):
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Premium subscription required to access this report type. Please upgrade your plan."
+                    )
         if report_type not in valid_report_types:
             raise HTTPException(
                 status_code=400,
@@ -441,17 +443,22 @@ async def get_pdf_from_minio(
 ):
     """Get PDF content from MinIO"""
     try:
-        # Access Control for PDF download
-        # Admin: always premium
-        # All others (including creator): premium only if has_paid=true
-        is_premium = current_user.role == "admin" or (hasattr(current_user, 'has_paid') and current_user.has_paid)
+        # Tiered Access Control for PDF Download:
+        # - Admin: Full access to all report types
+        # - Creator/Contributor: Full access to all report types (bypass payment)
+        # - Regular User: Free access to "market" and "daily", payment required for "long" and "short"
+        
         allowed_types_free = ["market", "daily"]
         
-        if report_type not in allowed_types_free and not is_premium:
-            raise HTTPException(
-                status_code=403,
-                detail="Premium subscription required to access this report."
-            )
+        # Check if user needs payment for this report type
+        if current_user.role == "user":
+            # Regular users need payment for premium report types
+            if report_type not in allowed_types_free:
+                if not (hasattr(current_user, 'has_paid') and current_user.has_paid):
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Premium subscription required to access this report."
+                    )
 
         # Map report_type to folder name
         folder_map = {

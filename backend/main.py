@@ -394,6 +394,11 @@ app.include_router(framework.router, prefix="/api/framework", tags=["Framework"]
 from routers.quant import fibonacci as quant_fibonacci
 app.include_router(quant_fibonacci.router, prefix="/api/quant", tags=["Quant"])
 
+# Academy
+from routers.academy import routes as academy
+app.include_router(academy.router, prefix="/api/academy", tags=["Academy"])
+
+
 
 
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])

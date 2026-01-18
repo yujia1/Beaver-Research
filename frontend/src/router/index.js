@@ -45,7 +45,7 @@ const router = createRouter({
       path: '/report',
       name: 'report',
       component: ReportView,
-      meta: { requiresAuth: true, requiresPayment: true }
+      meta: { requiresAuth: true }
     },
     {
       path: '/admin',
