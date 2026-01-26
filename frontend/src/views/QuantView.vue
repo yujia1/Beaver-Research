@@ -13,7 +13,12 @@
       >
         {{ t('quant.fibonacci.title') }}
       </button>
-      <!-- More tabs can be added here -->
+      <button 
+        :class="['tab-btn', { active: activeTab === 'screener' }]"
+        @click="activeTab = 'screener'"
+      >
+        {{ t('quant.screener.title') }}
+      </button>
     </div>
 
     <!-- Fibonacci Tab Content -->
@@ -139,6 +144,14 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Screener Tab Content -->
+    <div v-if="activeTab === 'screener'" class="tab-content">
+      <div class="screener-placeholder">
+        <h3>{{ t('quant.screener.title') }}</h3>
+        <p>{{ t('quant.screener.coming_soon') }}</p>
       </div>
     </div>
   </div>
@@ -492,5 +505,22 @@ const getTrendClass = (status) => {
   .analyze-btn {
     width: 100%;
   }
+}
+
+.screener-placeholder {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.screener-placeholder h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 1rem;
+}
+
+.screener-placeholder p {
+  font-size: 1rem;
+  color: #666;
 }
 </style>

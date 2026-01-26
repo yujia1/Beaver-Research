@@ -112,7 +112,8 @@ class ResearchEngine:
     def _get_openai_client(self):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables")
+            print("WARNING: OPENAI_API_KEY not found - Research Engine will not function")
+            return None
         return openai.OpenAI(api_key=api_key)
 
     def determine_sub_agent(self, agent_config: Dict, bubble_type: str) -> tuple:
@@ -301,6 +302,10 @@ Provide a detailed {sub_agent_name} analysis following your system instructions.
         # Build messages
         system_msg = self.build_agent_system_message(sub_agent_key, agent_config, sub_agent_name)
         user_msg = self.build_agent_interpretation_prompt(sub_agent_key, raw_data, agent_config, sub_agent_name, ticker, context, bubble)
+        
+        # Check if client is available
+        if not self.client:
+            raise ValueError("OpenAI client not initialized - OPENAI_API_KEY is required for research analysis")
         
         # Call AI
         response = self.client.chat.completions.create(

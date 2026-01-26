@@ -1416,6 +1416,10 @@
             "swing_high": "摆动高点",
             "entry_zones": "入场区域 (回撤)",
             "price_targets": "价格目标 (延伸)"
+        },
+        "screener": {
+            "title": "筛选器",
+            "coming_soon": "股票筛选器即将推出..."
         }
     }
 }
