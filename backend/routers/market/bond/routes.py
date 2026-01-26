@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import pandas as pd
 import os
+import httpx
 from datetime import datetime, timedelta
-from pandas_datareader import data as web
 import yfinance as yf
 
 router = APIRouter()
@@ -29,16 +29,42 @@ treasury_yield_ticker_map = {
     "DGS30": "^TYX",   # 30-Year Treasury Bond
 }
 
-def fetch_fred_series(series_id: str, start_date: str):
-    """Fetch a series from FRED and return list of {'date': str, 'value': float} sorted oldest to newest."""
+async def fetch_fred_series(series_id: str, start_date: str):
+    """Fetch a series from FRED using direct API calls and return list of {'date': str, 'value': float} sorted oldest to newest."""
     try:
-        df = web.DataReader(series_id, 'fred', start=start_date, api_key=os.getenv('FRED_API_KEY'))
-        df = df.dropna()
-        df = df.reset_index()
-        df.columns = ['date', 'value']
-        df['date'] = df['date'].dt.strftime('%Y-%m-%d')
-        df['value'] = df['value'].astype(float)
-        return df.to_dict(orient='records')
+        fred_api_key = os.getenv('FRED_API_KEY')
+        if not fred_api_key:
+            print(f"FRED_API_KEY not set, skipping {series_id}")
+            return []
+        
+        url = f"https://api.stlouisfed.org/fred/series/observations"
+        params = {
+            "series_id": series_id,
+            "api_key": fred_api_key,
+            "file_type": "json",
+            "observation_start": start_date
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if "observations" not in data:
+                return []
+            
+            history = []
+            for obs in data["observations"]:
+                if obs["value"] != "." and obs["value"] is not None:
+                    try:
+                        history.append({
+                            "date": obs["date"],
+                            "value": float(obs["value"])
+                        })
+                    except (ValueError, TypeError):
+                        continue
+            
+            return history
     except Exception as e:
         print(f"Error fetching FRED series {series_id}: {e}")
         return []

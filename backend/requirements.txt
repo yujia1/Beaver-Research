@@ -24,7 +24,7 @@ slowapi==0.1.9
 openai>=1.0.0
 requests>=2.32.2
 beautifulsoup4==4.12.2
-pandas-datareader==0.10.0
+# pandas-datareader>=0.10.0  # Temporarily disabled due to pandas 2.2+ incompatibility
 psycopg2-binary>=2.9.9
 gridstatus>=0.33.0
 boto3>=1.34.0
