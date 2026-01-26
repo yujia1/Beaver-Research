@@ -5,6 +5,7 @@ import os
 import asyncio
 from datetime import datetime, timedelta
 from services.edgar_service import edgar_service
+from redis_client import redis_client
 
 router = APIRouter()
 
@@ -93,6 +94,11 @@ async def get_income_statement(
     Fetch income statement data for a ticker
     """
     ticker = ticker.upper()
+    cache_key = f"framework:income:{ticker}:{period}:{limit}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = f"income-statement"
     params = {"symbol": ticker, "period": period, "limit": limit}
     
@@ -101,11 +107,15 @@ async def get_income_statement(
     if not data:
         raise HTTPException(status_code=404, detail=f"No income statement data found for {ticker}")
     
-    return {
+    result = {
         "ticker": ticker,
         "period": period,
         "data": data
     }
+    
+    # Cache for 24 hours - financial statements rarely change
+    redis_client.set_cache(cache_key, result, ttl=86400)
+    return result
 
 
 
@@ -119,6 +129,11 @@ async def get_cash_flow(
     Fetch cash flow statement data for a ticker
     """
     ticker = ticker.upper()
+    cache_key = f"framework:cashflow:{ticker}:{period}:{limit}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = f"cash-flow-statement"
     params = {"symbol": ticker, "period": period, "limit": limit}
     
@@ -127,11 +142,15 @@ async def get_cash_flow(
     if not data:
         raise HTTPException(status_code=404, detail=f"No cash flow data found for {ticker}")
     
-    return {
+    result = {
         "ticker": ticker,
         "period": period,
         "data": data
     }
+    
+    # Cache for 24 hours
+    redis_client.set_cache(cache_key, result, ttl=86400)
+    return result
 
 
 @router.get("/balance-sheet/{ticker}")
@@ -144,6 +163,11 @@ async def get_balance_sheet(
     Fetch balance sheet data for a ticker
     """
     ticker = ticker.upper()
+    cache_key = f"framework:balance:{ticker}:{period}:{limit}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = f"balance-sheet-statement"
     params = {"symbol": ticker, "period": period, "limit": limit}
     
@@ -152,11 +176,15 @@ async def get_balance_sheet(
     if not data:
         raise HTTPException(status_code=404, detail=f"No balance sheet data found for {ticker}")
     
-    return {
+    result = {
         "ticker": ticker,
         "period": period,
         "data": data
     }
+    
+    # Cache for 24 hours
+    redis_client.set_cache(cache_key, result, ttl=86400)
+    return result
 
 
 @router.get("/dcf/{ticker}")
@@ -224,15 +252,24 @@ async def get_company_profile(
     Fetch company profile (description, etc)
     """
     ticker = ticker.upper()
+    cache_key = f"framework:profile:{ticker}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = f"profile"
     params = {"symbol": ticker}
     
     data = await fetch_fmp_data(endpoint, params)
     
-    return {
+    result = {
         "ticker": ticker,
         "data": data if data else []
     }
+    
+    # Cache for 7 days - company profiles rarely change
+    redis_client.set_cache(cache_key, result, ttl=604800)
+    return result
 
 
 @router.get("/executives/{ticker}")
@@ -417,8 +454,17 @@ async def get_historical_price(ticker: str):
     Fetch historical price data for a ticker
     """
     ticker = ticker.upper()
+    cache_key = f"framework:historical:{ticker}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     data = await get_historical_price_full(ticker)
-    return {"ticker": ticker, "data": data.get("historical", []) if isinstance(data, dict) else []}
+    result = {"ticker": ticker, "data": data.get("historical", []) if isinstance(data, dict) else []}
+    
+    # Cache for 1 hour - historical prices update frequently
+    redis_client.set_cache(cache_key, result, ttl=3600)
+    return result
 
 @router.get("/economic-calendar")
 async def get_economic_calendar(from_date: Optional[str] = None, to_date: Optional[str] = None):
@@ -489,6 +535,11 @@ async def get_insider_trading(ticker: str, page: int = 0, limit: int = 50):
     Fetch insider trading data
     """
     ticker = ticker.upper()
+    cache_key = f"framework:insider:{ticker}:{page}:{limit}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     # Endpoint: insider-trading/search?symbol=AAPL&page=0&limit=50
     # Base URL is stable (v3), so we pass "insider-trading/search"
     endpoint = "insider-trading/search"
@@ -496,7 +547,11 @@ async def get_insider_trading(ticker: str, page: int = 0, limit: int = 50):
     
     try:
         data = await fetch_fmp_data(endpoint, params)
-        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        result = {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        
+        # Cache for 1 hour - insider trading updates periodically
+        redis_client.set_cache(cache_key, result, ttl=3600)
+        return result
     except Exception as e:
         print(f"Error fetching insider trading: {e}")
         return {"ticker": ticker, "data": []}
@@ -510,12 +565,21 @@ async def get_senate_trades(ticker: str):
     Fetch Senate trades
     """
     ticker = ticker.upper()
+    cache_key = f"framework:senate:{ticker}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = "senate-trades"
     params = {"symbol": ticker}
     
     try:
         data = await fetch_fmp_data(endpoint, params)
-        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        result = {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        
+        # Cache for 6 hours - government trades update periodically
+        redis_client.set_cache(cache_key, result, ttl=21600)
+        return result
     except Exception as e:
         print(f"Error fetching senate trades: {e}")
         return {"ticker": ticker, "data": []}
@@ -527,12 +591,21 @@ async def get_house_trades(ticker: str):
     Fetch House trades
     """
     ticker = ticker.upper()
+    cache_key = f"framework:house:{ticker}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = "house-trades"
     params = {"symbol": ticker}
     
     try:
         data = await fetch_fmp_data(endpoint, params)
-        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        result = {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        
+        # Cache for 6 hours - government trades update periodically
+        redis_client.set_cache(cache_key, result, ttl=21600)
+        return result
     except Exception as e:
         print(f"Error fetching house trades: {e}")
         return {"ticker": ticker, "data": []}
@@ -576,12 +649,21 @@ async def get_stock_news(ticker: str, limit: int = 20, page: int = 0):
     Fetch stock news
     """
     ticker = ticker.upper()
+    cache_key = f"framework:news:{ticker}:{limit}:{page}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
     endpoint = "news/stock"
     params = {"symbols": ticker, "limit": limit, "page": page}
     
     try:
         data = await fetch_fmp_data(endpoint, params)
-        return {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        result = {"ticker": ticker, "data": data if isinstance(data, list) else []}
+        
+        # Cache for 15 minutes - news updates frequently
+        redis_client.set_cache(cache_key, result, ttl=900)
+        return result
     except Exception as e:
         print(f"Error fetching stock news: {e}")
         return {"ticker": ticker, "data": []}
@@ -597,6 +679,12 @@ async def get_all_statements(
     Fetch all financial statements for a ticker
     """
     ticker = ticker.upper()
+    
+    # Check cache first
+    cache_key = f"framework:all:{ticker}:{period}:{limit}"
+    cached_data = redis_client.get_cache(cache_key)
+    if cached_data:
+        return cached_data
     
     try:
         loop = asyncio.get_running_loop()
@@ -667,7 +755,7 @@ async def get_all_statements(
         
         mergers_acquisitions = {"data": []}
 
-        return {
+        result = {
             "ticker": ticker,
             "business_description": business_description,
             "historical_price": historical_price.get("historical", []) if isinstance(historical_price, dict) else [],
@@ -692,6 +780,12 @@ async def get_all_statements(
             "executives": executives_res.get("data", []) if isinstance(executives_res, dict) else [],
             "stock_news": news_res.get("data", []) if isinstance(news_res, dict) else []
         }
+        
+        # Cache for 1 hour (3600 seconds)
+        # This reduces 20+ API calls to 1 cache hit for repeated requests
+        redis_client.set_cache(cache_key, result, ttl=3600)
+        
+        return result
     except Exception as e:
         import traceback
         traceback.print_exc()

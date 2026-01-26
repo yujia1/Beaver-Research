@@ -63,8 +63,9 @@ async def get_macro_data(timeframe: str = "monthly"):
             ]
         })
         
-        # Cache for 4 hours
-        redis_client.set_cache(cache_key, results, ttl=14400)
+        # Cache for 24 hours (86400s) - economic data updates monthly/quarterly, not hourly
+        # This significantly reduces API calls while keeping data fresh enough
+        redis_client.set_cache(cache_key, results, ttl=86400)
         return results
         
     except Exception as e:
