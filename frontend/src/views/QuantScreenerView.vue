@@ -207,7 +207,8 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Reduced shadow */
+  border: 1px solid #e0e0e0; /* Added border */
   margin-bottom: 2rem;
 }
 
@@ -220,24 +221,24 @@ export default {
 .ticker-input {
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid #cccccc; /* Standard border */
+  border-radius: 6px; /* Standard radius */
   font-size: 1rem;
   transition: all 0.2s;
 }
 
 .ticker-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .screen-button {
   padding: 0.75rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3498db; /* Standard blue */
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -248,13 +249,14 @@ export default {
 }
 
 .screen-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: #2980b9;
+  transform: translateY(-1px);
 }
 
 .screen-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: #3498db;
 }
 
 .loading-spinner {
@@ -286,7 +288,7 @@ export default {
 }
 
 .warning-text {
-  color: #f59e0b;
+  color: #f39c12; /* Standard warning orange */
   font-style: italic;
 }
 
@@ -323,12 +325,13 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+  border: 1px solid #e0e0e0;
 }
 
 .red-flags-summary.has-flags {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid #e74c3c;
 }
 
 .summary-header {
@@ -346,7 +349,7 @@ export default {
 
 .ticker-badge {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3498db;
   color: white;
   border-radius: 9999px;
   font-weight: 600;
@@ -365,17 +368,18 @@ export default {
   padding: 1.5rem;
   border-radius: 8px;
   text-align: center;
+  border: 1px solid #eee;
 }
 
 .stat-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #10b981;
+  color: #42b983; /* Green */
   margin-bottom: 0.5rem;
 }
 
 .stat-value.has-flags {
-  color: #ef4444;
+  color: #e74c3c;
 }
 
 .stat-label {
@@ -437,7 +441,7 @@ export default {
 .strategy-chip {
   padding: 0.5rem 1rem;
   background: #fef2f2;
-  color: #dc2626;
+  color: #e74c3c;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -455,7 +459,7 @@ export default {
   position: relative;
   padding: 1.5rem;
   background: white;
-  border: 2px solid #e5e7eb;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -466,13 +470,13 @@ export default {
 }
 
 .tab-button:hover {
-  border-color: #667eea;
+  border-color: #3498db;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
 }
 
 .tab-button.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3498db;
   color: white;
   border-color: transparent;
 }
@@ -490,7 +494,7 @@ export default {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: #ef4444;
+  background: #e74c3c;
   color: white;
   width: 24px;
   height: 24px;
@@ -567,9 +571,9 @@ export default {
 }
 
 .example-button:hover {
-  background: #667eea;
+  background: #3498db;
   color: white;
-  border-color: #667eea;
+  border-color: #3498db;
 }
 
 /* Responsive */
