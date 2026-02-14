@@ -153,6 +153,12 @@
 
 <script>
 import axios from 'axios'
+import API_BASE_URL from '@/config/api'
+
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: API_BASE_URL
+})
 import ScreenerMetricsTable from '@/components/quant/ScreenerMetricsTable.vue'
 import TrendChart from '@/components/quant/TrendChart.vue'
 import RedFlagBadge from '@/components/quant/RedFlagBadge.vue'
@@ -199,7 +205,7 @@ export default {
       try {
         const tickers = this.ticker.split(',').map(t => t.trim()).filter(t => t)
         
-        const response = await axios.post('/api/quant/screener/screen', {
+        const response = await api.post('/api/quant/screener/screen', {
           tickers,
           enable_peer_comparison: this.enablePeerComparison
         })
