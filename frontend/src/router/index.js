@@ -77,6 +77,24 @@ const router = createRouter({
       component: () => import('../views/QuantView.vue'),
       meta: { requiresAuth: false }
     },
+    {
+      path: '/quant/screener',
+      name: 'quant-screener',
+      component: () => import('../views/QuantScreenerView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/quant/flagged',
+      name: 'quant-flagged',
+      component: () => import('../views/FlaggedCompaniesView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/quant/batch',
+      name: 'quant-batch',
+      component: () => import('../views/BatchScreeningView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
     // Payment Routes
     {
       path: '/pricing',

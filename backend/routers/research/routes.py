@@ -959,9 +959,55 @@ async def get_market_data(
                 return cached_result
         
         import yfinance as yf
-        from pandas_datareader import data as web
+        import httpx
         import os
         from datetime import datetime, timedelta
+        
+        # Helper function for FRED API calls
+        async def fetch_fred_data(series_id: str, start_date: str, end_date: str):
+            """Fetch data from FRED API directly"""
+            try:
+                fred_api_key = os.getenv('FRED_API_KEY')
+                if not fred_api_key:
+                    return None
+                
+                url = "https://api.stlouisfed.org/fred/series/observations"
+                params = {
+                    "series_id": series_id,
+                    "api_key": fred_api_key,
+                    "file_type": "json",
+                    "observation_start": start_date.strftime('%Y-%m-%d'),
+                    "observation_end": end_date.strftime('%Y-%m-%d')
+                }
+                
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(url, params=params)
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    if "observations" not in data:
+                        return None
+                    
+                    # Convert to pandas-like structure
+                    import pandas as pd
+                    values = []
+                    dates = []
+                    for obs in data["observations"]:
+                        if obs["value"] != "." and obs["value"] is not None:
+                            try:
+                                dates.append(pd.to_datetime(obs["date"]))
+                                values.append(float(obs["value"]))
+                            except (ValueError, TypeError):
+                                continue
+                    
+                    if not values:
+                        return None
+                    
+                    df = pd.DataFrame({"value": values}, index=dates)
+                    return df
+            except Exception as e:
+                print(f"Error fetching FRED data for {series_id}: {e}")
+                return None
         
         bubbles = []
         
@@ -1024,87 +1070,80 @@ async def get_market_data(
         elif agent == "BOND_AGENT":
             # Treasury Yield Agent - Fetch Treasury yield data
             try:
-                fred_api_key = os.getenv('FRED_API_KEY')
-                if fred_api_key:
-                    # Fetch 10-Year Treasury Yield
-                    end_date = datetime.now()
-                    start_date = end_date - timedelta(days=365)
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=365)
+                
+                df = await fetch_fred_data('DGS10', start_date, end_date)
+                
+                if df is not None and not df.empty:
+                    latest_value = float(df.iloc[-1, 0])
+                    prev_value = float(df.iloc[-2, 0]) if len(df) > 1 else latest_value
+                    change_bps = (latest_value - prev_value) * 100  # Convert to basis points
                     
-                    df = web.DataReader('DGS10', 'fred', start=start_date, end=end_date, api_key=fred_api_key)
-                    df = df.dropna()
+                    # Also fetch 2-year and 30-year for context
+                    df_2y = await fetch_fred_data('DGS2', start_date, end_date)
+                    df_30y = await fetch_fred_data('DGS30', start_date, end_date)
                     
-                    if not df.empty:
-                        latest_value = float(df.iloc[-1, 0])
-                        prev_value = float(df.iloc[-2, 0]) if len(df) > 1 else latest_value
-                        change_bps = (latest_value - prev_value) * 100  # Convert to basis points
-                        
-                        # Also fetch 2-year and 30-year for context
-                        df_2y = web.DataReader('DGS2', 'fred', start=start_date, end=end_date, api_key=fred_api_key)
-                        df_30y = web.DataReader('DGS30', 'fred', start=start_date, end=end_date, api_key=fred_api_key)
-                        
-                        yield_2y = float(df_2y.iloc[-1, 0]) if not df_2y.empty else None
-                        yield_30y = float(df_30y.iloc[-1, 0]) if not df_30y.empty else None
-                        
-                        treasury_data = {
-                            "type": "treasury_yield",
-                            "data": {
-                                "10y_yield": latest_value,
-                                "2y_yield": yield_2y,
-                                "30y_yield": yield_30y,
-                                "change_bps": change_bps,
-                                "2s10s_spread": (latest_value - yield_2y) if yield_2y else None,
-                                "10s30s_spread": (yield_30y - latest_value) if yield_30y else None
-                            }
+                    yield_2y = float(df_2y.iloc[-1, 0]) if df_2y is not None and not df_2y.empty else None
+                    yield_30y = float(df_30y.iloc[-1, 0]) if df_30y is not None and not df_30y.empty else None
+                    
+                    treasury_data = {
+                        "type": "treasury_yield",
+                        "data": {
+                            "10y_yield": latest_value,
+                            "2y_yield": yield_2y,
+                            "30y_yield": yield_30y,
+                            "change_bps": change_bps,
+                            "2s10s_spread": (latest_value - yield_2y) if yield_2y else None,
+                            "10s30s_spread": (yield_30y - latest_value) if yield_30y else None
                         }
-                        
-                        bubble = await process_market_data_with_agent(
-                            treasury_data,
-                            "BOND_AGENT",
-                            "treasury_yield"
-                        )
-                        if bubble:
-                            bubbles.append(bubble)
+                    }
+                    
+                    bubble = await process_market_data_with_agent(
+                        treasury_data,
+                        "BOND_AGENT",
+                        "treasury_yield"
+                    )
+                    if bubble:
+                        bubbles.append(bubble)
             except Exception as e:
                 print(f"Error fetching Treasury yield data: {e}")
         
         elif agent == "ECONOMICS_AGENT":
             # CPI Agent - Fetch CPI data
             try:
-                fred_api_key = os.getenv('FRED_API_KEY')
-                if fred_api_key:
-                    end_date = datetime.now()
-                    start_date = end_date - timedelta(days=365*2)  # 2 years for YoY calculation
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=365*2)  # 2 years for YoY calculation
+                
+                df = await fetch_fred_data('CPIAUCSL', start_date, end_date)
+                
+                if df is not None and not df.empty and len(df) > 12:  # Need at least 12 months for YoY
+                    latest_value = float(df.iloc[-1, 0])
+                    year_ago_value = float(df.iloc[-13, 0]) if len(df) > 12 else latest_value
+                    yoy_change = ((latest_value - year_ago_value) / year_ago_value * 100) if year_ago_value > 0 else 0
                     
-                    df = web.DataReader('CPIAUCSL', 'fred', start=start_date, end=end_date, api_key=fred_api_key)
-                    df = df.dropna()
+                    # Month-over-month change
+                    prev_month_value = float(df.iloc[-2, 0]) if len(df) > 1 else latest_value
+                    mom_change = ((latest_value - prev_month_value) / prev_month_value * 100) if prev_month_value > 0 else 0
                     
-                    if not df.empty and len(df) > 12:  # Need at least 12 months for YoY
-                        latest_value = float(df.iloc[-1, 0])
-                        year_ago_value = float(df.iloc[-13, 0]) if len(df) > 12 else latest_value
-                        yoy_change = ((latest_value - year_ago_value) / year_ago_value * 100) if year_ago_value > 0 else 0
-                        
-                        # Month-over-month change
-                        prev_month_value = float(df.iloc[-2, 0]) if len(df) > 1 else latest_value
-                        mom_change = ((latest_value - prev_month_value) / prev_month_value * 100) if prev_month_value > 0 else 0
-                        
-                        cpi_data = {
-                            "type": "cpi",
-                            "data": {
-                                "current_cpi": latest_value,
-                                "year_ago_cpi": year_ago_value,
-                                "yoy_change_percent": yoy_change,
-                                "mom_change_percent": mom_change,
-                                "latest_date": df.index[-1].strftime('%Y-%m-%d')
-                            }
+                    cpi_data = {
+                        "type": "cpi",
+                        "data": {
+                            "current_cpi": latest_value,
+                            "year_ago_cpi": year_ago_value,
+                            "yoy_change_percent": yoy_change,
+                            "mom_change_percent": mom_change,
+                            "latest_date": df.index[-1].strftime('%Y-%m-%d')
                         }
-                        
-                        bubble = await process_market_data_with_agent(
-                            cpi_data,
-                            "ECONOMICS_AGENT",
-                            "cpi"
-                        )
-                        if bubble:
-                            bubbles.append(bubble)
+                    }
+                    
+                    bubble = await process_market_data_with_agent(
+                        cpi_data,
+                        "ECONOMICS_AGENT",
+                        "cpi"
+                    )
+                    if bubble:
+                        bubbles.append(bubble)
             except Exception as e:
                 print(f"Error fetching CPI data: {e}")
         

@@ -1423,8 +1423,31 @@
             "price_targets": "Price Targets (Extension)"
         },
         "screener": {
-            "title": "Screener",
-            "coming_soon": "Stock screener coming soon..."
+            "title": "Stock Screener",
+            "coming_soon": "Stock screener coming soon...",
+            "subtitle": "Screen stocks using quantitative strategies",
+            "dashboard": "Screener Dashboard",
+            "launch": "Launch Screener",
+            "flagged": "Flagged Companies",
+            "view_flagged": "View Flagged",
+            "batch": "Batch Screening",
+            "manage_batch": "Manage Batch",
+            "strategies": {
+                "cash_flow": "Cash Flow Sustainability",
+                "balance_sheet": "Balance Sheet Stress",
+                "working_capital": "Working Capital Anomalies",
+                "valuation": "Valuation Dislocation"
+            },
+            "metrics": {
+                "fcf_div_buyback": "FCF / (Divs + Buybacks)",
+                "fcf_revenue": "FCF / Revenue",
+                "net_debt_ebitda": "Net Debt / EBITDA",
+                "capex_revenue": "Capitalized Costs / Revenue",
+                "dso": "Days Sales Outstanding",
+                "ev_ebitda": "EV / EBITDA"
+            },
+            "red_flags": "Red Flags",
+            "trend": "Trend"
         }
     }
 }

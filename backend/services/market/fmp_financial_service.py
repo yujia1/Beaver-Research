@@ -1,0 +1,379 @@
+"""
+FMP API Service for Financial Data Collection
+
+Fetches financial statements from Financial Modeling Prep API with Redis caching
+to minimize API calls and improve performance.
+"""
+
+import os
+import requests
+import logging
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
+import json
+
+# Redis client
+try:
+    from redis_client import get_redis_client
+    redis_client = get_redis_client()
+    REDIS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"Redis not available: {e}")
+    REDIS_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+
+# FMP API Configuration
+FMP_API_KEY = os.getenv("FMP_API_KEY")
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+
+# Cache TTL (Time To Live)
+CACHE_TTL_FINANCIAL_STATEMENTS = 86400  # 24 hours
+CACHE_TTL_STOCK_LIST = 604800  # 7 days
+CACHE_TTL_MARKET_DATA = 300  # 5 minutes
+
+
+class FMPAPIError(Exception):
+    """Custom exception for FMP API errors"""
+    pass
+
+
+def _get_cache_key(key_type: str, ticker: str = None, **kwargs) -> str:
+    """Generate Redis cache key"""
+    if ticker:
+        parts = [f"fmp:{key_type}:{ticker}"]
+    else:
+        parts = [f"fmp:{key_type}"]
+    
+    for k, v in kwargs.items():
+        parts.append(f"{k}:{v}")
+    
+    return ":".join(parts)
+
+
+def _get_from_cache(cache_key: str) -> Optional[Dict]:
+    """Get data from Redis cache"""
+    if not REDIS_AVAILABLE:
+        return None
+    
+    try:
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            logger.info(f"Cache hit: {cache_key}")
+            return json.loads(cached_data)
+    except Exception as e:
+        logger.error(f"Redis get error: {e}")
+    
+    return None
+
+
+def _set_to_cache(cache_key: str, data: Any, ttl: int):
+    """Set data to Redis cache"""
+    if not REDIS_AVAILABLE:
+        return
+    
+    try:
+        redis_client.setex(cache_key, ttl, json.dumps(data))
+        logger.info(f"Cached: {cache_key} (TTL: {ttl}s)")
+    except Exception as e:
+        logger.error(f"Redis set error: {e}")
+
+
+def _make_fmp_request(endpoint: str, params: Dict = None) -> Dict:
+    """Make request to FMP API with error handling"""
+    if not FMP_API_KEY:
+        raise FMPAPIError("FMP_API_KEY not found in environment variables")
+    
+    url = f"{FMP_BASE_URL}/{endpoint}"
+    params = params or {}
+    params["apikey"] = FMP_API_KEY
+    
+    try:
+        logger.info(f"FMP API request: {endpoint}")
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        # Check for API error messages
+        if isinstance(data, dict) and "Error Message" in data:
+            raise FMPAPIError(f"FMP API Error: {data['Error Message']}")
+        
+        return data
+    
+    except requests.exceptions.RequestException as e:
+        logger.error(f"FMP API request failed: {e}")
+        raise FMPAPIError(f"FMP API request failed: {str(e)}")
+
+
+# ============================================================================
+# Financial Statement Fetching
+# ============================================================================
+
+def fetch_income_statement(ticker: str, years: int = 5) -> List[Dict]:
+    """
+    Fetch annual income statements for a ticker
+    
+    Args:
+        ticker: Stock ticker symbol
+        years: Number of years of data (default: 5)
+    
+    Returns:
+        List of income statement dictionaries (most recent first)
+    """
+    cache_key = _get_cache_key("income", ticker, period="annual", years=years)
+    
+    # Check cache
+    cached_data = _get_from_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
+    # Fetch from API
+    endpoint = "income-statement"
+    params = {"symbol": ticker, "period": "annual", "limit": years}
+    
+    data = _make_fmp_request(endpoint, params)
+    
+    # Cache the result
+    _set_to_cache(cache_key, data, CACHE_TTL_FINANCIAL_STATEMENTS)
+    
+    return data
+
+
+def fetch_cash_flow_statement(ticker: str, years: int = 5) -> List[Dict]:
+    """
+    Fetch annual cash flow statements for a ticker
+    
+    Args:
+        ticker: Stock ticker symbol
+        years: Number of years of data (default: 5)
+    
+    Returns:
+        List of cash flow statement dictionaries (most recent first)
+    """
+    cache_key = _get_cache_key("cashflow", ticker, period="annual", years=years)
+    
+    # Check cache
+    cached_data = _get_from_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
+    # Fetch from API
+    endpoint = "cash-flow-statement"
+    params = {"symbol": ticker, "period": "annual", "limit": years}
+    
+    data = _make_fmp_request(endpoint, params)
+    
+    # Cache the result
+    _set_to_cache(cache_key, data, CACHE_TTL_FINANCIAL_STATEMENTS)
+    
+    return data
+
+
+def fetch_balance_sheet(ticker: str, years: int = 5) -> List[Dict]:
+    """
+    Fetch annual balance sheets for a ticker
+    
+    Args:
+        ticker: Stock ticker symbol
+        years: Number of years of data (default: 5)
+    
+    Returns:
+        List of balance sheet dictionaries (most recent first)
+    """
+    cache_key = _get_cache_key("balance", ticker, period="annual", years=years)
+    
+    # Check cache
+    cached_data = _get_from_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
+    # Fetch from API
+    endpoint = "balance-sheet-statement"
+    params = {"symbol": ticker, "period": "annual", "limit": years}
+    
+    data = _make_fmp_request(endpoint, params)
+    
+    # Cache the result
+    _set_to_cache(cache_key, data, CACHE_TTL_FINANCIAL_STATEMENTS)
+    
+    return data
+
+
+def fetch_all_financial_statements(ticker: str, years: int = 5) -> Dict[str, List[Dict]]:
+    """
+    Fetch all financial statements (income, cash flow, balance sheet) for a ticker
+    
+    This is the recommended function to use as it fetches all statements at once,
+    which is more efficient than calling each function separately.
+    
+    Args:
+        ticker: Stock ticker symbol
+        years: Number of years of data (default: 5)
+    
+    Returns:
+        Dictionary with keys: 'income', 'cashflow', 'balance'
+    """
+    return {
+        "income": fetch_income_statement(ticker, years),
+        "cashflow": fetch_cash_flow_statement(ticker, years),
+        "balance": fetch_balance_sheet(ticker, years)
+    }
+
+
+# ============================================================================
+# Stock Universe
+# ============================================================================
+
+def fetch_us_stock_list() -> List[Dict]:
+    """
+    Fetch list of all U.S. market stocks from FMP
+    
+    Returns:
+        List of stock dictionaries with ticker, name, exchange, etc.
+    """
+    cache_key = _get_cache_key("stock_list", ticker="us")
+    
+    # Check cache
+    cached_data = _get_from_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
+    # Fetch from API
+    endpoint = "stock/list"
+    data = _make_fmp_request(endpoint)
+    
+    # Filter for U.S. exchanges only
+    us_exchanges = ["NASDAQ", "NYSE", "AMEX", "NYSE ARCA", "BATS"]
+    us_stocks = [
+        stock for stock in data 
+        if stock.get("exchangeShortName") in us_exchanges
+    ]
+    
+    logger.info(f"Fetched {len(us_stocks)} U.S. stocks")
+    
+    # Cache the result
+    _set_to_cache(cache_key, us_stocks, CACHE_TTL_STOCK_LIST)
+    
+    return us_stocks
+
+
+def save_stock_universe_to_db(db_session):
+    """
+    Fetch U.S. stock list and save to database
+    
+    Args:
+        db_session: SQLAlchemy database session
+    """
+    from models import StockUniverse
+    
+    stocks = fetch_us_stock_list()
+    
+    saved_count = 0
+    updated_count = 0
+    
+    for stock_data in stocks:
+        ticker = stock_data.get("symbol")
+        if not ticker:
+            continue
+        
+        # Check if stock already exists
+        existing_stock = db_session.query(StockUniverse).filter(
+            StockUniverse.ticker == ticker
+        ).first()
+        
+        if existing_stock:
+            # Update existing
+            existing_stock.company_name = stock_data.get("name")
+            existing_stock.exchange = stock_data.get("exchangeShortName")
+            existing_stock.last_updated = datetime.utcnow()
+            updated_count += 1
+        else:
+            # Create new
+            new_stock = StockUniverse(
+                ticker=ticker,
+                company_name=stock_data.get("name"),
+                exchange=stock_data.get("exchangeShortName"),
+                is_active=True
+            )
+            db_session.add(new_stock)
+            saved_count += 1
+    
+    db_session.commit()
+    logger.info(f"Stock universe updated: {saved_count} new, {updated_count} updated")
+    
+    return {"saved": saved_count, "updated": updated_count}
+
+
+# ============================================================================
+# Market Data (for EV calculation)
+# ============================================================================
+
+def fetch_stock_quote(ticker: str) -> Dict:
+    """
+    Fetch current stock quote (price, market cap, etc.)
+    
+    Args:
+        ticker: Stock ticker symbol
+    
+    Returns:
+        Quote dictionary with price, market cap, etc.
+    """
+    cache_key = _get_cache_key("quote", ticker)
+    
+    # Check cache (short TTL for market data)
+    cached_data = _get_from_cache(cache_key)
+    if cached_data:
+        return cached_data
+    
+    # Fetch from API
+    endpoint = "quote"
+    params = {"symbol": ticker}
+    data = _make_fmp_request(endpoint, params)
+    
+    if data and len(data) > 0:
+        quote = data[0]
+        _set_to_cache(cache_key, quote, CACHE_TTL_MARKET_DATA)
+        return quote
+    
+    return {}
+
+
+# ============================================================================
+# Batch Fetching with Rate Limiting
+# ============================================================================
+
+import time
+
+def batch_fetch_financials(tickers: List[str], years: int = 5, delay_seconds: int = 60) -> Dict[str, Dict]:
+    """
+    Batch fetch financial statements for multiple tickers with rate limiting
+    
+    Args:
+        tickers: List of ticker symbols
+        years: Number of years of data
+        delay_seconds: Delay between batches (default: 60 seconds / 1 minute)
+    
+    Returns:
+        Dictionary mapping ticker to financial statements
+    """
+    results = {}
+    batch_size = 5  # Process 3-5 stocks per batch (using 5 for efficiency)
+    
+    for i in range(0, len(tickers), batch_size):
+        batch = tickers[i:i + batch_size]
+        logger.info(f"Processing batch {i//batch_size + 1}: {batch}")
+        
+        for ticker in batch:
+            try:
+                results[ticker] = fetch_all_financial_statements(ticker, years)
+            except Exception as e:
+                logger.error(f"Error fetching {ticker}: {e}")
+                results[ticker] = {"error": str(e)}
+        
+        # Delay between batches (except for last batch)
+        if i + batch_size < len(tickers):
+            logger.info(f"Waiting {delay_seconds} seconds before next batch...")
+            time.sleep(delay_seconds)
+    
+    return results

@@ -59,3 +59,7 @@ yarn-error.log*
 
 # Docker volumes (keep data but ignore in git)
 data/
+
+# AI Agent
+.agent/
+.gemini/

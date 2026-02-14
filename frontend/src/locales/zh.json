@@ -1418,8 +1418,31 @@
             "price_targets": "价格目标 (延伸)"
         },
         "screener": {
-            "title": "筛选器",
-            "coming_soon": "股票筛选器即将推出..."
+            "title": "股票筛选器",
+            "coming_soon": "股票筛选器即将推出...",
+            "subtitle": "使用量化策略筛选股票",
+            "dashboard": "筛选器看板",
+            "launch": "启动筛选器",
+            "flagged": "被标记公司",
+            "view_flagged": "查看被标记公司",
+            "batch": "批量筛选",
+            "manage_batch": "管理批量任务",
+            "strategies": {
+                "cash_flow": "现金流可持续性",
+                "balance_sheet": "资产负债表压力",
+                "working_capital": "营运资本异常",
+                "valuation": "估值错位"
+            },
+            "metrics": {
+                "fcf_div_buyback": "自由现金流 / (分红 + 回购)",
+                "fcf_revenue": "自由现金流 / 营收",
+                "net_debt_ebitda": "净债务 / EBITDA",
+                "capex_revenue": "资本化成本 / 营收",
+                "dso": "应收账款周转天数 (DSO)",
+                "ev_ebitda": "EV / EBITDA"
+            },
+            "red_flags": "红旗警示",
+            "trend": "趋势"
         }
     }
 }

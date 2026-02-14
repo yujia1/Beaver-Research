@@ -149,20 +149,44 @@
 
     <!-- Screener Tab Content -->
     <div v-if="activeTab === 'screener'" class="tab-content">
-      <div class="screener-placeholder">
-        <h3>{{ t('quant.screener.title') }}</h3>
-        <p>{{ t('quant.screener.coming_soon') }}</p>
+      <div class="screener-dashboard">
+        <div class="dashboard-card" @click="$router.push('/quant/screener')">
+          <div class="card-icon">🔍</div>
+          <h3>Stock Screener</h3>
+          <p>Screen stocks using quantitative strategies like Cash Flow and Valuation.</p>
+          <button class="action-btn">Launch Screener</button>
+        </div>
+
+        <div class="dashboard-card" @click="$router.push('/quant/flagged')">
+          <div class="card-icon">🚩</div>
+          <h3>Flagged Companies</h3>
+          <p>Browse companies identified with potential red flags by our algorithms.</p>
+          <button class="action-btn">View Flagged</button>
+        </div>
+
+        <div v-if="isAdmin" class="dashboard-card admin" @click="$router.push('/quant/batch')">
+          <div class="card-icon">⚙️</div>
+          <h3>Batch Screening</h3>
+          <p>Admin tool to run screening jobs on the entire market.</p>
+          <button class="action-btn">Manage Batch</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/userStore'
 import API_BASE_URL from '@/config/api.js'
 
 const { t } = useI18n()
+const router = useRouter()
+const userStore = useUserStore()
+
+const isAdmin = computed(() => userStore.user?.role === 'admin')
 
 const activeTab = ref('fibonacci')
 const ticker = ref('')
@@ -507,20 +531,64 @@ const getTrendClass = (status) => {
   }
 }
 
-.screener-placeholder {
-  text-align: center;
-  padding: 4rem 2rem;
+.screener-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
 }
 
-.screener-placeholder h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #000;
+.dashboard-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+}
+
+.card-icon {
+  font-size: 3rem;
   margin-bottom: 1rem;
 }
 
-.screener-placeholder p {
-  font-size: 1rem;
-  color: #666;
+.dashboard-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #333;
 }
+
+.dashboard-card p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.action-btn {
+  padding: 0.75rem 1.5rem;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dashboard-card:hover .action-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.dashboard-card.admin {
+  background: #fdf2f8; /* Pink tint for admin */
+  border-color: #fce7f3;
+}
+
 </style>
