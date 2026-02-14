@@ -1,10 +1,6 @@
 <template>
   <div class="flagged-companies-view">
-    <!-- Header -->
-    <div class="header">
-      <h1>Flagged Companies</h1>
-      <p>Companies identified by batch screening with red flags</p>
-    </div>
+
     
     <!-- Filter Panel -->
     <div class="filter-panel">
@@ -461,44 +457,7 @@ export default {
 }
 
 /* Header */
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
-  position: relative;
-}
 
-.back-link {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.back-link a {
-  color: #6b7280;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-}
-
-.back-link a:hover {
-  color: #ef4444;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
-}
-
-.header p {
-  color: #6b7280;
-  font-size: 1.125rem;
-}
 
 /* Filter Panel */
 .filter-panel {

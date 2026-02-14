@@ -1,10 +1,6 @@
 <template>
   <div class="quant-screener-view">
-    <!-- Header -->
-    <div class="header">
-      <h1>Quantitative Stock Screener</h1>
-      <p>Screen stocks using 4 fundamental analysis strategies</p>
-    </div>
+
     
     <!-- Input Section -->
     <div class="input-section">
@@ -204,44 +200,7 @@ export default {
   padding: 2rem;
 }
 
-/* Header */
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
-  position: relative;
-}
 
-.back-link {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.back-link a {
-  color: #6b7280;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-}
-
-.back-link a:hover {
-  color: #667eea;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
-}
-
-.header p {
-  color: #6b7280;
-  font-size: 1.125rem;
-}
 
 /* Input Section */
 .input-section {

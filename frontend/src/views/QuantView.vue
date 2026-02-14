@@ -283,11 +283,12 @@ const getTrendClass = (status) => {
 
 .tab-btn.active {
   color: #000;
-  border-bottom-color: #000;
+  border-bottom-color: #3498db;
+  background: rgba(52, 152, 219, 0.1);
 }
 
 .tab-btn:hover:not(.active) {
-  color: #333;
+  background: rgba(0,0,0,0.05);
 }
 
 .tab-content {
@@ -320,7 +321,7 @@ const getTrendClass = (status) => {
 .ticker-input,
 .select-input {
   padding: 0.75rem;
-  border: 2px solid #e0e0e0;
+  border: 1px solid #cccccc;
   border-radius: 6px;
   font-size: 1rem;
   min-width: 150px;
@@ -330,12 +331,13 @@ const getTrendClass = (status) => {
 .ticker-input:focus,
 .select-input:focus {
   outline: none;
-  border-color: #000;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .analyze-btn {
   padding: 0.75rem 2rem;
-  background: #000;
+  background: #3498db;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -346,12 +348,13 @@ const getTrendClass = (status) => {
 }
 
 .analyze-btn:hover:not(:disabled) {
-  background: #333;
+  background: #2980b9;
 }
 
 .analyze-btn:disabled {
-  background: #ccc;
+  opacity: 0.6;
   cursor: not-allowed;
+  background: #3498db;
 }
 
 .loading-state,
@@ -376,7 +379,7 @@ const getTrendClass = (status) => {
 }
 
 .error-state {
-  color: #d32f2f;
+  color: #e74c3c;
   font-weight: 500;
 }
 
@@ -395,28 +398,30 @@ const getTrendClass = (status) => {
 .price-card,
 .trend-card,
 .setup-card {
-  background: #f8f8f8;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 8px;
+  border: 1px solid #cccccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .price-card h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #666;
+  color: #000;
   margin-bottom: 0.5rem;
 }
 
 .current-price {
   font-size: 2rem;
   font-weight: 700;
-  color: #000;
+  color: #42b983;
 }
 
 .trend-card h4 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #666;
+  color: #000;
   margin-bottom: 0.5rem;
   text-transform: uppercase;
 }
@@ -428,15 +433,15 @@ const getTrendClass = (status) => {
 }
 
 .trend-bullish .trend-status {
-  color: #4caf50;
+  color: #42b983;
 }
 
 .trend-bearish .trend-status {
-  color: #f44336;
+  color: #e74c3c;
 }
 
 .trend-neutral .trend-status {
-  color: #ff9800;
+  color: #f39c12;
 }
 
 .sma-values {
@@ -451,6 +456,7 @@ const getTrendClass = (status) => {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  color: #000;
 }
 
 .swing-points {
@@ -483,9 +489,11 @@ const getTrendClass = (status) => {
 
 .entry-zones,
 .price-targets {
-  background: #f8f8f8;
+  background: #ffffff;
   padding: 1.5rem;
   border-radius: 8px;
+  border: 1px solid #cccccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .entry-zones h4,
@@ -494,19 +502,22 @@ const getTrendClass = (status) => {
   font-weight: 700;
   margin-bottom: 1rem;
   text-transform: uppercase;
+  color: #000;
 }
 
 .level-item {
   display: flex;
   justify-content: space-between;
   padding: 0.75rem;
-  background: #fff;
+  background: #f8f9fa;
   border-radius: 6px;
   margin-bottom: 0.5rem;
+  border: 1px solid #eee;
 }
 
 .level-item.target {
   background: #e8f5e9;
+  border-color: #c8e6c9;
 }
 
 .level-label {
@@ -534,63 +545,6 @@ const getTrendClass = (status) => {
   .analyze-btn {
     width: 100%;
   }
-}
-
-.screener-dashboard {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  padding: 1rem;
-}
-
-.dashboard-card {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
-}
-
-
-
-.dashboard-card h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-.dashboard-card p {
-  color: #666;
-  margin-bottom: 1.5rem;
-}
-
-.action-btn {
-  padding: 0.75rem 1.5rem;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.dashboard-card:hover .action-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.dashboard-card.admin {
-  background: #fdf2f8; /* Pink tint for admin */
-  border-color: #fce7f3;
 }
 
 </style>
