@@ -443,8 +443,9 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Reduced shadow */
   margin-bottom: 2rem;
+  border: 1px solid #e0e0e0; /* Added border */
 }
 
 .control-panel h3 {
@@ -471,16 +472,16 @@ export default {
 .config-item input[type="text"] {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid #cccccc; /* Standard border */
+  border-radius: 6px; /* Standard radius */
   font-size: 1rem;
   transition: all 0.2s;
 }
 
 .config-item input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .config-item input:disabled {
@@ -509,7 +510,7 @@ export default {
 }
 
 .help-text.warning {
-  color: #f59e0b;
+  color: #f39c12; /* Standard warning orange */
   font-weight: 500;
 }
 
@@ -536,24 +537,23 @@ export default {
 }
 
 .start-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3498db; /* Standard blue */
   color: white;
 }
 
 .start-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: #2980b9;
+  transform: translateY(-1px);
 }
 
 .update-button {
-  background: #10b981;
+  background: #42b983; /* Vue/Bond green */
   color: white;
 }
 
 .update-button:hover:not(:disabled) {
-  background: #059669;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  background: #3aa876;
+  transform: translateY(-1px);
 }
 
 .start-button:disabled,
@@ -576,7 +576,7 @@ export default {
   width: 48px;
   height: 48px;
   border: 4px solid #e5e7eb;
-  border-top-color: #667eea;
+  border-top-color: #3498db;
 }
 
 @keyframes spin {
@@ -590,6 +590,7 @@ export default {
   border-radius: 8px;
   color: #065f46;
   font-size: 1rem;
+  border: 1px solid #d1fae5;
 }
 
 /* Active Run Monitor */
@@ -599,6 +600,7 @@ export default {
   padding: 2rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+  border: 1px solid #e0e0e0;
 }
 
 .monitor-header {
@@ -654,13 +656,13 @@ export default {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: #3498db; /* Solid blue */
   transition: width 0.5s ease;
   border-radius: 12px;
 }
 
 .progress-bar.complete {
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  background: #42b983; /* Green */
 }
 
 .progress-text {
@@ -682,11 +684,13 @@ export default {
   padding: 1.5rem;
   border-radius: 12px;
   text-align: center;
+  border: 1px solid #eee;
 }
 
 .stat-icon {
   font-size: 2rem;
   margin-bottom: 0.5rem;
+  color: #3498db;
 }
 
 .stat-value {
@@ -712,7 +716,7 @@ export default {
 
 .refresh-status-button {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: #3498db;
   color: white;
   border: none;
   border-radius: 8px;
@@ -722,7 +726,7 @@ export default {
 }
 
 .refresh-status-button:hover {
-  background: #764ba2;
+  background: #2980b9;
 }
 
 /* Completion/Error Messages */
@@ -756,7 +760,7 @@ export default {
 .view-results-button {
   margin-left: auto;
   padding: 0.75rem 1.5rem;
-  background: #10b981;
+  background: #42b983;
   color: white;
   border: none;
   border-radius: 8px;
@@ -766,7 +770,7 @@ export default {
 }
 
 .view-results-button:hover {
-  background: #059669;
+  background: #3aa876;
 }
 
 /* Run History */
@@ -774,7 +778,8 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Reduced shadow */
+  border: 1px solid #e0e0e0;
 }
 
 .history-header {
@@ -857,14 +862,14 @@ export default {
   min-width: 32px;
   padding: 0.25rem 0.75rem;
   background: #fef2f2;
-  color: #dc2626;
+  color: #e74c3c; /* Standard Red */
   border-radius: 9999px;
   font-weight: 600;
 }
 
 .action-button {
   padding: 0.5rem 1rem;
-  background: #667eea;
+  background: #3498db; /* Blue */
   color: white;
   border: none;
   border-radius: 6px;
@@ -875,7 +880,7 @@ export default {
 }
 
 .action-button:hover {
-  background: #764ba2;
+  background: #2980b9;
 }
 
 .empty-history {
