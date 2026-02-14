@@ -224,7 +224,7 @@ async def get_treasury_yields(timeframe: str = "monthly"):
         
         # Fallback to FRED if Yahoo Finance fails or not available
         if not history or len(history) == 0:
-            history = fetch_fred_series(series_id, start_date)
+            history = await fetch_fred_series(series_id, start_date)
             if history and len(history) > 0:
                 print(f"Using FRED data for {series_id}")
         
@@ -259,42 +259,22 @@ async def get_yield_curve(timeframe: str = "monthly"):
     start_offset = period_map.get(timeframe, "1y")
     start_date = calculate_start_date(start_offset)
     
-    # Helper function to fetch yield data with Yahoo Finance first, then FRED fallback
-    def fetch_yield_data(series_id: str):
-        history = None
-        if series_id in treasury_yield_ticker_map:
-            yahoo_ticker = treasury_yield_ticker_map[series_id]
-            history = fetch_yfinance_series(yahoo_ticker, start_date)
-            if not history:
-                history = fetch_fred_series(series_id, start_date)
-        elif not history or len(history) == 0: # Logic check: if yahoo failed or skipping yahoo
-             history = fetch_fred_series(series_id, start_date)
-        return history
-    
-    # Wait, the original helper function logic was:
-    # if series_id in map: try yahoo. 
-    # if not history (yahoo failed or not in map): try fred.
-    # I should be careful not to break it.
-    # Let's verify the original logic.
-    # 188: if series_id in map: yahoo...
-    # 191: if not history: fred...
-    # That works.
-    
-    def fetch_yield_data_safe(series_id: str):
+
+    async def fetch_yield_data_safe(series_id: str):
          history = None
          if series_id in treasury_yield_ticker_map:
              yahoo_ticker = treasury_yield_ticker_map[series_id]
              history = fetch_yfinance_series(yahoo_ticker, start_date)
          if not history or len(history) == 0:
-             history = fetch_fred_series(series_id, start_date)
+             history = await fetch_fred_series(series_id, start_date)
          return history
 
     # Fetch individual yields (trying Yahoo Finance first, then FRED)
-    dgs2 = fetch_yield_data_safe("DGS2")
-    dgs3mo = fetch_yield_data_safe("DGS3MO")
-    dgs5 = fetch_yield_data_safe("DGS5")
-    dgs10 = fetch_yield_data_safe("DGS10")
-    dgs30 = fetch_yield_data_safe("DGS30")
+    dgs2 = await fetch_yield_data_safe("DGS2")
+    dgs3mo = await fetch_yield_data_safe("DGS3MO")
+    dgs5 = await fetch_yield_data_safe("DGS5")
+    dgs10 = await fetch_yield_data_safe("DGS10")
+    dgs30 = await fetch_yield_data_safe("DGS30")
     
     results = []
     
@@ -398,17 +378,17 @@ async def get_bond_series(series_id: str, timeframe: str = "monthly"):
             raise HTTPException(status_code=404, detail="Spread not found")
 
         # Helper function to fetch yield data with Yahoo Finance first, then FRED fallback
-        def fetch_yield_data(series_id: str):
+        async def fetch_yield_data(series_id: str):
             history = None
             if series_id in treasury_yield_ticker_map:
                 yahoo_ticker = treasury_yield_ticker_map[series_id]
                 history = fetch_yfinance_series(yahoo_ticker, start_date)
             if not history or len(history) == 0:
-                history = fetch_fred_series(series_id, start_date)
+                history = await fetch_fred_series(series_id, start_date)
             return history
         
-        h1 = fetch_yield_data(s1)
-        h2 = fetch_yield_data(s2)
+        h1 = await fetch_yield_data(s1)
+        h2 = await fetch_yield_data(s2)
         
         spread_history = []
         if h1 and h2:
@@ -436,8 +416,8 @@ async def get_bond_series(series_id: str, timeframe: str = "monthly"):
 
     # Handle LIBOR-OIS Spread special case
     if series_id == "SPREAD_LIBOR_OIS":
-        h1 = fetch_fred_series("USD3MTD156N", start_date)
-        h2 = fetch_fred_series("SOFR", start_date) or fetch_fred_series("FEDFUNDS", start_date)
+        h1 = await fetch_fred_series("USD3MTD156N", start_date)
+        h2 = await fetch_fred_series("SOFR", start_date) or await fetch_fred_series("FEDFUNDS", start_date)
         
         spread_history = []
         if h1 and h2:
@@ -531,9 +511,9 @@ async def get_bond_series(series_id: str, timeframe: str = "monthly"):
         yahoo_ticker = treasury_yield_ticker_map[series_id]
         history = fetch_yfinance_series(yahoo_ticker, start_date)
         if not history or len(history) == 0:
-            history = fetch_fred_series(series_id, start_date)
+            history = await fetch_fred_series(series_id, start_date)
     else:
-        history = fetch_fred_series(series_id, start_date)
+        history = await fetch_fred_series(series_id, start_date)
     
     latest = history[-1] if history else {"value": None, "date": None}
     
@@ -569,7 +549,7 @@ async def get_tips_breakeven(timeframe: str = "monthly"):
     
     results = []
     for series in tips_series:
-        history = fetch_fred_series(series["series_id"], start_date)
+        history = await fetch_fred_series(series["series_id"], start_date)
         if history:
             latest = history[-1]
             results.append({
@@ -607,7 +587,7 @@ async def get_central_bank_rates(timeframe: str = "monthly"):
     
     results = []
     for series in rates_series:
-        history = fetch_fred_series(series["series_id"], start_date)
+        history = await fetch_fred_series(series["series_id"], start_date)
         if history:
             latest = history[-1]
             results.append({
@@ -644,7 +624,7 @@ async def get_credit_spreads(timeframe: str = "monthly"):
     
     results = []
     for series in spread_series:
-        history = fetch_fred_series(series["series_id"], start_date)
+        history = await fetch_fred_series(series["series_id"], start_date)
         if history:
             latest = history[-1]
             results.append({
@@ -707,7 +687,7 @@ async def get_funding_stress(timeframe: str = "monthly"):
     
     for series in stress_series:
         try:
-            history = fetch_fred_series(series["series_id"], start_date)
+            history = await fetch_fred_series(series["series_id"], start_date)
             if history:
                 latest = history[-1]
                 results.append({
@@ -725,9 +705,9 @@ async def get_funding_stress(timeframe: str = "monthly"):
     
     # 3. Calculate LIBOR-OIS spread if we have both series
     try:
-        libor_history = fetch_fred_series("USD3MTD156N", start_date)
+        libor_history = await fetch_fred_series("USD3MTD156N", start_date)
         # Try to get OIS equivalent - using SOFR as proxy or Fed Funds
-        ois_history = fetch_fred_series("SOFR", start_date) or fetch_fred_series("FEDFUNDS", start_date)
+        ois_history = await fetch_fred_series("SOFR", start_date) or await fetch_fred_series("FEDFUNDS", start_date)
         
         if libor_history and ois_history:
             spread_history = []
@@ -765,7 +745,7 @@ async def get_funding_stress(timeframe: str = "monthly"):
     ]
     
     for series in liquidity_series:
-        history = fetch_fred_series(series["series_id"], start_date)
+        history = await fetch_fred_series(series["series_id"], start_date)
         if history:
             latest = history[-1]
             results.append({
