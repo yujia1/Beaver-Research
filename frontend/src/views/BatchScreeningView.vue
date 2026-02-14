@@ -348,7 +348,7 @@ export default {
       
       try {
         const response = await axios.post('/api/quant/screener/update-stock-universe')
-        this.universeCount = response.data.count
+        this.universeCount = response.data.total_stocks
         alert(`Stock universe updated! Total stocks: ${this.universeCount}`)
       } catch (error) {
         console.error('Error updating stock universe:', error)
@@ -362,13 +362,10 @@ export default {
       this.loadingHistory = true
       
       try {
-        // Note: This endpoint doesn't exist yet, would need to be added
-        // For now, we'll just show empty or use a mock
-        // const response = await axios.get('/api/quant/screener/runs')
-        // this.runHistory = response.data
-        
-        // Mock data for now
-        this.runHistory = []
+        const response = await axios.get('/api/quant/screener/runs', {
+          params: { limit: 20 }
+        })
+        this.runHistory = response.data
       } catch (error) {
         console.error('Error fetching run history:', error)
       } finally {

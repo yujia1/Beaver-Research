@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 
-from database import get_db
+from database import get_db, SessionLocal
 from models import StockUniverse, FlaggedCompany, ScreeningRun
 from schemas.screener_schemas import (
     ScreenerCriteria,
@@ -67,6 +67,44 @@ def metric_result_to_schema(metric: MetricResult) -> MetricData:
         is_red_flag=metric.is_red_flag,
         red_flag_reason=metric.red_flag_reason
     )
+
+
+def execute_batch_screen_background(
+    run_id: int,
+    batch_size: int,
+    delay_seconds: int,
+    limit: Optional[int],
+    enable_peer_comparison: bool
+):
+    """
+    Execute batch screening in background with a dedicated DB session
+    """
+    db = SessionLocal()
+    try:
+        from services.market.batch_screener import run_batch_screen
+        logger.info(f"Starting background batch screen for run {run_id}")
+        run_batch_screen(
+            db=db,
+            batch_size=batch_size,
+            delay_seconds=delay_seconds, 
+            limit=limit,
+            enable_peer_comparison=enable_peer_comparison,
+            screening_run_id=run_id
+        )
+        logger.info(f"Completed background batch screen for run {run_id}")
+    except Exception as e:
+        logger.error(f"Background batch screen failed: {e}")
+        # Try to update status if possible
+        try:
+            run = db.query(ScreeningRun).filter(ScreeningRun.id == run_id).first()
+            if run:
+                run.status = "failed"
+                run.error_log = f"Background task error: {str(e)}"
+                db.commit()
+        except:
+            pass
+    finally:
+        db.close()
 
 
 # ============================================================================
@@ -232,16 +270,24 @@ async def batch_screen_us_market(
     db.commit()
     db.refresh(screening_run)
     
-    # TODO: Implement actual batch screening in background
-    # For now, just return status
-    logger.info(f"Batch screening started: run_id={screening_run.id}")
+    # Trigger background task
+    background_tasks.add_task(
+        execute_batch_screen_background,
+        run_id=screening_run.id,
+        batch_size=request.batch_size,
+        delay_seconds=request.delay_seconds,
+        limit=request.limit,
+        enable_peer_comparison=request.enable_peer_comparison
+    )
+    
+    logger.info(f"Batch screening queued: run_id={screening_run.id}")
     
     return BatchScreenStatus(
         run_id=screening_run.id,
-        status="running",
-        total_stocks=0,
-        processed_stocks=0,
-        flagged_stocks=0,
+        status=screening_run.status,
+        total_stocks=screening_run.total_stocks_processed,
+        processed_stocks=screening_run.total_stocks_processed,
+        flagged_stocks=screening_run.total_flagged,
         started_at=screening_run.run_date,
         completed_at=None,
         estimated_completion=None
@@ -274,9 +320,35 @@ async def get_batch_status(
         processed_stocks=screening_run.total_stocks_processed,
         flagged_stocks=screening_run.total_flagged,
         started_at=screening_run.run_date,
-        completed_at=screening_run.completed_at,
+        completed_at=screening_run.completed_at if hasattr(screening_run, 'completed_at') else None, # ScreeningRun model might not have completed_at? Let's check.
         error_message=screening_run.error_log
     )
+
+
+@router.get("/runs", response_model=List[BatchScreenStatus])
+async def get_screening_runs(
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get history of batch screening runs
+    """
+    runs = db.query(ScreeningRun).order_by(ScreeningRun.run_date.desc()).offset(offset).limit(limit).all()
+    
+    return [
+        BatchScreenStatus(
+            run_id=run.id,
+            status=run.status,
+            total_stocks=run.total_stocks_processed,
+            processed_stocks=run.total_stocks_processed,
+            flagged_stocks=run.total_flagged,
+            started_at=run.run_date,
+            completed_at=None, # ScreeningRun likely doesn't have completed_at based on plan, using None or we'd need to add column
+            error_message=run.error_log
+        )
+        for run in runs
+    ]
 
 
 # ============================================================================

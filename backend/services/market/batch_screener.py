@@ -244,7 +244,8 @@ def run_batch_screen(
     batch_size: int = 5,
     delay_seconds: int = 60,
     limit: Optional[int] = None,
-    enable_peer_comparison: bool = False
+    enable_peer_comparison: bool = False,
+    screening_run_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Run batch screening on entire U.S. market
@@ -255,22 +256,34 @@ def run_batch_screen(
         delay_seconds: Delay between batches (for rate limiting)
         limit: Optional limit on total stocks to process
         enable_peer_comparison: Whether to enable peer comparison (much slower)
+        screening_run_id: Optional ID of existing run record
     
     Returns:
         Dictionary with screening run statistics
     """
     start_time = datetime.now()
     
-    # Create screening run record
-    screening_run = ScreeningRun(
-        run_date=start_time,
-        strategies_run=["all"],
-        status="running"
-    )
-    db.add(screening_run)
-    db.commit()
-    
-    screening_run_id = screening_run.id
+    if screening_run_id:
+        screening_run = db.query(ScreeningRun).filter(ScreeningRun.id == screening_run_id).first()
+        if not screening_run:
+            logger.error(f"Screening run {screening_run_id} not found")
+            return {"status": "failed", "error": "Run not found"}
+        
+        # Update status if needed
+        if screening_run.status != "running":
+            screening_run.status = "running"
+            screening_run.run_date = start_time
+            db.commit()
+    else:
+        # Create screening run record
+        screening_run = ScreeningRun(
+            run_date=start_time,
+            strategies_run=["all"],
+            status="running"
+        )
+        db.add(screening_run)
+        db.commit()
+        screening_run_id = screening_run.id
     
     try:
         # Get stock universe

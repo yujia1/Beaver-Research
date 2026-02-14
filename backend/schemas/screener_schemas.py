@@ -102,6 +102,22 @@ class BatchScreenRequest(BaseModel):
         default=["all"],
         description="Strategies to run"
     )
+    batch_size: int = Field(
+        default=5,
+        description="Number of stocks to process per batch"
+    )
+    delay_seconds: int = Field(
+        default=60,
+        description="Delay between batches in seconds"
+    )
+    limit: Optional[int] = Field(
+        default=None,
+        description="Limit total number of stocks (for testing)"
+    )
+    enable_peer_comparison: bool = Field(
+        default=False,
+        description="Enable peer comparison (slower)"
+    )
     force_refresh: bool = Field(
         default=False,
         description="Force refresh of stock universe from FMP"
