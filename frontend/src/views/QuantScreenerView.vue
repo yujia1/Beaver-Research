@@ -214,7 +214,7 @@ export default {
           const result = response.data[0]
           this.currentTicker = result.ticker
           this.metrics = result.metrics
-          this.redFlags = result.red_flags
+          this.redFlags = result.red_flag_summary
         } else {
           this.error = 'No data returned for the specified ticker(s)'
         }
