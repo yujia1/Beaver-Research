@@ -464,12 +464,13 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Reduced shadow */
   margin-bottom: 2rem;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   align-items: end;
+  border: 1px solid #e0e0e0; /* Added border */
 }
 
 .filter-group {
@@ -487,8 +488,8 @@ export default {
 .filter-group select,
 .filter-group input {
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid #cccccc; /* Standard border */
+  border-radius: 6px; /* Standard radius */
   font-size: 0.875rem;
   transition: all 0.2s;
 }
@@ -496,16 +497,16 @@ export default {
 .filter-group select:focus,
 .filter-group input:focus {
   outline: none;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .refresh-button {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: #3498db; /* Standard blue */
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -516,16 +517,15 @@ export default {
 }
 
 .refresh-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  background: #2980b9;
+  transform: translateY(-1px);
 }
 
 .refresh-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: #3498db;
 }
-
-
 
 /* Loading & Error States */
 .loading-state {
@@ -533,7 +533,8 @@ export default {
   padding: 4rem 2rem;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
 }
 
 .loading-spinner {
@@ -550,7 +551,7 @@ export default {
   width: 48px;
   height: 48px;
   border: 4px solid #e5e7eb;
-  border-top-color: #ef4444;
+  border-top-color: #3498db;
   margin-bottom: 1rem;
 }
 
@@ -587,8 +588,9 @@ export default {
 .table-container {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Reduced shadow */
   overflow: hidden;
+  border: 1px solid #e0e0e0; /* Added border */
 }
 
 .flagged-table {
@@ -597,8 +599,9 @@ export default {
 }
 
 .flagged-table thead {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
+  background: #f8f9fa; /* Standard gray header */
+  color: #374151; /* Dark gray text */
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .flagged-table th {
@@ -608,6 +611,7 @@ export default {
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: #374151;
 }
 
 .flagged-table th.sortable {
@@ -616,7 +620,7 @@ export default {
 }
 
 .flagged-table th.sortable:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .sort-indicator {
@@ -635,12 +639,13 @@ export default {
 .flagged-table td {
   padding: 1rem;
   font-size: 0.875rem;
+  color: #374151;
 }
 
 .ticker-button {
   background: none;
   border: none;
-  color: #667eea;
+  color: #3498db;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -648,7 +653,7 @@ export default {
 }
 
 .ticker-button:hover {
-  color: #764ba2;
+  color: #2980b9;
 }
 
 .company-name {
@@ -663,7 +668,7 @@ export default {
   height: 32px;
   padding: 0 0.75rem;
   background: #fef2f2;
-  color: #dc2626;
+  color: #e74c3c;
   border-radius: 9999px;
   font-weight: 700;
 }
@@ -677,7 +682,7 @@ export default {
 .strategy-chip {
   padding: 0.25rem 0.75rem;
   background: #fef2f2;
-  color: #dc2626;
+  color: #e74c3c;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
@@ -701,7 +706,7 @@ export default {
 
 .action-button {
   padding: 0.5rem 1rem;
-  background: #667eea;
+  background: #3498db;
   color: white;
   border: none;
   border-radius: 6px;
@@ -713,7 +718,7 @@ export default {
 }
 
 .action-button:hover {
-  background: #764ba2;
+  background: #2980b9;
 }
 
 .action-button.secondary {
@@ -746,9 +751,9 @@ export default {
 }
 
 .page-button:hover:not(:disabled) {
-  background: #667eea;
+  background: #3498db;
   color: white;
-  border-color: #667eea;
+  border-color: #3498db;
 }
 
 .page-button:disabled {
@@ -767,7 +772,8 @@ export default {
   padding: 4rem 2rem;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reduced shadow */
+  border: 1px solid #e0e0e0; /* Added border */
 }
 
 .empty-icon {
@@ -788,7 +794,7 @@ export default {
 
 .reset-button {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: #3498db;
   color: white;
   border: none;
   border-radius: 8px;
@@ -798,7 +804,7 @@ export default {
 }
 
 .reset-button:hover {
-  background: #764ba2;
+  background: #2980b9;
 }
 
 /* Modal */
@@ -923,12 +929,12 @@ export default {
 }
 
 .export-button {
-  background: #667eea;
+  background: #3498db;
   color: white;
 }
 
 .export-button:hover {
-  background: #764ba2;
+  background: #2980b9;
 }
 
 .close-modal-button {
