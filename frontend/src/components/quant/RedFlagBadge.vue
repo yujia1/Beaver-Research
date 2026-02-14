@@ -1,6 +1,6 @@
 <template>
   <div class="red-flag-badge" v-tooltip="reason">
-    <span class="icon">⚠️</span>
+    <!-- <span class="icon">⚠️</span> -->
     <span class="text">Red Flag</span>
   </div>
 </template>

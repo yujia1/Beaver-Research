@@ -2,7 +2,10 @@
   <div class="quant-screener-view">
     <!-- Header -->
     <div class="header">
-      <h1>📊 Quantitative Stock Screener</h1>
+      <div class="back-link">
+        <router-link to="/quant">← Back to Quant Dashboard</router-link>
+      </div>
+      <h1>Quantitative Stock Screener</h1>
       <p>Screen stocks using 4 fundamental analysis strategies</p>
     </div>
     
@@ -36,7 +39,7 @@
     
     <!-- Error Display -->
     <div v-if="error" class="error-alert">
-      <span class="error-icon">⚠️</span>
+      <span class="error-icon">Error</span>
       <span>{{ error }}</span>
       <button @click="error = null" class="close-button">×</button>
     </div>
@@ -44,54 +47,7 @@
     <!-- Results Section -->
     <div v-if="metrics" class="results-section">
       <!-- Red Flags Summary Card -->
-      <div class="red-flags-summary" :class="{ 'has-flags': redFlags.has_red_flags }">
-        <div class="summary-header">
-          <h3>🚩 Red Flags Summary</h3>
-          <span class="ticker-badge">{{ currentTicker }}</span>
-        </div>
-        
-        <div class="summary-stats">
-          <div class="stat-card">
-            <div class="stat-value" :class="{ 'has-flags': redFlags.red_flags.length > 0 }">
-              {{ redFlags.red_flags.length }}
-            </div>
-            <div class="stat-label">Total Red Flags</div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-value">
-              {{ redFlags.strategies_flagged.length }}
-            </div>
-            <div class="stat-label">Strategies Flagged</div>
-          </div>
-        </div>
-        
-        <div v-if="redFlags.has_red_flags" class="red-flags-list">
-          <h4>Flagged Issues:</h4>
-          <div v-for="flag in redFlags.red_flags" :key="flag.metric" class="flag-item">
-            <RedFlagBadge :reason="flag.reason" />
-            <span class="flag-metric">{{ flag.metric }}</span>
-          </div>
-        </div>
-        
-        <div v-else class="no-flags">
-          <span class="check-icon">✓</span>
-          <span>No red flags detected</span>
-        </div>
-        
-        <div v-if="redFlags.strategies_flagged.length > 0" class="strategies-flagged">
-          <strong>Flagged Strategies:</strong>
-          <div class="strategy-chips">
-            <span 
-              v-for="strategy in redFlags.strategies_flagged" 
-              :key="strategy"
-              class="strategy-chip"
-            >
-              {{ strategy }}
-            </span>
-          </div>
-        </div>
-      </div>
+
       
       <!-- Strategy Tabs -->
       <div class="strategy-tabs">
@@ -102,7 +58,7 @@
           @click="activeTab = tab.key"
           class="tab-button"
         >
-          <span class="tab-icon">{{ tab.icon }}</span>
+          <!-- <span class="tab-icon">{{ tab.icon }}</span> -->
           <span class="tab-label">{{ tab.label }}</span>
           <span v-if="getTabRedFlagCount(tab.key) > 0" class="tab-badge">
             {{ getTabRedFlagCount(tab.key) }}
@@ -138,7 +94,7 @@
     
     <!-- Empty State -->
     <div v-else-if="!loading" class="empty-state">
-      <div class="empty-icon">🔍</div>
+      <!-- <div class="empty-icon">🔍</div> -->
       <h3>Ready to Screen</h3>
       <p>Enter a stock ticker above to analyze its fundamental metrics</p>
       <div class="example-tickers">
@@ -182,10 +138,10 @@ export default {
       error: null,
       
       tabs: [
-        { key: 'cash-flow', label: 'Cash Flow Sustainability', icon: '💰' },
-        { key: 'balance-sheet', label: 'Balance Sheet Stress', icon: '📊' },
-        { key: 'working-capital', label: 'Working Capital Anomalies', icon: '⚠️' },
-        { key: 'valuation', label: 'Valuation Dislocation', icon: '💹' }
+        { key: 'cash-flow', label: 'Cash Flow Sustainability', icon: '' },
+        { key: 'balance-sheet', label: 'Balance Sheet Stress', icon: '' },
+        { key: 'working-capital', label: 'Working Capital Anomalies', icon: '' },
+        { key: 'valuation', label: 'Valuation Dislocation', icon: '' }
       ]
     }
   },
@@ -270,6 +226,25 @@ export default {
 .header {
   text-align: center;
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.back-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.back-link a {
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.back-link a:hover {
+  color: #667eea;
 }
 
 .header h1 {

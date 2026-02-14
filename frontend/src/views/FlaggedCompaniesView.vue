@@ -2,7 +2,10 @@
   <div class="flagged-companies-view">
     <!-- Header -->
     <div class="header">
-      <h1>🚩 Flagged Companies</h1>
+      <div class="back-link">
+        <router-link to="/quant">← Back to Quant Dashboard</router-link>
+      </div>
+      <h1>Flagged Companies</h1>
       <p>Companies identified by batch screening with red flags</p>
     </div>
     
@@ -39,7 +42,7 @@
       </div>
       
       <button @click="fetchFlaggedCompanies" class="refresh-button" :disabled="loading">
-        <span v-if="!loading">🔄</span>
+        <span v-if="!loading">Refresh</span>
         <span v-else class="loading-spinner"></span>
         Refresh
       </button>
@@ -69,7 +72,7 @@
     
     <!-- Error State -->
     <div v-else-if="error" class="error-alert">
-      <span class="error-icon">⚠️</span>
+      <span class="error-icon">Error</span>
       <span>{{ error }}</span>
       <button @click="fetchFlaggedCompanies" class="retry-button">Retry</button>
     </div>
@@ -169,7 +172,7 @@
     
     <!-- Empty State -->
     <div v-else class="empty-state">
-      <div class="empty-icon">📭</div>
+      <!-- <div class="empty-icon">📭</div> -->
       <h3>No Flagged Companies</h3>
       <p>No companies match your current filters</p>
       <button @click="resetFilters" class="reset-button">Reset Filters</button>
@@ -192,7 +195,7 @@
           
           <!-- Red Flags Summary -->
           <div class="modal-section">
-            <h4>🚩 Red Flags ({{ selectedCompany?.red_flags?.length || 0 }})</h4>
+            <h4>Red Flags ({{ selectedCompany?.red_flags?.length || 0 }})</h4>
             <div class="red-flags-list">
               <div 
                 v-for="(flag, index) in selectedCompany?.red_flags" 
@@ -207,7 +210,7 @@
           
           <!-- Strategies Flagged -->
           <div class="modal-section">
-            <h4>📊 Strategies Flagged</h4>
+            <h4>Strategies Flagged</h4>
             <div class="strategy-chips">
               <span 
                 v-for="strategy in selectedCompany?.strategies_flagged" 
@@ -221,7 +224,7 @@
           
           <!-- Metrics Table -->
           <div class="modal-section">
-            <h4>📈 All Metrics</h4>
+            <h4>All Metrics</h4>
             <ScreenerMetricsTable 
               v-if="selectedCompany?.metrics"
               :metrics="selectedCompany.metrics"
@@ -478,6 +481,25 @@ export default {
 .header {
   text-align: center;
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.back-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.back-link a {
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.back-link a:hover {
+  color: #ef4444;
 }
 
 .header h1 {

@@ -135,7 +135,7 @@ def screen_single_stock(
     """
     try:
         # Fetch financial data
-        financial_data = fetch_all_financial_statements(ticker, years=5)
+        financial_data = fetch_all_financial_statements(ticker, years=10)
         
         # Fetch current price
         quote = fetch_stock_quote(ticker)

@@ -2,13 +2,16 @@
   <div class="batch-screening-view">
     <!-- Header -->
     <div class="header">
-      <h1>⚙️ Batch Screening Control</h1>
+      <div class="back-link">
+        <router-link to="/quant">← Back to Quant Dashboard</router-link>
+      </div>
+      <h1>Batch Screening Control</h1>
       <p>Admin interface for batch screening the entire U.S. market</p>
     </div>
     
     <!-- Control Panel -->
     <div class="control-panel">
-      <h3>🚀 Start New Batch Screening</h3>
+      <h3>Start New Batch Screening</h3>
       
       <div class="config-grid">
         <div class="config-item">
@@ -55,7 +58,7 @@
             />
             <span>Enable Peer Comparison</span>
           </label>
-          <span class="help-text warning">⚠️ Not recommended for full market (very slow)</span>
+          <span class="help-text warning">Not recommended for full market (very slow)</span>
         </div>
       </div>
       
@@ -80,14 +83,14 @@
       </div>
       
       <div v-if="universeCount" class="universe-info">
-        📊 Stock Universe: <strong>{{ universeCount.toLocaleString() }}</strong> stocks
+        Stock Universe: <strong>{{ universeCount.toLocaleString() }}</strong> stocks
       </div>
     </div>
     
     <!-- Active Run Monitor -->
     <div v-if="batchStatus" class="active-run-monitor">
       <div class="monitor-header">
-        <h3>📊 Active Screening Run #{{ batchStatus.run_id }}</h3>
+        <h3>Active Screening Run #{{ batchStatus.run_id }}</h3>
         <span class="status-badge" :class="batchStatus.status">
           {{ batchStatus.status }}
         </span>
@@ -110,25 +113,25 @@
       <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon">📈</div>
+          <div class="stat-icon">Total</div>
           <div class="stat-value">{{ batchStatus.total_stocks || 0 }}</div>
           <div class="stat-label">Total Stocks</div>
         </div>
         
         <div class="stat-card">
-          <div class="stat-icon">✅</div>
+          <div class="stat-icon">Processed</div>
           <div class="stat-value">{{ batchStatus.processed || 0 }}</div>
           <div class="stat-label">Processed</div>
         </div>
         
         <div class="stat-card">
-          <div class="stat-icon">🚩</div>
+          <div class="stat-icon">Flagged</div>
           <div class="stat-value">{{ batchStatus.flagged || 0 }}</div>
           <div class="stat-label">Flagged</div>
         </div>
         
         <div class="stat-card">
-          <div class="stat-icon">⏱️</div>
+          <div class="stat-icon">Time</div>
           <div class="stat-value">{{ estimatedTimeRemaining }}</div>
           <div class="stat-label">Est. Time Remaining</div>
         </div>
@@ -137,13 +140,13 @@
       <!-- Action Buttons -->
       <div v-if="isRunning" class="run-actions">
         <button @click="refreshStatus" class="refresh-status-button">
-          🔄 Refresh Status
+          Refresh Status
         </button>
       </div>
       
       <!-- Completion Message -->
       <div v-if="batchStatus.status === 'completed'" class="completion-message">
-        <span class="check-icon">✓</span>
+        <!-- <span class="check-icon">✓</span> -->
         <span>Batch screening completed successfully!</span>
         <button @click="viewFlaggedCompanies" class="view-results-button">
           View Flagged Companies →
@@ -152,7 +155,7 @@
       
       <!-- Error Message -->
       <div v-if="batchStatus.status === 'failed'" class="error-message">
-        <span class="error-icon">⚠️</span>
+        <span class="error-icon">Error</span>
         <span>Batch screening failed</span>
         <p v-if="batchStatus.error_log">{{ batchStatus.error_log }}</p>
       </div>
@@ -161,9 +164,9 @@
     <!-- Screening Run History -->
     <div class="run-history">
       <div class="history-header">
-        <h3>📜 Screening Run History</h3>
+        <h3>Screening Run History</h3>
         <button @click="fetchRunHistory" class="refresh-history-button">
-          🔄 Refresh
+          Refresh
         </button>
       </div>
       
@@ -443,6 +446,25 @@ export default {
 .header {
   text-align: center;
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.back-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.back-link a {
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.back-link a:hover {
+  color: #667eea;
 }
 
 .header h1 {

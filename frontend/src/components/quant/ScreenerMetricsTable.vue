@@ -27,7 +27,7 @@
               v-if="metric.is_red_flag" 
               :reason="metric.red_flag_reason || 'Red flag detected'" 
             />
-            <span v-else class="ok-badge">✓ OK</span>
+            <span v-else class="ok-badge">OK</span>
           </td>
         </tr>
       </tbody>

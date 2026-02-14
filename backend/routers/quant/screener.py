@@ -178,7 +178,7 @@ async def screen_stocks(
 @router.get("/metrics/{ticker}", response_model=StockMetrics)
 async def get_stock_metrics(
     ticker: str,
-    years: int = Query(default=5, ge=1, le=10),
+    years: int = Query(default=10, ge=1, le=20),
     db: Session = Depends(get_db)
 ):
     """

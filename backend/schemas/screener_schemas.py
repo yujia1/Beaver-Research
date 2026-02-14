@@ -61,7 +61,7 @@ class StockMetrics(BaseModel):
     
     # Metadata
     calculated_at: datetime = Field(default_factory=datetime.utcnow)
-    data_years: int = Field(default=5, description="Number of years of data used")
+    data_years: int = Field(default=10, description="Number of years of data used")
 
 
 # ============================================================================
@@ -75,7 +75,7 @@ class ScreenerCriteria(BaseModel):
         default=["all"],
         description="Strategies to apply: 'all', 'cash_flow', 'balance_sheet', 'working_capital', 'valuation'"
     )
-    years: int = Field(default=5, description="Number of years of historical data")
+    years: int = Field(default=10, description="Number of years of historical data")
     
     class Config:
         schema_extra = {
