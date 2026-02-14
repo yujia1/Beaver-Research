@@ -17,7 +17,20 @@
         :class="['tab-btn', { active: activeTab === 'screener' }]"
         @click="activeTab = 'screener'"
       >
-        {{ t('quant.screener.title') }}
+        Stock Screener
+      </button>
+      <button 
+        :class="['tab-btn', { active: activeTab === 'flagged' }]"
+        @click="activeTab = 'flagged'"
+      >
+        Flagged Companies
+      </button>
+      <button 
+        v-if="isAdmin"
+        :class="['tab-btn', { active: activeTab === 'batch' }]"
+        @click="activeTab = 'batch'"
+      >
+        Batch Screening
       </button>
     </div>
 
@@ -147,30 +160,17 @@
       </div>
     </div>
 
-    <!-- Screener Tab Content -->
-    <div v-if="activeTab === 'screener'" class="tab-content">
-      <div class="screener-dashboard">
-        <div class="dashboard-card" @click="$router.push('/quant/screener')">
-          <div class="card-icon">🔍</div>
-          <h3>Stock Screener</h3>
-          <p>Screen stocks using quantitative strategies like Cash Flow and Valuation.</p>
-          <button class="action-btn">Launch Screener</button>
-        </div>
+    <!-- Screener Tabs Content -->
+    <div v-if="activeTab === 'screener'">
+      <QuantScreenerView />
+    </div>
 
-        <div class="dashboard-card" @click="$router.push('/quant/flagged')">
-          <div class="card-icon">🚩</div>
-          <h3>Flagged Companies</h3>
-          <p>Browse companies identified with potential red flags by our algorithms.</p>
-          <button class="action-btn">View Flagged</button>
-        </div>
+    <div v-if="activeTab === 'flagged'">
+      <FlaggedCompaniesView />
+    </div>
 
-        <div v-if="isAdmin" class="dashboard-card admin" @click="$router.push('/quant/batch')">
-          <div class="card-icon">⚙️</div>
-          <h3>Batch Screening</h3>
-          <p>Admin tool to run screening jobs on the entire market.</p>
-          <button class="action-btn">Manage Batch</button>
-        </div>
-      </div>
+    <div v-if="activeTab === 'batch' && isAdmin">
+      <BatchScreeningView />
     </div>
   </div>
 </template>
@@ -181,6 +181,11 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import API_BASE_URL from '@/config/api.js'
+
+// Import views for tabs
+import QuantScreenerView from './QuantScreenerView.vue'
+import FlaggedCompaniesView from './FlaggedCompaniesView.vue'
+import BatchScreeningView from './BatchScreeningView.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -554,10 +559,7 @@ const getTrendClass = (status) => {
   border-color: #667eea;
 }
 
-.card-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
+
 
 .dashboard-card h3 {
   font-size: 1.5rem;

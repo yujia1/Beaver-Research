@@ -14,10 +14,9 @@ import json
 
 # Redis client
 try:
-    from redis_client import get_redis_client
-    redis_client = get_redis_client()
+    from redis_client import redis_client
     REDIS_AVAILABLE = True
-except Exception as e:
+except ImportError as e:
     logging.warning(f"Redis not available: {e}")
     REDIS_AVAILABLE = False
 
@@ -56,15 +55,7 @@ def _get_from_cache(cache_key: str) -> Optional[Dict]:
     if not REDIS_AVAILABLE:
         return None
     
-    try:
-        cached_data = redis_client.get(cache_key)
-        if cached_data:
-            logger.info(f"Cache hit: {cache_key}")
-            return json.loads(cached_data)
-    except Exception as e:
-        logger.error(f"Redis get error: {e}")
-    
-    return None
+    return redis_client.get_cache(cache_key)
 
 
 def _set_to_cache(cache_key: str, data: Any, ttl: int):
@@ -72,11 +63,7 @@ def _set_to_cache(cache_key: str, data: Any, ttl: int):
     if not REDIS_AVAILABLE:
         return
     
-    try:
-        redis_client.setex(cache_key, ttl, json.dumps(data))
-        logger.info(f"Cached: {cache_key} (TTL: {ttl}s)")
-    except Exception as e:
-        logger.error(f"Redis set error: {e}")
+    redis_client.set_cache(cache_key, data, ttl)
 
 
 def _make_fmp_request(endpoint: str, params: Dict = None) -> Dict:
@@ -110,13 +97,13 @@ def _make_fmp_request(endpoint: str, params: Dict = None) -> Dict:
 # Financial Statement Fetching
 # ============================================================================
 
-def fetch_income_statement(ticker: str, years: int = 5) -> List[Dict]:
+def fetch_income_statement(ticker: str, years: int = 10) -> List[Dict]:
     """
     Fetch annual income statements for a ticker
     
     Args:
         ticker: Stock ticker symbol
-        years: Number of years of data (default: 5)
+        years: Number of years of data (default: 10)
     
     Returns:
         List of income statement dictionaries (most recent first)
@@ -140,7 +127,7 @@ def fetch_income_statement(ticker: str, years: int = 5) -> List[Dict]:
     return data
 
 
-def fetch_cash_flow_statement(ticker: str, years: int = 5) -> List[Dict]:
+def fetch_cash_flow_statement(ticker: str, years: int = 10) -> List[Dict]:
     """
     Fetch annual cash flow statements for a ticker
     
@@ -170,7 +157,7 @@ def fetch_cash_flow_statement(ticker: str, years: int = 5) -> List[Dict]:
     return data
 
 
-def fetch_balance_sheet(ticker: str, years: int = 5) -> List[Dict]:
+def fetch_balance_sheet(ticker: str, years: int = 10) -> List[Dict]:
     """
     Fetch annual balance sheets for a ticker
     
