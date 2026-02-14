@@ -2,9 +2,6 @@
   <div class="flagged-companies-view">
     <!-- Header -->
     <div class="header">
-      <div class="back-link">
-        <router-link to="/quant">← Back to Quant Dashboard</router-link>
-      </div>
       <h1>Flagged Companies</h1>
       <p>Companies identified by batch screening with red flags</p>
     </div>
@@ -48,21 +45,7 @@
       </button>
     </div>
     
-    <!-- Stats Summary -->
-    <div class="stats-summary">
-      <div class="stat-card">
-        <div class="stat-value">{{ totalCount }}</div>
-        <div class="stat-label">Total Flagged</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">{{ filteredCount }}</div>
-        <div class="stat-label">Filtered Results</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">{{ averageRedFlags }}</div>
-        <div class="stat-label">Avg Red Flags</div>
-      </div>
-    </div>
+
     
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
@@ -507,6 +490,7 @@ export default {
   font-weight: 700;
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
 }
@@ -582,35 +566,7 @@ export default {
   cursor: not-allowed;
 }
 
-/* Stats Summary */
-.stats-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
 
-.stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #ef4444;
-  margin-bottom: 0.5rem;
-}
-
-.stat-label {
-  color: #6b7280;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 
 /* Loading & Error States */
 .loading-state {

@@ -2,9 +2,6 @@
   <div class="quant-screener-view">
     <!-- Header -->
     <div class="header">
-      <div class="back-link">
-        <router-link to="/quant">← Back to Quant Dashboard</router-link>
-      </div>
       <h1>Quantitative Stock Screener</h1>
       <p>Screen stocks using 4 fundamental analysis strategies</p>
     </div>
@@ -30,11 +27,7 @@
         </button>
       </div>
       
-      <label class="peer-comparison-toggle">
-        <input type="checkbox" v-model="enablePeerComparison" :disabled="loading" />
-        <span>Enable Peer Comparison</span>
-        <span class="warning-text">(slower, ~30-60s per stock)</span>
-      </label>
+
     </div>
     
     <!-- Error Display -->
@@ -92,18 +85,7 @@
       </div>
     </div>
     
-    <!-- Empty State -->
-    <div v-else-if="!loading" class="empty-state">
-      <!-- <div class="empty-icon">🔍</div> -->
-      <h3>Ready to Screen</h3>
-      <p>Enter a stock ticker above to analyze its fundamental metrics</p>
-      <div class="example-tickers">
-        <span>Try:</span>
-        <button @click="ticker = 'PLTR'; screenStock()" class="example-button">PLTR</button>
-        <button @click="ticker = 'AAPL'; screenStock()" class="example-button">AAPL</button>
-        <button @click="ticker = 'MSFT'; screenStock()" class="example-button">MSFT</button>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -131,7 +113,7 @@ export default {
       ticker: '',
       currentTicker: '',
       loading: false,
-      enablePeerComparison: false,
+      enablePeerComparison: true,
       metrics: null,
       redFlags: null,
       activeTab: 'cash-flow',

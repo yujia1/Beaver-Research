@@ -2,9 +2,6 @@
   <div class="batch-screening-view">
     <!-- Header -->
     <div class="header">
-      <div class="back-link">
-        <router-link to="/quant">← Back to Quant Dashboard</router-link>
-      </div>
       <h1>Batch Screening Control</h1>
       <p>Admin interface for batch screening the entire U.S. market</p>
     </div>
@@ -472,6 +469,7 @@ export default {
   font-weight: 700;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
 }
