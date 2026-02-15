@@ -44,12 +44,27 @@ def fetch_and_save_us_stock_list(db: Session) -> int:
             logger.error(f"Unexpected stock list format: {type(data)}")
             return 0
         
-        # Filter for U.S. exchanges
+        # Filter for U.S. exchanges or use heuristic
+        if data:
+            logger.info(f"Sample stock data: {data[0]}")
+            logger.info(f"Total raw stocks: {len(data)}")
+            
         us_exchanges = ['NASDAQ', 'NYSE', 'AMEX']
-        us_stocks = [
-            stock for stock in data 
-            if stock.get('exchangeShortName') in us_exchanges
-        ]
+        us_stocks = []
+        
+        for stock in data:
+            ticker = stock.get('symbol')
+            exchange = stock.get('exchangeShortName')
+            
+            if exchange:
+                # Use exchange info if available
+                if exchange in us_exchanges:
+                    us_stocks.append(stock)
+            else:
+                # Fallback heuristic for limited API data (Free Tier)
+                # Assume 1-4 letter alphabetic tickers are US stocks
+                if ticker and ticker.isalpha() and 1 <= len(ticker) <= 4:
+                    us_stocks.append(stock)
         
         logger.info(f"Found {len(us_stocks)} U.S. stocks")
         
