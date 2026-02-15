@@ -75,6 +75,30 @@ class BalanceSheetYearData:
     is_red_flag: bool
     red_flag_reason: Optional[str]
 
+@dataclass
+class WorkingCapitalYearData:
+    """Yearly working capital data for detailed table"""
+    year: int
+    dso: float
+    receivables: float
+    revenue: float
+    ar_growth: Optional[float]
+    revenue_growth: Optional[float]
+    is_red_flag: bool
+    red_flag_reason: Optional[str]
+
+@dataclass
+class ValuationYearData:
+    """Yearly valuation data for detailed table"""
+    year: int
+    ev_to_revenue: Optional[float]
+    ev_to_ebitda: Optional[float]
+    enterprise_value: float
+    revenue: float
+    ebitda: float
+    is_red_flag: bool
+    red_flag_reason: Optional[str]
+
 
 # ============================================================================
 # Helper Functions
@@ -450,6 +474,140 @@ def calculate_balance_sheet_yearly_breakdown(
             capitalized_costs_to_revenue=cap_costs_to_rev,
             is_red_flag=is_red_flag,
             red_flag_reason="; ".join(reasons) if reasons else None
+        ))
+        
+    return yearly_data
+
+
+def calculate_working_capital_yearly_breakdown(
+    income_data: List[Dict],
+    balance_sheet_data: List[Dict]
+) -> List[WorkingCapitalYearData]:
+    """Calculate yearly working capital breakdown"""
+    yearly_data = []
+    
+    inc_map = {d.get("calendarYear") or d.get("date", "")[:4]: d for d in income_data}
+    bs_map = {d.get("calendarYear") or d.get("date", "")[:4]: d for d in balance_sheet_data}
+    
+    # Sort years Oldest -> Newest
+    all_years = sorted(list(set(inc_map.keys()) | set(bs_map.keys())))
+    
+    for i, year in enumerate(all_years):
+        if not year.isdigit(): continue
+            
+        inc = inc_map.get(year)
+        bs = bs_map.get(year)
+        
+        revenue = (inc.get("revenue", 0) or 0) if inc else 0
+        receivables = (bs.get("netReceivables", 0) or bs.get("accountsReceivable", 0) or 0) if bs else 0
+        
+        dso = (receivables / revenue * 365) if revenue > 0 else 0
+        
+        # Growth requires previous year
+        prev_year = all_years[i-1] if i > 0 else None
+        
+        ar_growth = None
+        rev_growth = None
+        is_red_flag = False
+        reasons = []
+        
+        if prev_year:
+            inc_prev = inc_map.get(prev_year)
+            bs_prev = bs_map.get(prev_year)
+            
+            if inc_prev and bs_prev:
+                rev_prev = (inc_prev.get("revenue", 0) or 0)
+                ar_prev = (bs_prev.get("netReceivables", 0) or bs_prev.get("accountsReceivable", 0) or 0)
+                
+                rev_growth = ((revenue - rev_prev) / rev_prev) if rev_prev != 0 else 0
+                ar_growth = ((receivables - ar_prev) / ar_prev) if ar_prev != 0 else 0
+                
+                # Check for Channel Stuffing
+                dso_prev = (ar_prev / rev_prev * 365) if rev_prev > 0 else 0
+                dso_rising = dso > dso_prev + 2
+                
+                if (rev_growth < ar_growth) and dso_rising:
+                    is_red_flag = True
+                    reasons.append(f"Channel Stuffing Risk")
+
+        yearly_data.append(WorkingCapitalYearData(
+            year=int(year),
+            dso=dso,
+            receivables=receivables,
+            revenue=revenue,
+            ar_growth=ar_growth,
+            revenue_growth=rev_growth,
+            is_red_flag=is_red_flag,
+            red_flag_reason="; ".join(reasons) if reasons else None
+        ))
+        
+    return yearly_data
+
+
+def calculate_valuation_yearly_breakdown(
+    income_data: List[Dict],
+    balance_sheet_data: List[Dict],
+    cash_flow_data: List[Dict],
+    current_price: Optional[float]
+) -> List[ValuationYearData]:
+    """Calculate yearly valuation breakdown (using current price proxy)"""
+    yearly_data = []
+    
+    bs_map = {d.get("calendarYear") or d.get("date", "")[:4]: d for d in balance_sheet_data}
+    cf_map = {d.get("calendarYear") or d.get("date", "")[:4]: d for d in cash_flow_data}
+    
+    # Browse income data (Newest -> Oldest), define sort is Oldest -> Newest
+    # Let's verify income_data sort order. Assuming FMP API returns Newest -> Oldest.
+    # Reversed -> Oldest -> Newest.
+    
+    for inc in reversed(income_data):
+        year = inc.get("calendarYear") or inc.get("date", "")[:4]
+        if not str(year).isdigit(): continue
+            
+        bs = bs_map.get(year)
+        cf = cf_map.get(year)
+        
+        revenue = inc.get("revenue", 0) or 0
+        
+        ebitda = 0
+        if cf:
+             net_income = inc.get("netIncome", 0) or 0
+             interest = inc.get("interestExpense", 0) or 0
+             tax = inc.get("incomeTaxExpense", 0) or 0
+             dep = cf.get("depreciationAndAmortization", 0) or 0
+             ebitda = net_income + interest + tax + dep
+             
+        enterprise_value = 0
+        ev_to_revenue = None
+        ev_to_ebitda = None
+        
+        if bs and current_price:
+            shares = inc.get("weightedAverageShsOut", 0) or 0
+            market_cap = current_price * shares
+            
+            total_debt = (bs.get("totalDebt", 0) or 
+                         ((bs.get("longTermDebt", 0) or 0) + (bs.get("shortTermDebt", 0) or 0)))
+            cash = bs.get("cashAndCashEquivalents", 0) or 0
+            
+            enterprise_value = market_cap + total_debt - cash
+            
+            if revenue > 0:
+                ev_to_revenue = enterprise_value / revenue
+            
+            if ebitda > 0:
+                ev_to_ebitda = enterprise_value / ebitda
+        
+        is_red_flag = False
+        
+        yearly_data.append(ValuationYearData(
+            year=int(year),
+            ev_to_revenue=ev_to_revenue,
+            ev_to_ebitda=ev_to_ebitda,
+            enterprise_value=enterprise_value,
+            revenue=revenue,
+            ebitda=ebitda,
+            is_red_flag=is_red_flag,
+            red_flag_reason=None
         ))
         
     return yearly_data
@@ -1073,6 +1231,21 @@ def calculate_all_metrics(
         cash_flow_data
     )
     
+
+    # Calculate Working Capital Yearly Breakdown
+    working_capital_yearly_breakdown = calculate_working_capital_yearly_breakdown(
+        income_data,
+        balance_sheet_data
+    )
+    
+    # Calculate Valuation Yearly Breakdown
+    valuation_yearly_breakdown = calculate_valuation_yearly_breakdown(
+        income_data,
+        balance_sheet_data,
+        cash_flow_data,
+        current_price
+    )
+    
     return {
         "metrics": metrics,
         "cash_flow_yearly_breakdown": [
@@ -1101,6 +1274,32 @@ def calculate_all_metrics(
                 "red_flag_reason": data.red_flag_reason
             }
             for data in balance_sheet_yearly_breakdown
+        ],
+        "working_capital_yearly_breakdown": [
+            {
+                "year": data.year,
+                "dso": data.dso,
+                "receivables": data.receivables,
+                "revenue": data.revenue,
+                "ar_growth": data.ar_growth,
+                "revenue_growth": data.revenue_growth,
+                "is_red_flag": data.is_red_flag,
+                "red_flag_reason": data.red_flag_reason
+            }
+            for data in working_capital_yearly_breakdown
+        ],
+        "valuation_yearly_breakdown": [
+            {
+                "year": data.year,
+                "ev_to_revenue": data.ev_to_revenue,
+                "ev_to_ebitda": data.ev_to_ebitda,
+                "enterprise_value": data.enterprise_value,
+                "revenue": data.revenue,
+                "ebitda": data.ebitda,
+                "is_red_flag": data.is_red_flag,
+                "red_flag_reason": data.red_flag_reason
+            }
+            for data in valuation_yearly_breakdown
         ]
     }
 

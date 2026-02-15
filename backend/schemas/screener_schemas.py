@@ -94,6 +94,8 @@ class ScreenerResult(BaseModel):
     metrics: Dict[str, MetricData]
     cash_flow_yearly_breakdown: List[Dict] = Field(default_factory=list)
     balance_sheet_yearly_breakdown: List[Dict] = Field(default_factory=list)
+    working_capital_yearly_breakdown: List[Dict] = Field(default_factory=list)
+    valuation_yearly_breakdown: List[Dict] = Field(default_factory=list)
     red_flag_summary: RedFlagSummary
     screened_at: datetime = Field(default_factory=datetime.utcnow)
 
