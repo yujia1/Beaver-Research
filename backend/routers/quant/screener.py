@@ -420,7 +420,11 @@ async def flag_company_manually(
     
     # Convert to JSON-friendly dicts
     metrics_json = {k: v.dict() for k, v in metrics_schema.items()}
-    red_flags_json = red_flag_summary # It's a dict (from check_red_flags)
+    
+    # Extract red flags list from summary to match schema (List[Dict])
+    # The schema FlaggedCompanyResponse expects red_flags to be List[Dict]
+    # check_red_flags returns a summary Dict that contains "red_flags" list
+    red_flags_list = red_flag_summary.get("red_flags", [])
     
     strategies_flagged = request.strategies or []
     if not strategies_flagged and red_flag_summary.get("total_flags", 0) > 0:
@@ -433,7 +437,7 @@ async def flag_company_manually(
         screening_date=datetime.utcnow(), 
         strategies_flagged=strategies_flagged,
         metrics=metrics_json,
-        red_flags=red_flags_json
+        red_flags=red_flags_list # Store as List[Dict]
     )
     
     db.add(flagged_company)
