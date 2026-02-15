@@ -141,12 +141,15 @@ async def screen_stocks(
                 current_price = None
             
             # Calculate metrics
-            metrics = calculate_all_metrics(
+            result = calculate_all_metrics(
                 income_data=financial_data["income"],
                 cash_flow_data=financial_data["cashflow"],
                 balance_sheet_data=financial_data["balance"],
                 current_price=current_price
             )
+            
+            metrics = result["metrics"]
+            cash_flow_yearly_breakdown = result.get("cash_flow_yearly_breakdown", [])
             
             # Convert to schema
             metrics_schema = {
@@ -161,6 +164,7 @@ async def screen_stocks(
                 ticker=ticker,
                 company_name=None,  # TODO: Get from stock universe
                 metrics=metrics_schema,
+                cash_flow_yearly_breakdown=cash_flow_yearly_breakdown,
                 red_flag_summary=RedFlagSummary(**red_flag_summary),
                 screened_at=datetime.utcnow()
             ))
@@ -203,12 +207,13 @@ async def get_stock_metrics(
             current_price = None
         
         # Calculate metrics
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=financial_data["income"],
             cash_flow_data=financial_data["cashflow"],
             balance_sheet_data=financial_data["balance"],
             current_price=current_price
         )
+        metrics = result["metrics"]
         
         # Check red flags
         red_flag_summary = check_red_flags(metrics)

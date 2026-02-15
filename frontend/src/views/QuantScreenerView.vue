@@ -70,14 +70,22 @@
       <div class="metrics-display">
         <h3 class="section-title">{{ activeTabLabel }} Metrics</h3>
         
+        <!-- Cash Flow gets special yearly breakdown table -->
+        <CashFlowYearlyTable 
+          v-if="activeTab === 'cashflow' && cashFlowYearlyData.length > 0"
+          :yearlyData="cashFlowYearlyData"
+        />
+        
+        <!-- Other strategies use regular metrics table -->
         <ScreenerMetricsTable 
+          v-else
           :metrics="getMetricsByStrategy(activeTab)"
           :show-trend="true"
           @metric-click="onMetricClick"
         />
         
-        <!-- Trend Charts -->
-        <div class="trend-charts">
+        <!-- Trend Charts (not for cash flow) -->
+        <div v-if="activeTab !== 'cashflow'" class="trend-charts">
           <h3 class="section-title">5-Year Trends</h3>
           <div class="charts-grid">
             <TrendChart 
@@ -105,6 +113,7 @@ const api = axios.create({
   baseURL: API_BASE_URL
 })
 import ScreenerMetricsTable from '@/components/quant/ScreenerMetricsTable.vue'
+import CashFlowYearlyTable from '@/components/quant/CashFlowYearlyTable.vue'
 import TrendChart from '@/components/quant/TrendChart.vue'
 import RedFlagBadge from '@/components/quant/RedFlagBadge.vue'
 
@@ -112,6 +121,7 @@ export default {
   name: 'QuantScreenerView',
   components: {
     ScreenerMetricsTable,
+    CashFlowYearlyTable,
     TrendChart,
     RedFlagBadge
   },
@@ -124,8 +134,9 @@ export default {
       saving: false,
       enablePeerComparison: true,
       metrics: null,
+      cashFlowYearlyData: [], // Yearly breakdown for cash flow table
       redFlags: null,
-      activeTab: 'cash-flow',
+      activeTab: 'cashflow',
       error: null,
       saveMessage: null,
       saveSuccess: false,
@@ -164,6 +175,7 @@ export default {
           this.currentTicker = result.ticker
           this.screenedTicker = result.ticker // Track screened ticker
           this.metrics = result.metrics
+          this.cashFlowYearlyData = result.cash_flow_yearly_breakdown || []
           this.redFlags = result.red_flag_summary
           // Clear any previous save messages
           this.saveMessage = null

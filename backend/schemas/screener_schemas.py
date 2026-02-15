@@ -92,6 +92,7 @@ class ScreenerResult(BaseModel):
     ticker: str
     company_name: Optional[str] = None
     metrics: Dict[str, MetricData]
+    cash_flow_yearly_breakdown: List[Dict] = Field(default_factory=list)
     red_flag_summary: RedFlagSummary
     screened_at: datetime = Field(default_factory=datetime.utcnow)
 

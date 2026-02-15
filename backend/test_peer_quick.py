@@ -16,13 +16,14 @@ quote = fetch_stock_quote(ticker)
 current_price = quote.get("price", 0)
 
 # Test without ticker (no peer comparison)
-metrics_no_peer = calculate_all_metrics(
+result_no_peer = calculate_all_metrics(
     income_data=financial_data["income"],
     cash_flow_data=financial_data["cashflow"],
     balance_sheet_data=financial_data["balance"],
     current_price=current_price,
     ticker=None
 )
+metrics_no_peer = result_no_peer["metrics"]
 
 print(f"\nDSO (no peer): {metrics_no_peer['days_sales_outstanding'].latest_value}")
 print(f"DSO Red Flag: {metrics_no_peer['days_sales_outstanding'].is_red_flag}")
@@ -31,13 +32,14 @@ print(f"DSO Reason: {metrics_no_peer['days_sales_outstanding'].red_flag_reason}"
 print(f"\n\nTesting {ticker} WITH peer comparison...")
 
 # Test with ticker (enable peer comparison)
-metrics_with_peer = calculate_all_metrics(
+result_with_peer = calculate_all_metrics(
     income_data=financial_data["income"],
     cash_flow_data=financial_data["cashflow"],
     balance_sheet_data=financial_data["balance"],
     current_price=current_price,
     ticker=ticker
 )
+metrics_with_peer = result_with_peer["metrics"]
 
 print(f"\nDSO (with peer): {metrics_with_peer['days_sales_outstanding'].latest_value}")
 print(f"DSO Red Flag: {metrics_with_peer['days_sales_outstanding'].is_red_flag}")

@@ -22,13 +22,14 @@ def test_pltr_channel_stuffing():
         quote = fetch_stock_quote(ticker)
         current_price = quote.get("price", 0)
         
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=financial_data["income"],
             cash_flow_data=financial_data["cashflow"],
             balance_sheet_data=financial_data["balance"],
             current_price=current_price,
             ticker=ticker  # Enable peer comparison
         )
+        metrics = result["metrics"]
         
         # Check Channel Stuffing Risk
         csr = metrics.get("channel_stuffing_risk")

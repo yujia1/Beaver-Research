@@ -51,6 +51,19 @@ class MetricResult:
     component_values: Optional[Dict[str, float]] = None  # For storing underlying values (e.g., FCF, Revenue)
 
 
+@dataclass
+class CashFlowYearData:
+    """Yearly cash flow data for detailed table"""
+    year: int
+    fcf: float
+    dividends_buybacks: float
+    revenue: float
+    fcf_to_dividends_buybacks: Optional[float]
+    fcf_to_revenue: Optional[float]
+    is_red_flag: bool
+    red_flag_reason: Optional[str]
+
+
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -261,6 +274,71 @@ def calculate_fcf_to_revenue_ratio(
             "revenue": latest_revenue
         }
     )
+
+
+def calculate_cash_flow_yearly_breakdown(
+    cash_flow_data: List[Dict],
+    income_data: List[Dict]
+) -> List[CashFlowYearData]:
+    """
+    Calculate yearly cash flow breakdown for detailed table view
+    Returns data for each year with FCF, Dividends/Buybacks, Revenue, and ratios
+    """
+    yearly_data = []
+    
+    for cf_statement in reversed(cash_flow_data):  # Oldest to newest
+        year = cf_statement.get("calendarYear") or cf_statement.get("date", "")[:4]
+        
+        # Get FCF and return components
+        fcf = cf_statement.get("freeCashFlow", 0) or 0
+        dividends_paid = abs(cf_statement.get("dividendsPaid", 0) or 0)
+        buybacks = abs(cf_statement.get("commonStockRepurchased", 0) or 0)
+        dividends_buybacks = dividends_paid + buybacks
+        
+        # Get corresponding income statement for revenue
+        income_statement = next(
+            (inc for inc in income_data if (inc.get("calendarYear") or inc.get("date", "")[:4]) == year),
+            None
+        )
+        
+        revenue = 0
+        if income_statement:
+            revenue = income_statement.get("revenue", 0) or 0
+        
+        # Calculate ratios
+        fcf_to_div_buybacks = None
+        if dividends_buybacks > 0:
+            fcf_to_div_buybacks = fcf / dividends_buybacks
+        
+        fcf_to_rev = None
+        if revenue > 0:
+            fcf_to_rev = fcf / revenue
+        
+        # Determine red flags
+        is_red_flag = False
+        red_flag_reason = None
+        
+        # Red flag if FCF/Dividends+Buybacks < 1.0 or FCF/Revenue declining significantly
+        if fcf_to_div_buybacks is not None and fcf_to_div_buybacks < 1.0:
+            is_red_flag = True
+            red_flag_reason = f"FCF/Div+Buybacks = {fcf_to_div_buybacks:.2f} < 1.0"
+        elif fcf_to_rev is not None and fcf_to_rev < 0:
+            is_red_flag = True
+            red_flag_reason = f"Negative FCF/Revenue = {fcf_to_rev:.2%}"
+        
+        yearly_data.append(CashFlowYearData(
+            year=int(year) if str(year).isdigit() else 0,
+            fcf=fcf,
+            dividends_buybacks=dividends_buybacks,
+            revenue=revenue,
+            fcf_to_dividends_buybacks=fcf_to_div_buybacks,
+            fcf_to_revenue=fcf_to_rev,
+            is_red_flag=is_red_flag,
+            red_flag_reason=red_flag_reason
+        ))
+    
+    return yearly_data
+
 
 
 # ============================================================================
@@ -836,7 +914,7 @@ def calculate_all_metrics(
     balance_sheet_data: List[Dict],
     current_price: float = None,
     ticker: Optional[str] = None
-) -> Dict[str, MetricResult]:
+) -> Dict[str, Any]:
     """
     Calculate all screening metrics from financial statements
     
@@ -848,13 +926,16 @@ def calculate_all_metrics(
         ticker: Stock ticker (optional, enables peer comparison for red flags)
     
     Returns:
-        Dictionary mapping metric name to MetricResult
+        Dictionary with metrics and yearly breakdown data
     """
     metrics = {}
     
     # 1. Cash Flow Sustainability
     metrics["fcf_to_dividends_buybacks"] = calculate_fcf_to_dividends_buybacks_ratio(cash_flow_data)
     metrics["fcf_to_revenue"] = calculate_fcf_to_revenue_ratio(cash_flow_data, income_data)
+    
+    # Cash Flow Yearly Breakdown (for restructured table)
+    cash_flow_yearly_breakdown = calculate_cash_flow_yearly_breakdown(cash_flow_data, income_data)
     
     # 2. Balance Sheet Stress
     metrics["net_debt_to_ebitda"] = calculate_net_debt_to_ebitda(balance_sheet_data, income_data, cash_flow_data)
@@ -875,7 +956,22 @@ def calculate_all_metrics(
             income_data, balance_sheet_data, cash_flow_data, current_price
         )
     
-    return metrics
+    return {
+        "metrics": metrics,
+        "cash_flow_yearly_breakdown": [
+            {
+                "year": data.year,
+                "fcf": data.fcf,
+                "dividends_buybacks": data.dividends_buybacks,
+                "revenue": data.revenue,
+                "fcf_to_dividends_buybacks": data.fcf_to_dividends_buybacks,
+                "fcf_to_revenue": data.fcf_to_revenue,
+                "is_red_flag": data.is_red_flag,
+                "red_flag_reason": data.red_flag_reason
+            }
+            for data in cash_flow_yearly_breakdown
+        ]
+    }
 
 
 def check_red_flags(metrics: Dict[str, MetricResult]) -> Dict[str, Any]:

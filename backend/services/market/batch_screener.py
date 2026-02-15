@@ -142,13 +142,14 @@ def screen_single_stock(
         current_price = quote.get('price', 0)
         
         # Calculate metrics
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=financial_data["income"],
             cash_flow_data=financial_data["cashflow"],
             balance_sheet_data=financial_data["balance"],
             current_price=current_price,
             ticker=ticker if enable_peer_comparison else None
         )
+        metrics = result["metrics"]
         
         # Check red flags
         red_flags_summary = check_red_flags(metrics)

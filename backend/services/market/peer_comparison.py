@@ -78,13 +78,14 @@ def calculate_peer_comparison(
             financial_data = fetch_all_financial_statements(peer, years=5)
             
             # Calculate metrics (without ticker to avoid recursive peer comparison)
-            metrics = calculate_all_metrics(
+            result = calculate_all_metrics(
                 income_data=financial_data["income"],
                 cash_flow_data=financial_data["cashflow"],
                 balance_sheet_data=financial_data["balance"],
                 current_price=current_price,
                 ticker=None  # Don't pass ticker to avoid recursive peer comparison
             )
+            metrics = result["metrics"]
             
             # Get the specific metric
             if metric_name in metrics and metrics[metric_name].latest_value is not None:

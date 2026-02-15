@@ -238,13 +238,14 @@ class TestScreenerCalculator:
     
     def test_calculate_all_metrics_pltr(self, pltr_data):
         """Test calculating all metrics for PLTR"""
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=pltr_data["income"],
             cash_flow_data=pltr_data["cashflow"],
             balance_sheet_data=pltr_data["balance"],
             current_price=pltr_data["price"],
             ticker="PLTR"
         )
+        metrics = result["metrics"]
         
         assert isinstance(metrics, dict), "Should return a dictionary"
         
@@ -270,13 +271,14 @@ class TestScreenerCalculator:
     
     def test_calculate_all_metrics_crwv(self, crwv_data):
         """Test calculating all metrics for CRWV"""
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=crwv_data["income"],
             cash_flow_data=crwv_data["cashflow"],
             balance_sheet_data=crwv_data["balance"],
             current_price=crwv_data["price"],
             ticker="CRWV"
         )
+        metrics = result["metrics"]
         
         assert isinstance(metrics, dict), "Should return a dictionary"
         assert len(metrics) > 0, "Should have metrics"
@@ -289,13 +291,14 @@ class TestScreenerCalculator:
     
     def test_check_red_flags_pltr(self, pltr_data):
         """Test red flag checking for PLTR"""
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=pltr_data["income"],
             cash_flow_data=pltr_data["cashflow"],
             balance_sheet_data=pltr_data["balance"],
             current_price=pltr_data["price"],
             ticker="PLTR"
         )
+        metrics = result["metrics"]
         
         red_flags = check_red_flags(metrics)
         
@@ -318,13 +321,14 @@ class TestScreenerCalculator:
     
     def test_check_red_flags_crwv(self, crwv_data):
         """Test red flag checking for CRWV"""
-        metrics = calculate_all_metrics(
+        result = calculate_all_metrics(
             income_data=crwv_data["income"],
             cash_flow_data=crwv_data["cashflow"],
             balance_sheet_data=crwv_data["balance"],
             current_price=crwv_data["price"],
             ticker="CRWV"
         )
+        metrics = result["metrics"]
         
         red_flags = check_red_flags(metrics)
         

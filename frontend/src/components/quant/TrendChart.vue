@@ -9,7 +9,7 @@
     <div v-if="!hasTrendData" class="no-data-message">
       No historical trend data available
     </div>
-    <canvas v-else ref="chartCanvas"></canvas>
+    <canvas v-show="hasTrendData && chartReady" ref="chartCanvas"></canvas>
   </div>
 </template>
 
@@ -37,7 +37,8 @@ export default {
   },
   data() {
     return {
-      chart: null
+      chart: null,
+      chartReady: false
     }
   },
   computed: {
@@ -170,13 +171,20 @@ export default {
   methods: {
     renderChart() {
       // Guard against missing data or refs
-      if (!this.hasTrendData) return
-      if (!this.$refs.chartCanvas) return
+      if (!this.hasTrendData) {
+        this.chartReady = false
+        return
+      }
+      if (!this.$refs.chartCanvas) {
+        this.chartReady = false
+        return
+      }
       
       // Ensure canvas is actually in the DOM and has dimensions
       const canvas = this.$refs.chartCanvas
       if (!canvas || !canvas.parentElement || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
         console.warn('Canvas not ready for', this.metricName)
+        this.chartReady = false
         // Retry after a short delay
         setTimeout(() => this.renderChart(), 100)
         return
@@ -186,6 +194,7 @@ export default {
         const ctx = canvas.getContext('2d')
         if (!ctx) {
           console.warn('Chart context not available for', this.metricName)
+          this.chartReady = false
           return
         }
         
@@ -201,8 +210,12 @@ export default {
           data: this.chartData,
           options: this.chartOptions
         })
+        
+        // Mark as ready only after successful creation
+        this.chartReady = true
       } catch (error) {
         console.error('Error rendering chart for', this.metricName, error)
+        this.chartReady = false
       }
     },
     updateChart() {
@@ -212,6 +225,7 @@ export default {
           this.chart.destroy()
           this.chart = null
         }
+        this.chartReady = false
         return
       }
       
@@ -226,6 +240,7 @@ export default {
         this.chart.update()
       } catch (error) {
         console.error('Error updating chart for', this.metricName, error)
+        this.chartReady = false
         // Try to re-render on error
         this.renderChart()
       }
