@@ -150,6 +150,7 @@ async def screen_stocks(
             
             metrics = result["metrics"]
             cash_flow_yearly_breakdown = result.get("cash_flow_yearly_breakdown", [])
+            balance_sheet_yearly_breakdown = result.get("balance_sheet_yearly_breakdown", [])
             
             # Convert to schema
             metrics_schema = {
@@ -165,6 +166,7 @@ async def screen_stocks(
                 company_name=None,  # TODO: Get from stock universe
                 metrics=metrics_schema,
                 cash_flow_yearly_breakdown=cash_flow_yearly_breakdown,
+                balance_sheet_yearly_breakdown=balance_sheet_yearly_breakdown,
                 red_flag_summary=RedFlagSummary(**red_flag_summary),
                 screened_at=datetime.utcnow()
             ))

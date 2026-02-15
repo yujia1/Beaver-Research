@@ -62,6 +62,18 @@ class CashFlowYearData:
     fcf_to_revenue: Optional[float]
     is_red_flag: bool
     red_flag_reason: Optional[str]
+@dataclass
+class BalanceSheetYearData:
+    """Yearly balance sheet data for detailed table"""
+    year: int
+    net_debt: float
+    ebitda: float
+    capitalized_costs: float
+    revenue: float
+    net_debt_to_ebitda: Optional[float]
+    capitalized_costs_to_revenue: Optional[float]
+    is_red_flag: bool
+    red_flag_reason: Optional[str]
 
 
 # ============================================================================
@@ -344,6 +356,104 @@ def calculate_cash_flow_yearly_breakdown(
 # ============================================================================
 # 2. Balance Sheet Stress and Leverage Metrics
 # ============================================================================
+
+
+def calculate_balance_sheet_yearly_breakdown(
+    balance_sheet_data: List[Dict],
+    income_data: List[Dict],
+    cash_flow_data: List[Dict]
+) -> List[BalanceSheetYearData]:
+    """
+    Calculate yearly balance sheet breakdown for detailed table view
+    """
+    yearly_data = []
+    
+    for bs_statement in reversed(balance_sheet_data):
+        year = bs_statement.get("calendarYear") or bs_statement.get("date", "")[:4]
+        
+        # Find matching income and cash flow statements
+        income_statement = next(
+            (inc for inc in income_data if (inc.get("calendarYear") or inc.get("date", "")[:4]) == year),
+            None
+        )
+        cf_statement = next(
+            (cf for cf in cash_flow_data if (cf.get("calendarYear") or cf.get("date", "")[:4]) == year),
+            None
+        )
+        
+        # Initialize values
+        net_debt = 0
+        ebitda = 0
+        capitalized_costs = 0
+        revenue = 0
+        net_debt_to_ebitda = None
+        cap_costs_to_rev = None
+        
+        # --- Net Debt / EBITDA ---
+        if income_statement and cf_statement:
+            # Net Debt
+            long_term_debt = bs_statement.get("longTermDebt", 0) or 0
+            short_term_debt = bs_statement.get("shortTermDebt", 0) or 0
+            cash = bs_statement.get("cashAndCashEquivalents", 0) or 0
+            net_debt = long_term_debt + short_term_debt - cash
+            
+            # EBITDA
+            net_income = income_statement.get("netIncome", 0) or 0
+            interest_expense = income_statement.get("interestExpense", 0) or 0
+            tax_expense = income_statement.get("incomeTaxExpense", 0) or 0
+            depreciation = cf_statement.get("depreciationAndAmortization", 0) or 0
+            ebitda = net_income + interest_expense + tax_expense + depreciation
+            
+            if ebitda > 0:
+                net_debt_to_ebitda = net_debt / ebitda
+        
+        # --- Capitalized Costs / Revenue ---
+        if income_statement:
+            revenue = income_statement.get("revenue", 0) or 0
+            
+            if cf_statement:
+                capitalized_costs += abs(cf_statement.get("capitalizedContractCosts", 0) or 0)
+                capitalized_costs += abs(cf_statement.get("capitalizedSoftware", 0) or 0)
+                capitalized_costs += abs(cf_statement.get("deferredContractCosts", 0) or 0)
+                
+                # Acquisitions/Investments that might be capitalized costs
+                acquisitions = cf_statement.get("acquisitionsNet", 0) or 0
+                if acquisitions < 0:
+                    capitalized_costs += abs(acquisitions)
+                
+                other_investing = cf_statement.get("otherInvestingActivites", 0) or 0
+                if other_investing < 0:
+                     capitalized_costs += abs(other_investing)
+            
+            if revenue > 0:
+                cap_costs_to_rev = capitalized_costs / revenue
+
+        # --- Red Flags ---
+        is_red_flag = False
+        reasons = []
+        
+        if net_debt_to_ebitda is not None and net_debt_to_ebitda > 4.0:
+            is_red_flag = True
+            reasons.append(f"Net Debt/EBITDA > 4.0x")
+            
+        if cap_costs_to_rev is not None and cap_costs_to_rev > 0.15: 
+            is_red_flag = True
+            reasons.append(f"Cap Costs/Rev > 15%")
+        
+        yearly_data.append(BalanceSheetYearData(
+            year=int(year) if str(year).isdigit() else 0,
+            net_debt=net_debt,
+            ebitda=ebitda,
+            capitalized_costs=capitalized_costs,
+            revenue=revenue,
+            net_debt_to_ebitda=net_debt_to_ebitda,
+            capitalized_costs_to_revenue=cap_costs_to_rev,
+            is_red_flag=is_red_flag,
+            red_flag_reason="; ".join(reasons) if reasons else None
+        ))
+        
+    return yearly_data
+
 
 def calculate_net_debt_to_ebitda(
     balance_sheet_data: List[Dict],
@@ -956,6 +1066,13 @@ def calculate_all_metrics(
             income_data, balance_sheet_data, cash_flow_data, current_price
         )
     
+    # Calculate Balance Sheet Yearly Breakdown
+    balance_sheet_yearly_breakdown = calculate_balance_sheet_yearly_breakdown(
+        balance_sheet_data,
+        income_data,
+        cash_flow_data
+    )
+    
     return {
         "metrics": metrics,
         "cash_flow_yearly_breakdown": [
@@ -970,6 +1087,20 @@ def calculate_all_metrics(
                 "red_flag_reason": data.red_flag_reason
             }
             for data in cash_flow_yearly_breakdown
+        ],
+        "balance_sheet_yearly_breakdown": [
+            {
+                "year": data.year,
+                "net_debt": data.net_debt,
+                "ebitda": data.ebitda,
+                "capitalized_costs": data.capitalized_costs,
+                "revenue": data.revenue,
+                "net_debt_to_ebitda": data.net_debt_to_ebitda,
+                "capitalized_costs_to_revenue": data.capitalized_costs_to_revenue,
+                "is_red_flag": data.is_red_flag,
+                "red_flag_reason": data.red_flag_reason
+            }
+            for data in balance_sheet_yearly_breakdown
         ]
     }
 

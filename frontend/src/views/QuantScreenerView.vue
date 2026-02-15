@@ -70,16 +70,19 @@
       <div class="metrics-display">
         <h3 class="section-title">
           {{ activeTabLabel }} Metrics 
-          <span v-if="activeTab === 'cash-flow'" class="title-suffix">(Yearly Breakdown)</span>
+          <span v-if="['cash-flow', 'balance-sheet'].includes(activeTab)" class="title-suffix">(Yearly Breakdown)</span>
         </h3>
         
-        <!-- Cash Flow gets special yearly breakdown table -->
-        <CashFlowYearlyTable 
-          v-if="activeTab === 'cash-flow' && cashFlowYearlyData.length > 0"
-          :yearlyData="cashFlowYearlyData"
-        />
+        <!-- Yearly Breakdown Tables -->
+        <div v-if="activeTab === 'cash-flow' && cashFlowYearlyData.length > 0">
+          <CashFlowYearlyTable :yearlyData="cashFlowYearlyData" />
+        </div>
         
-        <!-- Other strategies use regular metrics table -->
+        <div v-else-if="activeTab === 'balance-sheet' && balanceSheetYearlyData.length > 0">
+          <BalanceSheetYearlyTable :yearlyData="balanceSheetYearlyData" />
+        </div>
+        
+        <!-- Standard Metrics Table -->
         <ScreenerMetricsTable 
           v-else
           :metrics="getMetricsByStrategy(activeTab)"
@@ -87,8 +90,8 @@
           @metric-click="onMetricClick"
         />
         
-        <!-- Trend Charts (not for cash flow) -->
-        <div v-if="activeTab !== 'cash-flow'" class="trend-charts">
+        <!-- Trend Charts (not for detailed views) -->
+        <div v-if="!['cash-flow', 'balance-sheet'].includes(activeTab)" class="trend-charts">
           <h3 class="section-title">5-Year Trends</h3>
           <div class="charts-grid">
             <TrendChart 
@@ -117,6 +120,7 @@ const api = axios.create({
 })
 import ScreenerMetricsTable from '@/components/quant/ScreenerMetricsTable.vue'
 import CashFlowYearlyTable from '@/components/quant/CashFlowYearlyTable.vue'
+import BalanceSheetYearlyTable from '@/components/quant/BalanceSheetYearlyTable.vue'
 import TrendChart from '@/components/quant/TrendChart.vue'
 import RedFlagBadge from '@/components/quant/RedFlagBadge.vue'
 
@@ -125,6 +129,7 @@ export default {
   components: {
     ScreenerMetricsTable,
     CashFlowYearlyTable,
+    BalanceSheetYearlyTable,
     TrendChart,
     RedFlagBadge
   },
@@ -138,6 +143,7 @@ export default {
       enablePeerComparison: true,
       metrics: null,
       cashFlowYearlyData: [], // Yearly breakdown for cash flow table
+      balanceSheetYearlyData: [], // Yearly breakdown for balance sheet table
       redFlags: null,
       activeTab: 'cash-flow',
       error: null,
@@ -179,6 +185,7 @@ export default {
           this.screenedTicker = result.ticker // Track screened ticker
           this.metrics = result.metrics
           this.cashFlowYearlyData = result.cash_flow_yearly_breakdown || []
+          this.balanceSheetYearlyData = result.balance_sheet_yearly_breakdown || []
           this.redFlags = result.red_flag_summary
           // Clear any previous save messages
           this.saveMessage = null
