@@ -21,7 +21,6 @@ from schemas.screener_schemas import (
     RedFlagSummary,
     BatchScreenRequest,
     BatchScreenStatus,
-    BatchScreenStatus,
     FlaggedCompanyResponse,
     FlaggedStockRequest,
     FlaggedCompaniesFilter,
