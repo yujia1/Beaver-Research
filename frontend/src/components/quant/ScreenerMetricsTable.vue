@@ -99,6 +99,9 @@ export default {
     },
     
     getDisplayComponents(componentValues, metricKey) {
+      // Debug logging
+      console.log('getDisplayComponents called:', { metricKey, componentValues })
+      
       // Define which components to show for each metric
       const componentMap = {
         'fcf_to_dividends_buybacks': ['fcf', 'dividends_buybacks'],
@@ -112,6 +115,8 @@ export default {
       }
       
       const keysToShow = componentMap[metricKey]
+      console.log('Keys to show for', metricKey, ':', keysToShow)
+      
       if (!keysToShow) return componentValues
       
       // Filter and return only the components we want to show
@@ -121,6 +126,8 @@ export default {
           filtered[key] = componentValues[key]
         }
       })
+      
+      console.log('Filtered components:', filtered)
       return filtered
     },
     

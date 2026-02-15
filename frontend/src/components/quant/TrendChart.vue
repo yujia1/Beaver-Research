@@ -147,46 +147,88 @@ export default {
     }
   },
   mounted() {
-    this.renderChart()
+    this.$nextTick(() => {
+      this.renderChart()
+    })
   },
   beforeUnmount() {
     if (this.chart) {
       this.chart.destroy()
+      this.chart = null
     }
   },
   watch: {
     trend: {
       deep: true,
       handler() {
-        this.updateChart()
+        this.$nextTick(() => {
+          this.updateChart()
+        })
       }
     }
   },
   methods: {
     renderChart() {
-      if (!this.hasTrendData || !this.$refs.chartCanvas) return
+      // Guard against missing data or refs
+      if (!this.hasTrendData) return
+      if (!this.$refs.chartCanvas) return
       
-      const ctx = this.$refs.chartCanvas.getContext('2d')
-      
-      if (this.chart) {
-        this.chart.destroy()
+      // Ensure canvas is actually in the DOM and has dimensions
+      const canvas = this.$refs.chartCanvas
+      if (!canvas || !canvas.parentElement || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
+        console.warn('Canvas not ready for', this.metricName)
+        // Retry after a short delay
+        setTimeout(() => this.renderChart(), 100)
+        return
       }
       
-      this.chart = new Chart(ctx, {
-        type: 'line',
-        data: this.chartData,
-        options: this.chartOptions
-      })
+      try {
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          console.warn('Chart context not available for', this.metricName)
+          return
+        }
+        
+        // Destroy existing chart if present
+        if (this.chart) {
+          this.chart.destroy()
+          this.chart = null
+        }
+        
+        // Create new chart
+        this.chart = new Chart(ctx, {
+          type: 'line',
+          data: this.chartData,
+          options: this.chartOptions
+        })
+      } catch (error) {
+        console.error('Error rendering chart for', this.metricName, error)
+      }
     },
     updateChart() {
+      if (!this.hasTrendData) {
+        // If data is now invalid, destroy chart
+        if (this.chart) {
+          this.chart.destroy()
+          this.chart = null
+        }
+        return
+      }
+      
       if (!this.chart) {
         this.renderChart()
         return
       }
       
-      this.chart.data = this.chartData
-      this.chart.options = this.chartOptions
-      this.chart.update()
+      try {
+        this.chart.data = this.chartData
+        this.chart.options = this.chartOptions
+        this.chart.update()
+      } catch (error) {
+        console.error('Error updating chart for', this.metricName, error)
+        // Try to re-render on error
+        this.renderChart()
+      }
     }
   }
 }
