@@ -478,19 +478,27 @@ async def get_flagged_companies(
     # Pagination
     flagged_companies = query.offset(offset).limit(limit).all()
     
-    return [
-        FlaggedCompanyResponse(
-            id=company.id,
-            ticker=company.ticker,
-            company_name=company.company_name,
-            sector=company.sector,
-            screening_date=company.screening_date,
-            strategies_flagged=company.strategies_flagged,
-            metrics=company.metrics,
-            red_flags=company.red_flags
+    response_list = []
+    for company in flagged_companies:
+        # Handle legacy formatting where red_flags might be stored as a dict (summary) instead of list
+        red_flags_data = company.red_flags
+        if isinstance(red_flags_data, dict):
+            red_flags_data = red_flags_data.get("red_flags", [])
+            
+        response_list.append(
+            FlaggedCompanyResponse(
+                id=company.id,
+                ticker=company.ticker,
+                company_name=company.company_name,
+                sector=company.sector,
+                screening_date=company.screening_date,
+                strategies_flagged=company.strategies_flagged,
+                metrics=company.metrics,
+                red_flags=red_flags_data or []
+            )
         )
-        for company in flagged_companies
-    ]
+            
+    return response_list
 
 
 # ============================================================================
