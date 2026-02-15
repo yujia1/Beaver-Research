@@ -341,7 +341,9 @@ export default {
       this.error = null
       
       try {
-        const params = {}
+        const params = {
+          _t: Date.now() // Prevent caching
+        }
         
         if (this.filters.strategy !== 'all') {
           params.strategy = this.filters.strategy
