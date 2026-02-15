@@ -397,8 +397,8 @@ async def flag_company_manually(
     try:
         metrics_result = calculate_all_metrics(
             income_data,
-            balance_sheet_data,
             cash_flow_data,
+            balance_sheet_data,
             current_price,
             ticker=ticker
         )

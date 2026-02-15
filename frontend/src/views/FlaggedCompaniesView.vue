@@ -35,9 +35,8 @@
       </div>
       
       <button @click="fetchFlaggedCompanies" class="refresh-button" :disabled="loading">
-        <span v-if="!loading">Refresh</span>
-        <span v-else class="loading-spinner"></span>
-        Refresh
+        <span v-if="loading" class="loading-spinner"></span>
+        Fetch
       </button>
     </div>
     
