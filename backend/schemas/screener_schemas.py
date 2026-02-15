@@ -160,6 +160,12 @@ class FlaggedCompanyResponse(BaseModel):
         from_attributes = True
 
 
+class FlaggedStockRequest(BaseModel):
+    ticker: str
+    red_flag_count: Optional[int] = 0
+    strategies: Optional[List[str]] = []
+
+
 class FlaggedCompaniesFilter(BaseModel):
     """Filter criteria for flagged companies"""
     strategy: Optional[str] = Field(

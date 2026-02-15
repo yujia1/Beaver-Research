@@ -101,15 +101,16 @@ table {
 }
 
 thead {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 th {
   padding: 1rem;
   text-align: left;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.875rem;
-  color: white;
+  color: #374151;
   white-space: nowrap;
 }
 
@@ -123,12 +124,11 @@ tbody tr:hover {
 }
 
 tbody tr.red-flag-row {
-  background: #fef2f2;
-  border-left: 4px solid #ef4444;
+  /* No special style */
 }
 
 tbody tr.red-flag-row:hover {
-  background: #fee2e2;
+  background: #f9fafb;
 }
 
 td {
@@ -137,7 +137,7 @@ td {
 }
 
 .year-cell {
-  font-weight: 700;
+  font-weight: 600;
   color: #111827;
   font-size: 1rem;
 }

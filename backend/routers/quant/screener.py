@@ -21,7 +21,9 @@ from schemas.screener_schemas import (
     RedFlagSummary,
     BatchScreenRequest,
     BatchScreenStatus,
+    BatchScreenStatus,
     FlaggedCompanyResponse,
+    FlaggedStockRequest,
     FlaggedCompaniesFilter,
     PeerComparisonRequest,
     PeerComparisonResult,
@@ -365,6 +367,82 @@ async def get_screening_runs(
 # ============================================================================
 # Flagged Companies Endpoints
 # ============================================================================
+
+@router.post("/flagged", response_model=FlaggedCompanyResponse)
+async def flag_company_manually(
+    request: FlaggedStockRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Manually flag a company.
+    Calculates metrics and stores them in the flagged_companies table.
+    """
+    ticker = request.ticker.upper()
+    
+    # 1. Fetch financial data
+    try:
+        financial_data = fetch_all_financial_statements(ticker)
+        income_data = financial_data.get("income_statement", [])
+        balance_sheet_data = financial_data.get("balance_sheet", [])
+        cash_flow_data = financial_data.get("cash_flow", [])
+        
+        quote = fetch_stock_quote(ticker)
+        current_price = quote.get("price")
+        company_name = quote.get("name")
+        
+    except Exception as e:
+        logger.error(f"Error fetching data for {ticker}: {e}")
+        raise HTTPException(status_code=400, detail=f"Error fetching data for {ticker}: {str(e)}")
+        
+    # 2. Calculate Metrics
+    try:
+        metrics_result = calculate_all_metrics(
+            income_data,
+            balance_sheet_data,
+            cash_flow_data,
+            current_price,
+            ticker=ticker
+        )
+        
+        metrics = metrics_result["metrics"]
+    
+    except Exception as e:
+        logger.error(f"Error calculating metrics for {ticker}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error calculating metrics: {str(e)}")
+        
+    # 3. Check Red Flags
+    red_flag_summary = check_red_flags(metrics)
+    
+    # 4. Prepare for DB
+    metrics_schema = {
+        key: metric_result_to_schema(value)
+        for key, value in metrics.items()
+    }
+    
+    # Convert to JSON-friendly dicts
+    metrics_json = {k: v.dict() for k, v in metrics_schema.items()}
+    red_flags_json = red_flag_summary # It's a dict (from check_red_flags)
+    
+    strategies_flagged = request.strategies or []
+    if not strategies_flagged and red_flag_summary.get("total_flags", 0) > 0:
+        strategies_flagged = list(red_flag_summary.get("flags_by_category", {}).keys())
+
+    # Create FlaggedCompany
+    flagged_company = FlaggedCompany(
+        ticker=ticker,
+        company_name=company_name,
+        screening_date=datetime.utcnow(), 
+        strategies_flagged=strategies_flagged,
+        metrics=metrics_json,
+        red_flags=red_flags_json
+    )
+    
+    db.add(flagged_company)
+    db.commit()
+    db.refresh(flagged_company)
+    
+    return flagged_company
+
 
 @router.get("/flagged", response_model=List[FlaggedCompanyResponse])
 async def get_flagged_companies(
