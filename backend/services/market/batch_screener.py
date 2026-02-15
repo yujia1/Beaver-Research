@@ -304,6 +304,12 @@ def run_batch_screen(
         
         # Process in batches
         for i in range(0, total_stocks, batch_size):
+            # Check for cancellation
+            db.refresh(screening_run)
+            if screening_run.status == "stopped":
+                logger.info("Batch screening stopped by user request")
+                break
+                
             batch = tickers[i:i + batch_size]
             batch_num = (i // batch_size) + 1
             total_batches = (total_stocks + batch_size - 1) // batch_size

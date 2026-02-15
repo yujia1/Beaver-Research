@@ -558,3 +558,33 @@ async def get_stock_universe_count(
     """Get count of stocks in universe"""
     count = db.query(StockUniverse).filter(StockUniverse.is_active == True).count()
     return {"count": count}
+
+@router.post("/batch-stop/{run_id}", response_model=BatchScreenStatus)
+async def stop_batch_screen(
+    run_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Stop a running batch screening job
+    """
+    run = db.query(ScreeningRun).filter(ScreeningRun.id == run_id).first()
+    
+    if not run:
+        raise HTTPException(status_code=404, detail="Screening run not found")
+    
+    if run.status == "running":
+        run.status = "stopped"
+        db.commit()
+        db.refresh(run)
+        logger.info(f"Batch screening run {run_id} stopped by user")
+    
+    return BatchScreenStatus(
+        run_id=run.id,
+        status=run.status,
+        total_stocks=run.total_stocks_processed,
+        processed_stocks=run.total_stocks_processed,
+        flagged_stocks=run.total_flagged,
+        started_at=run.run_date,
+        completed_at=None,
+        error_message=run.error_log
+    )

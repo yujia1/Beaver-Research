@@ -135,6 +135,14 @@
         <button @click="refreshStatus" class="refresh-status-button">
           Refresh Status
         </button>
+        <button 
+          @click="stopBatchScreening" 
+          :disabled="stopping" 
+          class="stop-button"
+        >
+          <span v-if="stopping" class="loading-spinner"></span>
+          {{ stopping ? 'Stopping...' : 'Stop Batch' }}
+        </button>
       </div>
       
       <!-- Completion Message -->
@@ -217,6 +225,12 @@
 
 <script>
 import axios from 'axios'
+import API_BASE_URL from '@/config/api'
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL
+})
 
 export default {
   name: 'BatchScreeningView',
@@ -244,7 +258,10 @@ export default {
       loadingHistory: false,
       
       // Stock universe
-      universeCount: null
+      universeCount: null,
+      
+      // Stop state
+      stopping: false
     }
   },
   computed: {
@@ -303,7 +320,7 @@ export default {
           payload.limit = this.config.limit
         }
         
-        const response = await axios.post('/api/quant/screener/batch-screen', payload)
+        const response = await api.post('/api/quant/screener/batch-screen', payload)
         
         this.activeRunId = response.data.run_id
         await this.fetchBatchStatus()
@@ -322,16 +339,32 @@ export default {
       if (!this.activeRunId) return
       
       try {
-        const response = await axios.get(`/api/quant/screener/batch-status/${this.activeRunId}`)
+        const response = await api.get(`/api/quant/screener/batch-status/${this.activeRunId}`)
         this.batchStatus = response.data
         
-        // If completed or failed, stop polling and refresh history
-        if (['completed', 'failed'].includes(this.batchStatus.status)) {
+        // If completed or failed or stopped, stop polling and refresh history
+        if (['completed', 'failed', 'stopped'].includes(this.batchStatus.status)) {
           this.stopPolling()
-          this.fetchRunHistory()
+          await this.fetchRunHistory()
         }
       } catch (error) {
         console.error('Error fetching batch status:', error)
+      }
+    },
+    
+    async stopBatchScreening() {
+      if (!this.activeRunId) return
+      
+      this.stopping = true
+      try {
+        await api.post(`/api/quant/screener/batch-stop/${this.activeRunId}`)
+        // Status update will be caught by next poll or we can force refresh
+        await this.fetchBatchStatus()
+      } catch (error) {
+         console.error('Error stopping batch:', error)
+         // alert('Failed to stop batch screening')
+      } finally {
+        this.stopping = false
       }
     },
     
@@ -343,7 +376,7 @@ export default {
       this.updatingUniverse = true
       
       try {
-        const response = await axios.post('/api/quant/screener/update-stock-universe')
+        const response = await api.post('/api/quant/screener/update-stock-universe')
         this.universeCount = response.data.total_stocks
         alert(`Stock universe updated! Total stocks: ${this.universeCount}`)
       } catch (error) {
@@ -358,7 +391,7 @@ export default {
       this.loadingHistory = true
       
       try {
-        const response = await axios.get('/api/quant/screener/runs', {
+        const response = await api.get('/api/quant/screener/runs', {
           params: { limit: 20 }
         })
         this.runHistory = response.data
@@ -371,7 +404,7 @@ export default {
     
     async fetchUniverseCount() {
       try {
-        const response = await axios.get('/api/quant/screener/stock-universe/count')
+        const response = await api.get('/api/quant/screener/stock-universe/count')
         this.universeCount = response.data.count
       } catch (error) {
         console.error('Error fetching universe count:', error)
