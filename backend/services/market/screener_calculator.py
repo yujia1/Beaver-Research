@@ -48,6 +48,7 @@ class MetricResult:
     trend: Optional[TrendResult]
     is_red_flag: bool
     red_flag_reason: Optional[str]
+    component_values: Optional[Dict[str, float]] = None  # For storing underlying values (e.g., FCF, Revenue)
 
 
 # ============================================================================

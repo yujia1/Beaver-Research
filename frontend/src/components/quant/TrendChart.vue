@@ -2,11 +2,14 @@
   <div class="trend-chart">
     <div class="chart-header">
       <h4>{{ metricName }}</h4>
-      <span v-if="trend" class="trend-badge" :class="trend.direction">
+      <span v-if="hasTrendData && trend" class="trend-badge" :class="trend.direction">
         {{ trend.direction }}
       </span>
     </div>
-    <canvas ref="chartCanvas"></canvas>
+    <div v-if="!hasTrendData" class="no-data-message">
+      No historical trend data available
+    </div>
+    <canvas v-else ref="chartCanvas"></canvas>
   </div>
 </template>
 
@@ -20,10 +23,8 @@ export default {
   props: {
     trend: {
       type: Object,
-      required: true,
-      validator: (value) => {
-        return value && Array.isArray(value.values) && Array.isArray(value.years)
-      }
+      required: false,
+      default: null
     },
     metricName: {
       type: String,
@@ -40,7 +41,20 @@ export default {
     }
   },
   computed: {
+    hasTrendData() {
+      return this.trend && 
+             Array.isArray(this.trend.years) && 
+             Array.isArray(this.trend.values) &&
+             this.trend.years.length > 0 &&
+             this.trend.values.length > 0
+    },
     chartData() {
+      if (!this.hasTrendData) {
+        return {
+          labels: [],
+          datasets: []
+        }
+      }
       return {
         labels: this.trend.years,
         datasets: [{
@@ -150,7 +164,7 @@ export default {
   },
   methods: {
     renderChart() {
-      if (!this.$refs.chartCanvas) return
+      if (!this.hasTrendData || !this.$refs.chartCanvas) return
       
       const ctx = this.$refs.chartCanvas.getContext('2d')
       
@@ -223,6 +237,17 @@ export default {
 .trend-badge.stable {
   background-color: #e5e7eb;
   color: #374151;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-style: italic;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px dashed #d1d5db;
 }
 
 canvas {
