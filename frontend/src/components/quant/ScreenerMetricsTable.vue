@@ -5,7 +5,6 @@
         <tr>
           <th>Metric</th>
           <th>Latest Value</th>
-          <th>Components</th>
           <th v-if="showTrend">Trend</th>
           <th>Status</th>
         </tr>
@@ -18,15 +17,16 @@
           @click="$emit('metric-click', key)"
         >
           <td class="metric-name">{{ metric.name }}</td>
-          <td class="metric-value">{{ formatValue(metric.latest_value, key) }}</td>
-          <td class="metric-components">
-            <div v-if="metric.component_values" class="components-grid">
-              <div v-for="(value, compKey) in metric.component_values" :key="compKey" class="component-item">
-                <span class="component-label">{{ formatComponentLabel(compKey) }}:</span>
-                <span class="component-value">{{ formatComponentValue(value, compKey) }}</span>
+          <td class="metric-value">
+            <div class="value-container">
+              <div class="ratio-value">{{ formatValue(metric.latest_value, key) }}</div>
+              <div v-if="metric.component_values" class="components-inline">
+                <span v-for="(value, compKey) in getDisplayComponents(metric.component_values, key)" :key="compKey" class="component-chip">
+                  <span class="comp-label">{{ formatComponentLabel(compKey) }}:</span>
+                  <span class="comp-val">{{ formatComponentValue(value, compKey) }}</span>
+                </span>
               </div>
             </div>
-            <span v-else class="no-components">—</span>
           </td>
           <td v-if="showTrend" class="metric-trend">
             <TrendIndicator v-if="metric.trend" :trend="metric.trend" />
@@ -96,6 +96,32 @@ export default {
       }
       
       return value.toFixed(2)
+    },
+    
+    getDisplayComponents(componentValues, metricKey) {
+      // Define which components to show for each metric
+      const componentMap = {
+        'fcf_to_dividends_buybacks': ['fcf', 'dividends_buybacks'],
+        'fcf_to_revenue': ['fcf', 'revenue'],
+        'net_debt_to_ebitda': ['net_debt', 'ebitda'],
+        'capitalized_costs_to_revenue': ['capitalized_costs', 'revenue'],
+        'days_sales_outstanding': ['accounts_receivable', 'revenue'],
+        'channel_stuffing_risk': ['ar_growth', 'revenue_growth'],
+        'ev_to_revenue': ['enterprise_value', 'revenue'],
+        'ev_to_ebitda': ['enterprise_value', 'ebitda']
+      }
+      
+      const keysToShow = componentMap[metricKey]
+      if (!keysToShow) return componentValues
+      
+      // Filter and return only the components we want to show
+      const filtered = {}
+      keysToShow.forEach(key => {
+        if (componentValues[key] !== undefined) {
+          filtered[key] = componentValues[key]
+        }
+      })
+      return filtered
     },
     
     formatComponentLabel(key) {
@@ -214,43 +240,48 @@ td {
 .metric-value {
   font-weight: 600;
   color: #1f2937;
-  font-family: 'Monaco', 'Courier New', monospace;
 }
 
-.metric-components {
-  font-size: 0.8125rem;
-  max-width: 300px;
-}
-
-.components-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.25rem;
-}
-
-.component-item {
+.value-container {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 0.5rem;
-  padding: 0.125rem 0;
 }
 
-.component-label {
-  color: #6b7280;
-  font-weight: 500;
+.ratio-value {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.components-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.component-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  background: #f3f4f6;
+  border-radius: 4px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
-.component-value {
-  color: #374151;
-  font-weight: 600;
-  font-family: 'Monaco', 'Courier New', monospace;
-  text-align: right;
+.comp-label {
+  color: #6b7280;
+  font-weight: 500;
 }
 
-.no-components {
-  color: #9ca3af;
-  font-style: italic;
+.comp-val {
+  color: #111827;
+  font-weight: 700;
+  font-family: 'Monaco', 'Courier New', monospace;
 }
 
 .metric-trend {
