@@ -227,6 +227,13 @@
 
 <script>
 import axios from 'axios'
+import API_BASE_URL from '@/config/api'
+
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: API_BASE_URL
+})
+
 import ScreenerMetricsTable from '@/components/quant/ScreenerMetricsTable.vue'
 import RedFlagBadge from '@/components/quant/RedFlagBadge.vue'
 
@@ -349,7 +356,7 @@ export default {
           params.strategy = this.filters.strategy
         }
         
-        const response = await axios.get('/api/quant/screener/flagged', { params })
+        const response = await api.get('/api/quant/screener/flagged', { params })
         console.log('Flagged Companies Raw Response:', response)
         console.log('Flagged Companies Data:', response.data)
         this.flaggedCompanies = response.data
