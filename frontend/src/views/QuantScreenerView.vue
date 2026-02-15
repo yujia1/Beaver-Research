@@ -19,10 +19,21 @@
           class="screen-button"
         >
           <span v-if="loading" class="loading-spinner"></span>
-          {{ loading ? 'Screening...' : 'Screen Stock' }}
+          {{ loading ? 'Screening...' : 'Screen' }}
+        </button>
+        <button 
+          v-if="metrics && screenedTicker"
+          @click="saveToFlaggedCompanies" 
+          :disabled="saving"
+          class="save-button"
+        >
+          <span v-if="saving" class="loading-spinner"></span>
+          {{ saving ? 'Saving...' : 'Save' }}
         </button>
       </div>
-      
+      <div v-if="saveMessage" class="save-message" :class="{ success: saveSuccess, error: !saveSuccess }">
+        {{ saveMessage }}
+      </div>
 
     </div>
     
@@ -108,12 +119,16 @@ export default {
     return {
       ticker: '',
       currentTicker: '',
+      screenedTicker: '', // Track the ticker that was screened
       loading: false,
+      saving: false,
       enablePeerComparison: true,
       metrics: null,
       redFlags: null,
       activeTab: 'cash-flow',
       error: null,
+      saveMessage: null,
+      saveSuccess: false,
       
       tabs: [
         { key: 'cash-flow', label: 'Cash Flow Sustainability', icon: '' },
@@ -147,8 +162,11 @@ export default {
         if (response.data && response.data.length > 0) {
           const result = response.data[0]
           this.currentTicker = result.ticker
+          this.screenedTicker = result.ticker // Track screened ticker
           this.metrics = result.metrics
           this.redFlags = result.red_flag_summary
+          // Clear any previous save messages
+          this.saveMessage = null
         } else {
           this.error = 'No data returned for the specified ticker(s)'
         }
@@ -157,6 +175,66 @@ export default {
         this.error = err.response?.data?.detail || err.message || 'Failed to screen stock'
       } finally {
         this.loading = false
+      }
+    },
+    
+    async saveToFlaggedCompanies() {
+      if (!this.screenedTicker || !this.metrics) return
+      
+      this.saving = true
+      this.saveMessage = null
+      
+      try {
+        // Calculate total red flags
+        const totalRedFlags = Object.values(this.metrics).filter(m => m.is_red_flag).length
+        
+        // Identify which strategies have red flags
+        const redFlagStrategies = []
+        const strategyMap = {
+          'cash-flow': ['fcf_to_dividends_buybacks', 'fcf_to_revenue'],
+          'balance-sheet': ['net_debt_to_ebitda', 'capitalized_costs_to_revenue'],
+          'working-capital': ['days_sales_outstanding', 'channel_stuffing_risk'],
+          'valuation': ['ev_to_revenue', 'ev_to_ebitda']
+        }
+        
+        for (const [strategy, metricKeys] of Object.entries(strategyMap)) {
+          const hasRedFlag = metricKeys.some(key => 
+            this.metrics[key] && this.metrics[key].is_red_flag
+          )
+          if (hasRedFlag) {
+            const strategyLabel = this.tabs.find(t => t.key === strategy)?.label || strategy
+            redFlagStrategies.push(strategyLabel)
+          }
+        }
+        
+        // Prepare the data to save
+        const flaggedData = {
+          ticker: this.screenedTicker.toUpperCase(),
+          red_flag_count: totalRedFlags,
+          strategies: redFlagStrategies
+        }
+        
+        // POST to backend to save
+        await api.post('/api/quant/screener/flagged', flaggedData)
+        
+        this.saveMessage = `Successfully saved ${this.screenedTicker.toUpperCase()} to Flagged Companies!`
+        this.saveSuccess = true
+        
+        // Clear message after 5 seconds
+        setTimeout(() => {
+          this.saveMessage = null
+        }, 5000)
+      } catch (err) {
+        console.error('Save error:', err)
+        this.saveMessage = err.response?.data?.detail || 'Failed to save to Flagged Companies'
+        this.saveSuccess = false
+        
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          this.saveMessage = null
+        }, 5000)
+      } finally {
+        this.saving = false
       }
     },
     
@@ -234,29 +312,77 @@ export default {
 }
 
 .screen-button {
-  padding: 0.75rem 2rem;
-  background: #3498db; /* Standard blue */
-  color: white;
+  padding: 8px 24px;
+  background: #000; /* Black */
+  color: #fff; /* White text */
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 700; /* Match framework */
+  letter-spacing: 0.05em; /* Match framework */
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .screen-button:hover:not(:disabled) {
-  background: #2980b9;
+  background: #333; /* Dark gray on hover */
   transform: translateY(-1px);
 }
 
 .screen-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #3498db;
+  background: #000;
+}
+
+.save-button {
+  padding: 8px 24px;
+  background: #000; /* Black */
+  color: #fff; /* White text */
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 700; /* Match framework */
+  letter-spacing: 0.05em; /* Match framework */
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #333; /* Dark gray on hover */
+  transform: translateY(-1px);
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-message {
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.save-message.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.save-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .loading-spinner {

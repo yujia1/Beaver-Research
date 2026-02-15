@@ -281,7 +281,7 @@ export default {
     }
   },
   mounted() {
-    this.fetchRunHistory()
+    // this.fetchRunHistory() // Don't load by default - user must click Refresh
     this.fetchUniverseCount()
     this.startPolling()
   },
@@ -537,22 +537,22 @@ export default {
 }
 
 .start-button {
-  background: #3498db; /* Standard blue */
-  color: white;
+  background: #000; /* Black */
+  color: #fff; /* White text */
 }
 
 .start-button:hover:not(:disabled) {
-  background: #2980b9;
+  background: #333; /* Dark gray */
   transform: translateY(-1px);
 }
 
 .update-button {
-  background: #42b983; /* Vue/Bond green */
-  color: white;
+  background: #000; /* Black */
+  color: #fff; /* White text */
 }
 
 .update-button:hover:not(:disabled) {
-  background: #3aa876;
+  background: #333; /* Dark gray */
   transform: translateY(-1px);
 }
 
@@ -816,6 +816,8 @@ export default {
 
 .history-table-container {
   overflow-x: auto;
+  max-height: 70vh; /* Enable embedded scrolling */
+  overflow-y: auto; /* Enable embedded scrolling */
 }
 
 .history-table {
@@ -825,6 +827,9 @@ export default {
 
 .history-table thead {
   background: #f9fafb;
+  position: sticky; /* Sticky header */
+  top: 0;
+  z-index: 10;
 }
 
 .history-table th {
@@ -869,8 +874,8 @@ export default {
 
 .action-button {
   padding: 0.5rem 1rem;
-  background: #3498db; /* Blue */
-  color: white;
+  background: #000; /* Black */
+  color: #fff; /* White text */
   border: none;
   border-radius: 6px;
   font-size: 0.875rem;

@@ -337,24 +337,25 @@ const getTrendClass = (status) => {
 
 .analyze-btn {
   padding: 0.75rem 2rem;
-  background: #3498db;
-  color: #fff;
+  background: #000; /* Black */
+  color: #fff; /* White text */
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 700; /* Match framework */
+  letter-spacing: 0.05em; /* Match framework */
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .analyze-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: #333; /* Dark gray on hover */
 }
 
 .analyze-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #3498db;
+  background: #000;
 }
 
 .loading-state,

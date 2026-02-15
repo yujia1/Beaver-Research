@@ -502,14 +502,15 @@ export default {
 }
 
 .refresh-button {
-  padding: 0.75rem 1.5rem;
-  background: #3498db; /* Standard blue */
-  color: white;
+  padding: 8px 24px;
+  background: #000; /* Black */
+  color: #fff; /* White text */
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 4px;
+  font-weight: 700; /* Match framework */
+  letter-spacing: 0.05em; /* Match framework */
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -517,14 +518,14 @@ export default {
 }
 
 .refresh-button:hover:not(:disabled) {
-  background: #2980b9;
+  background: #333; /* Dark gray */
   transform: translateY(-1px);
 }
 
 .refresh-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #3498db;
+  background: #000;
 }
 
 /* Loading & Error States */
@@ -711,8 +712,8 @@ export default {
 
 .action-button {
   padding: 0.5rem 1rem;
-  background: #3498db;
-  color: white;
+  background: #000;
+  color: #fff;
   border: none;
   border-radius: 6px;
   font-size: 0.8125rem;
@@ -723,7 +724,7 @@ export default {
 }
 
 .action-button:hover {
-  background: #2980b9;
+  background: #333;
 }
 
 .action-button.secondary {
@@ -799,8 +800,8 @@ export default {
 
 .reset-button {
   padding: 0.75rem 1.5rem;
-  background: #3498db;
-  color: white;
+  background: #000;
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -809,7 +810,7 @@ export default {
 }
 
 .reset-button:hover {
-  background: #2980b9;
+  background: #333;
 }
 
 /* Modal */
@@ -934,12 +935,12 @@ export default {
 }
 
 .export-button {
-  background: #3498db;
-  color: white;
+  background: #000;
+  color: #fff;
 }
 
 .export-button:hover {
-  background: #2980b9;
+  background: #333;
 }
 
 .close-modal-button {

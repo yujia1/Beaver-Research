@@ -144,6 +144,8 @@ def calculate_fcf_to_dividends_buybacks_ratio(
     """
     values = []
     years = []
+    latest_fcf = None
+    latest_dividends_buybacks = None
     
     for statement in reversed(cash_flow_data):  # Oldest to newest
         fcf = statement.get("freeCashFlow", 0) or 0
@@ -156,6 +158,9 @@ def calculate_fcf_to_dividends_buybacks_ratio(
             ratio = fcf / total_returns
             values.append(ratio)
             years.append(statement.get("calendarYear") or statement.get("date", "")[:4])
+            # Store latest values
+            latest_fcf = fcf
+            latest_dividends_buybacks = total_returns
     
     if not values:
         return MetricResult(
@@ -163,7 +168,8 @@ def calculate_fcf_to_dividends_buybacks_ratio(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -178,7 +184,11 @@ def calculate_fcf_to_dividends_buybacks_ratio(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "fcf": latest_fcf,
+            "dividends_buybacks": latest_dividends_buybacks
+        }
     )
 
 
@@ -193,6 +203,8 @@ def calculate_fcf_to_revenue_ratio(
     """
     values = []
     years = []
+    latest_fcf = None
+    latest_revenue = None
     
     # Match cash flow and income statements by year
     for cf_statement in reversed(cash_flow_data):
@@ -212,6 +224,9 @@ def calculate_fcf_to_revenue_ratio(
                 ratio = fcf / revenue
                 values.append(ratio)
                 years.append(year)
+                # Store latest values
+                latest_fcf = fcf
+                latest_revenue = revenue
     
     if not values:
         return MetricResult(
@@ -219,7 +234,8 @@ def calculate_fcf_to_revenue_ratio(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -239,7 +255,11 @@ def calculate_fcf_to_revenue_ratio(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "fcf": latest_fcf,
+            "revenue": latest_revenue
+        }
     )
 
 
@@ -262,6 +282,8 @@ def calculate_net_debt_to_ebitda(
     """
     values = []
     years = []
+    latest_net_debt = None
+    latest_ebitda = None
     
     for bs_statement in reversed(balance_sheet_data):
         year = bs_statement.get("calendarYear") or bs_statement.get("date", "")[:4]
@@ -295,6 +317,9 @@ def calculate_net_debt_to_ebitda(
                 ratio = net_debt / ebitda
                 values.append(ratio)
                 years.append(year)
+                # Store latest values
+                latest_net_debt = net_debt
+                latest_ebitda = ebitda
     
     if not values:
         return MetricResult(
@@ -302,7 +327,8 @@ def calculate_net_debt_to_ebitda(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -317,7 +343,11 @@ def calculate_net_debt_to_ebitda(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "net_debt": latest_net_debt,
+            "ebitda": latest_ebitda
+        }
     )
 
 
@@ -338,6 +368,8 @@ def calculate_capitalized_costs_to_revenue(
     """
     values = []
     years = []
+    latest_capitalized_costs = None
+    latest_revenue = None
     
     for cf_statement in reversed(cash_flow_data):
         year = cf_statement.get("calendarYear") or cf_statement.get("date", "")[:4]
@@ -385,6 +417,9 @@ def calculate_capitalized_costs_to_revenue(
                 ratio = capitalized_costs / revenue
                 values.append(ratio)
                 years.append(year)
+                # Store latest values
+                latest_capitalized_costs = capitalized_costs
+                latest_revenue = revenue
     
     if not values:
         return MetricResult(
@@ -392,7 +427,8 @@ def calculate_capitalized_costs_to_revenue(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -415,7 +451,11 @@ def calculate_capitalized_costs_to_revenue(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "capitalized_costs": latest_capitalized_costs,
+            "revenue": latest_revenue
+        }
     )
 
 
@@ -438,6 +478,8 @@ def calculate_days_sales_outstanding(
     """
     values = []
     years = []
+    latest_ar = None
+    latest_revenue = None
     
     for bs_statement in reversed(balance_sheet_data):
         year = bs_statement.get("calendarYear") or bs_statement.get("date", "")[:4]
@@ -456,6 +498,9 @@ def calculate_days_sales_outstanding(
                 dso = (accounts_receivable / revenue) * 365
                 values.append(dso)
                 years.append(year)
+                # Store latest values
+                latest_ar = accounts_receivable
+                latest_revenue = revenue
     
     if not values:
         return MetricResult(
@@ -463,7 +508,8 @@ def calculate_days_sales_outstanding(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -486,7 +532,11 @@ def calculate_days_sales_outstanding(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "accounts_receivable": latest_ar,
+            "revenue": latest_revenue
+        }
     )
 
 
@@ -513,6 +563,8 @@ def calculate_ev_to_ebitda(
     """
     values = []
     years = []
+    latest_ev = None
+    latest_ebitda = None
     
     for income_statement in reversed(income_data):
         year = income_statement.get("calendarYear") or income_statement.get("date", "")[:4]
@@ -548,6 +600,9 @@ def calculate_ev_to_ebitda(
                 ev_ebitda = enterprise_value / ebitda
                 values.append(ev_ebitda)
                 years.append(year)
+                # Store latest values
+                latest_ev = enterprise_value
+                latest_ebitda = ebitda
     
     if not values:
         return MetricResult(
@@ -555,7 +610,8 @@ def calculate_ev_to_ebitda(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -572,7 +628,11 @@ def calculate_ev_to_ebitda(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "enterprise_value": latest_ev,
+            "ebitda": latest_ebitda
+        }
     )
 
 
@@ -596,6 +656,8 @@ def calculate_ev_to_revenue(
     """
     values = []
     years = []
+    latest_ev = None
+    latest_revenue = None
     
     for income_statement in reversed(income_data):
         year = income_statement.get("calendarYear") or income_statement.get("date", "")[:4]
@@ -624,6 +686,9 @@ def calculate_ev_to_revenue(
                 ev_revenue = enterprise_value / revenue
                 values.append(ev_revenue)
                 years.append(year)
+                # Store latest values
+                latest_ev = enterprise_value
+                latest_revenue = revenue
     
     if not values:
         return MetricResult(
@@ -631,7 +696,8 @@ def calculate_ev_to_revenue(
             latest_value=None,
             trend=None,
             is_red_flag=False,
-            red_flag_reason=None
+            red_flag_reason=None,
+            component_values=None
         )
     
     trend = analyze_trend(values, years)
@@ -656,7 +722,11 @@ def calculate_ev_to_revenue(
         latest_value=latest_value,
         trend=trend,
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "enterprise_value": latest_ev,
+            "revenue": latest_revenue
+        }
     )
 
 
@@ -742,7 +812,17 @@ def calculate_channel_stuffing_risk(
         latest_value=ar_growth - rev_growth, # Value is the spread
         trend=None, # Not a simple trend metric
         is_red_flag=is_red_flag,
-        red_flag_reason=red_flag_reason
+        red_flag_reason=red_flag_reason,
+        component_values={
+            "ar_growth": ar_growth,
+            "revenue_growth": rev_growth,
+            "dso_current": dso_curr,
+            "dso_previous": dso_prev,
+            "ar_current": ar_curr,
+            "ar_previous": ar_prev,
+            "revenue_current": rev_curr,
+            "revenue_previous": rev_prev
+        }
     )
 
 

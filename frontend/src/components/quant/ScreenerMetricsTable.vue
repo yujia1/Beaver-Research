@@ -5,6 +5,7 @@
         <tr>
           <th>Metric</th>
           <th>Latest Value</th>
+          <th>Components</th>
           <th v-if="showTrend">Trend</th>
           <th>Status</th>
         </tr>
@@ -18,6 +19,15 @@
         >
           <td class="metric-name">{{ metric.name }}</td>
           <td class="metric-value">{{ formatValue(metric.latest_value, key) }}</td>
+          <td class="metric-components">
+            <div v-if="metric.component_values" class="components-grid">
+              <div v-for="(value, compKey) in metric.component_values" :key="compKey" class="component-item">
+                <span class="component-label">{{ formatComponentLabel(compKey) }}:</span>
+                <span class="component-value">{{ formatComponentValue(value, compKey) }}</span>
+              </div>
+            </div>
+            <span v-else class="no-components">—</span>
+          </td>
           <td v-if="showTrend" class="metric-trend">
             <TrendIndicator v-if="metric.trend" :trend="metric.trend" />
             <span v-else class="no-trend">N/A</span>
@@ -83,6 +93,58 @@ export default {
       // Channel stuffing risk (ratio)
       if (metricKey === 'channel_stuffing_risk') {
         return value.toFixed(3)
+      }
+      
+      return value.toFixed(2)
+    },
+    
+    formatComponentLabel(key) {
+      const labels = {
+        'fcf': 'FCF',
+        'dividends_buybacks': 'Dividends + Buybacks',
+        'revenue': 'Revenue',
+        'net_debt': 'Net Debt',
+        'ebitda': 'EBITDA',
+        'capitalized_costs': 'Capitalized Costs',
+        'accounts_receivable': 'Accounts Receivable',
+        'enterprise_value': 'Enterprise Value',
+        'ar_growth': 'AR Growth',
+        'revenue_growth': 'Revenue Growth',
+        'dso_current': 'DSO Current',
+        'dso_previous': 'DSO Previous',
+        'ar_current': 'AR Current',
+        'ar_previous': 'AR Previous',
+        'revenue_current': 'Revenue Current',
+        'revenue_previous': 'Revenue Previous'
+      }
+      return labels[key] || key
+    },
+    
+    formatComponentValue(value, key) {
+      if (value === null || value === undefined) return 'N/A'
+      
+      // Growth rates
+      if (key.includes('growth')) {
+        return `${(value * 100).toFixed(1)}%`
+      }
+      
+      // DSO values
+      if (key.includes('dso')) {
+        return `${value.toFixed(1)} days`
+      }
+      
+      // Currency values (large numbers)
+      if (['fcf', 'dividends_buybacks', 'revenue', 'net_debt', 'ebitda', 
+           'capitalized_costs', 'accounts_receivable', 'enterprise_value',
+           'ar_current', 'ar_previous', 'revenue_current', 'revenue_previous'].includes(key)) {
+        if (Math.abs(value) >= 1e9) {
+          return `$${(value / 1e9).toFixed(2)}B`
+        } else if (Math.abs(value) >= 1e6) {
+          return `$${(value / 1e6).toFixed(2)}M`
+        } else if (Math.abs(value) >= 1e3) {
+          return `$${(value / 1e3).toFixed(2)}K`
+        }
+        return `$${value.toFixed(2)}`
       }
       
       return value.toFixed(2)
@@ -153,6 +215,42 @@ td {
   font-weight: 600;
   color: #1f2937;
   font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.metric-components {
+  font-size: 0.8125rem;
+  max-width: 300px;
+}
+
+.components-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+}
+
+.component-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.125rem 0;
+}
+
+.component-label {
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.component-value {
+  color: #374151;
+  font-weight: 600;
+  font-family: 'Monaco', 'Courier New', monospace;
+  text-align: right;
+}
+
+.no-components {
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .metric-trend {
