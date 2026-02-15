@@ -123,7 +123,7 @@ def get_stock_universe(db: Session, limit: Optional[int] = None) -> List[str]:
     Returns:
         List of ticker symbols
     """
-    query = db.query(StockUniverse.ticker).filter(StockUniverse.is_active == True)
+    query = db.query(StockUniverse.ticker).filter(StockUniverse.is_active == True).order_by(StockUniverse.ticker)
     
     if limit:
         query = query.limit(limit)
@@ -227,26 +227,55 @@ def save_flagged_company(
             }
         
         # Create flagged company record
-        flagged_company = FlaggedCompany(
-            ticker=ticker,
-            company_name=None,  # Could fetch from stock universe
-            screening_run_id=screening_run_id,
-            strategies_flagged=red_flags["strategies_flagged"],
-            metrics=metrics_dict,
-            red_flags=[
+        # Get company name from StockUniverse
+        stock = db.query(StockUniverse).filter(StockUniverse.ticker == ticker).first()
+        company_name = stock.company_name if stock else None
+        
+        # Check if FlaggedCompany exists
+        existing_flagged = db.query(FlaggedCompany).filter(FlaggedCompany.ticker == ticker).first()
+        
+        if existing_flagged:
+            # Update existing
+            existing_flagged.company_name = company_name
+            existing_flagged.screening_run_id = screening_run_id
+            existing_flagged.strategies_flagged = red_flags["strategies_flagged"]
+            existing_flagged.metrics = metrics_dict
+            existing_flagged.red_flags = [
                 {
                     "metric": flag["metric"],
                     "reason": flag["reason"]
                 }
                 for flag in red_flags["red_flags"]
-            ],
-            financial_data=screening_result["financial_data"]
-        )
-        
-        db.add(flagged_company)
+            ]
+            existing_flagged.financial_data = screening_result["financial_data"]
+            
+            # existing_flagged.screening_date is auto-updated? Or manual?
+            # Model likely has screening_date column.
+            existing_flagged.screening_date = datetime.utcnow()
+            
+            logger.info(f"Updated flagged company: {ticker} ({len(red_flags['red_flags'])} red flags)")
+        else:
+            # Create flagged company record
+            flagged_company = FlaggedCompany(
+                ticker=ticker,
+                company_name=company_name,
+                screening_run_id=screening_run_id,
+                strategies_flagged=red_flags["strategies_flagged"],
+                metrics=metrics_dict,
+                red_flags=[
+                    {
+                        "metric": flag["metric"],
+                        "reason": flag["reason"]
+                    }
+                    for flag in red_flags["red_flags"]
+                ],
+                financial_data=screening_result["financial_data"],
+                screening_date=datetime.utcnow()
+            )
+            db.add(flagged_company)
+            logger.info(f"Saved new flagged company: {ticker} ({len(red_flags['red_flags'])} red flags)")
+            
         db.commit()
-        
-        logger.info(f"Saved flagged company: {ticker} ({len(red_flags['red_flags'])} red flags)")
         return True
     
     except Exception as e:
