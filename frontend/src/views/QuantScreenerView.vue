@@ -68,11 +68,14 @@
       
       <!-- Metrics Display -->
       <div class="metrics-display">
-        <h3 class="section-title">{{ activeTabLabel }} Metrics</h3>
+        <h3 class="section-title">
+          {{ activeTabLabel }} Metrics 
+          <span v-if="activeTab === 'cash-flow'" class="title-suffix">(Yearly Breakdown)</span>
+        </h3>
         
         <!-- Cash Flow gets special yearly breakdown table -->
         <CashFlowYearlyTable 
-          v-if="activeTab === 'cashflow' && cashFlowYearlyData.length > 0"
+          v-if="activeTab === 'cash-flow' && cashFlowYearlyData.length > 0"
           :yearlyData="cashFlowYearlyData"
         />
         
@@ -85,7 +88,7 @@
         />
         
         <!-- Trend Charts (not for cash flow) -->
-        <div v-if="activeTab !== 'cashflow'" class="trend-charts">
+        <div v-if="activeTab !== 'cash-flow'" class="trend-charts">
           <h3 class="section-title">5-Year Trends</h3>
           <div class="charts-grid">
             <TrendChart 
@@ -136,7 +139,7 @@ export default {
       metrics: null,
       cashFlowYearlyData: [], // Yearly breakdown for cash flow table
       redFlags: null,
-      activeTab: 'cashflow',
+      activeTab: 'cash-flow',
       error: null,
       saveMessage: null,
       saveSuccess: false,
@@ -654,6 +657,16 @@ export default {
   font-weight: 600;
   color: #374151;
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.title-suffix {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 1.125rem;
 }
 
 .trend-charts {

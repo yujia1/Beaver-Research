@@ -1,7 +1,5 @@
 <template>
   <div class="cash-flow-yearly-table">
-    <h3>Cash Flow Sustainability Metrics (Yearly Breakdown)</h3>
-    
     <div v-if="yearlyData.length === 0" class="no-data">
       No yearly data available
     </div>
