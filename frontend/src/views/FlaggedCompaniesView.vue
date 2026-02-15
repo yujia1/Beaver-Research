@@ -333,7 +333,7 @@ export default {
     }
   },
   mounted() {
-    this.fetchFlaggedCompanies()
+    // No initial fetch - user must trigger
   },
   methods: {
     async fetchFlaggedCompanies() {
@@ -591,6 +591,8 @@ export default {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Reduced shadow */
   overflow: hidden;
   border: 1px solid #e0e0e0; /* Added border */
+  max-height: 70vh; /* Enable embedded scrolling */
+  overflow-y: auto; /* Enable embedded scrolling */
 }
 
 .flagged-table {
@@ -602,6 +604,9 @@ export default {
   background: #f8f9fa; /* Standard gray header */
   color: #374151; /* Dark gray text */
   border-bottom: 2px solid #e5e7eb;
+  position: sticky; /* Sticky header */
+  top: 0;
+  z-index: 10;
 }
 
 .flagged-table th {
