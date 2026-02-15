@@ -381,9 +381,9 @@ async def flag_company_manually(
     # 1. Fetch financial data
     try:
         financial_data = fetch_all_financial_statements(ticker)
-        income_data = financial_data.get("income_statement", [])
-        balance_sheet_data = financial_data.get("balance_sheet", [])
-        cash_flow_data = financial_data.get("cash_flow", [])
+        income_data = financial_data.get("income", [])
+        balance_sheet_data = financial_data.get("balance", [])
+        cash_flow_data = financial_data.get("cashflow", [])
         
         quote = fetch_stock_quote(ticker)
         current_price = quote.get("price")
@@ -430,17 +430,36 @@ async def flag_company_manually(
     if not strategies_flagged and red_flag_summary.get("total_flags", 0) > 0:
         strategies_flagged = list(red_flag_summary.get("flags_by_category", {}).keys())
 
-    # Create FlaggedCompany
-    flagged_company = FlaggedCompany(
-        ticker=ticker,
-        company_name=company_name,
-        screening_date=datetime.utcnow(), 
-        strategies_flagged=strategies_flagged,
-        metrics=metrics_json,
-        red_flags=red_flags_list # Store as List[Dict]
-    )
+    # Ensure company_name is set (fallback to StockUniverse if quote missing)
+    if not company_name:
+        stock_u = db.query(StockUniverse).filter(StockUniverse.ticker == ticker).first()
+        if stock_u:
+            company_name = stock_u.company_name
+
+    # Create or Update FlaggedCompany
+    existing_company = db.query(FlaggedCompany).filter(FlaggedCompany.ticker == ticker).first()
     
-    db.add(flagged_company)
+    if existing_company:
+        # Update existing record
+        existing_company.company_name = company_name
+        existing_company.screening_date = datetime.utcnow()
+        existing_company.strategies_flagged = strategies_flagged
+        existing_company.metrics = metrics_json
+        existing_company.red_flags = red_flags_list
+        # existing_company.sector = ... # if available
+        flagged_company = existing_company
+    else:
+        # Create new record
+        flagged_company = FlaggedCompany(
+            ticker=ticker,
+            company_name=company_name,
+            screening_date=datetime.utcnow(), 
+            strategies_flagged=strategies_flagged,
+            metrics=metrics_json,
+            red_flags=red_flags_list # Store as List[Dict]
+        )
+        db.add(flagged_company)
+    
     db.commit()
     db.refresh(flagged_company)
     

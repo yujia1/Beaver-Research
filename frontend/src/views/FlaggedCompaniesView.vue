@@ -348,6 +348,8 @@ export default {
         }
         
         const response = await axios.get('/api/quant/screener/flagged', { params })
+        console.log('Flagged Companies Raw Response:', response)
+        console.log('Flagged Companies Data:', response.data)
         this.flaggedCompanies = response.data
         this.totalCount = response.data.length
         this.page = 1 // Reset to first page
