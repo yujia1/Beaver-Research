@@ -1403,25 +1403,6 @@
     "quant": {
         "title": "Quantitative Analysis Tools",
         "subtitle": "Advanced technical analysis and trading tools",
-        "fibonacci": {
-            "title": "Fibonacci Retracement",
-            "ticker_label": "Ticker Symbol",
-            "ticker_placeholder": "e.g., AAPL",
-            "days_label": "Data Period",
-            "days": "days",
-            "year": "year",
-            "years": "years",
-            "lookback_label": "Swing Lookback",
-            "analyze": "Analyze",
-            "analyzing": "Analyzing...",
-            "loading": "Fetching data and calculating Fibonacci levels...",
-            "trend": "Trend Analysis",
-            "setup": "Setup Type",
-            "swing_low": "Swing Low",
-            "swing_high": "Swing High",
-            "entry_zones": "Entry Zones (Retracement)",
-            "price_targets": "Price Targets (Extension)"
-        },
         "screener": {
             "title": "Stock Screener",
             "coming_soon": "Stock screener coming soon...",

@@ -1398,25 +1398,6 @@
     "quant": {
         "title": "量化分析工具",
         "subtitle": "高级技术分析与交易工具",
-        "fibonacci": {
-            "title": "斐波那契回撤",
-            "ticker_label": "股票代码",
-            "ticker_placeholder": "例如: AAPL",
-            "days_label": "数据周期",
-            "days": "天",
-            "year": "年",
-            "years": "年",
-            "lookback_label": "摆动回溯",
-            "analyze": "分析",
-            "analyzing": "分析中...",
-            "loading": "正在获取数据并计算斐波那契水平...",
-            "trend": "趋势分析",
-            "setup": "设置类型",
-            "swing_low": "摆动低点",
-            "swing_high": "摆动高点",
-            "entry_zones": "入场区域 (回撤)",
-            "price_targets": "价格目标 (延伸)"
-        },
         "screener": {
             "title": "股票筛选器",
             "coming_soon": "股票筛选器即将推出...",
