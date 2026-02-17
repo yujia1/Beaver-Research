@@ -130,11 +130,32 @@ const saveCustomTickers = async () => {
 
 
 
+// Process income data to calculate EBITDA correctly
+// EBITDA = Operating Income + Depreciation & Amortization
+const processedIncomeData = computed(() => {
+  if (!incomeData.value || incomeData.value.length === 0) {
+    return []
+  }
+  
+  return incomeData.value.map(item => {
+    // Calculate EBITDA from Operating Income + Depreciation & Amortization
+    const operatingIncome = item.operatingIncome || 0
+    const depreciationAndAmortization = item.depreciationAndAmortization || 0
+    const calculatedEBITDA = operatingIncome + depreciationAndAmortization
+    
+    // Return a new object with calculated EBITDA
+    return {
+      ...item,
+      ebitda: calculatedEBITDA
+    }
+  })
+})
+
 // Get current data based on active tab
 const currentData = computed(() => {
   switch (activeTab.value) {
     case 'income':
-      return incomeData.value
+      return processedIncomeData.value
     case 'cash_flow':
       return cashFlowData.value
     case 'balance_sheet':
