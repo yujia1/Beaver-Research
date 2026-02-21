@@ -123,6 +123,7 @@
                 <th>Year</th>
                 <th>CFO / Net Income <span class="threshold">0.8–1.2</span></th>
                 <th>FCF / Net Income <span class="threshold">&gt; 0</span></th>
+                <th>DSO <span class="threshold">≤ 60d</span></th>
                 <th>Capex / Rev</th>
                 <th>SBC / Rev</th>
                 <th>Shares Out</th>
@@ -134,6 +135,7 @@
                 <td class="year-cell">{{ row.year }}</td>
                 <td :class="cellClass(row.cfo_to_ni_pass)">{{ fmtRatio(row.cfo_to_ni) }}</td>
                 <td :class="cellClass(row.fcf_to_ni_pass)">{{ fmtRatio(row.fcf_to_ni) }}</td>
+                <td :class="row.dso_flag ? 'mono cell-warn' : 'mono'">{{ fmtDays(row.dso) }}</td>
                 <td class="mono">{{ fmtPct(row.capex_to_rev) }}</td>
                 <td class="mono">{{ fmtPct(row.sbc_to_rev) }}</td>
                 <td class="mono">{{ fmtLargeNum(row.shares_out) }}</td>
@@ -199,9 +201,8 @@
                 <th>Year</th>
                 <th>FCF Yield <span class="threshold">≥ 5% Buy</span></th>
                 <th>EV/EBITDA</th>
+                <th>EV/FCF</th>
                 <th>P/E</th>
-                <th>EPS Growth</th>
-                <th>PEG</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -209,10 +210,9 @@
               <tr v-for="row in layeredResult.valuation.yearly" :key="row.year" :class="{ 'row-fail': row.is_red_flag }">
                 <td class="year-cell">{{ row.year }}</td>
                 <td :class="cellClass(row.fcf_yield_pass)">{{ fmtPct(row.fcf_yield) }}</td>
-                <td class="mono">{{ fmtRatio(row.ev_ebitda) }}</td>
-                <td class="mono">{{ fmtRatio(row.pe) }}</td>
-                <td class="mono">{{ fmtPct(row.eps_growth) }}</td>
-                <td class="mono">{{ fmtRatio(row.peg) }}</td>
+                <td class="mono">{{ fmtMultiple(row.ev_ebitda) }}</td>
+                <td class="mono">{{ fmtMultiple(row.ev_to_fcf) }}</td>
+                <td class="mono">{{ fmtMultiple(row.pe) }}</td>
                 <td>
                   <span class="badge" :class="row.is_red_flag ? 'badge-fail' : 'badge-pass'">
                     {{ row.is_red_flag ? 'Flag' : 'OK' }}
@@ -337,6 +337,14 @@ export default {
     },
 
     // ── Formatters ──
+    fmtDays(v) {
+      if (v === null || v === undefined) return '—'
+      return `${parseFloat(v).toFixed(1)}d`
+    },
+    fmtMultiple(v) {
+      if (v === null || v === undefined) return '—'
+      return `${parseFloat(v).toFixed(1)}x`
+    },
     fmtRatio(v) {
       if (v === null || v === undefined) return '—'
       return `${parseFloat(v).toFixed(2)}×`
@@ -628,6 +636,7 @@ td { padding: 0.7rem 1rem; }
 
 .cell-pass { font-family: 'Monaco', monospace; color: #059669; font-weight: 700; }
 .cell-fail { font-family: 'Monaco', monospace; color: #dc2626; font-weight: 700; }
+.cell-warn { font-family: 'Monaco', monospace; color: #d97706; font-weight: 700; }
 
 .badge {
   display: inline-block;

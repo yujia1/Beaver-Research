@@ -189,9 +189,12 @@ def run_layered_screener(symbol: str, limit: int = 5, period: str = "FY") -> Dic
         capex_to_rev = _safe(km_row.get("capexToRevenue") or km_row.get("capexToRevenueRatio"))
         sbc_to_rev   = _safe(km_row.get("stockBasedCompensationToRevenue") or km_row.get("stockBasedCompensationToRevenueRatio"))
         shares_out   = _safe(inc_row.get("weightedAverageShsOut"))
+        dso          = _safe(km_row.get("daysOfSalesOutstanding") or km_row.get("daysSalesOutstanding") or km_row.get("dso"))
 
         cfo_pass = (0.8 <= cfo_to_ni <= 1.2) if cfo_to_ni is not None else None
         fcf_pass = (fcf_to_ni > 0)           if fcf_to_ni is not None else None
+        # Flag rising DSO (> 60 days typical threshold — noted, not hard eliminated)
+        dso_flag = (dso > 60) if dso is not None else None
 
         row_flag = any(p is False for p in [cfo_pass, fcf_pass])
 
@@ -207,6 +210,8 @@ def run_layered_screener(symbol: str, limit: int = 5, period: str = "FY") -> Dic
             "capex_to_rev":   capex_to_rev,
             "sbc_to_rev":     sbc_to_rev,
             "shares_out":     shares_out,
+            "dso":            dso,
+            "dso_flag":       dso_flag,
             "is_red_flag":    row_flag,
         })
 
@@ -263,8 +268,13 @@ def run_layered_screener(symbol: str, limit: int = 5, period: str = "FY") -> Dic
         year    = _year_from_row(km_row) or _year_from_row(inc_row)
 
         roic         = _safe(km_row.get("returnOnInvestedCapital") or km_row.get("roic"))
-        gross_margin = _safe(km_row.get("grossProfitMargin") or km_row.get("grossMargin"))
-        op_margin    = _safe(km_row.get("operatingProfitMargin") or km_row.get("operatingMargin"))
+
+        # Calculate margins from income statement (key-metrics does not carry these)
+        revenue      = _safe(inc_row.get("revenue") or inc_row.get("totalRevenue"))
+        gross_profit = _safe(inc_row.get("grossProfit"))
+        op_income    = _safe(inc_row.get("operatingIncome"))
+        gross_margin = (gross_profit / revenue) if (gross_profit is not None and revenue and revenue != 0) else None
+        op_margin    = (op_income    / revenue) if (op_income    is not None and revenue and revenue != 0) else None
 
         interest  = abs(_safe(inc_row.get("interestExpense") or 0) or 0)
         lt_debt   = _safe(bs_row.get("longTermDebt") or 0) or 0
@@ -290,13 +300,19 @@ def run_layered_screener(symbol: str, limit: int = 5, period: str = "FY") -> Dic
     if roic_latest is not None:
         structural_checks.append({"metric": "ROIC (latest)", "value": roic_latest, "source": "key-metrics"})
 
-    gm_latest = _safe(km.get("grossProfitMargin") or km.get("grossMargin"))
+    gm_latest = None
+    om_latest = None
+    if income:
+        inc0    = income[0]
+        rev0    = _safe(inc0.get("revenue") or inc0.get("totalRevenue"))
+        gp0     = _safe(inc0.get("grossProfit"))
+        oi0     = _safe(inc0.get("operatingIncome"))
+        gm_latest = (gp0 / rev0) if (gp0 is not None and rev0 and rev0 != 0) else None
+        om_latest = (oi0 / rev0) if (oi0 is not None and rev0 and rev0 != 0) else None
     if gm_latest is not None:
-        structural_checks.append({"metric": "Gross Margin (latest)", "value": gm_latest, "source": "key-metrics"})
-
-    om_latest = _safe(km.get("operatingProfitMargin") or km.get("operatingMargin"))
+        structural_checks.append({"metric": "Gross Margin (latest)", "value": gm_latest, "source": "income-statement"})
     if om_latest is not None:
-        structural_checks.append({"metric": "Operating Margin (latest)", "value": om_latest, "source": "key-metrics"})
+        structural_checks.append({"metric": "Operating Margin (latest)", "value": om_latest, "source": "income-statement"})
 
     # Flag years with negative economic spread
     neg_spread_years = [r["year"] for r in structural_yearly if r["roic_spread"] is not None and r["roic_spread"] < 0]
@@ -315,29 +331,22 @@ def run_layered_screener(symbol: str, limit: int = 5, period: str = "FY") -> Dic
         inc_row = income[i]
         year    = _year_from_row(km_row) or _year_from_row(inc_row)
 
-        fcf_yield     = _safe(km_row.get("freeCashFlowYield") or km_row.get("freeCashFlowYieldPercentage"))
-        ev_ebitda     = _safe(km_row.get("evToEbitda") or km_row.get("evToEbitdaRatio"))
+        fcf_yield  = _safe(km_row.get("freeCashFlowYield") or km_row.get("freeCashFlowYieldPercentage"))
+        ev_ebitda  = _safe(km_row.get("evToEBITDA") or km_row.get("evToEbitda") or km_row.get("evToEbitdaRatio"))
+        ev_to_fcf  = _safe(km_row.get("evToFreeCashFlow") or km_row.get("evToFcf"))
         earnings_yield = _safe(km_row.get("earningsYield"))
-        eps_growth    = _safe(km_row.get("epsDilutedGrowth") or km_row.get("epsGrowth") or km_row.get("earningsPerShareGrowth"))
         pe = (1.0 / earnings_yield) if (earnings_yield and earnings_yield != 0) else None
-        peg = None
-        if pe and eps_growth and eps_growth != 0:
-            try:
-                peg = pe / (eps_growth * 100.0) if eps_growth < 1 else pe / eps_growth
-            except Exception:
-                pass
 
         fcf_pass = (fcf_yield >= 0.03) if fcf_yield is not None else None
 
         valuation_yearly.append({
-            "year":         year,
-            "fcf_yield":    fcf_yield,
+            "year":           year,
+            "fcf_yield":      fcf_yield,
             "fcf_yield_pass": fcf_pass,
-            "ev_ebitda":    ev_ebitda,
-            "pe":           pe,
-            "eps_growth":   eps_growth,
-            "peg":          peg,
-            "is_red_flag":  fcf_pass is False,
+            "ev_ebitda":      ev_ebitda,
+            "ev_to_fcf":      ev_to_fcf,
+            "pe":             pe,
+            "is_red_flag":    fcf_pass is False,
         })
 
     # Summary checks from latest
@@ -347,9 +356,13 @@ def run_layered_screener(symbol: str, limit: int = 5, period: str = "FY") -> Dic
         if fcf_yield_latest < 0.03:
             val_notes.append(f"Low FCF yield: {fcf_yield_latest:.2%}")
 
-    ev_ebitda_latest = _safe(km.get("evToEbitda") or km.get("evToEbitdaRatio"))
+    ev_ebitda_latest = _safe(km.get("evToEBITDA") or km.get("evToEbitda") or km.get("evToEbitdaRatio"))
     if ev_ebitda_latest is not None:
         valuation_checks.append({"metric": "EV/EBITDA (latest)", "value": ev_ebitda_latest, "source": "key-metrics"})
+
+    ev_to_fcf_latest = _safe(km.get("evToFreeCashFlow") or km.get("evToFcf"))
+    if ev_to_fcf_latest is not None:
+        valuation_checks.append({"metric": "EV/FCF (latest)", "value": ev_to_fcf_latest, "source": "key-metrics"})
 
     valuation_checks.append({"metric": "Reverse DCF", "value": None, "note": "Manual check recommended", "source": "derived"})
 
