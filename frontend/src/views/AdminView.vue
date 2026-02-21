@@ -38,6 +38,12 @@
       >
         {{ t('admin.tabs.database') }}
       </button>
+      <button 
+        :class="{ active: activeTab === 'batch' }"
+        @click="activeTab = 'batch'"
+      >
+        Batch Screening
+      </button>
     </div>
 
     <!-- User Management Tab -->
@@ -602,28 +608,69 @@
                <span><strong>{{ t('admin.database.info.total') }}</strong> {{ tableData.total_count }}</span>
                <span><strong>{{ t('admin.database.info.showing') }}</strong> {{ tableData.rows.length }} {{ t('admin.database.info.rows') }}</span>
              </div>
-             
+
+             <!-- Delete toolbar -->
+             <div v-if="dbSelectedIds.size > 0" class="db-delete-toolbar">
+               <span class="db-selection-info">{{ dbSelectedIds.size }} row{{ dbSelectedIds.size === 1 ? '' : 's' }} selected</span>
+               <button
+                 class="action-button delete"
+                 :disabled="dbDeleting"
+                 @click="deleteSelectedRows"
+               >
+                 {{ dbDeleting ? 'Deleting...' : `Delete ${dbSelectedIds.size} row${dbSelectedIds.size === 1 ? '' : 's'}` }}
+               </button>
+               <button class="action-button" style="background:#e5e7eb;color:#374151" @click="dbSelectedIds.clear(); dbSelectedIds = new Set()">
+                 Clear selection
+               </button>
+             </div>
+
              <div class="users-table-container db-table-container">
                <table class="users-table">
                  <thead>
                    <tr>
+                     <th style="width:36px">
+                       <input
+                         type="checkbox"
+                         :checked="dbAllSelected"
+                         :indeterminate.prop="dbSomeSelected && !dbAllSelected"
+                         @change="toggleSelectAll"
+                       />
+                     </th>
                      <th v-for="col in tableData.columns" :key="col">{{ col }}</th>
                    </tr>
                  </thead>
                  <tbody>
-                   <tr v-for="(row, idx) in tableData.rows" :key="idx">
+                   <tr
+                     v-for="(row, idx) in tableData.rows"
+                     :key="idx"
+                     :class="{ 'db-row-selected': dbSelectedIds.has(row.id ?? idx) }"
+                     @click="toggleRowSelection(row, idx)"
+                     style="cursor:pointer"
+                   >
+                     <td @click.stop>
+                       <input
+                         type="checkbox"
+                         :checked="dbSelectedIds.has(row.id ?? idx)"
+                         @change="toggleRowSelection(row, idx)"
+                       />
+                     </td>
                      <td v-for="col in tableData.columns" :key="col">{{ row[col] }}</td>
                    </tr>
                  </tbody>
                </table>
              </div>
-             
+
              <div v-if="tableData.rows.length === 0" class="no-results">
                 <p>{{ t('admin.database.no_results') }}</p>
              </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Batch Screening Tab -->
+    <div v-if="activeTab === 'batch'">
+      <BatchScreeningView />
     </div>
 
     <div v-if="message" :class="['message', messageType]">
@@ -665,6 +712,7 @@
 
 <script setup>
 import API_BASE_URL from '@/config/api.js'
+import BatchScreeningView from './BatchScreeningView.vue'
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -925,6 +973,100 @@ const tablesError = ref('')
 const selectedTable = ref('')
 const tableData = ref(null)
 const loadingTableData = ref(false)
+const dbSelectedIds = ref(new Set())
+const dbDeleting = ref(false)
+
+const dbAllSelected = computed(() =>
+  tableData.value?.rows.length > 0 &&
+  tableData.value.rows.every(row => dbSelectedIds.value.has(row.id ?? tableData.value.rows.indexOf(row)))
+)
+const dbSomeSelected = computed(() => dbSelectedIds.value.size > 0)
+
+const toggleSelectAll = () => {
+  if (dbAllSelected.value) {
+    dbSelectedIds.value = new Set()
+  } else {
+    const ids = new Set(tableData.value.rows.map((row, idx) => row.id ?? idx))
+    dbSelectedIds.value = ids
+  }
+}
+
+const toggleRowSelection = (row, idx) => {
+  const id = row.id ?? idx
+  const next = new Set(dbSelectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  dbSelectedIds.value = next
+}
+
+const loadTables = async () => {
+  loadingTables.value = true
+  tablesError.value = ''
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/admin/db/tables`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (!response.ok) throw new Error('Failed to load tables')
+    tables.value = await response.json()
+  } catch (err) {
+    tablesError.value = err.message
+  } finally {
+    loadingTables.value = false
+  }
+}
+
+const loadTableData = async () => {
+  if (!selectedTable.value) return
+  loadingTableData.value = true
+  tableData.value = null
+  dbSelectedIds.value = new Set()
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/admin/db/table/${selectedTable.value}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (!response.ok) throw new Error('Failed to load table data')
+    tableData.value = await response.json()
+  } catch (err) {
+    message.value = err.message
+    messageType.value = 'error'
+    setTimeout(() => { message.value = '' }, 4000)
+  } finally {
+    loadingTableData.value = false
+  }
+}
+
+const deleteSelectedRows = async () => {
+  if (dbSelectedIds.value.size === 0) return
+  const ids = [...dbSelectedIds.value]
+  if (!confirm(`Delete ${ids.length} row${ids.length === 1 ? '' : 's'} from "${selectedTable.value}"? This cannot be undone.`)) return
+
+  dbDeleting.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/api/admin/db/table/${selectedTable.value}/rows`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    })
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.detail || 'Delete failed')
+    }
+    const result = await response.json()
+    message.value = `Deleted ${result.deleted} row${result.deleted === 1 ? '' : 's'} from ${selectedTable.value}.`
+    messageType.value = 'success'
+    dbSelectedIds.value = new Set()
+    await loadTableData()
+  } catch (err) {
+    message.value = err.message
+    messageType.value = 'error'
+  } finally {
+    dbDeleting.value = false
+    setTimeout(() => { message.value = '' }, 4000)
+  }
+}
 
 // Access Management State
 const permissions = ref([])
@@ -1724,6 +1866,35 @@ onMounted(() => {
 }
 
 /* Upload Section */
+.table-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.db-delete-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.db-selection-info {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+  flex: 1;
+}
+
+.db-row-selected {
+  background: #eff6ff !important;
+}
+
 .upload-section {
   margin-bottom: 2rem;
   padding: 1.5rem;

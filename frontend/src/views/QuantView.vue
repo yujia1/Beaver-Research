@@ -19,13 +19,6 @@
       >
         Flagged Companies
       </button>
-      <button 
-        v-if="isAdmin"
-        :class="['tab-btn', { active: activeTab === 'batch' }]"
-        @click="activeTab = 'batch'"
-      >
-        Batch Screening
-      </button>
     </div>
 
     <!-- Screener Tabs Content -->
@@ -46,7 +39,6 @@ import { useUserStore } from '@/stores/userStore'
 // Import views for tabs
 import QuantScreenerView from './QuantScreenerView.vue'
 import FlaggedCompaniesView from './FlaggedCompaniesView.vue'
-import BatchScreeningView from './BatchScreeningView.vue'
 
 const { t } = useI18n()
 const userStore = useUserStore()
@@ -57,7 +49,6 @@ const activeTab = ref('screener')
 
 const currentTabComponent = computed(() => {
   if (activeTab.value === 'flagged') return FlaggedCompaniesView
-  if (activeTab.value === 'batch' && isAdmin.value) return BatchScreeningView
   return QuantScreenerView
 })
 </script>

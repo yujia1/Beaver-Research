@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text, inspect
 from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
 from database import get_db, engine
 from routers.admin.auth import get_current_user
 import models
@@ -82,3 +83,37 @@ async def get_table_data(
         "limit": limit,
         "offset": offset
     }
+
+
+class DeleteRowsRequest(BaseModel):
+    ids: List[int]
+
+
+@router.delete("/table/{table_name}/rows")
+async def delete_table_rows(
+    table_name: str,
+    body: DeleteRowsRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_admin)
+):
+    """Delete rows from a table by their ID values."""
+    inspector = inspect(engine)
+    if table_name not in inspector.get_table_names():
+        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+
+    columns = [col['name'] for col in inspector.get_columns(table_name)]
+    if 'id' not in columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Table '{table_name}' has no 'id' column; deletion by ID is not supported"
+        )
+
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="No IDs provided")
+
+    # Use parameterised IN clause — table name already validated above
+    placeholders = ",".join(str(int(i)) for i in body.ids)
+    result = db.execute(text(f"DELETE FROM {table_name} WHERE id IN ({placeholders})"))
+    db.commit()
+
+    return {"deleted": result.rowcount, "table": table_name}
