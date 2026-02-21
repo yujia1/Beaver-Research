@@ -669,9 +669,9 @@
     </div>
 
     <!-- Batch Screening Tab -->
-    <div v-if="activeTab === 'batch'">
+    <div>
       <keep-alive>
-        <BatchScreeningView />
+        <BatchScreeningView v-if="activeTab === 'batch'" />
       </keep-alive>
     </div>
 

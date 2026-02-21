@@ -303,7 +303,7 @@ async def get_batch_status(
     return BatchScreenStatus(
         run_id=screening_run.id,
         status=screening_run.status,
-        total_stocks=screening_run.total_stocks_processed,
+        total_stocks=screening_run.target_total_stocks,
         processed_stocks=screening_run.total_stocks_processed,
         flagged_stocks=screening_run.total_flagged,
         started_at=screening_run.run_date,
@@ -327,7 +327,7 @@ async def get_screening_runs(
         BatchScreenStatus(
             run_id=run.id,
             status=run.status,
-            total_stocks=run.total_stocks_processed,
+            total_stocks=run.target_total_stocks,
             processed_stocks=run.total_stocks_processed,
             flagged_stocks=run.total_flagged,
             started_at=run.run_date,
@@ -360,7 +360,7 @@ async def stop_batch_screen(
     return BatchScreenStatus(
         run_id=run.id,
         status=run.status,
-        total_stocks=run.total_stocks_processed,
+        total_stocks=run.target_total_stocks,
         processed_stocks=run.total_stocks_processed,
         flagged_stocks=run.total_flagged,
         started_at=run.run_date,

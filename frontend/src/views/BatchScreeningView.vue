@@ -296,15 +296,29 @@ export default {
       return `${minutes}m`
     }
   },
-  mounted() {
+  async mounted() {
     // this.fetchRunHistory() // Don't load by default - user must click Refresh
     this.fetchUniverseCount()
+    await this.checkActiveRun()
     this.startPolling()
   },
   beforeUnmount() {
     this.stopPolling()
   },
   methods: {
+    async checkActiveRun() {
+      try {
+        const response = await api.get('/api/quant/screener/runs', { params: { limit: 1 } })
+        const runs = response.data
+        if (runs.length > 0 && runs[0].status === 'running') {
+          this.activeRunId = runs[0].run_id
+          await this.fetchBatchStatus()
+        }
+      } catch (error) {
+        console.error('Error checking active run:', error)
+      }
+    },
+    
     async startBatchScreening() {
       this.starting = true
       this.statusMessage = ''

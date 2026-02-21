@@ -340,6 +340,11 @@ def run_batch_screen(
             tickers = get_stock_universe(db, limit=limit)
         
         total_stocks = len(tickers)
+        
+        # Save target total for accurate frontend progress monitoring
+        screening_run.target_total_stocks = total_stocks
+        db.commit()
+        
         processed_count = 0
         flagged_count = 0
         error_count = 0

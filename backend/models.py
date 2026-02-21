@@ -155,6 +155,7 @@ class ScreeningRun(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     run_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    target_total_stocks = Column(Integer, default=0)
     total_stocks_processed = Column(Integer, default=0)
     total_flagged = Column(Integer, default=0)
     strategies_run = Column(JSON, nullable=False)  # List of strategies executed
