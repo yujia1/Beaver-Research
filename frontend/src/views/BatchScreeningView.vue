@@ -41,18 +41,6 @@
           />
           <span class="help-text">Delay between batches (default: 60s)</span>
         </div>
-        
-        <div class="config-item checkbox">
-          <label>
-            <input 
-              v-model="config.enablePeerComparison" 
-              type="checkbox"
-              :disabled="isRunning"
-            />
-            <span>Enable Peer Comparison</span>
-          </label>
-          <span class="help-text warning">Not recommended for full market (very slow)</span>
-        </div>
       </div>
       
       <div class="control-buttons">
