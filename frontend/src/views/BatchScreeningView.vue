@@ -107,13 +107,13 @@
         
         <div class="stat-card">
           <div class="stat-icon">Processed</div>
-          <div class="stat-value">{{ batchStatus.processed || 0 }}</div>
+          <div class="stat-value">{{ batchStatus.processed_stocks || 0 }}</div>
           <div class="stat-label">Processed</div>
         </div>
         
         <div class="stat-card">
           <div class="stat-icon">Flagged</div>
-          <div class="stat-value">{{ batchStatus.flagged || 0 }}</div>
+          <div class="stat-value">{{ batchStatus.flagged_stocks || 0 }}</div>
           <div class="stat-label">Flagged</div>
         </div>
         
@@ -152,7 +152,7 @@
       <div v-if="batchStatus.status === 'failed'" class="error-message">
         <span class="error-icon">Error</span>
         <span>Batch screening failed</span>
-        <p v-if="batchStatus.error_log">{{ batchStatus.error_log }}</p>
+        <p v-if="batchStatus.error_message">{{ batchStatus.error_message }}</p>
       </div>
     </div>
     
@@ -267,15 +267,17 @@ export default {
     },
     
     progressPercent() {
-      if (!this.batchStatus || !this.batchStatus.total_stocks) return 0
-      const percent = (this.batchStatus.processed / this.batchStatus.total_stocks) * 100
-      return Math.min(Math.round(percent), 100)
+      if (!this.batchStatus) return 0
+      const total = this.batchStatus.total_stocks || 0
+      const processed = this.batchStatus.processed_stocks || 0
+      if (total === 0) return 0
+      return Math.min(Math.round((processed / total) * 100), 100)
     },
     
     estimatedTimeRemaining() {
       if (!this.batchStatus || !this.isRunning) return 'N/A'
       
-      const processed = this.batchStatus.processed || 0
+      const processed = this.batchStatus.processed_stocks || 0
       const total = this.batchStatus.total_stocks || 0
       const remaining = total - processed
       

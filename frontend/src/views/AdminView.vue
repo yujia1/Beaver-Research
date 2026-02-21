@@ -670,7 +670,9 @@
 
     <!-- Batch Screening Tab -->
     <div v-if="activeTab === 'batch'">
-      <BatchScreeningView />
+      <keep-alive>
+        <BatchScreeningView />
+      </keep-alive>
     </div>
 
     <div v-if="message" :class="['message', messageType]">
