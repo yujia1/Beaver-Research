@@ -999,43 +999,6 @@ const toggleRowSelection = (row, idx) => {
   dbSelectedIds.value = next
 }
 
-const loadTables = async () => {
-  loadingTables.value = true
-  tablesError.value = ''
-  try {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/api/admin/db/tables`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    if (!response.ok) throw new Error('Failed to load tables')
-    tables.value = await response.json()
-  } catch (err) {
-    tablesError.value = err.message
-  } finally {
-    loadingTables.value = false
-  }
-}
-
-const loadTableData = async () => {
-  if (!selectedTable.value) return
-  loadingTableData.value = true
-  tableData.value = null
-  dbSelectedIds.value = new Set()
-  try {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/api/admin/db/table/${selectedTable.value}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    if (!response.ok) throw new Error('Failed to load table data')
-    tableData.value = await response.json()
-  } catch (err) {
-    message.value = err.message
-    messageType.value = 'error'
-    setTimeout(() => { message.value = '' }, 4000)
-  } finally {
-    loadingTableData.value = false
-  }
-}
 
 const deleteSelectedRows = async () => {
   if (dbSelectedIds.value.size === 0) return
@@ -1297,6 +1260,7 @@ const loadTableData = async () => {
   
   loadingTableData.value = true
   tableData.value = null
+  dbSelectedIds.value = new Set()
   
   try {
     const token = localStorage.getItem('access_token')
