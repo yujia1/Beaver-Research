@@ -40,10 +40,6 @@
       <div class="results-header">
         <div>
           <h2>{{ layeredResult.ticker }}</h2>
-          <span class="sub-label">Layered Screener — {{ layeredResult.survival_filter.yearly.length }} years of data</span>
-        </div>
-        <div class="action-badge" :class="actionClass">
-          {{ layeredResult.action.recommendation }}
         </div>
       </div>
 
@@ -74,12 +70,6 @@
 
       <!-- ── Layer 1: Survival Filter ── -->
       <div v-if="activeLayer === 'survival'" class="layer-panel">
-        <div class="layer-status" :class="layeredResult.survival_filter.top_reasons && layeredResult.survival_filter.top_reasons.length ? 'fail' : 'pass'">
-          <span>{{ (layeredResult.survival_filter.top_reasons && layeredResult.survival_filter.top_reasons.length) ? '✗ FAIL' : '✓ PASS' }}</span>
-          <span v-if="layeredResult.survival_filter.top_reasons && layeredResult.survival_filter.top_reasons.length" class="flag-reasons">
-            {{ layeredResult.survival_filter.top_reasons.join(' · ') }}
-          </span>
-        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -112,10 +102,7 @@
 
       <!-- ── Layer 2: Earnings Quality ── -->
       <div v-if="activeLayer === 'earnings'" class="layer-panel">
-        <div v-if="layeredResult.earnings_quality.notes && layeredResult.earnings_quality.notes.length" class="layer-notes">
-          <span v-for="(n, i) in layeredResult.earnings_quality.notes" :key="i" class="note-chip flag">{{ n }}</span>
-        </div>
-        <div v-else class="layer-notes clean">No earnings quality red flags.</div>
+
         <div class="table-wrap">
           <table>
             <thead>
@@ -152,10 +139,7 @@
 
       <!-- ── Layer 3: Structural Health ── -->
       <div v-if="activeLayer === 'structural'" class="layer-panel">
-        <div v-if="layeredResult.structural_health.notes && layeredResult.structural_health.notes.length" class="layer-notes">
-          <span v-for="(n, i) in layeredResult.structural_health.notes" :key="i" class="note-chip flag">{{ n }}</span>
-        </div>
-        <div v-else class="layer-notes clean">No structural health concerns.</div>
+
         <div class="table-wrap">
           <table>
             <thead>
@@ -190,10 +174,7 @@
 
       <!-- ── Layer 4: Valuation ── -->
       <div v-if="activeLayer === 'valuation'" class="layer-panel">
-        <div v-if="layeredResult.valuation.notes && layeredResult.valuation.notes.length" class="layer-notes">
-          <span v-for="(n, i) in layeredResult.valuation.notes" :key="i" class="note-chip flag">{{ n }}</span>
-        </div>
-        <div v-else class="layer-notes clean">Valuation looks reasonable.</div>
+
         <div class="table-wrap">
           <table>
             <thead>

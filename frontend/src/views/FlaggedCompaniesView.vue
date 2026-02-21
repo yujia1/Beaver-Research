@@ -7,11 +7,11 @@
       <div class="filter-group">
         <label>Strategy Filter</label>
         <select v-model="filters.strategy" @change="fetchFlaggedCompanies">
-          <option value="all">All Strategies</option>
-          <option value="Cash Flow Sustainability">Cash Flow Sustainability</option>
-          <option value="Balance Sheet Stress">Balance Sheet Stress</option>
-          <option value="Working Capital Anomalies">Working Capital Anomalies</option>
-          <option value="Valuation Dislocation">Valuation Dislocation</option>
+          <option value="all">All Layers</option>
+          <option value="Survival Filter">Survival Filter</option>
+          <option value="Earnings Quality">Earnings Quality</option>
+          <option value="Structural Health">Structural Health</option>
+          <option value="Valuation">Valuation</option>
         </select>
       </div>
       
@@ -175,14 +175,15 @@
           <div class="modal-section">
             <h4>Red Flags ({{ selectedCompany?.red_flags?.length || 0 }})</h4>
             <div class="red-flags-list">
-              <div 
-                v-for="(flag, index) in selectedCompany?.red_flags" 
+              <div
+                v-for="(flag, index) in selectedCompany?.red_flags"
                 :key="index"
                 class="flag-item"
               >
-                <RedFlagBadge :reason="flag.reason" />
-                <span class="flag-metric">{{ flag.metric }}</span>
+                <span class="flag-category">{{ flag.category }}</span>
+                <span class="flag-note">{{ flag.note }}</span>
               </div>
+              <div v-if="!selectedCompany?.red_flags?.length" class="no-flags">No red flags recorded.</div>
             </div>
           </div>
           
@@ -200,14 +201,24 @@
             </div>
           </div>
           
-          <!-- Metrics Table -->
+          <!-- Layered Screener Summary -->
           <div class="modal-section">
-            <h4>All Metrics</h4>
-            <ScreenerMetricsTable 
-              v-if="selectedCompany?.metrics"
-              :metrics="selectedCompany.metrics"
-              :show-trend="false"
-            />
+            <h4>Screener Layers</h4>
+            <div v-if="selectedCompany?.metrics?.action" class="action-summary">
+              <span class="action-badge" :class="actionBadgeClass(selectedCompany.metrics.action.recommendation)">
+                {{ selectedCompany.metrics.action.recommendation }}
+              </span>
+              <span class="action-reason">{{ selectedCompany.metrics.action.reason }}</span>
+            </div>
+            <div class="layer-summary-list">
+              <div v-for="layer in modalLayers" :key="layer.key" class="layer-summary-item">
+                <span class="layer-label">{{ layer.label }}</span>
+                <span v-if="layer.notes && layer.notes.length" class="layer-flags">
+                  <span v-for="(n, i) in layer.notes" :key="i" class="note-chip">{{ n }}</span>
+                </span>
+                <span v-else class="layer-clean">✓ Clean</span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -228,20 +239,11 @@
 import axios from 'axios'
 import API_BASE_URL from '@/config/api'
 
-// Create axios instance with base URL
-const api = axios.create({
-  baseURL: API_BASE_URL
-})
-
-import ScreenerMetricsTable from '@/components/quant/ScreenerMetricsTable.vue'
-import RedFlagBadge from '@/components/quant/RedFlagBadge.vue'
+const api = axios.create({ baseURL: API_BASE_URL })
 
 export default {
   name: 'FlaggedCompaniesView',
-  components: {
-    ScreenerMetricsTable,
-    RedFlagBadge
-  },
+  components: {},
   data() {
     return {
       flaggedCompanies: [],
@@ -332,6 +334,16 @@ export default {
       return Math.ceil(this.filteredCount / this.limit)
     },
     
+    modalLayers() {
+      const m = this.selectedCompany?.metrics || {}
+      return [
+        { key: 'survival_filter',  label: 'Survival Filter',  notes: m.survival_filter?.top_reasons || [] },
+        { key: 'earnings_quality', label: 'Earnings Quality', notes: m.earnings_quality?.notes || [] },
+        { key: 'structural_health',label: 'Structural Health',notes: m.structural_health?.notes || [] },
+        { key: 'valuation',        label: 'Valuation',        notes: m.valuation?.notes || [] },
+      ]
+    },
+
     averageRedFlags() {
       if (this.filteredCompanies.length === 0) return 0
       const total = this.filteredCompanies.reduce((sum, c) => sum + (c.red_flags?.length || 0), 0)
@@ -423,37 +435,34 @@ export default {
     },
     
     exportCompany(company) {
-      // Export to CSV/PDF
-      console.log('Exporting company:', company.ticker)
-      
-      // Simple CSV export
-      const csv = [
-        ['Metric', 'Value', 'Red Flag', 'Reason'],
-        ...Object.entries(company.metrics || {}).map(([key, metric]) => [
-          metric.name,
-          metric.latest_value,
-          metric.is_red_flag ? 'Yes' : 'No',
-          metric.red_flag_reason || ''
-        ])
-      ].map(row => row.join(',')).join('\n')
-      
+      const rows = [['Layer', 'Note']]
+      const m = company.metrics || {}
+      ;[['Survival Filter', m.survival_filter?.top_reasons],
+        ['Earnings Quality', m.earnings_quality?.notes],
+        ['Structural Health', m.structural_health?.notes],
+        ['Valuation', m.valuation?.notes]
+      ].forEach(([layer, notes]) => {
+        (notes || []).forEach(n => rows.push([layer, n]))
+      })
+      const csv = rows.map(r => r.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n')
       const blob = new Blob([csv], { type: 'text/csv' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${company.ticker}_metrics.csv`
+      a.download = `${company.ticker}_layered_screener.csv`
       a.click()
       window.URL.revokeObjectURL(url)
     },
     
     formatDate(dateString) {
       if (!dateString) return 'N/A'
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
+      return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    },
+
+    actionBadgeClass(rec) {
+      if (rec === 'Buy')   return 'action-buy'
+      if (rec === 'Avoid') return 'action-avoid'
+      return 'action-watch'
     }
   }
 }
@@ -921,9 +930,91 @@ export default {
   border-radius: 8px;
 }
 
-.flag-metric {
-  font-weight: 500;
+.flag-category {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.flag-note {
+  font-size: 0.875rem;
   color: #374151;
+}
+
+.no-flags {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+/* Layer summary in modal */
+.action-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.action-badge {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.action-buy   { background: #d1fae5; color: #065f46; }
+.action-avoid { background: #fee2e2; color: #991b1b; }
+.action-watch { background: #fef3c7; color: #92400e; }
+
+.action-reason { color: #6b7280; font-size: 0.875rem; }
+
+.layer-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.layer-summary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.layer-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  min-width: 140px;
+}
+
+.layer-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.note-chip {
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.layer-clean {
+  color: #059669;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .modal-footer {
