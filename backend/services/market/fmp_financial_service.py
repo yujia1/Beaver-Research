@@ -208,6 +208,35 @@ def fetch_all_financial_statements(ticker: str, years: int = 5) -> Dict[str, Lis
     }
 
 
+def fetch_key_metrics(ticker: str, limit: int = 5, period: str = "FY") -> List[Dict]:
+    """
+    Fetch key metrics from FMP for a ticker
+
+    Args:
+        ticker: Stock ticker symbol
+        limit: Number of records to return (default: 5)
+        period: Period string expected by FMP (e.g., 'FY')
+
+    Returns:
+        List of key metrics dictionaries (most recent first)
+    """
+    cache_key = _get_cache_key("key_metrics", ticker, limit=limit, period=period)
+
+    cached_data = _get_from_cache(cache_key)
+    if cached_data:
+        return cached_data
+
+    endpoint = "key-metrics"
+    params = {"symbol": ticker, "limit": limit, "period": period}
+
+    data = _make_fmp_request(endpoint, params)
+
+    # Cache the result
+    _set_to_cache(cache_key, data, CACHE_TTL_FINANCIAL_STATEMENTS)
+
+    return data
+
+
 # ============================================================================
 # Stock Universe
 # ============================================================================
