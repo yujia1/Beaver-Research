@@ -12,6 +12,18 @@
           :disabled="loading"
           class="ticker-input"
         />
+        <div class="input-params">
+          <label class="param-label">Years</label>
+          <select v-model.number="limit" class="param-select" :disabled="loading">
+            <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
+          </select>
+          <label class="param-label">Period</label>
+          <select v-model="period" class="param-select" :disabled="loading">
+            <option value="FY">FY</option>
+            <option value="annual">Annual</option>
+            <option value="quarter">Quarter</option>
+          </select>
+        </div>
         <button
           @click="screenStock"
           :disabled="loading || !ticker.trim()"
@@ -41,14 +53,7 @@
         <div>
           <h2>{{ layeredResult.ticker }}</h2>
         </div>
-      </div>
-
-      <!-- Action detail -->
-      <div class="action-detail">
-        <strong>{{ layeredResult.action.reason }}</strong>
-        <span class="divider">·</span>
-        <em>{{ layeredResult.action.size_note }}</em>
-        <button @click="saveLayeredResult" :disabled="saving" class="save-button" style="margin-left:auto">
+        <button @click="saveLayeredResult" :disabled="saving" class="save-button">
           <span v-if="saving" class="loading-spinner"></span>
           {{ saving ? 'Saving...' : 'Save to Flagged Companies' }}
         </button>
@@ -224,6 +229,8 @@ export default {
       layeredResult: null,
       activeLayer: 'survival',
       loading: false,
+      limit: 5,
+      period: 'FY',
       saving: false,
       error: null,
       saveMessage: null,
@@ -279,7 +286,7 @@ export default {
 
       try {
         const t = this.ticker.trim().split(',')[0].trim()
-        const response = await api.get(`/api/quant/screener/fmp-layered/${t}?limit=5&period=FY`)
+        const response = await api.get(`/api/quant/screener/fmp-layered/${t}?limit=${this.limit}&period=${this.period}`)
 
         if (response.data) {
           this.layeredResult = response.data
@@ -381,6 +388,45 @@ export default {
 .input-group {
   display: flex;
   gap: 0.75rem;
+  align-items: center;
+}
+
+.input-params {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 0.25rem 0.6rem;
+  white-space: nowrap;
+}
+
+.param-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.param-input {
+  width: 44px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  text-align: center;
+  background: white;
+}
+
+.param-select {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
 }
 
 .ticker-input {

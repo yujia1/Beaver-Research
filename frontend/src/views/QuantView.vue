@@ -29,17 +29,12 @@
     </div>
 
     <!-- Screener Tabs Content -->
-    <div v-if="activeTab === 'screener'">
-      <QuantScreenerView />
-    </div>
-
-    <div v-if="activeTab === 'flagged'">
-      <FlaggedCompaniesView />
-    </div>
-
-    <div v-if="activeTab === 'batch' && isAdmin">
-      <BatchScreeningView />
-    </div>
+    <keep-alive>
+      <component
+        :is="currentTabComponent"
+        :key="activeTab"
+      />
+    </keep-alive>
   </div>
 </template>
 
@@ -59,6 +54,12 @@ const userStore = useUserStore()
 const isAdmin = computed(() => userStore.user?.role === 'admin')
 
 const activeTab = ref('screener')
+
+const currentTabComponent = computed(() => {
+  if (activeTab.value === 'flagged') return FlaggedCompaniesView
+  if (activeTab.value === 'batch' && isAdmin.value) return BatchScreeningView
+  return QuantScreenerView
+})
 </script>
 
 <style scoped>
