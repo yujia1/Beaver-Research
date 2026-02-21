@@ -256,7 +256,7 @@ def fetch_us_stock_list() -> List[Dict]:
         return cached_data
     
     # Fetch from API
-    endpoint = "stock/list"
+    endpoint = "stock-list"
     data = _make_fmp_request(endpoint)
     
     # Filter for U.S. exchanges only

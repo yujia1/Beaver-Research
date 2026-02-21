@@ -5,7 +5,13 @@
     <!-- Control Panel -->
     <div class="control-panel">
       <h3>Start New Batch Screening</h3>
-      
+
+      <!-- Inline status banner -->
+      <div v-if="statusMessage" :class="['batch-status-banner', statusType]">
+        <span>{{ statusMessage }}</span>
+        <button class="dismiss-btn" @click="statusMessage = ''">✕</button>
+      </div>
+
       <div class="config-grid">
         <div class="config-item">
           <label>Limit (for testing)</label>
@@ -228,9 +234,12 @@ export default {
       config: {
         limit: null,
         batchSize: 5,
-        delaySeconds: 60,
-        enablePeerComparison: false
+        delaySeconds: 60
       },
+
+      // Status banner
+      statusMessage: '',
+      statusType: 'success',
       
       // Active run
       activeRunId: null,
@@ -296,12 +305,12 @@ export default {
   methods: {
     async startBatchScreening() {
       this.starting = true
+      this.statusMessage = ''
       
       try {
         const payload = {
           batch_size: this.config.batchSize,
-          delay_seconds: this.config.delaySeconds,
-          enable_peer_comparison: this.config.enablePeerComparison
+          delay_seconds: this.config.delaySeconds
         }
         
         if (this.config.limit) {
@@ -312,12 +321,10 @@ export default {
         
         this.activeRunId = response.data.run_id
         await this.fetchBatchStatus()
-        
-        // Show success message
-        alert(`Batch screening started! Run ID: ${this.activeRunId}`)
+        this.showStatus(`Batch screening started (Run #${this.activeRunId})`, 'success')
       } catch (error) {
         console.error('Error starting batch screening:', error)
-        alert(error.response?.data?.detail || 'Failed to start batch screening')
+        this.showStatus('Failed to start batch screening. Please try again.', 'error')
       } finally {
         this.starting = false
       }
@@ -362,14 +369,15 @@ export default {
     
     async updateStockUniverse() {
       this.updatingUniverse = true
+      this.statusMessage = ''
       
       try {
         const response = await api.post('/api/quant/screener/update-stock-universe')
         this.universeCount = response.data.total_stocks
-        alert(`Stock universe updated! Total stocks: ${this.universeCount}`)
+        this.showStatus(`Stock universe updated — ${this.universeCount.toLocaleString()} stocks`, 'success')
       } catch (error) {
         console.error('Error updating stock universe:', error)
-        alert(error.response?.data?.detail || 'Failed to update stock universe')
+        this.showStatus('Failed to update stock universe. Please try again.', 'error')
       } finally {
         this.updatingUniverse = false
       }
@@ -423,6 +431,14 @@ export default {
       // Could open a modal or navigate to details page
     },
     
+    showStatus(message, type = 'success') {
+      this.statusMessage = message
+      this.statusType = type
+      if (type === 'success') {
+        setTimeout(() => { this.statusMessage = '' }, 4000)
+      }
+    },
+
     formatDateTime(dateString) {
       if (!dateString) return 'N/A'
       const date = new Date(dateString)
@@ -533,6 +549,45 @@ export default {
 .help-text.warning {
   color: #f39c12; /* Standard warning orange */
   font-weight: 500;
+}
+
+.batch-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.batch-status-banner.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.batch-status-banner.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.dismiss-btn:hover {
+  opacity: 1;
 }
 
 .control-buttons {
