@@ -140,32 +140,88 @@ async def save_fmp_layered_result(
         strategies_flagged = []
         red_flags = []
 
-        sf = layered.survival_filter or {}
-        if isinstance(sf, dict):
-            if sf.get("pass") is False:
+        # Helper to check if any yearly row is flagged
+        def _has_yearly_flags(layer) -> bool:
+            if not layer or not layer.yearly:
+                return False
+            return any(row.get("is_red_flag") for row in layer.yearly)
+
+        # --- Survival Filter ---
+        sf = layered.survival_filter
+        if sf:
+            sf_reasons = sf.top_reasons or []
+            sf_has_flags = bool(sf_reasons) or _has_yearly_flags(sf)
+            if sf_has_flags:
                 strategies_flagged.append("Survival Filter")
-            for r in sf.get("top_reasons") or []:
+            for r in sf_reasons:
                 red_flags.append({"category": "Survival Filter", "note": r})
+            # Also add per-row flag reasons from yearly data
+            for row in (sf.yearly or []):
+                if row.get("is_red_flag"):
+                    year = row.get("year", "?")
+                    reasons = []
+                    if row.get("current_ratio_pass") is False:
+                        reasons.append(f"Current Ratio={row.get('current_ratio', 'N/A')}")
+                    if row.get("interest_burden_pass") is False:
+                        reasons.append(f"Interest Burden={row.get('interest_burden', 'N/A')}")
+                    if row.get("net_debt_pass") is False:
+                        reasons.append(f"Net Debt/EBITDA={row.get('net_debt_to_ebitda', 'N/A')}")
+                    if row.get("fcf_pass") is False:
+                        reasons.append(f"FCF={row.get('fcf', 'N/A')}")
+                    if reasons:
+                        red_flags.append({"category": "Survival Filter", "note": f"{year}: {', '.join(reasons)}"})
 
-        eq = layered.earnings_quality or {}
-        if isinstance(eq, dict):
-            notes = (eq.get("notes") or []) + (eq.get("red_flags") or [])
-            if notes:
+        # --- Earnings Quality ---
+        eq = layered.earnings_quality
+        if eq:
+            eq_notes = eq.notes or []
+            eq_has_flags = bool(eq_notes) or _has_yearly_flags(eq)
+            if eq_has_flags:
                 strategies_flagged.append("Earnings Quality")
-            for n in notes:
+            for n in eq_notes:
                 red_flags.append({"category": "Earnings Quality", "note": n})
+            for row in (eq.yearly or []):
+                if row.get("is_red_flag"):
+                    year = row.get("year", "?")
+                    reasons = []
+                    if row.get("cfo_to_ni_pass") is False:
+                        reasons.append(f"CFO/NI={row.get('cfo_to_ni', 'N/A')}")
+                    if row.get("fcf_to_ni_pass") is False:
+                        reasons.append(f"FCF/NI={row.get('fcf_to_ni', 'N/A')}")
+                    if reasons:
+                        red_flags.append({"category": "Earnings Quality", "note": f"{year}: {', '.join(reasons)}"})
 
-        sh = layered.structural_health or {}
-        if isinstance(sh, dict) and sh.get("notes"):
-            strategies_flagged.append("Structural Health")
-            for n in sh.get("notes"):
+        # --- Structural Health ---
+        sh = layered.structural_health
+        if sh:
+            sh_notes = sh.notes or []
+            sh_has_flags = bool(sh_notes) or _has_yearly_flags(sh)
+            if sh_has_flags:
+                strategies_flagged.append("Structural Health")
+            for n in sh_notes:
                 red_flags.append({"category": "Structural Health", "note": n})
+            for row in (sh.yearly or []):
+                if row.get("is_red_flag"):
+                    year = row.get("year", "?")
+                    spread = row.get("roic_spread")
+                    note = f"{year}: Negative ROIC spread={spread}" if spread is not None else f"{year}: Red flag"
+                    red_flags.append({"category": "Structural Health", "note": note})
 
-        val = layered.valuation or {}
-        if isinstance(val, dict) and val.get("notes"):
-            strategies_flagged.append("Valuation")
-            for n in val.get("notes"):
+        # --- Valuation ---
+        val = layered.valuation
+        if val:
+            val_notes = val.notes or []
+            val_has_flags = bool(val_notes) or _has_yearly_flags(val)
+            if val_has_flags:
+                strategies_flagged.append("Valuation")
+            for n in val_notes:
                 red_flags.append({"category": "Valuation", "note": n})
+            for row in (val.yearly or []):
+                if row.get("is_red_flag"):
+                    year = row.get("year", "?")
+                    fcf_yield = row.get("fcf_yield")
+                    note = f"{year}: Low FCF yield={fcf_yield}" if fcf_yield is not None else f"{year}: Red flag"
+                    red_flags.append({"category": "Valuation", "note": note})
 
         metrics_json = layered.dict()
 
