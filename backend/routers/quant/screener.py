@@ -122,7 +122,9 @@ async def get_fmp_layered_screener(
         )
     except Exception as e:
         logger.error(f"Error running layered screener for {ticker}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return user-friendly message; FMPAPIError already has sanitized messages
+        user_msg = str(e) if isinstance(e, FMPAPIError) else f"Failed to screen {ticker}. Please try again later."
+        raise HTTPException(status_code=500, detail=user_msg)
 
 
 @router.post("/fmp-layered/flagged", response_model=FlaggedCompanyResponse)
@@ -245,7 +247,7 @@ async def save_fmp_layered_result(
 
     except Exception as e:
         logger.error(f"Error saving layered result for {layered.ticker}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error saving layered result: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save flagged company {layered.ticker}. Please try again.")
 
 
 # ============================================================================
@@ -449,7 +451,7 @@ async def update_stock_universe(
 
     except Exception as e:
         logger.error(f"Error updating stock universe: {e}")
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update stock universe. Please try again later.")
 
 
 @router.get("/stock-universe/count")

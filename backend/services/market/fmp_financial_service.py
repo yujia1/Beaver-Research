@@ -66,6 +66,17 @@ def _set_to_cache(cache_key: str, data: Any, ttl: int):
     redis_client.set_cache(cache_key, data, ttl)
 
 
+def _sanitize_error(message: str) -> str:
+    """Remove sensitive data (API keys, full URLs) from error messages."""
+    import re
+    # Strip apikey parameter from URLs
+    message = re.sub(r'[&?]apikey=[^&\s]+', '', message)
+    # Strip any remaining raw API key patterns (32+ char alphanumeric strings)
+    if FMP_API_KEY:
+        message = message.replace(FMP_API_KEY, '***')
+    return message
+
+
 def _make_fmp_request(endpoint: str, params: Dict = None) -> Dict:
     """Make request to FMP API with error handling"""
     if not FMP_API_KEY:
@@ -88,9 +99,15 @@ def _make_fmp_request(endpoint: str, params: Dict = None) -> Dict:
         
         return data
     
+    except requests.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response is not None else "unknown"
+        # Return user-friendly message without exposing URL or API key
+        friendly_msg = f"FMP API returned HTTP {status_code} for endpoint '{endpoint}'"
+        logger.error(f"FMP API request failed: {_sanitize_error(str(e))}")
+        raise FMPAPIError(friendly_msg)
     except requests.exceptions.RequestException as e:
-        logger.error(f"FMP API request failed: {e}")
-        raise FMPAPIError(f"FMP API request failed: {str(e)}")
+        logger.error(f"FMP API request failed: {_sanitize_error(str(e))}")
+        raise FMPAPIError(f"FMP API request failed for endpoint '{endpoint}': connection error")
 
 
 # ============================================================================
