@@ -654,7 +654,14 @@
                          @change="toggleRowSelection(row, idx)"
                        />
                      </td>
-                     <td v-for="col in tableData.columns" :key="col">{{ row[col] }}</td>
+                     <td v-for="col in tableData.columns" :key="col">
+                       <template v-if="isJsonColumn(col, row[col])">
+                         <button class="json-preview-btn" @click.stop="openJsonModal(col, row[col], row)">
+                           {{ truncateJson(row[col]) }}
+                         </button>
+                       </template>
+                       <template v-else>{{ row[col] }}</template>
+                     </td>
                    </tr>
                  </tbody>
                </table>
@@ -706,6 +713,22 @@
           <button @click="deleteReport" class="modal-button delete-confirm" :disabled="deletingReportId !== null">
             {{ deletingReportId !== null ? t('admin.modals.delete_report.deleting') : t('admin.modals.delete_report.confirm') }}
           </button>
+        </div>
+      </div>
+    </div>
+    <!-- JSON Detail Modal -->
+    <div v-if="showJsonModal" class="modal-overlay" @click="showJsonModal = false">
+      <div class="modal-content json-modal" @click.stop>
+        <div class="json-modal-header">
+          <h2>{{ jsonModalTitle }}</h2>
+          <button @click="showJsonModal = false" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="json-modal-body">
+          <pre class="json-content">{{ jsonModalContent }}</pre>
+        </div>
+        <div class="modal-actions">
+          <button @click="copyJsonToClipboard" class="modal-button cancel">Copy to Clipboard</button>
+          <button @click="showJsonModal = false" class="modal-button cancel">Close</button>
         </div>
       </div>
     </div>
@@ -977,6 +1000,49 @@ const tableData = ref(null)
 const loadingTableData = ref(false)
 const dbSelectedIds = ref(new Set())
 const dbDeleting = ref(false)
+
+// JSON modal state
+const showJsonModal = ref(false)
+const jsonModalTitle = ref('')
+const jsonModalContent = ref('')
+
+const JSON_COLUMNS = new Set(['metrics', 'red_flags', 'financial_data', 'strategies_flagged', 'strategies_run'])
+
+const isJsonColumn = (col, value) => {
+  if (JSON_COLUMNS.has(col)) return true
+  if (value && typeof value === 'object') return true
+  if (typeof value === 'string' && value.length > 100) {
+    try { JSON.parse(value); return true } catch { return false }
+  }
+  return false
+}
+
+const truncateJson = (value) => {
+  if (value === null || value === undefined) return 'null'
+  const str = typeof value === 'string' ? value : JSON.stringify(value)
+  if (str.length <= 40) return str
+  return str.substring(0, 37) + '...'
+}
+
+const openJsonModal = (col, value, row) => {
+  const ticker = row?.ticker || row?.id || ''
+  jsonModalTitle.value = `${col}${ticker ? ` — ${ticker}` : ''}`
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    jsonModalContent.value = JSON.stringify(parsed, null, 2)
+  } catch {
+    jsonModalContent.value = String(value)
+  }
+  showJsonModal.value = true
+}
+
+const copyJsonToClipboard = () => {
+  navigator.clipboard.writeText(jsonModalContent.value).then(() => {
+    message.value = 'Copied to clipboard'
+    messageType.value = 'success'
+    setTimeout(() => { message.value = '' }, 2000)
+  })
+}
 
 const dbAllSelected = computed(() =>
   tableData.value?.rows.length > 0 &&
@@ -2680,6 +2746,83 @@ input:disabled + .slider {
     font-size: 0.8em;
     color: #666;
     margin-top: 5px;
+}
+
+/* JSON preview in DB table */
+.json-preview-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: #3b82f6;
+  cursor: pointer;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  transition: all 0.15s ease;
+}
+.json-preview-btn:hover {
+  background: #e0e7ff;
+  border-color: #93a3f8;
+  color: #1d4ed8;
+}
+
+/* JSON detail modal */
+.json-modal {
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.json-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.json-modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close-btn:hover {
+  color: #111827;
+}
+.json-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+}
+.json-content {
+  margin: 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>
 
