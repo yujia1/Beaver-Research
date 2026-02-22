@@ -1322,22 +1322,22 @@ def check_red_flags(metrics: Dict[str, MetricResult]) -> Dict[str, Any]:
                 "reason": metric.red_flag_reason
             })
             
-            # Map to strategy
+            # Map to strategy (names must match layered screener / frontend filter)
             if metric_key in ["fcf_to_dividends_buybacks", "fcf_to_revenue"]:
-                if "Cash Flow Sustainability" not in strategies_flagged:
-                    strategies_flagged.append("Cash Flow Sustainability")
+                if "Survival Filter" not in strategies_flagged:
+                    strategies_flagged.append("Survival Filter")
             elif metric_key in ["net_debt_to_ebitda", "capitalized_costs_to_revenue"]:
-                if "Balance Sheet Stress" not in strategies_flagged:
-                    strategies_flagged.append("Balance Sheet Stress")
+                if "Structural Health" not in strategies_flagged:
+                    strategies_flagged.append("Structural Health")
             elif metric_key == "days_sales_outstanding":
-                if "Working Capital Anomalies" not in strategies_flagged:
-                    strategies_flagged.append("Working Capital Anomalies")
+                if "Earnings Quality" not in strategies_flagged:
+                    strategies_flagged.append("Earnings Quality")
             elif metric_key == "channel_stuffing_risk":
-                if "Working Capital Anomalies" not in strategies_flagged:
-                     strategies_flagged.append("Working Capital Anomalies")
+                if "Earnings Quality" not in strategies_flagged:
+                     strategies_flagged.append("Earnings Quality")
             elif metric_key == "ev_to_ebitda":
-                if "Valuation Dislocation" not in strategies_flagged:
-                    strategies_flagged.append("Valuation Dislocation")
+                if "Valuation" not in strategies_flagged:
+                    strategies_flagged.append("Valuation")
     
     return {
         "has_red_flags": len(red_flags) > 0,
