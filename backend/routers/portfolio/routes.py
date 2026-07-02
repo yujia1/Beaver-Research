@@ -186,6 +186,20 @@ import models
 from database import get_db
 from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
 
+
+async def require_portfolio_write_access(current_user: User = Depends(require_portfolio_access)):
+    """
+    'user' role has view-only access to /portfolio: they can list positions but
+    cannot create/update/delete positions, lots, or fundamental analysis.
+    """
+    if current_user.role == "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Your role has view-only access to Portfolio. Contact an administrator to request write access."
+        )
+    return current_user
+
+
 # Position endpoints
 @router.get("/positions", response_model=List[PositionResponse])
 async def get_positions(
@@ -240,7 +254,7 @@ async def get_positions(
 @router.post("/positions")
 async def create_position(
     position: PositionCreate,
-    current_user: User = Depends(require_portfolio_access),
+    current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
     """Create a new position for the current user"""
@@ -275,7 +289,7 @@ async def create_position(
 @router.delete("/positions/{ticker}")
 def delete_position(
     ticker: str,
-    current_user: User = Depends(require_portfolio_access),
+    current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
     """Delete a position and all associated lots for the current user"""
@@ -297,7 +311,7 @@ def delete_position(
 def add_lot(
     ticker: str,
     lot: LotCreate,
-    current_user: User = Depends(require_portfolio_access),
+    current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
     """Add a lot to a position for the current user"""
@@ -336,7 +350,7 @@ def add_lot(
 def update_lot(
     lot_id: int,
     lot: LotUpdate,
-    current_user: User = Depends(require_portfolio_access),
+    current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
     """Update a lot (verify user owns the position)"""
@@ -372,7 +386,7 @@ def update_lot(
 @router.delete("/lots/{lot_id}")
 def delete_lot(
     lot_id: int,
-    current_user: User = Depends(require_portfolio_access),
+    current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
     """Delete a lot (verify user owns the position)"""
@@ -406,7 +420,7 @@ def delete_lot(
 def update_fundamental_analysis(
     ticker: str,
     analysis: FundamentalAnalysisUpdate,
-    current_user: User = Depends(require_portfolio_access),
+    current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
     """Update fundamental analysis for a position owned by current user"""

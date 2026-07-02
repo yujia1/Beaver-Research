@@ -3,8 +3,12 @@ import API_BASE_URL from '@/config/api.js'
 
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '@/stores/userStore'
 import AddTradeLotModal from '@/components/AddTradeLotModal.vue'
 import EditTradeLotModal from '@/components/EditTradeLotModal.vue'
+
+const userStore = useUserStore()
+const isReadOnly = computed(() => userStore.user?.role === 'user')
 
 const showAddLotModal = ref(false)
 const showEditLotModal = ref(false)
@@ -325,6 +329,7 @@ const saveIndicators = ref({}) // Track save status per question
 let saveTimeouts = {} // Store timeout IDs for debouncing
 
 const saveFundamentalAnalysis = (ticker, questionId, value) => {
+  if (isReadOnly.value) return
   const key = `${ticker}-${questionId}`
   
   // Clear existing timeout
@@ -394,6 +399,7 @@ const getQuestionScore = (ticker, questionId) => {
 }
 
 const setQuestionScore = async (ticker, questionId, score) => {
+  if (isReadOnly.value) return
   // Optimistic UI update
   const position = positions.value.find(p => p.ticker === ticker)
   if (position) {
@@ -589,6 +595,7 @@ const portfolioTotals = computed(() => {
 })
 
 const handleAddLot = async (lotData) => {
+  if (isReadOnly.value) return
   loading.value = true
   try {
     const token = localStorage.getItem('access_token')
@@ -649,6 +656,7 @@ const handleAddLot = async (lotData) => {
 }
 
 const deletePosition = async (ticker) => {
+  if (isReadOnly.value) return
   if (confirm(`Are you sure you want to delete the entire ${ticker} position?`)) {
     loading.value = true
     try {
@@ -680,6 +688,7 @@ const deletePosition = async (ticker) => {
 }
 
 const deleteLot = async (ticker, lotId) => {
+  if (isReadOnly.value) return
   if (confirm('Are you sure you want to delete this lot?')) {
     loading.value = true
     try {
@@ -707,6 +716,7 @@ const deleteLot = async (ticker, lotId) => {
 }
 
 const editLot = (ticker, lotId) => {
+  if (isReadOnly.value) return
   const position = positions.value.find(p => p.ticker === ticker)
   if (position) {
     const lot = position.lots.find(l => l.id === lotId)
@@ -755,6 +765,7 @@ const handleEditLot = async (updatedData) => {
 
 // Drag and drop handlers
 const handleDragStart = (index) => {
+  if (isReadOnly.value) return
   draggedIndex.value = index
 }
 
@@ -810,7 +821,7 @@ const openLink = (url) => {
       </div>
     </div>
 
-    <div class="controls-row">
+    <div v-if="!isReadOnly" class="controls-row">
         <button class="add-lot-btn" @click="showAddLotModal = true">
             <span class="btn-icon">+</span>
             <span class="btn-text">{{ t('portfolio.new_execution') }}</span>
@@ -887,7 +898,7 @@ const openLink = (url) => {
           'drag-over': dragOverIndex === index,
           'dragging': draggedIndex === index
         }"
-        draggable="true"
+        :draggable="!isReadOnly"
         @dragstart="handleDragStart(index)"
         @dragover="handleDragOver($event, index)"
         @dragleave="handleDragLeave"
@@ -938,8 +949,9 @@ const openLink = (url) => {
             </div>
           </div>
           
-          <button 
-            class="delete-position-btn" 
+          <button
+            v-if="!isReadOnly"
+            class="delete-position-btn"
             @click.stop="deletePosition(position.ticker)"
             :title="t('portfolio.delete_position')"
           >
@@ -1058,7 +1070,8 @@ const openLink = (url) => {
                           <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                       </button>
-                      <button 
+                      <button
+                        v-if="!isReadOnly"
                         class="action-btn edit-btn"
                         @click.stop="editLot(position.ticker, lot.id)"
                         title="Modify Lot"
@@ -1068,7 +1081,8 @@ const openLink = (url) => {
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                       </button>
-                      <button 
+                      <button
+                        v-if="!isReadOnly"
                         class="action-btn delete-btn"
                         @click.stop="deleteLot(position.ticker, lot.id)"
                         title="Delete Lot"
@@ -1128,12 +1142,13 @@ const openLink = (url) => {
                       </div>
                     </div>
                     <div class="score-buttons">
-                      <button 
-                        v-for="score in [1, 2, 3, 4, 5]" 
+                      <button
+                        v-for="score in [1, 2, 3, 4, 5]"
                         :key="score"
                         class="score-btn"
                         :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
                         @click.stop="setQuestionScore(position.ticker, question.id, score)"
+                        :disabled="isReadOnly"
                         :title="`Score: ${score}`"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -1142,11 +1157,12 @@ const openLink = (url) => {
                       </button>
                     </div>
                   </div>
-                  <textarea 
+                  <textarea
                     :value="getFundamentalAnalysis(position.ticker, question.id)"
                     @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
                     :placeholder="question.placeholder"
                     class="analysis-input"
+                    :readonly="isReadOnly"
                     rows="2"
                   ></textarea>
                 </div>
@@ -1166,12 +1182,13 @@ const openLink = (url) => {
                       </div>
                     </div>
                     <div class="score-buttons">
-                      <button 
-                        v-for="score in [1, 2, 3, 4, 5]" 
+                      <button
+                        v-for="score in [1, 2, 3, 4, 5]"
                         :key="score"
                         class="score-btn"
                         :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
                         @click.stop="setQuestionScore(position.ticker, question.id, score)"
+                        :disabled="isReadOnly"
                         :title="`Score: ${score}`"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -1180,11 +1197,12 @@ const openLink = (url) => {
                       </button>
                     </div>
                   </div>
-                  <textarea 
+                  <textarea
                     :value="getFundamentalAnalysis(position.ticker, question.id)"
                     @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
                     :placeholder="question.placeholder"
                     class="analysis-input"
+                    :readonly="isReadOnly"
                     rows="2"
                   ></textarea>
                 </div>
@@ -1204,12 +1222,13 @@ const openLink = (url) => {
                       </div>
                     </div>
                     <div class="score-buttons">
-                      <button 
-                        v-for="score in [1, 2, 3, 4, 5]" 
+                      <button
+                        v-for="score in [1, 2, 3, 4, 5]"
                         :key="score"
                         class="score-btn"
                         :class="{ active: getQuestionScore(position.ticker, question.id) === score }"
                         @click.stop="setQuestionScore(position.ticker, question.id, score)"
+                        :disabled="isReadOnly"
                         :title="`Score: ${score}`"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -1218,11 +1237,12 @@ const openLink = (url) => {
                       </button>
                     </div>
                   </div>
-                  <textarea 
+                  <textarea
                     :value="getFundamentalAnalysis(position.ticker, question.id)"
                     @input="saveFundamentalAnalysis(position.ticker, question.id, $event.target.value)"
                     :placeholder="question.placeholder"
                     class="analysis-input"
+                    :readonly="isReadOnly"
                     rows="2"
                   ></textarea>
                 </div>
@@ -2034,6 +2054,16 @@ const openLink = (url) => {
 
 .score-btn.active {
   color: #000;
+}
+
+.score-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.analysis-input:read-only {
+  background: #f5f5f5;
+  cursor: default;
 }
 
 .analysis-input {
