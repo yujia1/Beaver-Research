@@ -32,17 +32,11 @@
       >
         {{ t('admin.tabs.health') }}
       </button> 
-      <button 
+      <button
         :class="{ active: activeTab === 'database' }"
         @click="activeTab = 'database'; loadTables()"
       >
         {{ t('admin.tabs.database') }}
-      </button>
-      <button 
-        :class="{ active: activeTab === 'batch' }"
-        @click="activeTab = 'batch'"
-      >
-        Batch Screening
       </button>
     </div>
 
@@ -675,13 +669,6 @@
       </div>
     </div>
 
-    <!-- Batch Screening Tab -->
-    <div>
-      <keep-alive>
-        <BatchScreeningView v-if="activeTab === 'batch'" />
-      </keep-alive>
-    </div>
-
     <div v-if="message" :class="['message', messageType]">
       {{ message }}
     </div>
@@ -737,7 +724,6 @@
 
 <script setup>
 import API_BASE_URL from '@/config/api.js'
-import BatchScreeningView from './BatchScreeningView.vue'
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -1104,7 +1090,7 @@ const permissions = ref([])
 const loadingPermissions = ref(false)
 const permissionsError = ref('')
 const roles = ['admin', 'creator', 'contributor', 'user']
-const resourceTypes = ['/research', '/portfolio', '/framework', '/report', '/agent', '/academy', '/market']
+const resourceTypes = ['/research', '/portfolio', '/framework', '/report', '/agent', '/market']
 
 // Message State
 const message = ref('')
@@ -1805,8 +1791,6 @@ onMounted(() => {
   // Load initial data based on active tab
   if (activeTab.value === 'users') {
     loadUsers()
-  } else if (activeTab.value === 'batch') {
-    loadSchedulerConfig()
   }
 })
 </script>

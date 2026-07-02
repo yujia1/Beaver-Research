@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Float, Text, Enum, JSON, BigInteger, UniqueConstraint, Index
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Float, Text, Enum, JSON, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -124,78 +124,6 @@ class RolePermission(Base):
     
     __table_args__ = (
         UniqueConstraint('role', 'resource', name='uix_role_resource'),
-    )
-
-
-# ============================================================================
-# Stock Screener Models
-# ============================================================================
-
-class StockUniverse(Base):
-    """Store U.S. stock universe to avoid repeated FMP API calls"""
-    __tablename__ = "stock_universe"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    ticker = Column(String, unique=True, index=True, nullable=False)
-    company_name = Column(String, nullable=True)
-    exchange = Column(String, nullable=True)  # NASDAQ, NYSE, AMEX, etc.
-    sector = Column(String, nullable=True)
-    industry = Column(String, nullable=True)
-    market_cap = Column(BigInteger, nullable=True)
-    
-    # Metadata
-    is_active = Column(Boolean, default=True)
-    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class ScreeningRun(Base):
-    """Store metadata for batch screening runs"""
-    __tablename__ = "screening_runs"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    run_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-    target_total_stocks = Column(Integer, default=0)
-    total_stocks_processed = Column(Integer, default=0)
-    total_flagged = Column(Integer, default=0)
-    strategies_run = Column(JSON, nullable=False)  # List of strategies executed
-    status = Column(String, default="running", nullable=False)  # running, completed, failed
-    error_log = Column(Text, nullable=True)
-    duration_seconds = Column(Integer, nullable=True)
-    
-    completed_at = Column(DateTime(timezone=True), nullable=True)
-    
-    # Relationship
-    flagged_companies = relationship("FlaggedCompany", back_populates="screening_run", cascade="all, delete-orphan")
-
-
-class FlaggedCompany(Base):
-    """Store companies flagged by screening criteria"""
-    __tablename__ = "flagged_companies"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    ticker = Column(String, index=True, nullable=False)
-    company_name = Column(String, nullable=True)
-    sector = Column(String, nullable=True)
-    
-    # Screening metadata
-    screening_run_id = Column(Integer, ForeignKey("screening_runs.id"), nullable=True, index=True)
-    screening_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-    strategies_flagged = Column(JSON, nullable=False)  # List of strategies that flagged this company
-    
-    # Calculated metrics (JSON for flexibility)
-    metrics = Column(JSON, nullable=False)  # All calculated metrics
-    red_flags = Column(JSON, nullable=False)  # Specific red flags with values
-    
-    # Financial data snapshot (5-year data)
-    financial_data = Column(JSON, nullable=True)  # 5-year financial statements
-    
-    # Relationship
-    screening_run = relationship("ScreeningRun", back_populates="flagged_companies")
-    
-    # Indexes
-    __table_args__ = (
-        UniqueConstraint('ticker', 'screening_date', name='uix_ticker_screening_date'),
     )
 
 

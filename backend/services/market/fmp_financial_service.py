@@ -28,7 +28,6 @@ FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 
 # Cache TTL (Time To Live)
 CACHE_TTL_FINANCIAL_STATEMENTS = 86400  # 24 hours
-CACHE_TTL_STOCK_LIST = 604800  # 7 days
 CACHE_TTL_MARKET_DATA = 300  # 5 minutes
 
 
@@ -252,90 +251,6 @@ def fetch_key_metrics(ticker: str, limit: int = 5, period: str = "FY") -> List[D
     _set_to_cache(cache_key, data, CACHE_TTL_FINANCIAL_STATEMENTS)
 
     return data
-
-
-# ============================================================================
-# Stock Universe
-# ============================================================================
-
-def fetch_us_stock_list() -> List[Dict]:
-    """
-    Fetch list of all U.S. market stocks from FMP
-    
-    Returns:
-        List of stock dictionaries with ticker, name, exchange, etc.
-    """
-    cache_key = _get_cache_key("stock_list", ticker="us")
-    
-    # Check cache
-    cached_data = _get_from_cache(cache_key)
-    if cached_data:
-        return cached_data
-    
-    # Fetch from API
-    endpoint = "stock-list"
-    data = _make_fmp_request(endpoint)
-    
-    # Filter for U.S. exchanges only
-    us_exchanges = ["NASDAQ", "NYSE", "AMEX", "NYSE ARCA", "BATS"]
-    us_stocks = [
-        stock for stock in data 
-        if stock.get("exchangeShortName") in us_exchanges
-    ]
-    
-    logger.info(f"Fetched {len(us_stocks)} U.S. stocks")
-    
-    # Cache the result
-    _set_to_cache(cache_key, us_stocks, CACHE_TTL_STOCK_LIST)
-    
-    return us_stocks
-
-
-def save_stock_universe_to_db(db_session):
-    """
-    Fetch U.S. stock list and save to database
-    
-    Args:
-        db_session: SQLAlchemy database session
-    """
-    from models import StockUniverse
-    
-    stocks = fetch_us_stock_list()
-    
-    saved_count = 0
-    updated_count = 0
-    
-    for stock_data in stocks:
-        ticker = stock_data.get("symbol")
-        if not ticker:
-            continue
-        
-        # Check if stock already exists
-        existing_stock = db_session.query(StockUniverse).filter(
-            StockUniverse.ticker == ticker
-        ).first()
-        
-        if existing_stock:
-            # Update existing
-            existing_stock.company_name = stock_data.get("name")
-            existing_stock.exchange = stock_data.get("exchangeShortName")
-            existing_stock.last_updated = datetime.utcnow()
-            updated_count += 1
-        else:
-            # Create new
-            new_stock = StockUniverse(
-                ticker=ticker,
-                company_name=stock_data.get("name"),
-                exchange=stock_data.get("exchangeShortName"),
-                is_active=True
-            )
-            db_session.add(new_stock)
-            saved_count += 1
-    
-    db_session.commit()
-    logger.info(f"Stock universe updated: {saved_count} new, {updated_count} updated")
-    
-    return {"saved": saved_count, "updated": updated_count}
 
 
 # ============================================================================

@@ -277,7 +277,7 @@ async def startup_event():
             logger.info("Initializing default permissions...")
             db = SessionLocal()
             try:
-                resources = ["/research", "/portfolio", "/report", "/agent", "/academy", "/framework", "/market", "/quant"]
+                resources = ["/research", "/portfolio", "/report", "/agent", "/framework", "/market"]
                 roles = ["creator", "contributor", "user"]
                 user_restricted = ["/research", "/agent", "/report"]
                 
@@ -389,16 +389,6 @@ app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"]
 
 # Framework
 app.include_router(framework.router, prefix="/api/framework", tags=["Framework"])
-
-# Quant
-from routers.quant import screener as quant_screener
-app.include_router(quant_screener.router, prefix="/api/quant/screener", tags=["Quant Screener"])
-
-# Academy
-from routers.academy import routes as academy
-app.include_router(academy.router, prefix="/api/academy", tags=["Academy"])
-
-
 
 
 # app.include_router(admin_scheduler.router, prefix="/api/admin/scheduler", tags=["Scheduler Configuration"])

@@ -7,7 +7,6 @@ import AdminView from '../views/AdminView.vue'
 import ReportView from '../views/ReportView.vue'
 
 import PortfolioView from '../views/PortfolioView.vue'
-import AcademyView from '../views/AcademyView.vue'
 import FrameworkView from '../views/FrameworkView.vue'
 
 import API_BASE_URL from '@/config/api.js'
@@ -60,40 +59,10 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/academy',
-      name: 'academy',
-      component: AcademyView,
-      meta: { requiresAuth: true }
-    },
-    {
       path: '/framework',
       name: 'framework',
       component: FrameworkView,
       meta: { requiresAuth: false }
-    },
-    {
-      path: '/quant',
-      name: 'quant',
-      component: () => import('../views/QuantView.vue'),
-      meta: { requiresAuth: false }
-    },
-    {
-      path: '/quant/screener',
-      name: 'quant-screener',
-      component: () => import('../views/QuantScreenerView.vue'),
-      meta: { requiresAuth: false }
-    },
-    {
-      path: '/quant/flagged',
-      name: 'quant-flagged',
-      component: () => import('../views/FlaggedCompaniesView.vue'),
-      meta: { requiresAuth: false }
-    },
-    {
-      path: '/quant/batch',
-      name: 'quant-batch',
-      component: () => import('../views/BatchScreeningView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true }
     },
     // Payment Routes
     {

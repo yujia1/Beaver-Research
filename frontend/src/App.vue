@@ -62,24 +62,12 @@ const menuItems = computed(() => {
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>' 
   }
   
-  const quantItem = {
-    path: '/quant',
-    name: t('nav.quant'),
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
-  }
-  
   const frameworkItem = {
     path: '/framework',
     name: t('nav.framework'),
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>'
   }
-  
-  const academyItem = {
-    path: '/academy',
-    name: t('nav.academy'),
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-  }
-  
+
   const researchItem = {
     path: '/research',
     name: t('nav.research'),
@@ -96,16 +84,12 @@ const menuItems = computed(() => {
       items.push(frameworkItem)
       items.push(reportItem)
       items.push(portfolioItem)
-      items.push(quantItem)
-      items.push(academyItem)
       items.push(researchItem)
     } else {
       // Check specific permissions for logged-in non-admin users
       if (hasAccess('/framework')) items.push(frameworkItem)
       if (hasAccess('/report')) items.push(reportItem)
       if (hasAccess('/portfolio')) items.push(portfolioItem)
-      if (hasAccess('/quant')) items.push(quantItem)
-      if (hasAccess('/academy')) items.push(academyItem)
       if (hasAccess('/research')) items.push(researchItem)
     }
   } else {
@@ -113,8 +97,6 @@ const menuItems = computed(() => {
     items.push(frameworkItem)
     items.push(reportItem)
     items.push(portfolioItem)
-    items.push(quantItem)
-    items.push(academyItem)
     items.push(researchItem)
   }
 
