@@ -64,31 +64,6 @@ const router = createRouter({
       component: FrameworkView,
       meta: { requiresAuth: false }
     },
-    // Payment Routes
-    {
-      path: '/pricing',
-      name: 'pricing',
-      component: () => import('../views/PricingView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/payment/success',
-      name: 'payment-success',
-      component: () => import('../views/PaymentSuccess.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/payment/return',
-      name: 'payment-return',
-      component: () => import('../views/PaymentReturn.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/payment/cancel',
-      name: 'payment-cancel',
-      component: () => import('../views/PricingView.vue'), // Redirect back to pricing
-      meta: { requiresAuth: true }
-    },
     // Auth Routes
     {
       path: '/forgot-password',
@@ -128,7 +103,6 @@ router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('access_token')
   const requiresAuth = to.meta.requiresAuth !== false
   const requiresAdmin = to.meta.requiresAdmin === true
-  const requiresPayment = to.meta.requiresPayment === true
 
   // Public routes that don't need permission checks specific to roles (login, signup, dashboard)
   // Note: dashboard (/) is always public
@@ -166,12 +140,6 @@ router.beforeEach(async (to, from, next) => {
     } catch (e) {
       console.error('Error getting user:', e)
     }
-  }
-
-  // Redirect paid users away from pricing page
-  if (to.path === '/pricing' && user && user.has_paid) {
-    next('/')
-    return
   }
 
   // Check admin requirement
@@ -224,12 +192,6 @@ router.beforeEach(async (to, from, next) => {
         return
       }
     }
-  }
-
-  // Check payment requirement
-  if (requiresPayment && !token) {
-    next('/login')
-    return
   }
 
   next()

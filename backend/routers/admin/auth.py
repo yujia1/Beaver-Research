@@ -44,7 +44,6 @@ class UserResponse(BaseModel):
     username: str
     role: str
     is_active: bool
-    has_paid: bool
     created_at: datetime
 
     class Config:
@@ -238,77 +237,40 @@ def require_role(allowed_roles: List[str]):
         return current_user
     return role_checker
 
-async def verify_premium_access(current_user: models.User = Depends(get_current_user)):
-    """
-    Dependency to verify if user has premium access for REPORTS.
-    This controls access to creating/viewing reports, NOT route visibility.
-    
-    Access is granted if:
-    1. User has 'admin' role (always)
-    2. User has 'has_paid' = True (including creators, contributors, users)
-    
-    Note: Route/feature visibility is controlled by Access Management permissions (frontend).
-    """
-    # Admin always has access
-    if current_user.role == "admin":
-        return current_user
-    
-    # Check payment status for all other roles (including creator)
-    if not current_user.has_paid:
-        print(f"Access denied for user {current_user.username}: Payment required")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Premium access required. Please verify your payment to access this feature."
-        )
-    return current_user
-
-
 async def verify_resource_access(
     resource: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Two-level hierarchical access control:
-    Level 1 (Higher Priority): Check Access Management Permissions
-    Level 2 (Lower Priority): Check Payment Status
-    
-    Admin bypasses both checks.
-    
+    Checks Access Management Permissions for a resource. Admin bypasses the check.
+
     Args:
         resource: The resource path (e.g., '/report', '/research', '/portfolio')
         current_user: Current authenticated user
         db: Database session
-    
+
     Returns:
         Current user if access is granted
-    
+
     Raises:
-        HTTPException: If access is denied at either level
+        HTTPException: If the role lacks access to this resource
     """
     # Admin always has full access
     if current_user.role == "admin":
         return current_user
-    
-    # Level 1: Check Access Management Permissions (Higher Priority)
+
     permission = db.query(models.RolePermission).filter(
         models.RolePermission.role == current_user.role,
         models.RolePermission.resource == resource
     ).first()
-    
+
     if not permission or not permission.can_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Your role ({current_user.role}) does not have access to {resource}. Contact administrator to request access."
         )
-    
-    # Level 2: Check Payment Status (Lower Priority)
-    if not current_user.has_paid:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Premium subscription required. Please upgrade your plan to access this feature."
-        )
-    
+
     return current_user
 
 
@@ -336,43 +298,28 @@ async def verify_role_access(
     db: Session = Depends(get_db)
 ):
     """
-    Tiered Access Control:
-    - Admin/Creator/Contributor: Check ONLY role permissions (Level 1)
-    - Regular User: Check role permissions (Level 1) AND payment status (Level 2)
-    
-    This allows admin to grant access to creator/contributor roles via Access Management,
-    while regular users still need to pay for premium features.
+    Checks Access Management Permissions for a resource. Admin bypasses the check.
     """
     # Admin always has full access
     if current_user.role == "admin":
         return current_user
-    
-    # Level 1: Check Access Management Permissions
+
     permission = db.query(models.RolePermission).filter(
         models.RolePermission.role == current_user.role,
         models.RolePermission.resource == resource
     ).first()
-    
+
     if not permission or not permission.can_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Your role ({current_user.role}) does not have access to {resource}. Contact administrator to request access."
         )
-    
-    # Level 2: Check Payment Status (ONLY for regular users)
-    # Creator and Contributor roles bypass payment check
-    if current_user.role == "user":
-        if not current_user.has_paid:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Premium subscription required. Please upgrade your plan to access this feature."
-            )
-    
+
     return current_user
 
 def create_role_dependency(resource: str):
     """
-    Factory validation dependency that checks Permission but NOT Payment.
+    Factory validation dependency that checks role-based Access Management permission.
     """
     async def dependency(
         current_user: models.User = Depends(get_current_user),
@@ -563,11 +510,11 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
                 detail="Please verify your email address before logging in. Check your inbox for the verification link."
             )
         
-        # Check if account is active
+        # Check if account is active (new signups require admin activation)
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Your account has been deactivated. Please contact support."
+                detail="Your account is pending activation. Please contact an administrator."
             )
         
         # Ensure user has a role (default to "user" if missing)
@@ -667,12 +614,14 @@ async def create_user(
         )
     
     # Create new user
+    # Admin-created accounts are active immediately (the admin creating it is the approval)
     hashed_password = get_password_hash(user_data.password)
     db_user = models.User(
         email=user_data.email,
         username=user_data.username,
         hashed_password=hashed_password,
-        role=user_data.role
+        role=user_data.role,
+        is_active=True
     )
     db.add(db_user)
     db.commit()
@@ -726,107 +675,8 @@ async def delete_user(
             detail=f"Error deleting user: {str(e)}"
         )
 
-# Payment verification endpoints
-class PaymentVerificationRequest(BaseModel):
-    transaction_id: str
-    email: Optional[str] = None
-
-@router.get("/payment-status")
-async def get_payment_status(current_user: models.User = Depends(get_current_user)):
-    """Get current user's payment status"""
-    # Admins always have paid status
-    has_paid = True if current_user.role == "admin" else (current_user.has_paid if hasattr(current_user, 'has_paid') else False)
-    
-    return {
-        "has_paid": has_paid,
-        "role": current_user.role,
-        "payment_date": current_user.payment_date.isoformat() if hasattr(current_user, 'payment_date') and current_user.payment_date else None,
-        "transaction_id": current_user.payment_transaction_id if hasattr(current_user, 'payment_transaction_id') else None
-    }
-
-@router.post("/verify-payment")
-async def verify_payment(
-    payment_data: PaymentVerificationRequest,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    """Verify payment and grant access to Research page (admin can verify manually)"""
-    # Only admin can verify payments manually
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can verify payments"
-        )
-    
-    # Find user by email or transaction ID
-    user = None
-    if payment_data.email:
-        user = get_user_by_email(db, payment_data.email)
-    elif payment_data.transaction_id:
-        user = db.query(models.User).filter(
-            models.User.payment_transaction_id == payment_data.transaction_id
-        ).first()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Update payment status
-    user.has_paid = True
-    user.payment_transaction_id = payment_data.transaction_id
-    user.payment_date = datetime.utcnow()
-    
-    db.commit()
-    db.refresh(user)
-    
-    return {
-        "message": "Payment verified successfully",
-        "user": UserResponse.model_validate(user)
-    }
-
-class UpdatePaymentStatusRequest(BaseModel):
-    user_id: int
-    has_paid: bool
-    transaction_id: Optional[str] = None
-
 class UserRoleUpdate(BaseModel):
     role: str
-
-@router.post("/update-payment-status")
-async def update_payment_status(
-    payment_data: UpdatePaymentStatusRequest,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    """Update payment status for a user (admin only)"""
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can update payment status"
-        )
-    
-    user = db.query(models.User).filter(models.User.id == payment_data.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    user.has_paid = payment_data.has_paid
-    if payment_data.transaction_id:
-        user.payment_transaction_id = payment_data.transaction_id
-    if payment_data.has_paid and not user.payment_date:
-        user.payment_date = datetime.utcnow()
-    
-    db.commit()
-    db.refresh(user)
-    
-    return {
-        "message": "Payment status updated successfully",
-        "user": UserResponse.model_validate(user)
-    }
 
 @router.put("/users/{user_id}/role")
 async def update_user_role(
@@ -869,6 +719,47 @@ async def update_user_role(
     
     return {
         "message": "User role updated successfully",
+        "user": UserResponse.model_validate(user)
+    }
+
+class UserActiveUpdate(BaseModel):
+    is_active: bool
+
+@router.put("/users/{user_id}/active")
+async def update_user_active(
+    user_id: int,
+    active_data: UserActiveUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Activate or deactivate a user (admin only). New signups start inactive
+    and need this before they can log in."""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can activate or deactivate users"
+        )
+
+    # Prevent admin from deactivating themselves (avoid lockout)
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot change your own active status"
+        )
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    user.is_active = active_data.is_active
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": "User activated successfully" if active_data.is_active else "User deactivated successfully",
         "user": UserResponse.model_validate(user)
     }
 

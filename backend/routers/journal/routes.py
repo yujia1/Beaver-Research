@@ -13,10 +13,10 @@ from jose import JWTError, jwt
 
 from database import get_db
 from models import Report
-from routers.admin.auth import get_current_user, verify_premium_access, create_role_dependency
+from routers.admin.auth import get_current_user, create_role_dependency
 import models
 
-# Create role-specific access dependency (tiered: creator/contributor bypass payment)
+# Create role-specific access dependency
 require_report_access = create_role_dependency('/report')
 
 # Token verification for query parameter (for iframe access)
@@ -258,23 +258,7 @@ async def get_reports_from_minio(
     try:
         # Validate report type
         valid_report_types = ["daily", "long", "short", "market"]
-        
-        # Tiered Access Control for Report Types:
-        # - Admin: Full access to all report types
-        # - Creator/Contributor: Full access to all report types (bypass payment)
-        # - Regular User: Free access to "market" and "daily", payment required for "long" and "short"
-        
-        allowed_types_free = ["market", "daily"]
-        
-        # Check if user needs payment for this report type
-        if current_user.role == "user":
-            # Regular users need payment for premium report types
-            if report_type not in allowed_types_free:
-                if not (hasattr(current_user, 'has_paid') and current_user.has_paid):
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Premium subscription required to access this report type. Please upgrade your plan."
-                    )
+
         if report_type not in valid_report_types:
             raise HTTPException(
                 status_code=400,
@@ -443,23 +427,6 @@ async def get_pdf_from_minio(
 ):
     """Get PDF content from MinIO"""
     try:
-        # Tiered Access Control for PDF Download:
-        # - Admin: Full access to all report types
-        # - Creator/Contributor: Full access to all report types (bypass payment)
-        # - Regular User: Free access to "market" and "daily", payment required for "long" and "short"
-        
-        allowed_types_free = ["market", "daily"]
-        
-        # Check if user needs payment for this report type
-        if current_user.role == "user":
-            # Regular users need payment for premium report types
-            if report_type not in allowed_types_free:
-                if not (hasattr(current_user, 'has_paid') and current_user.has_paid):
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Premium subscription required to access this report."
-                    )
-
         # Map report_type to folder name
         folder_map = {
             "daily": "Daily",

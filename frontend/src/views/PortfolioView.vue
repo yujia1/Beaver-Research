@@ -8,7 +8,8 @@ import AddTradeLotModal from '@/components/AddTradeLotModal.vue'
 import EditTradeLotModal from '@/components/EditTradeLotModal.vue'
 
 const userStore = useUserStore()
-const isReadOnly = computed(() => userStore.user?.role === 'user')
+// Portfolio is a single entity shared by every role. Only admin/creator can edit it.
+const isReadOnly = computed(() => !['admin', 'creator'].includes(userStore.user?.role))
 
 const showAddLotModal = ref(false)
 const showEditLotModal = ref(false)

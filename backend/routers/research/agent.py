@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Body, Depends
 from services.agent import agent_service
 from services.edgar_service import edgar_service
 from typing import Optional
-from routers.admin.auth import get_current_user, verify_premium_access
+from routers.admin.auth import get_current_user
 import models
 from schemas.agent import ReportRequest, CompanyAnalysisRequest
 

@@ -8,8 +8,7 @@
         "research": "深度研究",
         "admin": "管理后台",
         "login": "登录",
-        "logout": "退出登录",
-        "upgrade": "升级会员"
+        "logout": "退出登录"
     },
     "auth": {
         "login": "登录",
@@ -291,10 +290,7 @@
             "no_data_10k": "暂无 10-K 数据。点击刷新加载。",
             "company_overview": "公司概览及深度研究分析",
             "generate": "生成报告",
-            "generating": "生成中...",
-            "payment_required": "需付费 - 生成报告",
-            "payment_notice": "生成深度分析需要付费。",
-            "payment_link": "前往研究页面完成支付"
+            "generating": "生成中..."
         },
         "financials": {
             "header": "财务报表概览",
@@ -638,9 +634,6 @@
             "response_4": "财务报表显示利润率健康，资本分配效率高。我可以提供任何具体指标的详细分析。",
             "error": "连接智能体出错。请重试。"
         },
-        "loading": {
-            "checking_access": "正在检查访问权限..."
-        },
         "report_types": {
             "daily": "日报",
             "market": "市场",
@@ -708,34 +701,6 @@
             "upload_success": "研报上传成功"
         }
     },
-    "pricing": {
-        "title": "升级到专业版",
-        "subtitle": "解锁独家市场研究、高级分析和优质报告。",
-        "free_plan": "基础版",
-        "free_price": "免费",
-        "market_dashboard": "市场看板",
-        "news_feed": "基础新闻流",
-        "delayed_data": "延时数据",
-        "current_plan": "当前计划",
-        "pro_plan": "专业版",
-        "most_popular": "最受欢迎",
-        "month": "/月",
-        "ai_reports": "无限 AI 研报",
-        "alphatrade": "实时 AlphaTrade 信号",
-        "deep_dive": "深度基本面分析",
-        "bear_cave": "独家“熊穴”研究",
-        "priority_support": "优先支持",
-        "subscribe_now": "立即订阅",
-        "processing": "处理中...",
-        "active_subscription": "订阅已激活",
-        "login_to_subscribe": "请登录后订阅。",
-        "payment_error": "支付初始化失败: {error}"
-    },
-    "payment": {
-        "success_title": "支付成功！",
-        "success_message": "感谢您订阅 Beaver Research Pro。您的账户已升级。",
-        "go_to_dashboard": "前往控制台"
-    },
     "security": {
         "title": "安全",
         "section_title": "🔒 安全",
@@ -765,7 +730,6 @@
             "users": "用户管理",
             "access": "访问管理",
             "reports": "报告管理",
-            "batch": "批处理管理",
             "health": "健康管理",
             "database": "数据库管理"
         },
@@ -773,41 +737,40 @@
             "loading": "正在加载用户...",
             "stats": {
                 "total": "总用户数",
-                "paid": "付费用户",
-                "unpaid": "未付费用户"
+                "active": "已激活用户",
+                "inactive": "未激活用户"
             },
             "filters": {
                 "search_placeholder": "搜索用户名或邮箱...",
                 "all_roles": "所有角色",
-                "all_payment": "所有支付状态",
-                "paid": "已付费",
-                "unpaid": "未付费"
+                "all_active": "所有状态",
+                "active": "已激活",
+                "inactive": "未激活"
             },
             "table": {
                 "id": "ID",
                 "username": "用户名",
                 "email": "邮箱",
                 "role": "角色",
-                "payment_status": "支付状态",
-                "transaction_id": "交易 ID",
-                "payment_date": "支付日期",
+                "status": "状态",
                 "created": "创建时间",
                 "actions": "操作"
             },
             "badges": {
-                "paid": "✓ 已付费",
-                "unpaid": "✗ 未付费"
+                "active": "✓ 已激活",
+                "inactive": "✗ 未激活"
             },
             "actions": {
                 "updating": "更新中...",
-                "unverify": "取消验证",
-                "verify": "验证支付",
+                "activate": "激活",
+                "deactivate": "停用",
                 "deleting": "删除中...",
                 "delete": "删除"
             },
             "tooltips": {
                 "cannot_delete_self": "不能删除自己的账户",
-                "delete_user": "删除用户"
+                "delete_user": "删除用户",
+                "cannot_deactivate_self": "不能停用自己的账户"
             },
             "no_results": "没有找到匹配的用户。"
         },
@@ -929,7 +892,7 @@
         "errors": {
             "load_users": "加载用户失败",
             "access_denied": "访问被拒绝。需要管理员权限。",
-            "update_payment": "更新支付状态失败",
+            "update_active": "更新激活状态失败",
             "delete_user": "删除用户失败",
             "load_reports": "加载报告失败",
             "delete_report": "删除报告失败",
@@ -946,7 +909,8 @@
             "retry": "重试"
         },
         "messages": {
-            "payment_updated": "无论是已成功更新 {username} 的支付状态",
+            "user_activated": "{username} 已被激活",
+            "user_deactivated": "{username} 已被停用",
             "user_deleted": "用户 {username} 已被成功删除",
             "report_deleted": "报告 \"{title}\" 已成功删除。",
             "report_uploaded": "报告 \"{title}\" 上传成功！",
@@ -958,7 +922,6 @@
     },
     "reports_page": {
         "title": "期刊",
-        "checking_access": "正在检查权限...",
         "loading": "正在加载报告...",
         "loading_single": "正在加载报告...",
         "filter": {
@@ -978,38 +941,6 @@
             "short": "暂无空头持仓报告"
         },
         "pdf_unavailable": "暂无 PDF"
-    },
-    "payment_gate": {
-        "title": "研究访问权限",
-        "subtitle": "高级研究工具需付费使用",
-        "features_title": "您将获得：",
-        "header": "Beaver Research",
-        "choose_plan": "选择您的计划",
-        "monthly_sub": "月度订阅",
-        "annual_sub": "年度订阅",
-        "save_14": "节省 14%",
-        "plan_details": "计划详情",
-        "pro_annual": "专业版年度计划",
-        "pro_monthly": "专业版月度计划",
-        "plan_desc": "高级市场情报访问权限",
-        "year": "/ 年",
-        "month": "/ 月",
-        "includes": "包含内容：",
-        "features": {
-            "analysis": "来自市场、公司和机构的实时分析与洞察",
-            "market_data": "实时市场数据与基本面",
-            "research_tools": "实时公司与市场研究工具",
-            "data_vault": "独家数据金库访问",
-            "realtime": "实时市场分析与洞察",
-            "ai_research": "高级 AI 研究报告",
-            "toolkit": "完整的机构级工具包"
-        },
-        "total_due": "今日应付总额",
-        "pay_with": "支付方式",
-        "retry": "重试",
-        "error_init": "无法加载支付表单",
-        "pay_button": "使用 PayPal/Strip 支付 $29.99",
-        "verification_pending": "付款验证处理中"
     },
     "framework": {
         "title": "财务框架",

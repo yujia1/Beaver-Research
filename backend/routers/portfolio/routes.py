@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import re
 from redis_client import redis_client
 
-from routers.admin.auth import get_current_user, verify_premium_access, create_resource_dependency
+from routers.admin.auth import get_current_user, create_resource_dependency
 
 # Create resource-specific access dependency
 require_portfolio_access = create_resource_dependency('/portfolio')
@@ -44,6 +44,7 @@ class LotResponse(BaseModel):
     side: str
     link: Optional[str] = None
     note: Optional[str] = None
+    updatedBy: Optional[str] = None
 
 class PositionCreate(BaseModel):
     ticker: str
@@ -56,6 +57,7 @@ class PositionResponse(BaseModel):
     lots: List[LotResponse]
     fundamentalAnalysis: Dict[str, str]
     fundamentalScores: Dict[str, Optional[int]]
+    updatedBy: Optional[str] = None
 
 class FundamentalAnalysisUpdate(BaseModel):
     questionId: int
@@ -189,13 +191,13 @@ from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
 
 async def require_portfolio_write_access(current_user: User = Depends(require_portfolio_access)):
     """
-    'user' role has view-only access to /portfolio: they can list positions but
-    cannot create/update/delete positions, lots, or fundamental analysis.
+    Portfolio is a single entity shared by every role. Only admin/creator can
+    write to it; contributor and user get view-only access.
     """
-    if current_user.role == "user":
+    if current_user.role not in ("admin", "creator"):
         raise HTTPException(
             status_code=403,
-            detail="Your role has view-only access to Portfolio. Contact an administrator to request write access."
+            detail="Only admin and creator roles can modify the portfolio. Contact an administrator to request write access."
         )
     return current_user
 
@@ -206,28 +208,26 @@ async def get_positions(
     current_user: models.User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
-    """Get all positions for the current user with lots and fundamental analysis"""
-    positions = db.query(PortfolioPosition).filter(
-        PortfolioPosition.user_id == current_user.id
-    ).all()
-    
+    """Get every position in the shared portfolio, with lots and fundamental analysis"""
+    positions = db.query(PortfolioPosition).all()
+
     # Fetch real-time prices for all tickers in parallel
     tickers = [pos.ticker.upper() for pos in positions]
     realtime_prices = await fetch_realtime_prices(tickers)
-    
+
     result = []
     for pos in positions:
         # Build fundamental analysis dict
         fundamental_analysis = {}
         fundamental_scores = {}
-        for analysis in pos.analysis: 
+        for analysis in pos.analysis:
             fundamental_analysis[str(analysis.question_id)] = analysis.answer or ""
             if analysis.score:
                 fundamental_scores[str(analysis.question_id)] = analysis.score
-        
+
         current_ticker = pos.ticker.upper()
         current_price = realtime_prices.get(current_ticker, 0.0)
-        
+
         result.append({
             "ticker": pos.ticker,
             "sector": pos.sector,
@@ -240,14 +240,16 @@ async def get_positions(
                     "costPerShare": lot.cost_per_share,
                     "side": lot.side,
                     "link": lot.link,
-                    "note": lot.note
+                    "note": lot.note,
+                    "updatedBy": lot.updated_by.username if lot.updated_by else None
                 }
                 for lot in pos.lots
             ],
             "fundamentalAnalysis": fundamental_analysis,
-            "fundamentalScores": fundamental_scores
+            "fundamentalScores": fundamental_scores,
+            "updatedBy": pos.updated_by.username if pos.updated_by else None
         })
-    
+
     return result
 
 
@@ -257,32 +259,30 @@ async def create_position(
     current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
-    """Create a new position for the current user"""
-    # Check if position already exists for this user
+    """Create a new position in the shared portfolio"""
     existing = db.query(PortfolioPosition).filter(
-        PortfolioPosition.user_id == current_user.id,
         PortfolioPosition.ticker == position.ticker
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Position already exists for this user")
-    
+        raise HTTPException(status_code=400, detail="Position already exists in the portfolio")
+
     # Create position
     db_position = PortfolioPosition(
-        user_id=current_user.id,
         ticker=position.ticker,
-        sector=position.sector
+        sector=position.sector,
+        updated_by_user_id=current_user.id
     )
     db.add(db_position)
     db.commit()
     db.refresh(db_position)
-    
+
     response_price = 0.0
     try:
         prices = await fetch_realtime_prices([position.ticker])
         response_price = prices.get(position.ticker.upper(), 0.0)
     except:
         pass
-    
+
     return {"ticker": db_position.ticker, "sector": db_position.sector, "currentPrice": response_price}
 
 
@@ -292,17 +292,16 @@ def delete_position(
     current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
-    """Delete a position and all associated lots for the current user"""
+    """Delete a position and all associated lots from the shared portfolio"""
     position = db.query(PortfolioPosition).filter(
-        PortfolioPosition.user_id == current_user.id,
         PortfolioPosition.ticker == ticker
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
-    
+
     db.delete(position)
     db.commit()
-    
+
     return {"message": "Position deleted successfully"}
 
 
@@ -314,14 +313,13 @@ def add_lot(
     current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
-    """Add a lot to a position for the current user"""
+    """Add a lot to a position in the shared portfolio"""
     position = db.query(PortfolioPosition).filter(
-        PortfolioPosition.user_id == current_user.id,
         PortfolioPosition.ticker == ticker
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
-    
+
     db_lot = PortfolioLot(
         position_id=position.id,
         purchase_date=lot.purchaseDate,
@@ -329,12 +327,14 @@ def add_lot(
         cost_per_share=lot.costPerShare,
         side=lot.side,
         link=lot.link,
-        note=lot.note
+        note=lot.note,
+        updated_by_user_id=current_user.id
     )
     db.add(db_lot)
+    position.updated_by_user_id = current_user.id
     db.commit()
     db.refresh(db_lot)
-    
+
     return {
         "id": db_lot.id,
         "purchaseDate": db_lot.purchase_date,
@@ -342,7 +342,8 @@ def add_lot(
         "costPerShare": db_lot.cost_per_share,
         "side": db_lot.side,
         "link": db_lot.link,
-        "note": db_lot.note
+        "note": db_lot.note,
+        "updatedBy": current_user.username
     }
 
 
@@ -353,25 +354,23 @@ def update_lot(
     current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
-    """Update a lot (verify user owns the position)"""
+    """Update a lot in the shared portfolio"""
     db_lot = db.query(PortfolioLot).filter(PortfolioLot.id == lot_id).first()
     if not db_lot:
         raise HTTPException(status_code=404, detail="Lot not found")
-    
-    # Verify user owns the position
-    if db_lot.position.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this lot")
-    
+
     db_lot.purchase_date = lot.purchaseDate
     db_lot.quantity = lot.quantity
     db_lot.cost_per_share = lot.costPerShare
     db_lot.side = lot.side
     db_lot.link = lot.link
     db_lot.note = lot.note
-    
+    db_lot.updated_by_user_id = current_user.id
+    db_lot.position.updated_by_user_id = current_user.id
+
     db.commit()
     db.refresh(db_lot)
-    
+
     return {
         "id": db_lot.id,
         "purchaseDate": db_lot.purchase_date,
@@ -379,7 +378,8 @@ def update_lot(
         "costPerShare": db_lot.cost_per_share,
         "side": db_lot.side,
         "link": db_lot.link,
-        "note": db_lot.note
+        "note": db_lot.note,
+        "updatedBy": current_user.username
     }
 
 
@@ -389,19 +389,15 @@ def delete_lot(
     current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
-    """Delete a lot (verify user owns the position)"""
+    """Delete a lot from the shared portfolio"""
     db_lot = db.query(PortfolioLot).filter(PortfolioLot.id == lot_id).first()
     if not db_lot:
         raise HTTPException(status_code=404, detail="Lot not found")
-    
-    # Verify user owns the position
-    if db_lot.position.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this lot")
-    
+
     position_id = db_lot.position_id
     db.delete(db_lot)
     db.commit()
-    
+
     # Check if position has any remaining lots
     remaining_lots = db.query(PortfolioLot).filter(PortfolioLot.position_id == position_id).count()
     if remaining_lots == 0:
@@ -411,7 +407,7 @@ def delete_lot(
             db.delete(position)
             db.commit()
             return {"message": "Lot and position deleted successfully"}
-    
+
     return {"message": "Lot deleted successfully"}
 
 
@@ -423,9 +419,8 @@ def update_fundamental_analysis(
     current_user: User = Depends(require_portfolio_write_access),
     db: Session = Depends(get_db)
 ):
-    """Update fundamental analysis for a position owned by current user"""
+    """Update fundamental analysis for a position in the shared portfolio"""
     position = db.query(PortfolioPosition).filter(
-        PortfolioPosition.user_id == current_user.id,
         PortfolioPosition.ticker == ticker
     ).first()
     if not position:
@@ -453,9 +448,10 @@ def update_fundamental_analysis(
             score=analysis.score
         )
         db.add(db_analysis)
-    
+
+    position.updated_by_user_id = current_user.id
     db.commit()
-    
+
     return {"message": "Analysis updated successfully"}
 
 

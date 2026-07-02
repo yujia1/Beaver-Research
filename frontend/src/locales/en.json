@@ -8,8 +8,7 @@
         "research": "Research",
         "admin": "Admin Panel",
         "login": "Login",
-        "logout": "Logout",
-        "upgrade": "Upgrade"
+        "logout": "Logout"
     },
     "auth": {
         "login": "Login",
@@ -294,10 +293,7 @@
             "no_data_10k": "No 10-K data available. Click Refresh to load.",
             "company_overview": "Company Overview & Deep Dive Analysis",
             "generate": "Generate",
-            "generating": "Generating...",
-            "payment_required": "Payment Required - Generate",
-            "payment_notice": "Payment required to generate analysis.",
-            "payment_link": "Visit Research page to complete payment"
+            "generating": "Generating..."
         },
         "financials": {
             "header": "Financial Statements Overview",
@@ -643,9 +639,6 @@
             "response_4": "The financial statements indicate healthy margins and efficient capital allocation. I can provide more detailed analysis on any specific metric.",
             "error": "Error connecting to agent. Please try again."
         },
-        "loading": {
-            "checking_access": "Checking access..."
-        },
         "report_types": {
             "daily": "Daily",
             "market": "Market",
@@ -713,34 +706,6 @@
             "upload_success": "Report uploaded successfully"
         }
     },
-    "pricing": {
-        "title": "Upgrade to Pro",
-        "subtitle": "Unlock exclusive market research, advanced analysis, and premium reports.",
-        "free_plan": "Basic",
-        "free_price": "Free",
-        "market_dashboard": "Market Dashboard",
-        "news_feed": "Basic News Feed",
-        "delayed_data": "Delayed Data",
-        "current_plan": "Current Plan",
-        "pro_plan": "Professional",
-        "most_popular": "MOST POPULAR",
-        "month": "/month",
-        "ai_reports": "Unlimited AI Research Reports",
-        "alphatrade": "Real-time AlphaTrade Signals",
-        "deep_dive": "Deep Dive Fundamental Analysis",
-        "bear_cave": "Exclusive \"Bear Cave\" Research",
-        "priority_support": "Priority Support",
-        "subscribe_now": "Subscribe Now",
-        "processing": "Processing...",
-        "active_subscription": "Active Subscription",
-        "login_to_subscribe": "Please log in to subscribe.",
-        "payment_error": "Payment initialization failed: {error}"
-    },
-    "payment": {
-        "success_title": "Payment Successful!",
-        "success_message": "Thank you for subscribing to Beaver Research Pro. Your account has been upgraded.",
-        "go_to_dashboard": "Go to Dashboard"
-    },
     "security": {
         "title": "Security",
         "section_title": "🔒 Security",
@@ -770,7 +735,6 @@
             "users": "User Management",
             "access": "Access Management",
             "reports": "Report Management",
-            "batch": "Batch Management",
             "health": "Health Management",
             "database": "Database Management"
         },
@@ -778,41 +742,40 @@
             "loading": "Loading users...",
             "stats": {
                 "total": "Total Users",
-                "paid": "Paid Users",
-                "unpaid": "Unpaid Users"
+                "active": "Active Users",
+                "inactive": "Inactive Users"
             },
             "filters": {
                 "search_placeholder": "Search by username or email...",
                 "all_roles": "All Roles",
-                "all_payment": "All Payment Status",
-                "paid": "Paid",
-                "unpaid": "Unpaid"
+                "all_active": "All Statuses",
+                "active": "Active",
+                "inactive": "Inactive"
             },
             "table": {
                 "id": "ID",
                 "username": "Username",
                 "email": "Email",
                 "role": "Role",
-                "payment_status": "Payment Status",
-                "transaction_id": "Transaction ID",
-                "payment_date": "Payment Date",
+                "status": "Status",
                 "created": "Created",
                 "actions": "Actions"
             },
             "badges": {
-                "paid": "✓ Paid",
-                "unpaid": "✗ Unpaid"
+                "active": "✓ Active",
+                "inactive": "✗ Inactive"
             },
             "actions": {
                 "updating": "Updating...",
-                "unverify": "Unverify",
-                "verify": "Verify Payment",
+                "activate": "Activate",
+                "deactivate": "Deactivate",
                 "deleting": "Deleting...",
                 "delete": "Delete"
             },
             "tooltips": {
                 "cannot_delete_self": "Cannot delete your own account",
-                "delete_user": "Delete user"
+                "delete_user": "Delete user",
+                "cannot_deactivate_self": "Cannot deactivate your own account"
             },
             "no_results": "No users found matching your filters."
         },
@@ -835,18 +798,6 @@
             "actions": {
                 "checking": "Checking...",
                 "refresh": "Refresh Health Status"
-            }
-        },
-        "batch": {
-            "title": "Batch Job Management",
-            "subtitle": "Trigger and monitor batch processing jobs",
-            "scheduler": {
-                "title": "Scheduler Configuration",
-                "enable_auto": "Enable Auto-Processing",
-                "delay_days": "Processing Delay (Days)",
-                "delay_help": "Days to wait after quarter end before processing.",
-                "save": "Save Config",
-                "saving": "Saving..."
             }
         },
         "access": {
@@ -934,7 +885,7 @@
         "errors": {
             "load_users": "Failed to load users",
             "access_denied": "Access denied. Admin privileges required.",
-            "update_payment": "Failed to update payment status",
+            "update_active": "Failed to update active status",
             "delete_user": "Failed to delete user",
             "load_reports": "Failed to load reports",
             "delete_report": "Failed to delete report",
@@ -951,7 +902,8 @@
             "retry": "Retry"
         },
         "messages": {
-            "payment_updated": "Payment status updated successfully for {username}",
+            "user_activated": "{username} has been activated",
+            "user_deactivated": "{username} has been deactivated",
             "user_deleted": "User {username} has been deleted successfully",
             "report_deleted": "Report \"{title}\" deleted successfully.",
             "report_uploaded": "Report \"{title}\" uploaded successfully!",
@@ -963,7 +915,6 @@
     },
     "reports_page": {
         "title": "Journals",
-        "checking_access": "Checking access...",
         "loading": "Loading reports...",
         "loading_single": "Loading report...",
         "filter": {
@@ -983,38 +934,6 @@
             "short": "No short position reports"
         },
         "pdf_unavailable": "PDF not available"
-    },
-    "payment_gate": {
-        "title": "Research Access",
-        "subtitle": "Premium Research Tools require payment",
-        "features_title": "What you'll get:",
-        "header": "Beaver Research",
-        "choose_plan": "Choose your plan",
-        "monthly_sub": "Monthly subscription",
-        "annual_sub": "Annual subscription",
-        "save_14": "Save 14%",
-        "plan_details": "Plan details",
-        "pro_annual": "Professional Annual",
-        "pro_monthly": "Professional Monthly",
-        "plan_desc": "Premium market intelligence access",
-        "year": "/ year",
-        "month": "/ month",
-        "includes": "This includes:",
-        "features": {
-            "analysis": "real time analysis and insights from market, company, and institutions",
-            "market_data": "Real-time market data and fundamentals",
-            "research_tools": "Company and market research real-time tools",
-            "data_vault": "Exclusive Data Vault access",
-            "realtime": "Real-time market analysis & insights",
-            "ai_research": "Advanced AI Research Reports",
-            "toolkit": "Full institutional-grade toolkit"
-        },
-        "total_due": "Total due today",
-        "pay_with": "Pay with",
-        "retry": "Try again",
-        "error_init": "Failed to load payment form",
-        "pay_button": "Pay $29.99 with PayPal/Stripe",
-        "verification_pending": "Payment Verification Pending"
     },
     "framework": {
         "title": "Framework",

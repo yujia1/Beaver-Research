@@ -49,7 +49,7 @@ from routers.journal import routes as reports
 from routers.portfolio import routes as portfolio
 from routers.research import routes as research
 from routers.research import agent
-from routers.admin import auth, db as admin_db, payment
+from routers.admin import auth, db as admin_db
 # from routers.util import internal_legacy # Deprecated
 
 from database import engine, SessionLocal, check_db_connection
@@ -111,7 +111,8 @@ def init_default_users():
                     email=user_data["email"],
                     hashed_password=hashed_password,
                     role=user_data["role"],
-                    is_verified=True  # Default users are pre-verified
+                    is_verified=True,  # Default users are pre-verified
+                    is_active=True  # Default users are pre-activated
                 )
                 db.add(new_user)
                 created_count += 1
@@ -335,7 +336,6 @@ async def startup_event():
 # Admin
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(admin_db.router, prefix="/api/admin/db", tags=["Database Management"])
-app.include_router(payment.router) # Prefix handled in router
 from routers.admin import ai_report_routes
 app.include_router(ai_report_routes.router, prefix="/api/admin/ai-report", tags=["AI Report"])
 

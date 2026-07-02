@@ -1,12 +1,6 @@
 <template>
   <div class="research-view" :class="viewModeClass">
-    <PaymentGate v-if="!hasPaid && !loading" />
-    <div v-else-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>{{ t('research.loading.checking_access') }}</p>
-    </div>
     <ResearchEditView
-      v-else
       :view-mode="viewMode"
       :active-agent="activeAgent"
       :ticker="ticker"
@@ -18,14 +12,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed } from 'vue'
 import ResearchEditView from './ResearchEditView.vue'
-import PaymentGate from '@/components/PaymentGate.vue'
-import { usePayment } from '@/composables/usePayment.js'
-
-const { t } = useI18n()
-const { hasPaid, loading, checkPaymentStatus, setupPaymentListeners } = usePayment()
 
 // State Management - Lifted to parent
 const viewMode = ref('EDIT') // 'EDIT' | 'PREVIEW'
@@ -34,11 +22,6 @@ const ticker = ref('TSLA')
 
 const viewModeClass = computed(() => {
   return viewMode.value === 'EDIT' ? 'edit-mode' : 'preview-mode'
-})
-
-onMounted(() => {
-  checkPaymentStatus()
-  setupPaymentListeners()
 })
 </script>
 

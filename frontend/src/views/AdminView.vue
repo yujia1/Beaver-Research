@@ -59,12 +59,12 @@
           <div class="stat-label">{{ t('admin.users.stats.total') }}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ paidUsersCount }}</div>
-          <div class="stat-label">{{ t('admin.users.stats.paid') }}</div>
+          <div class="stat-value">{{ activeUsersCount }}</div>
+          <div class="stat-label">{{ t('admin.users.stats.active') }}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ unpaidUsersCount }}</div>
-          <div class="stat-label">{{ t('admin.users.stats.unpaid') }}</div>
+          <div class="stat-value">{{ inactiveUsersCount }}</div>
+          <div class="stat-label">{{ t('admin.users.stats.inactive') }}</div>
         </div>
       </div>
 
@@ -82,10 +82,10 @@
           <option value="contributor">Contributor</option>
           <option value="user">User</option>
         </select>
-        <select v-model="paymentFilter" class="filter-select">
-          <option value="">{{ t('admin.users.filters.all_payment') }}</option>
-          <option value="paid">{{ t('admin.users.filters.paid') }}</option>
-          <option value="unpaid">{{ t('admin.users.filters.unpaid') }}</option>
+        <select v-model="activeFilter" class="filter-select">
+          <option value="">{{ t('admin.users.filters.all_active') }}</option>
+          <option value="active">{{ t('admin.users.filters.active') }}</option>
+          <option value="inactive">{{ t('admin.users.filters.inactive') }}</option>
         </select>
       </div>
 
@@ -97,9 +97,7 @@
               <th>{{ t('admin.users.table.username') }}</th>
               <th>{{ t('admin.users.table.email') }}</th>
               <th>{{ t('admin.users.table.role') }}</th>
-              <th>{{ t('admin.users.table.payment_status') }}</th>
-              <th>{{ t('admin.users.table.transaction_id') }}</th>
-              <th>{{ t('admin.users.table.payment_date') }}</th>
+              <th>{{ t('admin.users.table.status') }}</th>
               <th>{{ t('admin.users.table.created') }}</th>
               <th>{{ t('admin.users.table.actions') }}</th>
             </tr>
@@ -124,15 +122,9 @@
                 </select>
               </td>
               <td>
-                <span :class="['payment-badge', user.has_paid ? 'paid' : 'unpaid']">
-                  {{ user.has_paid ? t('admin.users.badges.paid') : t('admin.users.badges.unpaid') }}
+                <span :class="['status-badge', user.is_active ? 'active' : 'inactive']">
+                  {{ user.is_active ? t('admin.users.badges.active') : t('admin.users.badges.inactive') }}
                 </span>
-              </td>
-              <td class="transaction-id">
-                {{ user.payment_transaction_id || '-' }}
-              </td>
-              <td class="payment-date">
-                {{ formatDate(user.payment_date) }}
               </td>
               <td class="created-date">
                 {{ formatDate(user.created_at) }}
@@ -140,11 +132,12 @@
               <td class="actions-cell">
                 <div class="action-buttons">
                   <button
-                    @click="togglePaymentStatus(user)"
-                    :class="['action-button', user.has_paid ? 'unverify' : 'verify']"
-                    :disabled="updatingUserId === user.id"
+                    @click="toggleActiveStatus(user)"
+                    :class="['action-button', user.is_active ? 'unverify' : 'verify']"
+                    :disabled="updatingActiveUserId === user.id || isCurrentUser(user)"
+                    :title="isCurrentUser(user) ? t('admin.users.tooltips.cannot_deactivate_self') : ''"
                   >
-                    {{ updatingUserId === user.id ? t('admin.users.actions.updating') : (user.has_paid ? t('admin.users.actions.unverify') : t('admin.users.actions.verify')) }}
+                    {{ updatingActiveUserId === user.id ? t('admin.users.actions.updating') : (user.is_active ? t('admin.users.actions.deactivate') : t('admin.users.actions.activate')) }}
                   </button>
                   <button
                     @click="confirmDelete(user)"
@@ -740,8 +733,9 @@ const loading = ref(true)
 const error = ref('')
 const searchQuery = ref('')
 const roleFilter = ref('')
-const paymentFilter = ref('')
+const activeFilter = ref('')
 const updatingUserId = ref(null)
+const updatingActiveUserId = ref(null)
 const deletingUserId = ref(null)
 const userToDelete = ref(null)
 const showDeleteConfirm = ref(false)
@@ -1096,12 +1090,12 @@ const resourceTypes = ['/research', '/portfolio', '/framework', '/report', '/age
 const message = ref('')
 const messageType = ref('')
 
-const paidUsersCount = computed(() => {
-  return users.value.filter(u => u.has_paid).length
+const activeUsersCount = computed(() => {
+  return users.value.filter(u => u.is_active).length
 })
 
-const unpaidUsersCount = computed(() => {
-  return users.value.filter(u => !u.has_paid).length
+const inactiveUsersCount = computed(() => {
+  return users.value.filter(u => !u.is_active).length
 })
 
 const filteredUsers = computed(() => {
@@ -1121,11 +1115,11 @@ const filteredUsers = computed(() => {
     filtered = filtered.filter(user => user.role === roleFilter.value)
   }
 
-  // Payment filter
-  if (paymentFilter.value === 'paid') {
-    filtered = filtered.filter(user => user.has_paid)
-  } else if (paymentFilter.value === 'unpaid') {
-    filtered = filtered.filter(user => !user.has_paid)
+  // Active status filter
+  if (activeFilter.value === 'active') {
+    filtered = filtered.filter(user => user.is_active)
+  } else if (activeFilter.value === 'inactive') {
+    filtered = filtered.filter(user => !user.is_active)
   }
 
   return filtered
@@ -1234,60 +1228,50 @@ const updateUserRole = async (user, newRole) => {
   }
 }
 
-const togglePaymentStatus = async (user) => {
-  if (updatingUserId.value === user.id) return
+const toggleActiveStatus = async (user) => {
+  if (updatingActiveUserId.value === user.id) return
 
-  updatingUserId.value = user.id
+  const newStatus = !user.is_active
+  updatingActiveUserId.value = user.id
   message.value = ''
 
   try {
     const token = localStorage.getItem('access_token')
-    const newStatus = !user.has_paid
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/update-payment-status`, {
-      method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/api/auth/users/${user.id}/active`, {
+      method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        user_id: user.id,
-        has_paid: newStatus,
-        transaction_id: user.payment_transaction_id || null
-      })
+      body: JSON.stringify({ is_active: newStatus })
     })
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || t('admin.errors.update_payment'))
+      throw new Error(errorData.detail || t('admin.errors.update_active'))
     }
 
-    // Update local state
-    user.has_paid = newStatus
-    if (newStatus && !user.payment_date) {
-      user.payment_date = new Date().toISOString()
-    }
-
-    message.value = t('admin.messages.payment_updated', { username: user.username })
+    user.is_active = newStatus
+    message.value = newStatus
+      ? t('admin.messages.user_activated', { username: user.username })
+      : t('admin.messages.user_deactivated', { username: user.username })
     messageType.value = 'success'
 
     setTimeout(() => {
       message.value = ''
     }, 3000)
   } catch (err) {
-    console.error('Error updating payment status:', err)
-    message.value = err.message || t('admin.errors.update_payment')
+    console.error('Error updating active status:', err)
+    message.value = err.message || t('admin.errors.update_active')
     messageType.value = 'error'
 
     setTimeout(() => {
       message.value = ''
     }, 5000)
   } finally {
-    updatingUserId.value = null
+    updatingActiveUserId.value = null
   }
 }
-
-
 
 const loadTables = async () => {
   loadingTables.value = true
@@ -2096,15 +2080,15 @@ onMounted(() => {
 .role-creator { background: #e0e0e0; color: #000; }
 .role-user { background: #f5f5f5; color: #666; border: 1px solid #e0e0e0; }
 
-.payment-badge {
+.status-badge {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
-.payment-badge.paid { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-.payment-badge.unpaid { color: #666; background: rgba(0, 0, 0, 0.05); }
+.status-badge.active { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.status-badge.inactive { color: #666; background: rgba(0, 0, 0, 0.05); }
 
 /* Buttons */
 .action-button {

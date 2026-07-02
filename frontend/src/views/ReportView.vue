@@ -1,10 +1,6 @@
 <template>
   <div class="report-view">
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>{{ t('reports_page.checking_access') }}</p>
-    </div>
-    <div v-else>
+    <div>
     <h2>{{ t('reports_page.title') }}</h2>
     
       <!-- Ticker Filter -->
@@ -34,13 +30,8 @@
               <div v-if="loadingReports" class="loading">{{ t('reports_page.loading') }}</div>
               <div v-else>
                 
-                <!-- Premium Lock: Show PaymentGate if user is unpaid and trying to access premium tabs -->
-                <div v-if="!hasPaid && (activeCategory === 'long' || activeCategory === 'short')" class="report-category">
-                    <PaymentGate />
-                </div>
-
                 <!-- Long Position Reports -->
-                <div v-if="activeCategory === 'long' && hasPaid" class="report-category">
+                <div v-if="activeCategory === 'long'" class="report-category">
                         <div v-if="longReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.long') }}</div>
                         <ul v-else class="report-list">
                         <li v-for="savedReport in longReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
@@ -117,7 +108,7 @@
         </div>
 
                 <!-- Short Position Reports -->
-                <div v-if="activeCategory === 'short' && hasPaid" class="report-category">
+                <div v-if="activeCategory === 'short'" class="report-category">
                         <div v-if="shortReports.length === 0" class="no-reports">{{ t('reports_page.no_reports.short') }}</div>
                         <ul v-else class="report-list">
                         <li v-for="savedReport in shortReports" :key="savedReport.id || savedReport.uuid" :class="{ active: expandedReportIds.has(savedReport.id || savedReport.uuid) }">
@@ -155,14 +146,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { marked } from 'marked';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import PaymentGate from '../components/PaymentGate.vue';
 
 const router = useRouter();
 const { t, locale } = useI18n();
-
-// Payment State
-const hasPaid = ref(false);
-const loading = ref(true);
 
 // Saved Reports State
 const savedReports = ref([]);
@@ -271,47 +257,7 @@ const marketReports = computed(() => {
     });
 });
 
-const checkPaymentStatus = async () => {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    router.push('/login');
-    return;
-  }
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/payment-status`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (response.ok) {
-      const status = await response.json();
-      hasPaid.value = status.has_paid || false;
-      // Fetch reports if user has paid
-      hasPaid.value = status.has_paid || false;
-      // Fetch reports
-      fetchReports();
-    } else if (response.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      router.push('/login');
-    }
-  } catch (error) {
-    console.error('Error checking payment status:', error);
-    // On error, deny access (fail closed for payment)
-    hasPaid.value = false;
-  } finally {
-    loading.value = false;
-  }
-};
-
 // Event handler functions
-const handlePaymentVerified = () => {
-  checkPaymentStatus();
-};
-
 const handleReportPublished = () => {
   fetchReports();
 };
@@ -321,11 +267,8 @@ const handleReportDeleted = () => {
 };
 
 onMounted(() => {
-  checkPaymentStatus();
-  
-  // Listen for payment verification events
-  window.addEventListener('payment-verified', handlePaymentVerified);
-  
+  fetchReports();
+
   // Listen for report published events to refetch reports
   window.addEventListener('report-published', handleReportPublished);
   
@@ -335,7 +278,6 @@ onMounted(() => {
 
 // Cleanup event listeners on unmount
 onUnmounted(() => {
-  window.removeEventListener('payment-verified', handlePaymentVerified);
   window.removeEventListener('report-published', handleReportPublished);
   window.removeEventListener('report-deleted', handleReportDeleted);
 });
@@ -719,35 +661,6 @@ const formatDate = (dateString) => {
   background: #fafafa;
   border: 1px dashed #e0e0e0;
   border-radius: 4px;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  gap: 1rem;
-}
-
-.loading-container p {
-  color: #666666;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #000000;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 </style>

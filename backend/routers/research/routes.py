@@ -3,10 +3,10 @@ Research Intelligence Layer - Data Interpretation Service
 Handles agent-based data interpretation using AI
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
-from routers.admin.auth import verify_premium_access, get_current_user, create_role_dependency
+from routers.admin.auth import get_current_user, create_role_dependency
 import models
 
-# Create role-specific access dependency (checks permissions only, not payment)
+# Create role-specific access dependency
 require_research_access = create_role_dependency('/research')
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List

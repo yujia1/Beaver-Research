@@ -12,18 +12,9 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, server_default="user", nullable=False)  # admin, creator, contributor, user
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)  # requires admin activation before login is allowed
     is_verified = Column(Boolean, default=False)
-    
-    # Payment / Stripe fields
-    has_paid = Column(Boolean, default=False, nullable=False)
-    payment_transaction_id = Column(String, nullable=True)
-    payment_date = Column(DateTime(timezone=True), nullable=True)
-    
-    stripe_customer_id = Column(String, nullable=True, index=True)
-    stripe_subscription_id = Column(String, nullable=True)
-    stripe_current_period_end = Column(DateTime(timezone=True), nullable=True)
-    
+
     # User Preferences & Metadata
     settings = Column(JSON, default={}, nullable=True)  # Theme, notifications, etc.
     last_login = Column(DateTime(timezone=True), nullable=True)
@@ -32,7 +23,6 @@ class User(Base):
 
     # Relationships
     reports = relationship("Report", back_populates="user", cascade="all, delete-orphan")
-    portfolio_positions = relationship("PortfolioPosition", back_populates="user", cascade="all, delete-orphan")
 
 
 class Report(Base):
@@ -54,25 +44,24 @@ class Report(Base):
 
 
 class PortfolioPosition(Base):
+    """
+    Single shared portfolio: one row per ticker, not per user. All admin/creator/
+    contributor/user roles view the same data; only admin/creator can write to it.
+    """
     __tablename__ = "portfolio_positions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    ticker = Column(String, index=True, nullable=False)
+    ticker = Column(String, unique=True, index=True, nullable=False)
     sector = Column(String, nullable=True)
-    
+
+    updated_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    user = relationship("User", back_populates="portfolio_positions")
+    updated_by = relationship("User", foreign_keys=[updated_by_user_id])
     lots = relationship("PortfolioLot", back_populates="position", cascade="all, delete-orphan")
     analysis = relationship("PositionAnalysis", back_populates="position", cascade="all, delete-orphan")
-
-    # Unique constraint: one position per ticker per user
-    __table_args__ = (
-        UniqueConstraint('user_id', 'ticker', name='uix_user_ticker_portfolio'),
-    )
 
 
 class PortfolioLot(Base):
@@ -80,17 +69,20 @@ class PortfolioLot(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     position_id = Column(Integer, ForeignKey("portfolio_positions.id"), nullable=False, index=True)
-    
+
     purchase_date = Column(String, nullable=False)  # ISO Date String YYYY-MM-DD
     quantity = Column(Integer, nullable=False)
     cost_per_share = Column(Float, nullable=False)
     side = Column(String, default="LONG")  # LONG or SHORT
     link = Column(String, nullable=True)
     note = Column(Text, nullable=True)
-    
+
+    updated_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     position = relationship("PortfolioPosition", back_populates="lots")
+    updated_by = relationship("User", foreign_keys=[updated_by_user_id])
 
 
 class PositionAnalysis(Base):
