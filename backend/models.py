@@ -13,7 +13,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, server_default="user", nullable=False)  # admin, creator, contributor, user
     is_active = Column(Boolean, default=False)  # requires admin activation before login is allowed
-    is_verified = Column(Boolean, default=False)
 
     # User Preferences & Metadata
     settings = Column(JSON, default={}, nullable=True)  # Theme, notifications, etc.
