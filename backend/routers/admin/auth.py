@@ -923,10 +923,20 @@ async def update_permission(
     try:
         db.commit()
         db.refresh(permission)
-        
-        # Invalidate cache for this role
-        redis_client.delete_cache(f"permissions:{permission_data.role}")
-        
+
+        # Invalidate cache for this role. delete_cache() swallows Redis errors and
+        # returns False on failure, so a transient blip here would otherwise leave
+        # a stale (pre-update) permissions list cached for up to the full TTL with
+        # no visible error. Retry once, and log loudly if it still fails.
+        cache_key = f"permissions:{permission_data.role}"
+        if not redis_client.delete_cache(cache_key) and not redis_client.delete_cache(cache_key):
+            import logging
+            logging.error(
+                f"Failed to invalidate cache '{cache_key}' after permission update "
+                f"(role={permission_data.role}, resource={permission_data.resource}). "
+                f"Stale permissions may be served until the cache TTL expires."
+            )
+
         return permission
     except Exception as e:
         db.rollback()

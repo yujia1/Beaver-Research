@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.6.0",
+    "axios": "^1.18.1",
     "chart.js": "^4.5.1",
     "html2pdf.js": "^0.12.1",
     "marked": "^17.0.1",
@@ -19,8 +20,7 @@
     "vue": "^3.5.24",
     "vue-chartjs": "^5.3.3",
     "vue-i18n": "^11.2.7",
-    "vue-router": "^4.6.3",
-    "axios": "^1.7.9"
+    "vue-router": "^4.6.3"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
