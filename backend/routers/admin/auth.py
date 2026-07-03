@@ -10,7 +10,7 @@ import os
 from database import get_db
 import models
 # Import services
-from services.email import send_reset_password_email, send_verification_email
+from services.email import send_reset_password_email
 
 router = APIRouter()
 
@@ -400,8 +400,7 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
             email=user_data.email,
             username=user_data.username,
             hashed_password=hashed_password,
-            role=user_data.role,
-            is_verified=False  
+            role=user_data.role
         )
         
         try:
@@ -426,32 +425,6 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Database error: {error_msg}"
             )
-        
-        
-        # Send verification email in background (non-blocking)
-        import asyncio
-        import logging
-        
-        async def send_email_background():
-            """Send verification email in background"""
-            try:
-                verification_token = create_email_token(
-                    data={"sub": db_user.username, "type": "verify_email"},
-                    expires_delta=timedelta(hours=24)
-                )
-                await asyncio.wait_for(
-                    send_verification_email(db_user.email, verification_token),
-                    timeout=10.0
-                )
-                logging.info(f"✅ Verification email sent to {db_user.email}")
-            except asyncio.TimeoutError:
-                logging.warning(f"⏱️ Verification email timed out for {db_user.email}")
-            except Exception as e:
-                logging.error(f"❌ Failed to send verification email to {db_user.email}: {str(e)}")
-        
-        # Fire and forget - don't wait for email to send
-        asyncio.create_task(send_email_background())
-        
         return db_user
     except HTTPException:
         # Re-raise HTTP exceptions as-is
@@ -501,13 +474,6 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        # Check if email is verified
-        if not user.is_verified:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Please verify your email address before logging in. Check your inbox for the verification link."
             )
         
         # Check if account is active (new signups require admin activation)
@@ -989,21 +955,4 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
         "access_token": access_token,
         "token_type": "bearer"
     }
-
-@router.get("/verify-email")
-def verify_email(token: str, db: Session = Depends(get_db)):
-    """Verify email address"""
-    payload = verify_email_token(token)
-    if not payload or payload.get("type") != "verify_email":
-        raise HTTPException(status_code=400, detail="Invalid or expired token")
-        
-    username = payload.get("sub")
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    user.is_verified = True
-    db.commit()
-    
-    return {"message": "Email verified successfully"}
 

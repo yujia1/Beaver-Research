@@ -57,13 +57,7 @@
         "updating": "Updating...",
         "click_to_login": "Click here to Login",
         "invalid_token": "Invalid reset link. No token provided.",
-        "missing_token": "Missing reset token.",
-        "verify_email_title": "Email Verification",
-        "verifying": "Verifying your email...",
-        "verify_success": "Your email has been successfully verified!",
-        "go_to_dashboard": "Go to Dashboard",
-        "verify_failed": "Verification failed. The link may be invalid or expired.",
-        "no_token": "No verification token provided."
+        "missing_token": "Missing reset token."
     },
     "common": {
         "loading": "Loading...",

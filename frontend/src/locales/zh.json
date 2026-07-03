@@ -57,13 +57,7 @@
         "updating": "更新中...",
         "click_to_login": "点击此处登录",
         "invalid_token": "无效的重置链接。未提供令牌。",
-        "missing_token": "缺少重置令牌。",
-        "verify_email_title": "邮箱验证",
-        "verifying": "正在验证您的邮箱...",
-        "verify_success": "您的邮箱已成功验证！",
-        "go_to_dashboard": "前往控制台",
-        "verify_failed": "验证失败。链接可能无效或已过期。",
-        "no_token": "未提供验证令牌。"
+        "missing_token": "缺少重置令牌。"
     },
     "common": {
         "loading": "加载中...",

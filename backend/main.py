@@ -111,7 +111,6 @@ def init_default_users():
                     email=user_data["email"],
                     hashed_password=hashed_password,
                     role=user_data["role"],
-                    is_verified=True,  # Default users are pre-verified
                     is_active=True  # Default users are pre-activated
                 )
                 db.add(new_user)
