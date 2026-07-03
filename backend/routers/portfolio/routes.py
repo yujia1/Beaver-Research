@@ -55,14 +55,7 @@ class PositionResponse(BaseModel):
     sector: Optional[str]
     currentPrice: float
     lots: List[LotResponse]
-    fundamentalAnalysis: Dict[str, str]
-    fundamentalScores: Dict[str, Optional[int]]
     updatedBy: Optional[str] = None
-
-class FundamentalAnalysisUpdate(BaseModel):
-    questionId: int
-    answer: Optional[str] = None
-    score: Optional[int] = None
 
 class TradingSignalRequest(BaseModel):
     ticker: str
@@ -186,7 +179,7 @@ async def fetch_realtime_prices(tickers: List[str]) -> dict:
 
 import models
 from database import get_db
-from models import PortfolioPosition, PortfolioLot, PositionAnalysis, User
+from models import PortfolioPosition, PortfolioLot, User
 
 
 async def require_portfolio_write_access(current_user: User = Depends(require_portfolio_access)):
@@ -208,7 +201,7 @@ async def get_positions(
     current_user: models.User = Depends(require_portfolio_access),
     db: Session = Depends(get_db)
 ):
-    """Get every position in the shared portfolio, with lots and fundamental analysis"""
+    """Get every position in the shared portfolio, with lots"""
     positions = db.query(PortfolioPosition).all()
 
     # Fetch real-time prices for all tickers in parallel
@@ -217,14 +210,6 @@ async def get_positions(
 
     result = []
     for pos in positions:
-        # Build fundamental analysis dict
-        fundamental_analysis = {}
-        fundamental_scores = {}
-        for analysis in pos.analysis:
-            fundamental_analysis[str(analysis.question_id)] = analysis.answer or ""
-            if analysis.score:
-                fundamental_scores[str(analysis.question_id)] = analysis.score
-
         current_ticker = pos.ticker.upper()
         current_price = realtime_prices.get(current_ticker, 0.0)
 
@@ -245,8 +230,6 @@ async def get_positions(
                 }
                 for lot in pos.lots
             ],
-            "fundamentalAnalysis": fundamental_analysis,
-            "fundamentalScores": fundamental_scores,
             "updatedBy": pos.updated_by.username if pos.updated_by else None
         })
 
@@ -409,51 +392,6 @@ def delete_lot(
             return {"message": "Lot and position deleted successfully"}
 
     return {"message": "Lot deleted successfully"}
-
-
-# Fundamental Analysis endpoints
-@router.put("/positions/{ticker}/analysis")
-def update_fundamental_analysis(
-    ticker: str,
-    analysis: FundamentalAnalysisUpdate,
-    current_user: User = Depends(require_portfolio_write_access),
-    db: Session = Depends(get_db)
-):
-    """Update fundamental analysis for a position in the shared portfolio"""
-    position = db.query(PortfolioPosition).filter(
-        PortfolioPosition.ticker == ticker
-    ).first()
-    if not position:
-        raise HTTPException(status_code=404, detail="Position not found")
-    
-    # Check if analysis for this question already exists
-    db_analysis = db.query(PositionAnalysis).filter(
-        PositionAnalysis.position_id == position.id,
-        PositionAnalysis.question_id == analysis.questionId
-    ).first()
-    
-    if db_analysis:
-        # Update existing
-        if analysis.answer is not None:
-            db_analysis.answer = analysis.answer
-        if analysis.score is not None:
-            db_analysis.score = analysis.score
-        db_analysis.updated_at = datetime.utcnow()
-    else:
-        # Create new
-        db_analysis = PositionAnalysis(
-            position_id=position.id,
-            question_id=analysis.questionId,
-            answer=analysis.answer,
-            score=analysis.score
-        )
-        db.add(db_analysis)
-
-    position.updated_by_user_id = current_user.id
-    db.commit()
-
-    return {"message": "Analysis updated successfully"}
-
 
 
 # Stock price endpoint (existing)

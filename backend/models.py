@@ -60,7 +60,6 @@ class PortfolioPosition(Base):
     # Relationships
     updated_by = relationship("User", foreign_keys=[updated_by_user_id])
     lots = relationship("PortfolioLot", back_populates="position", cascade="all, delete-orphan")
-    analysis = relationship("PositionAnalysis", back_populates="position", cascade="all, delete-orphan")
 
 
 class PortfolioLot(Base):
@@ -83,25 +82,6 @@ class PortfolioLot(Base):
     position = relationship("PortfolioPosition", back_populates="lots")
     updated_by = relationship("User", foreign_keys=[updated_by_user_id])
 
-
-class PositionAnalysis(Base):
-    __tablename__ = "position_analysis"
-
-    id = Column(Integer, primary_key=True, index=True)
-    position_id = Column(Integer, ForeignKey("portfolio_positions.id"), nullable=False, index=True)
-    
-    question_id = Column(Integer, nullable=False)
-    answer = Column(Text, nullable=True)
-    score = Column(Integer, nullable=True)
-    
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    position = relationship("PortfolioPosition", back_populates="analysis")
-    
-    __table_args__ = (
-        UniqueConstraint('position_id', 'question_id', name='uix_position_question'),
-    )
 
 
 class RolePermission(Base):
