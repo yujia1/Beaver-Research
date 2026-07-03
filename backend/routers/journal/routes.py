@@ -331,33 +331,31 @@ async def get_reports_from_minio(
                             # Extract metadata
                             parts = key.split('/')
                             if len(parts) >= 2:
-                                filename = parts[-1] 
-                                
+                                filename = parts[-1]
+
+                                # Skip S3 folder-placeholder objects (e.g. key "Short/" with an
+                                # empty filename) and any non-PDF object — only PDFs are real reports.
+                                if not filename or not filename.endswith('.pdf'):
+                                    continue
+
+                                filename_without_ext = filename[:-4]
                                 uuid_from_filename = filename
-                                if filename.endswith('.pdf'):
-                                    filename_without_ext = filename[:-4]
-                                    if len(filename_without_ext) > 36:
-                                        uuid_from_filename = filename_without_ext[-36:]
-                                
+                                if len(filename_without_ext) > 36:
+                                    uuid_from_filename = filename_without_ext[-36:]
+
                                 # Determine Ticker and Title
                                 if db_report:
                                     ticker = db_report.ticker
                                     title = db_report.title
                                 else:
-                                    # Fallback
-                                    if filename.endswith('.pdf'):
-                                        filename_without_ext = filename[:-4]
-                                        if len(filename_without_ext) > 36:
-                                            uuid_part = filename_without_ext[-36:]
-                                            name_part = filename_without_ext[:-37]
-                                            ticker = name_part if name_part else "UNKNOWN"
-                                            title = name_part
-                                        else:
-                                            ticker = "UNKNOWN"
-                                            title = filename_without_ext
+                                    # Fallback: parse from filename ({name}-{uuid}.pdf)
+                                    if len(filename_without_ext) > 36:
+                                        name_part = filename_without_ext[:-37]
+                                        ticker = name_part if name_part else "UNKNOWN"
+                                        title = name_part
                                     else:
                                         ticker = "UNKNOWN"
-                                        title = filename
+                                        title = filename_without_ext
                                 
                                 last_modified = obj.get('LastModified', datetime.utcnow())
                                 
